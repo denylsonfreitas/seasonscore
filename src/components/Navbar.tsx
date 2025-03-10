@@ -34,6 +34,7 @@ import {
   Gear,
   UserCircle,
   CaretDown,
+  Star,
 } from "@phosphor-icons/react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -125,6 +126,14 @@ export function Navbar() {
                 _hover={{ color: "teal.300" }}
               >
                 Recentes
+              </Link>
+              <Link
+                as={RouterLink}
+                to="/series/top10"
+                color="gray.300"
+                _hover={{ color: "teal.300" }}
+              >
+                Top 10
               </Link>
             </HStack>
           </HStack>
@@ -296,6 +305,19 @@ export function Navbar() {
               >
                 <ClockCounterClockwise weight="fill" />
                 Recentes
+              </Link>
+              <Link
+                as={RouterLink}
+                to="/series/top10"
+                color="gray.300"
+                _hover={{ color: "teal.300" }}
+                onClick={onClose}
+                display="flex"
+                alignItems="center"
+                gap={2}
+              >
+                <Star weight="fill" />
+                Top 10
               </Link>
 
               {currentUser ? (

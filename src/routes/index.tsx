@@ -8,6 +8,7 @@ import { Profile } from "../pages/Profile";
 import { StreamingPage } from "../pages/StreamingPage";
 import { PopularSeries } from "../pages/PopularSeries";
 import { RecentSeries } from "../pages/RecentSeries";
+import { TopRatedSeries } from "../pages/TopRatedSeries";
 import { useAuth } from "../contexts/AuthContext";
 import { Layout } from "../components/Layout";
 import { Settings } from "../pages/Settings";
@@ -55,6 +56,10 @@ export const routes = [
       {
         path: "/series/recent",
         element: <RecentSeries />,
+      },
+      {
+        path: "/series/top10",
+        element: <TopRatedSeries />,
       },
       {
         path: "/series/:id",

@@ -387,7 +387,7 @@ export function Profile() {
                               alt={(isOwnProfile ? currentUser?.favoriteSeries : profileUser?.favoriteSeries)?.name}
                               borderRadius="md"
                               height={{ base: "50px", md: "60px" }}
-                              width={{ base: "33px", md: "40px" }}
+                              width={{ base: "35px", md: "60px" }}
                               objectFit="cover"
                             />
                           </RouterLink>

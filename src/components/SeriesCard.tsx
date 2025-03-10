@@ -1,93 +1,151 @@
-import { Box, Image, Text, Flex, Icon, Badge, VStack, HStack } from "@chakra-ui/react";
-import { Star } from "@phosphor-icons/react";
-import { Link } from "react-router-dom";
+import {
+  Box,
+  Image,
+  Text,
+  VStack,
+  Badge,
+  LinkBox,
+  LinkOverlay,
+  Flex,
+} from "@chakra-ui/react";
+import { Link as RouterLink } from "react-router-dom";
 import { SeriesListItem } from "../services/tmdb";
-import { useQuery } from "@tanstack/react-query";
-import { getSeriesReviews } from "../services/reviews";
-import { WatchlistButton } from "./WatchlistButton";
+import { Star, Trophy } from "@phosphor-icons/react";
 
-export interface SeriesCardProps {
-  series: SeriesListItem;
+interface SeriesCardProps {
+  series: SeriesListItem & { rating?: number };
+  size?: "sm" | "md" | "lg";
+  position?: number;
 }
 
-export function SeriesCard({ series }: SeriesCardProps) {
-  const year = series.first_air_date
-    ? new Date(series.first_air_date).getFullYear()
-    : null;
+const sizeStyles = {
+  sm: {
+    container: { maxW: "200px" },
+    title: { fontSize: "md" },
+    overview: { fontSize: "xs" },
+    rating: { fontSize: "sm" },
+    badge: { fontSize: "md" },
+  },
+  md: {
+    container: { maxW: "250px" },
+    title: { fontSize: "lg" },
+    overview: { fontSize: "sm" },
+    rating: { fontSize: "md" },
+    badge: { fontSize: "lg" },
+  },
+  lg: {
+    container: { maxW: "300px" },
+    title: { fontSize: "xl" },
+    overview: { fontSize: "md" },
+    rating: { fontSize: "lg" },
+    badge: { fontSize: "xl" },
+  },
+};
 
-  const { data: reviews = [] } = useQuery({
-    queryKey: ["reviews", series.id],
-    queryFn: () => getSeriesReviews(series.id),
-  });
+const getBadgeStyle = (position: number) => {
+  switch (position) {
+    case 1:
+      return {
+        bg: "yellow.400",
+        color: "yellow.900",
+        icon: <Trophy weight="fill" />,
+      };
+    case 2:
+      return {
+        bg: "gray.100",
+        color: "gray.800",
+        icon: <Star weight="fill" />,
+      };
+    case 3:
+      return {
+        bg: "orange.200",
+        color: "orange.800",
+        icon: <Star weight="fill" />,
+      };
+    case 4:
+    case 5:
+      return {
+        bg: "gray.600",
+        color: "white",
+        icon: <Star weight="fill" />,
+      };
+    default:
+      return {
+        bg: "teal.500",
+        color: "white",
+        icon: null,
+      };
+  }
+};
 
-  // Calcula a média das avaliações de todas as temporadas
-  const averageRating =
-    reviews.length > 0
-      ? reviews.reduce((acc, review) => {
-          const seasonAverage =
-            review.seasonReviews.reduce((sum, sr) => sum + sr.rating, 0) /
-            review.seasonReviews.length;
-          return acc + seasonAverage;
-        }, 0) / reviews.length
-      : 0;
+export function SeriesCard({ series, size = "md", position }: SeriesCardProps) {
+  const styles = sizeStyles[size];
+  const badgeStyle = position ? getBadgeStyle(position) : null;
 
   return (
-    <Box
-      position="relative"
+    <LinkBox
+      as="article"
+      bg="gray.800"
       borderRadius="lg"
       overflow="hidden"
       transition="transform 0.2s"
-      _hover={{
-        transform: "scale(1.02)",
-        "& > .watchlist-button": {
-          opacity: 1,
-        },
-      }}
+      _hover={{ transform: "translateY(-4px)" }}
+      position="relative"
+      {...styles.container}
+      mx="auto"
     >
-      <Link to={`/series/${series.id}`}>
+      <Box position="relative">
         <Image
-          src={
-            series.poster_path
-              ? `https://image.tmdb.org/t/p/w500${series.poster_path}`
-              : "https://via.placeholder.com/500x750?text=Sem+Imagem"
-          }
+          src={`https://image.tmdb.org/t/p/w500${series.poster_path}`}
           alt={series.name}
           width="100%"
           height="auto"
         />
-        <Box
-          position="absolute"
-          bottom={0}
-          left={0}
-          right={0}
-          p={4}
-          background="linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)"
-        >
-          <Text color="white" fontWeight="bold" fontSize="lg" mb={2}>
+        {position && (
+          <Badge
+            position="absolute"
+            top={3}
+            left={3}
+            bg={badgeStyle?.bg}
+            color={badgeStyle?.color}
+            fontSize={styles.badge.fontSize}
+            p={2}
+            borderRadius="lg"
+            zIndex={1}
+          >
+            <Flex align="center" gap={2}>
+              {badgeStyle?.icon}
+              #{position}
+            </Flex>
+          </Badge>
+        )}
+      </Box>
+      
+      <VStack align="stretch" p={4} spacing={2}>
+        <LinkOverlay as={RouterLink} to={`/series/${series.id}`}>
+          <Text
+            color="white"
+            fontWeight="bold"
+            noOfLines={1}
+            {...styles.title}
+          >
             {series.name}
           </Text>
-          <HStack spacing={2}>
-            {year && (
-              <Badge colorScheme="teal">
-                {year}
-              </Badge>
-            )}
-            <Badge colorScheme="yellow">
-              {averageRating.toFixed(1)} ★
-            </Badge>
-          </HStack>
-        </Box>
-      </Link>
-      <Box
-        className="watchlist-button"
-        position="absolute"
-        top={2}
-        right={2}
-        opacity={0}
-        transition="opacity 0.2s"
-      >
-        <WatchlistButton series={series} />
-      </Box>
-    </Box>
+        </LinkOverlay>
+        
+        {series.rating && (
+          <Flex align="center" gap={1}>
+            <Star weight="fill" color="#F6E05E" size={size === "sm" ? 16 : size === "md" ? 20 : 24} />
+            <Text color="yellow.400" fontWeight="bold" {...styles.rating}>
+              {series.rating.toFixed(1)}
+            </Text>
+          </Flex>
+        )}
+        
+        <Text color="gray.400" noOfLines={2} {...styles.overview}>
+          {series.overview}
+        </Text>
+      </VStack>
+    </LinkBox>
   );
 }

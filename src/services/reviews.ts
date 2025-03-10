@@ -246,3 +246,45 @@ export async function getUserReviews(userId: string): Promise<SeriesReview[]> {
 
   return reviews;
 }
+
+export async function getTopRatedSeries(): Promise<SeriesReview[]> {
+  const reviewsRef = collection(db, "reviews");
+  const querySnapshot = await getDocs(reviewsRef);
+  
+  // Mapa para armazenar a média de avaliações por série
+  const seriesRatings: { [key: number]: { total: number; count: number; reviews: SeriesReview[] } } = {};
+
+  // Calcular a média das avaliações para cada série
+  querySnapshot.docs.forEach((doc) => {
+    const review = doc.data() as SeriesReview;
+    const seriesId = review.seriesId;
+
+    if (!seriesRatings[seriesId]) {
+      seriesRatings[seriesId] = { total: 0, count: 0, reviews: [] };
+    }
+
+    // Calcular a média das avaliações das temporadas
+    const seasonRatings = review.seasonReviews.map(sr => sr.rating);
+    const averageRating = seasonRatings.reduce((a, b) => a + b, 0) / seasonRatings.length;
+
+    seriesRatings[seriesId].total += averageRating;
+    seriesRatings[seriesId].count += 1;
+    seriesRatings[seriesId].reviews.push({
+      ...review,
+      id: doc.id
+    });
+  });
+
+  // Converter para array e ordenar por média de avaliação
+  const sortedSeries = Object.entries(seriesRatings)
+    .map(([seriesId, data]) => ({
+      seriesId: Number(seriesId),
+      averageRating: data.total / data.count,
+      reviews: data.reviews
+    }))
+    .sort((a, b) => b.averageRating - a.averageRating)
+    .slice(0, 10);
+
+  // Retornar as reviews das top 10 séries
+  return sortedSeries.flatMap(series => series.reviews);
+}

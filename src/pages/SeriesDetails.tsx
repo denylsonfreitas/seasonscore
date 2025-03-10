@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
   Container,
@@ -32,8 +32,9 @@ import {
   WrapItem,
   Link,
   Skeleton,
+  Stack,
 } from "@chakra-ui/react";
-import { Star, Heart, CaretDown, CaretUp, TelevisionSimple } from "@phosphor-icons/react";
+import { Star, Heart, CaretDown, CaretUp, TelevisionSimple, Calendar, PlayCircle } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { getSeriesDetails } from "../services/tmdb";
 import { ReviewSection } from "../components/ReviewSection";
@@ -60,6 +61,7 @@ export function SeriesDetails() {
   const [showAllSeasons, setShowAllSeasons] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState(1);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: series, isLoading } = useQuery({
     queryKey: ["series", id],
@@ -177,16 +179,45 @@ export function SeriesDetails() {
                 )}
               </Box>
 
-              <HStack spacing={4}>
-                <Text color="white">
-                  {series.number_of_seasons}{" "}
-                  {series.number_of_seasons === 1 ? "temporada" : "temporadas"}
-                </Text>
-                <Text color="white">
-                  Lançamento: {new Date(series.first_air_date).getFullYear()}
-                </Text>
+              <Stack 
+                direction="row"
+                spacing={6} 
+                align="center"
+                bg="gray.800" 
+                p={4} 
+                borderRadius="lg"
+                width="100%"
+                flexWrap={{ base: "wrap", md: "nowrap" }}
+                justify={{ base: "center", md: "flex-start" }}
+                gap={4}
+              >
+                <HStack spacing={3} width="auto">
+                  <Icon as={PlayCircle} color="teal.400" boxSize={5} weight="fill" />
+                  <VStack spacing={0} align="start">
+                    <Text color="gray.400" fontSize="sm">Temporadas</Text>
+                    <Text color="white" fontSize="lg" fontWeight="bold">
+                      {series.number_of_seasons}
+                    </Text>
+                  </VStack>
+                </HStack>
+
+                <Divider orientation="vertical"
+                        height="40px"
+                        borderColor="gray.600" />
+                
+                <HStack spacing={3} width="auto">
+                  <Icon as={Calendar} color="teal.400" boxSize={5} weight="fill" />
+                  <VStack spacing={0} align="start">
+                    <Text color="gray.400" fontSize="sm">Lançamento</Text>
+                    <Text color="white" fontSize="lg" fontWeight="bold">
+                      {new Date(series.first_air_date).getFullYear()}
+                    </Text>
+                  </VStack>
+                </HStack>
+
+                <Box flex={1} />
                 <WatchlistButton series={series} />
-              </HStack>
+              </Stack>
 
               <Wrap spacing={2}>
                 {series.genres.map((genre) => (
@@ -307,19 +338,29 @@ export function SeriesDetails() {
                                         </Box>
                                       ) : (
                                         <Box bg="gray.800" pt={2} borderRadius="lg">
-                                          <Button 
-                                            colorScheme="teal" 
-                                            onClick={() => {
-                                              setSelectedSeason(season);
-                                              onOpen();
-                                              queryClient.invalidateQueries({
-                                                queryKey: ["reviews", id],
-                                              });
-                                            }}
-                                            width="100%"
-                                          >
-                                            Avaliar Temporada {season}
-                                          </Button>
+                                          {currentUser ? (
+                                            <Button 
+                                              colorScheme="teal" 
+                                              onClick={() => {
+                                                setSelectedSeason(season);
+                                                onOpen();
+                                                queryClient.invalidateQueries({
+                                                  queryKey: ["reviews", id],
+                                                });
+                                              }}
+                                              width="100%"
+                                            >
+                                              Avaliar Temporada {season}
+                                            </Button>
+                                          ) : (
+                                            <Button
+                                              colorScheme="teal"
+                                              onClick={() => navigate("/login")}
+                                              width="100%"
+                                            >
+                                              Entrar para avaliar
+                                            </Button>
+                                          )}
                                         </Box>
                                       )}
 
@@ -679,9 +720,14 @@ export function SeriesDetails() {
           onClose={() => setExistingReview(null)}
           review={{
             ...existingReview,
+            id: existingReview.id,
+            userId: existingReview.userId,
+            userEmail: existingReview.userEmail,
+            seriesId: existingReview.seriesId,
+            seasonReviews: existingReview.seasonReviews,
             series: {
-              name: series.name,
-              poster_path: series.poster_path ?? '',
+              name: series?.name || '',
+              poster_path: series?.poster_path || '',
             },
           }}
           onReviewUpdated={() => {
