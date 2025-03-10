@@ -32,7 +32,7 @@ import { getSeriesDetails } from "../services/tmdb";
 import { SearchModal } from "../components/SearchModal";
 import { ExtendedUser } from "../types/auth";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
-import { Image as ImageIcon, UploadSimple, Plus } from "@phosphor-icons/react";
+import { Image as ImageIcon, UploadSimple, Plus, X } from "@phosphor-icons/react";
 import { auth } from "../config/firebase";
 
 export function ProfileSettings() {
@@ -149,24 +149,15 @@ export function ProfileSettings() {
       const updatedData: any = {
         displayName,
         description,
+        photoURL: tempPhotoURL !== null ? tempPhotoURL : currentUser.photoURL,
+        coverURL: tempCoverURL !== null ? tempCoverURL : currentUser.coverURL,
       };
 
       // Adiciona favoriteSeries apenas se não for nulo
       if (favoriteSeries) {
         updatedData.favoriteSeries = favoriteSeries;
-      } else if (tempPhotoURL === "") {
-        // Se favoriteSeries for nulo e estiver removendo a foto, define como null explicitamente
+      } else {
         updatedData.favoriteSeries = null;
-      }
-
-      // Adiciona photoURL apenas se houver uma mudança
-      if (tempPhotoURL !== null) {
-        updatedData.photoURL = tempPhotoURL || null;
-      }
-
-      // Adiciona coverURL apenas se houver uma mudança
-      if (tempCoverURL !== null) {
-        updatedData.coverURL = tempCoverURL || null;
       }
 
       // Primeiro atualizar o documento do usuário
@@ -175,7 +166,7 @@ export function ProfileSettings() {
       // Depois atualizar o perfil do usuário autenticado
       await updateProfile(auth.currentUser, {
         displayName,
-        ...(tempPhotoURL !== null && { photoURL: tempPhotoURL || null }),
+        photoURL: tempPhotoURL !== null ? tempPhotoURL : currentUser.photoURL,
       });
 
       toast({
@@ -280,19 +271,27 @@ export function ProfileSettings() {
                 <Box position="relative" width="fit-content" mx="auto">
                   <Avatar
                     size="2xl"
-                    src={tempPhotoURL || currentUser?.photoURL || undefined}
+                    src={(tempPhotoURL !== null ? tempPhotoURL : currentUser?.photoURL) || undefined}
                     name={currentUser?.displayName || ""}
                   />
-                  <Box position="absolute" bottom="0" right="0">
-                    <Menu placement="right">
+                  <Box 
+                    position="absolute" 
+                    bottom={-2} 
+                    right={-2}
+                    bg="gray.800"
+                    p={1}
+                    borderRadius="full"
+                  >
+                    <Menu placement="bottom-end" offset={[0, 4]}>
                       <MenuButton
                         as={IconButton}
                         icon={<Plus weight="bold" />}
                         size="sm"
                         colorScheme="teal"
                         rounded="full"
+                        aria-label="Opções de foto de perfil"
                       />
-                      <MenuList bg="gray.700" borderColor="gray.600">
+                      <MenuList bg="gray.700" borderColor="gray.600" zIndex={2000} minW="150px">
                         <MenuItem
                           icon={<UploadSimple weight="bold" />}
                           onClick={() => photoInputRef.current?.click()}
@@ -304,7 +303,7 @@ export function ProfileSettings() {
                         </MenuItem>
                         {(tempPhotoURL || currentUser?.photoURL) && (
                           <MenuItem
-                            icon={<CloseButton pointerEvents="none" />}
+                            icon={<X weight="bold" />}
                             onClick={handleRemoveProfilePhoto}
                             bg="gray.700"
                             _hover={{ bg: "gray.600" }}
@@ -335,25 +334,33 @@ export function ProfileSettings() {
                     overflow="hidden"
                     position="relative"
                   >
-                    {(tempCoverURL || currentUser?.coverURL) ? (
+                    {(tempCoverURL !== null ? tempCoverURL : currentUser?.coverURL) ? (
                       <>
                         <Image
-                          src={tempCoverURL || currentUser?.coverURL}
+                          src={tempCoverURL !== null ? tempCoverURL : currentUser?.coverURL}
                           alt="Foto de capa"
                           objectFit="cover"
                           w="100%"
                           h="100%"
                         />
-                        <Box position="absolute" top={2} right={2}>
-                          <Menu placement="left">
+                        <Box 
+                          position="absolute" 
+                          top={2} 
+                          right={2}
+                          bg="blackAlpha.600"
+                          p={1}
+                          borderRadius="full"
+                        >
+                          <Menu placement="bottom-end" offset={[0, 4]}>
                             <MenuButton
                               as={IconButton}
                               icon={<Plus weight="bold" />}
                               size="sm"
                               colorScheme="teal"
                               rounded="full"
+                              aria-label="Opções de foto de capa"
                             />
-                            <MenuList bg="gray.700" borderColor="gray.600">
+                            <MenuList bg="gray.700" borderColor="gray.600" zIndex={2000} minW="150px">
                               <MenuItem
                                 icon={<UploadSimple weight="bold" />}
                                 onClick={() => coverInputRef.current?.click()}
@@ -364,7 +371,7 @@ export function ProfileSettings() {
                                 Mudar capa
                               </MenuItem>
                               <MenuItem
-                                icon={<CloseButton pointerEvents="none" />}
+                                icon={<X weight="bold" />}
                                 onClick={handleRemoveCoverPhoto}
                                 bg="gray.700"
                                 _hover={{ bg: "gray.600" }}
@@ -446,7 +453,7 @@ export function ProfileSettings() {
                       <Text color="white" flex="1">{favoriteSeries.name}</Text>
                       <IconButton
                         aria-label="Remover série favorita"
-                        icon={<Box as={CloseButton} pointerEvents="none" />}
+                        icon={<X weight="bold" />}
                         size="sm"
                         colorScheme="red"
                         onClick={handleRemoveFavoriteSeries}

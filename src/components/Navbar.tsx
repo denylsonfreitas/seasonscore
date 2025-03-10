@@ -26,15 +26,13 @@ import {
   Divider,
 } from "@chakra-ui/react";
 import {
-  MagnifyingGlass,
   TelevisionSimple,
-  House,
-  User,
+  ClockCounterClockwise,
+  TrendUp,
   SignOut,
   List,
   Gear,
   UserCircle,
-  Bell,
   CaretDown,
 } from "@phosphor-icons/react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
@@ -46,7 +44,7 @@ export function Navbar() {
   const { currentUser, logout } = useAuth() as { currentUser: ExtendedUser | null, logout: () => Promise<void> };
   const navigate = useNavigate();
   const toast = useToast();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery] = useState("");
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const handleLogout = async () => {
@@ -283,7 +281,7 @@ export function Navbar() {
                 alignItems="center"
                 gap={2}
               >
-                <House weight="fill" />
+                <TrendUp weight="fill" />
                 Populares
               </Link>
               <Link
@@ -296,7 +294,7 @@ export function Navbar() {
                 alignItems="center"
                 gap={2}
               >
-                <TelevisionSimple weight="fill" />
+                <ClockCounterClockwise weight="fill" />
                 Recentes
               </Link>
 
@@ -329,6 +327,7 @@ export function Navbar() {
                     <Gear weight="fill" />
                     Configurações
                   </Link>
+                  <Divider borderColor="gray.600" />
                   <Button
                     onClick={() => {
                       handleLogout();
@@ -339,6 +338,7 @@ export function Navbar() {
                     justifyContent="flex-start"
                     leftIcon={<SignOut weight="fill" />}
                     _hover={{ bg: "gray.700" }}
+                    p={0}
                   >
                     Sair da Conta
                   </Button>

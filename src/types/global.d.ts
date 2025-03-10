@@ -16,4 +16,4 @@ export interface WatchlistItem {
     name: string;
     poster_path: string;
   };
-}
+} 
