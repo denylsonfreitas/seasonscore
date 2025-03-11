@@ -8,8 +8,9 @@ export function Footer() {
         <VStack spacing={4}>
           <HStack spacing={6} justify="center">
             <Link
-              href="https://github.com/seu-usuario"
-              isExternal
+              href="https://github.com/denylsonfreitas"
+              target="_blank"
+              rel="noopener noreferrer"
               color="gray.400"
               _hover={{ color: "white" }}
             >
@@ -19,8 +20,9 @@ export function Footer() {
               </HStack>
             </Link>
             <Link
-              href="https://linkedin.com/in/seu-usuario"
-              isExternal
+              href="https://linkedin.com/in/denylsonfreitas"
+              target="_blank"
+              rel="noopener noreferrer"
               color="gray.400"
               _hover={{ color: "white" }}
             >
