@@ -7,10 +7,12 @@ import {
   LinkBox,
   LinkOverlay,
   Flex,
+  Center,
+  Icon,
 } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
 import { SeriesListItem } from "../services/tmdb";
-import { Star, Trophy } from "@phosphor-icons/react";
+import { Star, Trophy, TelevisionSimple } from "@phosphor-icons/react";
 
 interface SeriesCardProps {
   series: SeriesListItem & { rating?: number };
@@ -94,13 +96,34 @@ export function SeriesCard({ series, size = "md", position }: SeriesCardProps) {
       {...styles.container}
       mx="auto"
     >
-      <Box position="relative">
-        <Image
-          src={`https://image.tmdb.org/t/p/w500${series.poster_path}`}
-          alt={series.name}
-          width="100%"
-          height="auto"
-        />
+      <Box position="relative" bg="gray.700">
+        {series.poster_path ? (
+          <Image
+            src={`https://image.tmdb.org/t/p/w500${series.poster_path}`}
+            alt={series.name}
+            width="100%"
+            height="auto"
+            fallback={
+              <Center py={20}>
+                <VStack spacing={4}>
+                  <Icon as={TelevisionSimple} boxSize={12} color="gray.500" weight="thin" />
+                  <Text color="gray.500" fontSize="sm" textAlign="center">
+                    Imagem não disponível
+                  </Text>
+                </VStack>
+              </Center>
+            }
+          />
+        ) : (
+          <Center py={20}>
+            <VStack spacing={4}>
+              <Icon as={TelevisionSimple} boxSize={12} color="gray.500" weight="thin" />
+              <Text color="gray.500" fontSize="sm" textAlign="center">
+                Imagem não disponível
+              </Text>
+            </VStack>
+          </Center>
+        )}
         {position && (
           <Badge
             position="absolute"
@@ -143,7 +166,7 @@ export function SeriesCard({ series, size = "md", position }: SeriesCardProps) {
         )}
         
         <Text color="gray.400" noOfLines={2} {...styles.overview}>
-          {series.overview}
+          {series.overview || "Nenhuma descrição disponível para esta série no momento."}
         </Text>
       </VStack>
     </LinkBox>

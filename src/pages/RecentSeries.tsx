@@ -24,7 +24,7 @@ export function RecentSeries() {
       <Box flex="1" pt="80px">
         <Container maxW="1200px" py={8} pb={16}>
           <Heading color="white" size="2xl" mb={8}>
-            Lançamentos Recentes
+            Novidades
           </Heading>
 
           <SeriesGrid

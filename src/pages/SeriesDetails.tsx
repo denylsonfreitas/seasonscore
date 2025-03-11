@@ -36,7 +36,7 @@ import {
 } from "@chakra-ui/react";
 import { Star, Heart, CaretDown, CaretUp, TelevisionSimple, Calendar, PlayCircle } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { getSeriesDetails } from "../services/tmdb";
+import { getSeriesDetails, getRelatedSeries } from "../services/tmdb";
 import { ReviewSection } from "../components/ReviewSection";
 import { RatingStars } from "../components/RatingStars";
 import { ReviewModal } from "../components/ReviewModal";
@@ -50,6 +50,10 @@ import { SeriesReview, getSeriesReviews } from "../services/reviews";
 import { Footer } from "../components/Footer";
 import { WatchlistButton } from "../components/WatchlistButton";
 import { UserReview } from "../components/UserReview";
+import { SeriesCard } from "../components/SeriesCard";
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 
 export function SeriesDetails() {
   const { id } = useParams<{ id: string }>();
@@ -62,6 +66,7 @@ export function SeriesDetails() {
   const [selectedSeason, setSelectedSeason] = useState(1);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [showAllRelated, setShowAllRelated] = useState(false);
 
   const { data: series, isLoading } = useQuery({
     queryKey: ["series", id],
@@ -71,6 +76,11 @@ export function SeriesDetails() {
   const { data: reviews = [] } = useQuery({
     queryKey: ["reviews", id],
     queryFn: () => getSeriesReviews(Number(id)),
+  });
+
+  const { data: relatedSeries, isLoading: isLoadingRelated } = useQuery({
+    queryKey: ["related-series", id],
+    queryFn: () => getRelatedSeries(Number(id)),
   });
 
   // Buscar avaliação do usuário atual
@@ -697,6 +707,60 @@ export function SeriesDetails() {
               </Box>
             </VStack>
           </SimpleGrid>
+        </Container>
+
+        {/* Séries Relacionadas */}
+        <Container maxW="1200px" pb={16}>
+          <Heading color="white" size="xl" mb={8}>
+            Séries Relacionadas
+          </Heading>
+
+          <Box>
+            {isLoadingRelated ? (
+              <SimpleGrid columns={{ base: 2, md: 3, lg: 6 }} spacing={6}>
+                {[...Array(6)].map((_, i) => (
+                  <Box key={i}>
+                    <Skeleton height="300px" borderRadius="lg" />
+                  </Box>
+                ))}
+              </SimpleGrid>
+            ) : relatedSeries?.results && relatedSeries.results.length > 0 ? (
+              <>
+                <SimpleGrid columns={{ base: 2, md: 3, lg: 6 }} spacing={6}>
+                  {relatedSeries.results
+                    .filter(relatedSeries => relatedSeries.id !== Number(id))
+                    .slice(0, showAllRelated ? undefined : 6)
+                    .map((series) => (
+                      <Box key={series.id}>
+                        <SeriesCard
+                          series={series}
+                          size="sm"
+                        />
+                      </Box>
+                    ))}
+                </SimpleGrid>
+                {relatedSeries.results.length > 6 && (
+                  <Button
+                    variant="ghost"
+                    color="teal.400"
+                    onClick={() => setShowAllRelated(!showAllRelated)}
+                    rightIcon={showAllRelated ? <CaretUp /> : <CaretDown />}
+                    mt={6}
+                    mx="auto"
+                    display="block"
+                  >
+                    {showAllRelated 
+                      ? "Ver menos" 
+                      : `Ver mais (${relatedSeries.results.length - 6} séries)`}
+                  </Button>
+                )}
+              </>
+            ) : (
+              <Text color="gray.400" textAlign="center">
+                Não foram encontradas séries relacionadas.
+              </Text>
+            )}
+          </Box>
         </Container>
       </Box>
 

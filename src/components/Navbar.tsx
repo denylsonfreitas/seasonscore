@@ -28,13 +28,12 @@ import {
 } from "@chakra-ui/react";
 import {
   TelevisionSimple,
-  ClockCounterClockwise,
+  Confetti,
   TrendUp,
   SignOut,
   List,
   Gear,
   UserCircle,
-  CaretDown,
   Star,
 } from "@phosphor-icons/react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
@@ -130,7 +129,7 @@ export function Navbar() {
                 color="gray.300"
                 _hover={{ color: "brand.200" }}
               >
-                Recentes
+                Novidades
               </Link>
               <Link
                 as={RouterLink}
@@ -295,8 +294,8 @@ export function Navbar() {
                 alignItems="center"
                 gap={2}
               >
-                <ClockCounterClockwise weight="fill" color="currentColor" />
-                Recentes
+                <Confetti weight="fill" color="currentColor" />
+                Novidades
               </Link>
               <Link
                 as={RouterLink}
