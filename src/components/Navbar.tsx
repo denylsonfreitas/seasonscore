@@ -205,7 +205,7 @@ export function Navbar() {
               </Menu>
             ) : (
               <HStack spacing={4}>
-                <Button as={RouterLink} to="/signup" variant="ghost">
+                <Button as={RouterLink} to="/signup" variant="solid">
                   Criar Conta
                 </Button>
                 <Button as={RouterLink} to="/login" variant="solid">
@@ -356,7 +356,7 @@ export function Navbar() {
                   <Button
                     as={RouterLink}
                     to="/signup"
-                    variant="ghost"
+                    variant="solid"
                     onClick={onClose}
                   >
                     Criar Conta
