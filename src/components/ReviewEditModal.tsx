@@ -35,6 +35,7 @@ interface ReviewEditModalProps {
     };
   };
   onReviewUpdated: () => void;
+  initialSeasonNumber?: number;
 }
 
 export function ReviewEditModal({
@@ -42,14 +43,16 @@ export function ReviewEditModal({
   onClose,
   review,
   onReviewUpdated,
+  initialSeasonNumber,
 }: ReviewEditModalProps) {
-  const [rating, setRating] = useState(review.seasonReviews?.[0]?.rating || 0);
-  const [comment, setComment] = useState(
-    review.seasonReviews?.[0]?.comment || ""
-  );
-  const [seasonNumber, setSeasonNumber] = useState(
-    review.seasonReviews?.[0]?.seasonNumber || 1
-  );
+  // Encontrar a avaliação da temporada inicial
+  const initialSeasonReview = initialSeasonNumber
+    ? review.seasonReviews.find(sr => sr.seasonNumber === initialSeasonNumber)
+    : review.seasonReviews[0];
+
+  const [rating, setRating] = useState(initialSeasonReview?.rating || 0);
+  const [comment, setComment] = useState(initialSeasonReview?.comment || "");
+  const [seasonNumber, setSeasonNumber] = useState(initialSeasonReview?.seasonNumber || 1);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -161,8 +164,9 @@ export function ReviewEditModal({
                 <FormLabel color="white">Nota</FormLabel>
                 <RatingStars
                   rating={rating}
+                  onChange={setRating}
+                  size={40}
                   isEditable
-                  onChange={(newRating) => setRating(newRating)}
                 />
               </FormControl>
               <FormControl>

@@ -11,13 +11,14 @@ import {
   Badge,
   Grid,
   GridItem,
+  Icon,
 } from "@chakra-ui/react";
 import { useQuery } from "@tanstack/react-query";
 import { getTopRatedSeries } from "../services/reviews";
 import { getSeriesDetails } from "../services/tmdb";
 import { SeriesCard } from "../components/SeriesCard";
 import { Footer } from "../components/Footer";
-import { Star, Trophy } from "@phosphor-icons/react";
+import { Star, Trophy, TelevisionSimple } from "@phosphor-icons/react";
 
 interface TopRatedSeries {
   id: number;
@@ -62,6 +63,7 @@ export function TopRatedSeries() {
           id: seriesId,
           averageRating: data.total / data.count,
         }))
+        .filter(series => series.averageRating >= 3)
         .sort((a, b) => b.averageRating - a.averageRating)
         .slice(0, 10);
 
@@ -109,115 +111,154 @@ export function TopRatedSeries() {
           </Text>
         </Box>
 
-        {topSeries && topSeries.length > 0 && (
+        {!topSeries || topSeries.length === 0 ? (
+          <Flex 
+            direction="column" 
+            align="center" 
+            justify="center" 
+            minH="60vh"
+            textAlign="center"
+            p={8}
+          >
+            <Icon as={TelevisionSimple} color="gray.500" boxSize={16} mb={4} />
+            <Heading color="gray.500" size="lg" mb={2}>
+              Nenhuma série avaliada ainda
+            </Heading>
+            <Text color="gray.400">
+              Seja o primeiro a avaliar uma série! Apenas séries com nota 3 ou superior aparecem no ranking.
+            </Text>
+          </Flex>
+        ) : (
           <>
             {/* Pódio Top 5 */}
-            <Grid
-              templateColumns={{ 
-                base: "1fr",
-                md: "repeat(5, 1fr)"
-              }}
-              gap={{ base: 6, md: 4 }}
-              position="relative"
-              my={12}
-            >
-              {/* Quarto Lugar */}
-              <GridItem
-                order={{ base: 4, md: 1 }}
-                alignSelf={{ base: "start", md: "center" }}
-                mt={{ base: 0, md: 8 }}
+            {topSeries.length >= 3 ? (
+              <Grid
+                templateColumns={{ 
+                  base: "1fr",
+                  md: `repeat(${Math.min(topSeries.length, 5)}, 1fr)`
+                }}
+                gap={{ base: 6, md: 4 }}
+                position="relative"
+                my={12}
               >
-                <SeriesCard
-                  series={{
-                    ...topSeries[3],
-                    rating: topSeries[3].averageRating,
-                  }}
-                  size="sm"
-                  position={4}
-                />
-              </GridItem>
+                {/* Quarto Lugar */}
+                {topSeries.length >= 4 && (
+                  <GridItem
+                    order={{ base: 4, md: 1 }}
+                    alignSelf={{ base: "start", md: "center" }}
+                    mt={{ base: 0, md: 8 }}
+                  >
+                    <SeriesCard
+                      series={{
+                        ...topSeries[3],
+                        rating: topSeries[3].averageRating,
+                      }}
+                      size="sm"
+                      position={4}
+                    />
+                  </GridItem>
+                )}
 
-              {/* Segundo Lugar */}
-              <GridItem
-                order={{ base: 2, md: 2 }}
-                alignSelf={{ base: "start", md: "end" }}
-                transform={{ base: "none", md: "translateY(-20px)" }}
-              >
-                <SeriesCard
-                  series={{
-                    ...topSeries[1],
-                    rating: topSeries[1].averageRating,
-                  }}
-                  size="md"
-                  position={2}
-                />
-              </GridItem>
+                {/* Segundo Lugar */}
+                <GridItem
+                  order={{ base: 2, md: topSeries.length >= 4 ? 2 : 1 }}
+                  alignSelf={{ base: "start", md: "end" }}
+                  transform={{ base: "none", md: "translateY(-20px)" }}
+                >
+                  <SeriesCard
+                    series={{
+                      ...topSeries[1],
+                      rating: topSeries[1].averageRating,
+                    }}
+                    size="md"
+                    position={2}
+                  />
+                </GridItem>
 
-              {/* Primeiro Lugar */}
-              <GridItem
-                order={{ base: 1, md: 3 }}
-                transform={{ base: "none", md: "translateY(-40px)" }}
-              >
-                <SeriesCard
-                  series={{
-                    ...topSeries[0],
-                    rating: topSeries[0].averageRating,
-                  }}
-                  size="lg"
-                  position={1}
-                />
-              </GridItem>
+                {/* Primeiro Lugar */}
+                <GridItem
+                  order={{ base: 1, md: topSeries.length >= 4 ? 3 : 2 }}
+                  transform={{ base: "none", md: "translateY(-40px)" }}
+                >
+                  <SeriesCard
+                    series={{
+                      ...topSeries[0],
+                      rating: topSeries[0].averageRating,
+                    }}
+                    size="lg"
+                    position={1}
+                  />
+                </GridItem>
 
-              {/* Terceiro Lugar */}
-              <GridItem
-                order={{ base: 3, md: 4 }}
-                alignSelf={{ base: "start", md: "end" }}
-                transform={{ base: "none", md: "translateY(-20px)" }}
-              >
-                <SeriesCard
-                  series={{
-                    ...topSeries[2],
-                    rating: topSeries[2].averageRating,
-                  }}
-                  size="md"
-                  position={3}
-                />
-              </GridItem>
+                {/* Terceiro Lugar */}
+                <GridItem
+                  order={{ base: 3, md: topSeries.length >= 4 ? 4 : 3 }}
+                  alignSelf={{ base: "start", md: "end" }}
+                  transform={{ base: "none", md: "translateY(-20px)" }}
+                >
+                  <SeriesCard
+                    series={{
+                      ...topSeries[2],
+                      rating: topSeries[2].averageRating,
+                    }}
+                    size="md"
+                    position={3}
+                  />
+                </GridItem>
 
-              {/* Quinto Lugar */}
-              <GridItem
-                order={{ base: 5, md: 5 }}
-                alignSelf={{ base: "start", md: "center" }}
-                mt={{ base: 0, md: 8 }}
-              >
-                <SeriesCard
-                  series={{
-                    ...topSeries[4],
-                    rating: topSeries[4].averageRating,
-                  }}
-                  size="sm"
-                  position={5}
-                />
-              </GridItem>
-            </Grid>
+                {/* Quinto Lugar */}
+                {topSeries.length >= 5 && (
+                  <GridItem
+                    order={{ base: 5, md: 5 }}
+                    alignSelf={{ base: "start", md: "center" }}
+                    mt={{ base: 0, md: 8 }}
+                  >
+                    <SeriesCard
+                      series={{
+                        ...topSeries[4],
+                        rating: topSeries[4].averageRating,
+                      }}
+                      size="sm"
+                      position={5}
+                    />
+                  </GridItem>
+                )}
+              </Grid>
+            ) : (
+              <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={6} my={12}>
+                {topSeries.map((series, index) => (
+                  <SeriesCard
+                    key={series.id}
+                    series={{
+                      ...series,
+                      rating: series.averageRating,
+                    }}
+                    size="md"
+                    position={index + 1}
+                  />
+                ))}
+              </SimpleGrid>
+            )}
 
             {/* Restante do Top 10 */}
-            <SimpleGrid 
-              columns={{ base: 2, sm: 3, md: 4, lg: 5 }} 
-              spacing={4}
-            >
-              {topSeries.slice(5).map((series, index) => (
-                <SeriesCard
-                  key={series.id}
-                  series={{
-                    ...series,
-                    rating: series.averageRating,
-                  }}
-                  size="sm"
-                  position={index + 6}
-                />
-              ))}
-            </SimpleGrid>
+            {topSeries.length > 5 && (
+              <SimpleGrid 
+                columns={{ base: 2, sm: 3, md: 4, lg: 5 }} 
+                spacing={4}
+              >
+                {topSeries.slice(5).map((series, index) => (
+                  <SeriesCard
+                    key={series.id}
+                    series={{
+                      ...series,
+                      rating: series.averageRating,
+                    }}
+                    size="sm"
+                    position={index + 6}
+                  />
+                ))}
+              </SimpleGrid>
+            )}
           </>
         )}
       </Container>

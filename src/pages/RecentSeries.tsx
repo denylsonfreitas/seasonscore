@@ -1,8 +1,10 @@
 import { Box, Container, Heading, Flex } from "@chakra-ui/react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueries } from "@tanstack/react-query";
 import { getAiringTodaySeries } from "../services/tmdb";
 import { SeriesGrid } from "../components/SeriesGrid";
 import { Footer } from "../components/Footer";
+import { getSeriesReviews } from "../services/reviews";
+import { useMemo } from "react";
 
 export function RecentSeries() {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
@@ -19,6 +21,32 @@ export function RecentSeries() {
 
   const allSeries = data?.pages.flatMap((page) => page.results) ?? [];
 
+  // Buscar avaliações para todas as séries
+  const seriesReviewsQueries = useQueries({
+    queries: allSeries.map(series => ({
+      queryKey: ['series-reviews', series.id],
+      queryFn: async () => {
+        const reviews = await getSeriesReviews(series.id);
+        if (reviews.length > 0) {
+          const allRatings = reviews.flatMap(review => 
+            review.seasonReviews.map(sr => sr.rating)
+          );
+          return allRatings.reduce((a, b) => a + b, 0) / allRatings.length;
+        }
+        return null;
+      },
+      staleTime: 1000 * 60 * 5, // 5 minutos
+    }))
+  });
+
+  // Mapear as avaliações para as séries
+  const seriesWithRatings = useMemo(() => {
+    return allSeries.map((series, index) => ({
+      ...series,
+      rating: seriesReviewsQueries[index].data ?? undefined
+    }));
+  }, [allSeries, seriesReviewsQueries]);
+
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
       <Box flex="1" pt="80px">
@@ -28,7 +56,7 @@ export function RecentSeries() {
           </Heading>
 
           <SeriesGrid
-            series={allSeries}
+            series={seriesWithRatings}
             isLoading={isLoading}
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}

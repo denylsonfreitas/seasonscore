@@ -93,6 +93,17 @@ export function ReviewModal({
       return;
     }
 
+    if (rating < 0.5 || rating > 5 || (rating * 2) % 1 !== 0) {
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione uma nota válida (0.5 a 5, apenas incrementos de 0.5)",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await addSeasonReview(seriesId, selectedSeason, rating, comment);
@@ -147,7 +158,12 @@ export function ReviewModal({
 
             <Box>
               <Text color="gray.400" mb={2}>Sua avaliação:</Text>
-              <RatingStars rating={rating} onRatingChange={setRating} isEditable />
+              <RatingStars
+                rating={rating}
+                onChange={setRating}
+                size={40}
+                isEditable
+              />
             </Box>
 
             <Box>

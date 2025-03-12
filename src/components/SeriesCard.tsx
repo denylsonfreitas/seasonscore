@@ -13,6 +13,7 @@ import {
 import { Link as RouterLink } from "react-router-dom";
 import { SeriesListItem } from "../services/tmdb";
 import { Star, Trophy, TelevisionSimple } from "@phosphor-icons/react";
+import { WatchlistButton } from "./WatchlistButton";
 
 interface SeriesCardProps {
   series: SeriesListItem & { rating?: number };
@@ -27,6 +28,11 @@ const sizeStyles = {
     overview: { fontSize: "xs" },
     rating: { fontSize: "sm" },
     badge: { fontSize: "md" },
+    ratingBox: { 
+      p: 2,
+      minW: "45px",
+      height: "45px",
+    },
   },
   md: {
     container: { maxW: "250px" },
@@ -34,6 +40,11 @@ const sizeStyles = {
     overview: { fontSize: "sm" },
     rating: { fontSize: "md" },
     badge: { fontSize: "lg" },
+    ratingBox: { 
+      p: 2,
+      minW: "50px",
+      height: "50px",
+    },
   },
   lg: {
     container: { maxW: "300px" },
@@ -41,6 +52,11 @@ const sizeStyles = {
     overview: { fontSize: "md" },
     rating: { fontSize: "lg" },
     badge: { fontSize: "xl" },
+    ratingBox: { 
+      p: 2,
+      minW: "55px",
+      height: "55px",
+    },
   },
 };
 
@@ -95,6 +111,7 @@ export function SeriesCard({ series, size = "md", position }: SeriesCardProps) {
       position="relative"
       {...styles.container}
       mx="auto"
+      role="group"
     >
       <Box position="relative" bg="gray.700">
         {series.poster_path ? (
@@ -124,6 +141,8 @@ export function SeriesCard({ series, size = "md", position }: SeriesCardProps) {
             </VStack>
           </Center>
         )}
+
+        {/* Posição (se existir) */}
         {position && (
           <Badge
             position="absolute"
@@ -142,6 +161,37 @@ export function SeriesCard({ series, size = "md", position }: SeriesCardProps) {
             </Flex>
           </Badge>
         )}
+
+        {/* Botão de Watchlist */}
+        <Box
+          position="absolute"
+          top={3}
+          right={3}
+          opacity={0}
+          _groupHover={{ opacity: 1 }}
+          transition="opacity 0.2s"
+          zIndex={1}
+          onClick={(e) => e.preventDefault()}
+        >
+          <WatchlistButton series={series} variant="ghost" size={size === "sm" ? "sm" : "md"} />
+        </Box>
+
+        {/* Nota do SeasonScore */}
+        {series.rating && (
+          <Badge
+            position="absolute"
+            bottom={3}
+            left={3}
+            colorScheme="yellow"
+            fontSize="xs"
+            py={0.5}
+            px={1.5}
+            borderRadius="md"
+            zIndex={1}
+          >
+            {series.rating.toFixed(1)} ★
+          </Badge>
+        )}
       </Box>
       
       <VStack align="stretch" p={4} spacing={2}>
@@ -155,15 +205,6 @@ export function SeriesCard({ series, size = "md", position }: SeriesCardProps) {
             {series.name}
           </Text>
         </LinkOverlay>
-        
-        {series.rating && (
-          <Flex align="center" gap={1}>
-            <Star weight="fill" color="#F6E05E" size={size === "sm" ? 16 : size === "md" ? 20 : 24} />
-            <Text color="yellow.400" fontWeight="bold" {...styles.rating}>
-              {series.rating.toFixed(1)}
-            </Text>
-          </Flex>
-        )}
         
         <Text color="gray.400" noOfLines={2} {...styles.overview}>
           {series.overview || "Nenhuma descrição disponível para esta série no momento."}

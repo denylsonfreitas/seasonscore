@@ -12,6 +12,7 @@ import { SeriesResponse } from "../services/tmdb";
 import { useQuery } from "@tanstack/react-query";
 import { CaretRight } from "@phosphor-icons/react";
 import { Link as RouterLink } from "react-router-dom";
+import { getSeriesReviews } from "../services/reviews";
 
 interface HomeSectionProps {
   title: string;
@@ -30,6 +31,40 @@ export function HomeSeriesSection({
     queryKey,
     queryFn,
     staleTime: 1000 * 60 * 5, // 5 minutos
+  });
+
+  // Buscar as avaliações para cada série
+  const { data: allReviews = {} } = useQuery({
+    queryKey: ["all-reviews"],
+    queryFn: async () => {
+      if (!data?.results) return {};
+      
+      const reviewsMap: { [key: number]: number } = {};
+      
+      await Promise.all(
+        data.results.map(async (series) => {
+          try {
+            const reviews = await getSeriesReviews(series.id);
+            if (reviews.length > 0) {
+              // Calcular a média das avaliações
+              const allRatings = reviews.flatMap(review => 
+                review.seasonReviews.map(sr => sr.rating)
+              );
+              
+              if (allRatings.length > 0) {
+                reviewsMap[series.id] = 
+                  allRatings.reduce((a, b) => a + b, 0) / allRatings.length;
+              }
+            }
+          } catch (error) {
+            console.error(`Erro ao buscar avaliações para série ${series.id}:`, error);
+          }
+        })
+      );
+      
+      return reviewsMap;
+    },
+    enabled: !!data?.results,
   });
 
   if (isLoading) {
@@ -73,7 +108,13 @@ export function HomeSeriesSection({
       </Flex>
       <SimpleGrid columns={{ base: 2, md: 3, lg: 5 }} spacing={6}>
         {data.results.slice(0, 5).map((series) => (
-          <SeriesCard key={series.id} series={series} />
+          <SeriesCard 
+            key={series.id} 
+            series={{
+              ...series,
+              rating: allReviews[series.id]
+            }}
+          />
         ))}
       </SimpleGrid>
     </Box>

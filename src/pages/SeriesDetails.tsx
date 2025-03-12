@@ -33,6 +33,13 @@ import {
   Link,
   Skeleton,
   Stack,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
+  useToast,
 } from "@chakra-ui/react";
 import { Star, Heart, CaretDown, CaretUp, TelevisionSimple, Calendar, PlayCircle } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
@@ -44,9 +51,9 @@ import { ReviewEditModal } from "../components/ReviewEditModal";
 import { useAuth } from "../contexts/AuthContext";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../config/firebase";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { SeriesReview, getSeriesReviews } from "../services/reviews";
+import { SeriesReview, getSeriesReviews, deleteReview } from "../services/reviews";
 import { Footer } from "../components/Footer";
 import { WatchlistButton } from "../components/WatchlistButton";
 import { UserReview } from "../components/UserReview";
@@ -64,9 +71,13 @@ export function SeriesDetails() {
   const [showAllCast, setShowAllCast] = useState(false);
   const [showAllSeasons, setShowAllSeasons] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState(1);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [seasonToDelete, setSeasonToDelete] = useState<number | null>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [showAllRelated, setShowAllRelated] = useState(false);
+  const toast = useToast();
 
   const { data: series, isLoading } = useQuery({
     queryKey: ["series", id],
@@ -87,6 +98,33 @@ export function SeriesDetails() {
   const userReview = reviews.find(
     (review) => review.userId === currentUser?.uid
   );
+
+  const handleDeleteReview = async () => {
+    if (!userReview || seasonToDelete === null) return;
+
+    try {
+      await deleteReview(userReview.id!, seasonToDelete);
+      queryClient.invalidateQueries({ queryKey: ["reviews", id] });
+      toast({
+        title: "Avaliação excluída",
+        description: "Sua avaliação foi excluída com sucesso!",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao excluir",
+        description: "Ocorreu um erro ao excluir sua avaliação.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsDeleteAlertOpen(false);
+      setSeasonToDelete(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -319,13 +357,29 @@ export function SeriesDetails() {
                                             <Text color="white" fontWeight="bold">
                                               Sua avaliação
                                             </Text>
-                                            <Button
-                                              size="sm"
-                                              colorScheme="teal"
-                                              onClick={() => setExistingReview(userReview)}
-                                            >
-                                              Editar
-                                            </Button>
+                                            <HStack spacing={2}>
+                                              <Button
+                                                size="sm"
+                                                colorScheme="red"
+                                                variant="ghost"
+                                                onClick={() => {
+                                                  setSeasonToDelete(season);
+                                                  setIsDeleteAlertOpen(true);
+                                                }}
+                                              >
+                                                Excluir
+                                              </Button>
+                                              <Button
+                                                size="sm"
+                                                colorScheme="teal"
+                                                onClick={() => {
+                                                  setSelectedSeason(season);
+                                                  setExistingReview(userReview);
+                                                }}
+                                              >
+                                                Editar
+                                              </Button>
+                                            </HStack>
                                           </HStack>
                                           <RatingStars
                                             rating={
@@ -794,6 +848,7 @@ export function SeriesDetails() {
               poster_path: series?.poster_path || '',
             },
           }}
+          initialSeasonNumber={selectedSeason}
           onReviewUpdated={() => {
             setExistingReview(null);
             queryClient.invalidateQueries({
@@ -802,6 +857,47 @@ export function SeriesDetails() {
           }}
         />
       )}
+
+      <AlertDialog
+        isOpen={isDeleteAlertOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={() => {
+          setIsDeleteAlertOpen(false);
+          setSeasonToDelete(null);
+        }}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent bg="gray.800">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white">
+              Excluir avaliação
+            </AlertDialogHeader>
+            <AlertDialogBody color="white">
+              Tem certeza que deseja excluir sua avaliação da temporada {seasonToDelete}? Esta ação não pode ser desfeita.
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button
+                ref={cancelRef}
+                onClick={() => {
+                  setIsDeleteAlertOpen(false);
+                  setSeasonToDelete(null);
+                }}
+                variant="ghost"
+                color="white"
+                _hover={{ bg: "gray.700" }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                colorScheme="red"
+                onClick={handleDeleteReview}
+                ml={3}
+              >
+                Excluir
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Flex>
   );
 }

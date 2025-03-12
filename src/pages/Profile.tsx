@@ -734,6 +734,7 @@ export function Profile() {
                 isOpen={!!selectedReview}
                 onClose={() => setSelectedReview(null)}
                 review={selectedReview}
+                initialSeasonNumber={selectedReview.selectedSeasonNumber}
                 onReviewUpdated={() => {
                   setSelectedReview(null);
                   queryClient.invalidateQueries({ queryKey: ["userReviews"] });
