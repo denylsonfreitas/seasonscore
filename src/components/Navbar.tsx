@@ -42,7 +42,10 @@ import { useState } from "react";
 import { ExtendedUser } from "../types/auth";
 
 export function Navbar() {
-  const { currentUser, logout } = useAuth() as { currentUser: ExtendedUser | null, logout: () => Promise<void> };
+  const { currentUser, logout } = useAuth() as {
+    currentUser: ExtendedUser | null;
+    logout: () => Promise<void>;
+  };
   const navigate = useNavigate();
   const toast = useToast();
   const [searchQuery] = useState("");
@@ -202,18 +205,10 @@ export function Navbar() {
               </Menu>
             ) : (
               <HStack spacing={4}>
-                <Button
-                  as={RouterLink}
-                  to="/signup"
-                  variant="ghost"
-                >
+                <Button as={RouterLink} to="/signup" variant="ghost">
                   Criar Conta
                 </Button>
-                <Button
-                  as={RouterLink}
-                  to="/login"
-                  variant="solid"
-                >
+                <Button as={RouterLink} to="/login" variant="solid">
                   Entrar
                 </Button>
               </HStack>
@@ -361,7 +356,7 @@ export function Navbar() {
                   <Button
                     as={RouterLink}
                     to="/signup"
-                    variant="solid"
+                    variant="ghost"
                     onClick={onClose}
                   >
                     Criar Conta
