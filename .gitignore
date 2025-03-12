@@ -9,6 +9,9 @@ lerna-debug.log*
 
 node_modules
 .env
+dataconnect/
+dataconnect-generated/
+functions/
 dist
 dist-ssr
 *.local
