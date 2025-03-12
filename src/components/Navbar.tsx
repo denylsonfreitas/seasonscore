@@ -361,7 +361,7 @@ export function Navbar() {
                   <Button
                     as={RouterLink}
                     to="/signup"
-                    variant="ghost"
+                    variant="solid"
                     onClick={onClose}
                   >
                     Criar Conta
