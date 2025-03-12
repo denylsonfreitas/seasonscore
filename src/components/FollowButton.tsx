@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { followUser, unfollowUser, isFollowing } from "../services/followers";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 interface FollowButtonProps {
   userId: string;
@@ -14,6 +15,7 @@ export function FollowButton({ userId }: FollowButtonProps) {
   const [loading, setLoading] = useState(true);
   const toast = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const checkFollowStatus = async () => {
@@ -26,6 +28,8 @@ export function FollowButton({ userId }: FollowButtonProps) {
         } finally {
           setLoading(false);
         }
+      } else {
+        setLoading(false);
       }
     };
 
@@ -34,13 +38,7 @@ export function FollowButton({ userId }: FollowButtonProps) {
 
   const handleFollow = async () => {
     if (!currentUser) {
-      toast({
-        title: "Erro",
-        description: "Você precisa estar logado para seguir usuários",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+      navigate("/login");
       return;
     }
 
@@ -84,6 +82,19 @@ export function FollowButton({ userId }: FollowButtonProps) {
   };
 
   if (currentUser?.uid === userId) return null;
+
+  if (!currentUser) {
+    return (
+      <Button
+        colorScheme="teal"
+        variant="solid"
+        onClick={() => navigate("/login")}
+        size="sm"
+      >
+        Entrar para Seguir
+      </Button>
+    );
+  }
 
   return (
     <Button
