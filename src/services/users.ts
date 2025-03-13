@@ -20,15 +20,42 @@ export async function createOrUpdateUser(user: User, additionalData?: Partial<Us
   if (!user) return;
 
   const userRef = doc(db, "users", user.uid);
-  const userData = {
+  
+  // Remover campos undefined ou vazios
+  const cleanData = (data: any) => {
+    const cleaned: any = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined && value !== "") {
+        cleaned[key] = value;
+      }
+    }
+    return cleaned;
+  };
+
+  // Limpar dados do usuário e dados adicionais
+  const baseUserData = cleanData({
     id: user.uid,
     email: user.email,
     displayName: user.displayName,
-    photoURL: user.photoURL,
-    ...additionalData
+    photoURL: user.photoURL
+  });
+
+  const cleanedAdditionalData = additionalData ? cleanData(additionalData) : {};
+
+  // Combinar os dados
+  const userData = {
+    ...baseUserData,
+    ...cleanedAdditionalData,
+    updatedAt: new Date()
   };
 
-  await setDoc(userRef, userData, { merge: true });
+  try {
+    await setDoc(userRef, userData, { merge: true });
+    console.log("Dados do usuário atualizados com sucesso:", userData);
+  } catch (error) {
+    console.error("Erro ao atualizar dados do usuário:", error);
+    throw error;
+  }
 }
 
 export async function getUserData(userId: string): Promise<UserData | null> {

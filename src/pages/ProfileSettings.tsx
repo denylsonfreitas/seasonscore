@@ -146,27 +146,27 @@ export function ProfileSettings() {
 
     setIsSaving(true);
     try {
-      const updatedData: any = {
-        displayName,
-        description,
-        photoURL: tempPhotoURL !== null ? tempPhotoURL : currentUser.photoURL,
-        coverURL: tempCoverURL !== null ? tempCoverURL : currentUser.coverURL,
+      // Garantir que as URLs são strings válidas
+      const photoURLToUse = tempPhotoURL === "" ? null : (tempPhotoURL !== null ? tempPhotoURL : currentUser.photoURL);
+      const coverURLToUse = tempCoverURL === "" ? null : (tempCoverURL !== null ? tempCoverURL : currentUser.coverURL);
+
+      const updatedData = {
+        ...(displayName ? { displayName } : {}),
+        ...(description ? { description } : {}),
+        ...(photoURLToUse ? { photoURL: photoURLToUse } : {}),
+        ...(coverURLToUse ? { coverURL: coverURLToUse } : {}),
+        ...(favoriteSeries ? { favoriteSeries } : {})
       };
 
-      // Adiciona favoriteSeries apenas se não for nulo
-      if (favoriteSeries) {
-        updatedData.favoriteSeries = favoriteSeries;
-      } else {
-        updatedData.favoriteSeries = null;
-      }
+      console.log("Dados a serem atualizados:", updatedData);
 
       // Primeiro atualizar o documento do usuário
       await createOrUpdateUser(auth.currentUser, updatedData);
 
       // Depois atualizar o perfil do usuário autenticado
       await updateProfile(auth.currentUser, {
-        displayName,
-        photoURL: tempPhotoURL !== null ? tempPhotoURL : currentUser.photoURL,
+        ...(displayName ? { displayName } : {}),
+        ...(photoURLToUse ? { photoURL: photoURLToUse } : {})
       });
 
       toast({
@@ -177,16 +177,23 @@ export function ProfileSettings() {
         isClosable: true,
       });
 
-      // Redirecionar para o perfil e forçar refresh
+      // Redirecionar para o perfil
       navigate("/profile", { replace: true });
-      window.location.reload();
+      
+      // Aguardar um momento antes de recarregar para garantir que os dados foram salvos
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (error) {
       console.error("Erro ao atualizar perfil:", error);
+      
+      // Mostrar mensagem de erro mais detalhada
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro ao atualizar perfil",
-        description: "Ocorreu um erro ao salvar suas configurações. Tente novamente.",
+        description: `Ocorreu um erro ao salvar suas configurações: ${errorMessage}`,
         status: "error",
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
     } finally {
