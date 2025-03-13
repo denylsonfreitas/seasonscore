@@ -51,7 +51,6 @@ export async function createOrUpdateUser(user: User, additionalData?: Partial<Us
 
   try {
     await setDoc(userRef, userData, { merge: true });
-    console.log("Dados do usuário atualizados com sucesso:", userData);
   } catch (error) {
     console.error("Erro ao atualizar dados do usuário:", error);
     throw error;

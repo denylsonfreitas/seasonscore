@@ -170,15 +170,20 @@ export function ProfileSettings() {
           ? tempCoverURL
           : currentUser.coverURL;
 
-      const updatedData = {
+      // Construir objeto base
+      const baseData = {
         ...(displayName ? { displayName } : {}),
         ...(description ? { description } : {}),
         ...(photoURLToUse ? { photoURL: photoURLToUse } : {}),
-        ...(coverURLToUse ? { coverURL: coverURLToUse } : {}),
-        ...(favoriteSeries ? { favoriteSeries } : {}),
+        ...(coverURLToUse ? { coverURL: coverURLToUse } : {})
       };
 
-      console.log("Dados a serem atualizados:", updatedData);
+      // Adicionar favoriteSeries apenas se não for null
+      const updatedData = favoriteSeries 
+        ? { ...baseData, favoriteSeries } 
+        : { ...baseData, favoriteSeries: undefined };
+
+
 
       // Primeiro atualizar o documento do usuário
       await createOrUpdateUser(auth.currentUser, updatedData);
