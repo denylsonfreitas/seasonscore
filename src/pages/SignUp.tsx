@@ -14,10 +14,13 @@ import {
   Divider,
   HStack,
   Icon,
+  InputGroup,
+  InputRightElement,
+  IconButton,
 } from "@chakra-ui/react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { GoogleLogo } from "@phosphor-icons/react";
+import { GoogleLogo, Eye, EyeSlash } from "@phosphor-icons/react";
 import {
   GoogleAuthProvider,
   signInWithPopup,
@@ -29,6 +32,8 @@ export function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
@@ -101,8 +106,11 @@ export function SignUp() {
       {/* Banner Lateral */}
       <Box
         w="50%"
-        h="100vh"
-        position="relative"
+        minH="100vh"
+        h="100%"
+        position="fixed"
+        left={0}
+        top={0}
         display={{ base: "none", lg: "block" }}
       >
         <Box
@@ -129,37 +137,78 @@ export function SignUp() {
       {/* Área do Formulário */}
       <Box
         w={{ base: "100%", lg: "50%" }}
-        h="100vh"
+        minH="100vh"
         bg="gray.900"
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
+        position="relative"
+        ml={{ base: 0, lg: "50%" }}
       >
-        <Container maxW="400px">
-          <VStack spacing={8} align="stretch">
+        {/* Background Image para telas menores */}
+        <Box
+          display={{ base: "block", lg: "none" }}
+          position="absolute"
+          top={0}
+          left={0}
+          right={0}
+          h="30vh"
+          bgImage="url(https://image.tmdb.org/t/p/original/9GvhICFMiRQA82vS6ydkXxeEkrd.jpg)"
+          bgSize="cover"
+          bgPosition="center"
+          _after={{
+            content: '""',
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            bg: "linear-gradient(180deg, rgba(23, 25, 35, 0.5) 0%, rgba(23, 25, 35, 1) 100%)",
+          }}
+        />
+
+        {/* Conteúdo do Formulário */}
+        <Container 
+          maxW="400px" 
+          py={{ base: "20vh", lg: 8 }}
+          px={{ base: 4, lg: 8 }}
+          position="relative"
+          display="flex"
+          flexDir="column"
+          justifyContent="center"
+          minH="100vh"
+        >
+          <VStack spacing={{ base: 6, lg: 8 }} align="stretch">
             <VStack spacing={2} align="center">
               <Heading
                 as={RouterLink}
                 to="/"
                 color="white"
-                size="2xl"
+                size={{ base: "xl", lg: "2xl" }}
                 _hover={{ color: "teal.300" }}
                 textAlign="center"
               >
                 SeasonScore
               </Heading>
-              <Text color="gray.400" textAlign="center">
+              <Text 
+                color="gray.400" 
+                textAlign="center"
+                fontSize={{ base: "sm", lg: "md" }}
+              >
                 Avalie suas séries favoritas
               </Text>
             </VStack>
 
-            <VStack spacing={6} bg="gray.800" p={8} borderRadius="lg" boxShadow="xl">
+            <VStack 
+              spacing={6} 
+              bg="gray.800" 
+              p={{ base: 6, lg: 8 }} 
+              borderRadius="lg" 
+              boxShadow="xl"
+            >
               <Button
                 leftIcon={<Icon as={GoogleLogo} weight="bold" />}
                 onClick={handleGoogleLogin}
                 isLoading={isLoading}
                 w="100%"
-                size="lg"
+                size={{ base: "md", lg: "lg" }}
                 colorScheme="red"
               >
                 Continuar com Google
@@ -181,6 +230,7 @@ export function SignUp() {
                     bg="gray.700"
                     border="none"
                     color="white"
+                    size={{ base: "md", lg: "lg" }}
                     _placeholder={{ color: "gray.400" }}
                     required
                   />
@@ -188,45 +238,78 @@ export function SignUp() {
 
                 <FormControl>
                   <FormLabel color="white">Senha</FormLabel>
-                  <Input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    bg="gray.700"
-                    border="none"
-                    color="white"
-                    _placeholder={{ color: "gray.400" }}
-                    required
-                  />
+                  <InputGroup size={{ base: "md", lg: "lg" }}>
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      bg="gray.700"
+                      border="none"
+                      color="white"
+                      _placeholder={{ color: "gray.400" }}
+                      required
+                    />
+                    <InputRightElement width="4.5rem">
+                      <Button
+                        h="1.75rem"
+                        size="sm"
+                        onClick={() => setShowPassword(!showPassword)}
+                        variant="ghost"
+                        colorScheme="whiteAlpha"
+                        color="gray.400"
+                        _hover={{ color: "white" }}
+                      >
+                        {showPassword ? "Ocultar" : "Mostrar"}
+                      </Button>
+                    </InputRightElement>
+                  </InputGroup>
                 </FormControl>
 
                 <FormControl>
                   <FormLabel color="white">Confirmar Senha</FormLabel>
-                  <Input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    bg="gray.700"
-                    border="none"
-                    color="white"
-                    _placeholder={{ color: "gray.400" }}
-                    required
-                  />
+                  <InputGroup size={{ base: "md", lg: "lg" }}>
+                    <Input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      bg="gray.700"
+                      border="none"
+                      color="white"
+                      _placeholder={{ color: "gray.400" }}
+                      required
+                    />
+                    <InputRightElement width="4.5rem">
+                      <Button
+                        h="1.75rem"
+                        size="sm"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        variant="ghost"
+                        colorScheme="whiteAlpha"
+                        color="gray.400"
+                        _hover={{ color: "white" }}
+                      >
+                        {showConfirmPassword ? "Ocultar" : "Mostrar"}
+                      </Button>
+                    </InputRightElement>
+                  </InputGroup>
                 </FormControl>
 
                 <Button
                   type="submit"
                   colorScheme="teal"
-                  size="lg"
+                  size={{ base: "md", lg: "lg" }}
                   w="100%"
                   isLoading={isLoading}
-                  mt={4}
                 >
                   Criar Conta
                 </Button>
               </VStack>
 
-              <Text color="gray.300" textAlign="center">
+              <Text 
+                color="gray.300" 
+                textAlign="center"
+                fontSize={{ base: "sm", lg: "md" }}
+              >
                 Já tem uma conta?{" "}
                 <Link
                   as={RouterLink}
