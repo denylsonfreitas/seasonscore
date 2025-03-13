@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { auth } from "../config/firebase";
 import { createOrUpdateUser, getUserData } from "../services/users";
 import { ExtendedUser } from "../types/auth";
+import { cleanupNotifications } from "../services/notifications";
 
 interface AuthContextType {
   currentUser: ExtendedUser | null;
@@ -53,6 +54,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
             };
             setCurrentUser(extendedUser);
             await createOrUpdateUser(user);
+            
+            // Limpar notificações duplicadas quando o usuário já está logado
+            try {
+              // Apenas limpar notificações do usuário atual
+              if (user.uid === auth.currentUser?.uid) {
+                await cleanupNotifications(user.uid);
+              }
+            } catch (error) {
+              console.error("Erro ao limpar notificações:", error);
+            }
           } catch (error) {
             console.error("Erro ao carregar dados do usuário:", error);
             setCurrentUser(user as ExtendedUser);
@@ -106,6 +117,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
       };
       setCurrentUser(extendedUser);
       await createOrUpdateUser(result.user);
+      
+      // Limpar notificações duplicadas
+      try {
+        // Apenas limpar notificações do usuário atual
+        if (result.user.uid === auth.currentUser?.uid) {
+          await cleanupNotifications(result.user.uid);
+        }
+      } catch (error) {
+        console.error("Erro ao limpar notificações:", error);
+      }
     } catch (error) {
       console.error("Erro no login:", error);
       throw error;
@@ -133,6 +154,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
     setCurrentUser(extendedUser);
     await createOrUpdateUser(result.user);
+    
+    // Limpar notificações duplicadas
+    try {
+      // Apenas limpar notificações do usuário atual
+      if (result.user.uid === auth.currentUser?.uid) {
+        await cleanupNotifications(result.user.uid);
+      }
+    } catch (error) {
+      console.error("Erro ao limpar notificações:", error);
+    }
   };
 
   const signOut = async () => {

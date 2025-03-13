@@ -16,6 +16,7 @@ import {
 } from "firebase/firestore";
 import { auth } from "../config/firebase";
 import { getSeriesDetails } from "./tmdb";
+import { createNotification, NotificationType } from "./notifications";
 
 const db = getFirestore();
 const reviewsCollection = collection(db, "reviews");
@@ -178,12 +179,19 @@ export async function updateReview(
   if (!reviewDoc.exists()) throw new Error("Avaliação não encontrada");
 
   const review = reviewDoc.data() as SeriesReview;
+  
+  // Verificar se é uma atualização de outra pessoa (comentário em avaliação)
+  const isCommentOnOthersReview = review.userId !== auth.currentUser.uid;
+  
   const seasonIndex = review.seasonReviews.findIndex(
     (sr) => sr.seasonNumber === seasonNumber
   );
 
   if (seasonIndex === -1) throw new Error("Temporada não encontrada");
 
+  // Guardar o comentário anterior para verificar se houve alteração
+  const previousComment = review.seasonReviews[seasonIndex].comment;
+  
   review.seasonReviews[seasonIndex] = {
     ...review.seasonReviews[seasonIndex],
     rating,
@@ -194,6 +202,31 @@ export async function updateReview(
   await updateDoc(reviewDoc.ref, {
     seasonReviews: review.seasonReviews,
   });
+  
+  // Se for um comentário em avaliação de outra pessoa, enviar notificação
+  if (isCommentOnOthersReview && comment && comment !== previousComment) {
+    try {
+      // Obter detalhes da série
+      const seriesDetails = await getSeriesDetails(review.seriesId);
+      
+      // Criar notificação para o dono da avaliação
+      await createNotification(
+        review.userId,
+        NotificationType.NEW_COMMENT,
+        {
+          senderId: auth.currentUser.uid,
+          seriesId: review.seriesId,
+          seriesName: seriesDetails.name,
+          seriesPoster: seriesDetails.poster_path || undefined,
+          seasonNumber,
+          reviewId,
+          message: `Alguém comentou na sua avaliação de ${seriesDetails.name} (Temporada ${seasonNumber}).`
+        }
+      );
+    } catch (error) {
+      console.error("Erro ao criar notificação de comentário:", error);
+    }
+  }
 }
 
 export async function deleteReview(reviewId: string, seasonNumber: number) {

@@ -10,6 +10,7 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { Series } from "./tmdb";
+import { checkNewEpisodeForSeries } from "./episodeNotifications";
 
 export interface WatchlistItem {
   userId: string;
@@ -43,6 +44,13 @@ export async function addToWatchlist(
       first_air_date: series.first_air_date,
     },
   });
+  
+  // Verificar se há novos episódios para esta série
+  try {
+    await checkNewEpisodeForSeries(userId, series.id, series.name, series.poster_path);
+  } catch (error) {
+    console.error("Erro ao verificar novos episódios ao adicionar à watchlist:", error);
+  }
 }
 
 export async function removeFromWatchlist(userId: string, seriesId: number): Promise<void> {

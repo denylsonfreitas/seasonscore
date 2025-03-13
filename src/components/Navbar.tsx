@@ -40,6 +40,7 @@ import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useState } from "react";
 import { ExtendedUser } from "../types/auth";
+import { NotificationMenu } from "./NotificationMenu";
 
 export function Navbar() {
   const { currentUser, logout } = useAuth() as {
@@ -146,63 +147,59 @@ export function Navbar() {
           </HStack>
 
           {/* Menu Usuário Desktop */}
-          <HStack spacing={4} display={{ base: "none", md: "flex" }}>
+          <HStack spacing={2} display={{ base: "none", md: "flex" }}>
             {currentUser ? (
-              <Menu>
-                <MenuButton
-                  as={Button}
-                  variant="ghost"
-                  _hover={{ bg: "gray.700" }}
-                  _active={{ bg: "gray.700" }}
-                >
-                  <HStack spacing={3}>
-                    <Avatar
-                      size="sm"
-                      src={currentUser.photoURL || undefined}
-                      name={currentUser.displayName || undefined}
-                    />
-                    <Box textAlign="left">
-                      <Text fontSize="sm" fontWeight="medium" color="gray.300">
-                        {currentUser.displayName}
-                      </Text>
-                    </Box>
-                  </HStack>
-                </MenuButton>
-                <MenuList bg="gray.800" borderColor="gray.600">
-                  <MenuGroup title="Conta" ml={3} mb={1} color="gray.300">
+              <>
+                <NotificationMenu />
+                <Menu>
+                  <MenuButton
+                    as={IconButton}
+                    variant="unstyled"
+                    aria-label="Opções do usuário"
+                    icon={
+                      <Avatar
+                        size="sm"
+                        src={currentUser.photoURL || undefined}
+                        name={currentUser.displayName || undefined}
+                      />
+                    }
+                  />
+                  <MenuList bg="gray.800" borderColor="gray.600">
+                    <MenuGroup title={currentUser.displayName || "Usuário"} ml={3} mb={1} color="gray.300">
+                      <MenuItem
+                        as={RouterLink}
+                        to="/profile"
+                        icon={<UserCircle weight="fill" color="currentColor" />}
+                        color="gray.300"
+                        bg="gray.800"
+                        _hover={{ bg: "gray.600" }}
+                      >
+                        Meu Perfil
+                      </MenuItem>
+                      <MenuItem
+                        as={RouterLink}
+                        to="/settings"
+                        icon={<Gear weight="fill" color="currentColor" />}
+                        color="gray.300"
+                        bg="gray.800"
+                        _hover={{ bg: "gray.600" }}
+                      >
+                        Configurações
+                      </MenuItem>
+                    </MenuGroup>
+                    <MenuDivider borderColor="gray.600" />
                     <MenuItem
-                      as={RouterLink}
-                      to="/profile"
-                      icon={<UserCircle weight="fill" color="currentColor" />}
-                      color="gray.300"
+                      onClick={handleLogout}
+                      icon={<SignOut weight="fill" color="currentColor" />}
+                      color="red.400"
                       bg="gray.800"
                       _hover={{ bg: "gray.600" }}
                     >
-                      Meu Perfil
+                      Sair da Conta
                     </MenuItem>
-                    <MenuItem
-                      as={RouterLink}
-                      to="/settings"
-                      icon={<Gear weight="fill" color="currentColor" />}
-                      color="gray.300"
-                      bg="gray.800"
-                      _hover={{ bg: "gray.600" }}
-                    >
-                      Configurações
-                    </MenuItem>
-                  </MenuGroup>
-                  <MenuDivider borderColor="gray.600" />
-                  <MenuItem
-                    onClick={handleLogout}
-                    icon={<SignOut weight="fill" color="currentColor" />}
-                    color="red.400"
-                    bg="gray.800"
-                    _hover={{ bg: "gray.600" }}
-                  >
-                    Sair da Conta
-                  </MenuItem>
-                </MenuList>
-              </Menu>
+                  </MenuList>
+                </Menu>
+              </>
             ) : (
               <HStack spacing={4}>
                 <Button as={RouterLink} to="/signup" variant="solid">
@@ -216,14 +213,16 @@ export function Navbar() {
           </HStack>
 
           {/* Menu Mobile */}
-          <IconButton
-            aria-label="Menu"
-            icon={<List weight="bold" />}
-            variant="ghost"
-            color="white"
-            display={{ base: "flex", md: "none" }}
-            onClick={onOpen}
-          />
+          <HStack spacing={2} display={{ base: "flex", md: "none" }}>
+            {currentUser && <NotificationMenu />}
+            <IconButton
+              aria-label="Menu"
+              icon={<List weight="bold" />}
+              variant="ghost"
+              color="white"
+              onClick={onOpen}
+            />
+          </HStack>
         </HStack>
       </Container>
 
@@ -234,17 +233,15 @@ export function Navbar() {
           <DrawerCloseButton color="gray.300" />
           <DrawerHeader borderBottomWidth="1px" borderColor="gray.600" pb={4}>
             {currentUser ? (
-              <Flex direction="column" gap={2}>
+              <Flex direction="row" gap={3} align="center">
                 <Avatar
                   size="md"
                   src={currentUser.photoURL || undefined}
                   name={currentUser.displayName || undefined}
                 />
-                <Box>
-                  <Text fontWeight="medium" color="gray.300">
-                    {currentUser.displayName}
-                  </Text>
-                </Box>
+                <Text fontWeight="medium" color="gray.300">
+                  {currentUser.displayName || currentUser.email}
+                </Text>
               </Flex>
             ) : (
               <Text color="gray.300">Menu</Text>

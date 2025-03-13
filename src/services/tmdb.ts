@@ -244,6 +244,70 @@ export async function getRelatedSeries(id: number) {
   return response.data;
 }
 
+// Interface para episódios
+export interface Episode {
+  id: number;
+  name: string;
+  overview: string;
+  air_date: string;
+  episode_number: number;
+  season_number: number;
+  still_path: string | null;
+}
+
+// Interface para temporadas
+export interface Season {
+  id: number;
+  name: string;
+  overview: string;
+  air_date: string;
+  season_number: number;
+  episode_count: number;
+  poster_path: string | null;
+  episodes?: Episode[];
+}
+
+// Obter detalhes de uma temporada específica
+export async function getSeasonDetails(seriesId: number, seasonNumber: number): Promise<Season> {
+  const response = await api.get(`/tv/${seriesId}/season/${seasonNumber}`);
+  return response.data;
+}
+
+// Verificar novos episódios de uma série
+export async function getLatestEpisode(seriesId: number): Promise<Episode | null> {
+  try {
+    // Obter detalhes da série para saber o número de temporadas
+    const seriesDetails = await getSeriesDetails(seriesId);
+    
+    if (seriesDetails.number_of_seasons === 0) {
+      return null;
+    }
+    
+    // Obter detalhes da última temporada
+    const latestSeason = await getSeasonDetails(
+      seriesId, 
+      seriesDetails.number_of_seasons
+    );
+    
+    if (!latestSeason.episodes || latestSeason.episodes.length === 0) {
+      return null;
+    }
+    
+    // Ordenar episódios por data de lançamento (mais recente primeiro)
+    const sortedEpisodes = [...latestSeason.episodes].sort((a, b) => {
+      if (!a.air_date) return 1;
+      if (!b.air_date) return -1;
+      return new Date(b.air_date).getTime() - new Date(a.air_date).getTime();
+    });
+    
+    // Retornar o episódio mais recente
+    return sortedEpisodes[0];
+  } catch (error) {
+    console.error("Erro ao buscar último episódio:", error);
+    return null;
+  }
+}
+
 // IDs dos principais serviços de streaming
 export const streamingServices = {
   NETFLIX: 213,
