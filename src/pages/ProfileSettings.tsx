@@ -178,12 +178,11 @@ export function ProfileSettings() {
         ...(coverURLToUse ? { coverURL: coverURLToUse } : {})
       };
 
-      // Adicionar favoriteSeries apenas se não for null
-      const updatedData = favoriteSeries 
-        ? { ...baseData, favoriteSeries } 
-        : { ...baseData, favoriteSeries: undefined };
-
-
+      // Adicionar favoriteSeries explicitamente
+      const updatedData = {
+        ...baseData,
+        favoriteSeries: favoriteSeries // Se for null, vai remover o campo
+      };
 
       // Primeiro atualizar o documento do usuário
       await createOrUpdateUser(auth.currentUser, updatedData);
@@ -204,11 +203,9 @@ export function ProfileSettings() {
 
       // Redirecionar para o perfil
       navigate("/profile", { replace: true });
+      window.location.reload();
 
-      // Aguardar um momento antes de recarregar para garantir que os dados foram salvos
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+
     } catch (error) {
       console.error("Erro ao atualizar perfil:", error);
 

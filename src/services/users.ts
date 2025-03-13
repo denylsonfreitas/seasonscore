@@ -13,7 +13,7 @@ export interface UserData {
     id: number;
     name: string;
     poster_path: string;
-  };
+  } | null;
 }
 
 export async function createOrUpdateUser(user: User, additionalData?: Partial<UserData>) {
