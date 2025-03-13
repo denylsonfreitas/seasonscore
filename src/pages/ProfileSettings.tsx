@@ -32,7 +32,12 @@ import { getSeriesDetails } from "../services/tmdb";
 import { SearchModal } from "../components/SearchModal";
 import { ExtendedUser } from "../types/auth";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
-import { Image as ImageIcon, UploadSimple, Plus, X } from "@phosphor-icons/react";
+import {
+  Image as ImageIcon,
+  UploadSimple,
+  Plus,
+  X,
+} from "@phosphor-icons/react";
 import { auth } from "../config/firebase";
 
 export function ProfileSettings() {
@@ -81,7 +86,9 @@ export function ProfileSettings() {
     loadUserData();
   }, [currentUser]);
 
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     if (!event.target.files || !event.target.files[0] || !currentUser) return;
 
     setUploadingPhoto(true);
@@ -111,7 +118,9 @@ export function ProfileSettings() {
     }
   };
 
-  const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     if (!event.target.files || !event.target.files[0] || !currentUser) return;
 
     setUploadingCover(true);
@@ -131,7 +140,8 @@ export function ProfileSettings() {
       console.error("Erro ao carregar capa:", error);
       toast({
         title: "Erro ao carregar capa",
-        description: "Ocorreu um erro ao carregar sua foto de capa. Tente novamente.",
+        description:
+          "Ocorreu um erro ao carregar sua foto de capa. Tente novamente.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -147,15 +157,25 @@ export function ProfileSettings() {
     setIsSaving(true);
     try {
       // Garantir que as URLs são strings válidas
-      const photoURLToUse = tempPhotoURL === "" ? null : (tempPhotoURL !== null ? tempPhotoURL : currentUser.photoURL);
-      const coverURLToUse = tempCoverURL === "" ? null : (tempCoverURL !== null ? tempCoverURL : currentUser.coverURL);
+      const photoURLToUse =
+        tempPhotoURL === ""
+          ? null
+          : tempPhotoURL !== null
+          ? tempPhotoURL
+          : currentUser.photoURL;
+      const coverURLToUse =
+        tempCoverURL === ""
+          ? null
+          : tempCoverURL !== null
+          ? tempCoverURL
+          : currentUser.coverURL;
 
       const updatedData = {
         ...(displayName ? { displayName } : {}),
         ...(description ? { description } : {}),
         ...(photoURLToUse ? { photoURL: photoURLToUse } : {}),
         ...(coverURLToUse ? { coverURL: coverURLToUse } : {}),
-        ...(favoriteSeries ? { favoriteSeries } : {})
+        ...(favoriteSeries ? { favoriteSeries } : {}),
       };
 
       console.log("Dados a serem atualizados:", updatedData);
@@ -166,7 +186,7 @@ export function ProfileSettings() {
       // Depois atualizar o perfil do usuário autenticado
       await updateProfile(auth.currentUser, {
         ...(displayName ? { displayName } : {}),
-        ...(photoURLToUse ? { photoURL: photoURLToUse } : {})
+        ...(photoURLToUse ? { photoURL: photoURLToUse } : {}),
       });
 
       toast({
@@ -178,12 +198,18 @@ export function ProfileSettings() {
       });
 
       // Redirecionar para o perfil
-      navigate("/profile");
+      navigate("/profile", { replace: true });
+
+      // Aguardar um momento antes de recarregar para garantir que os dados foram salvos
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (error) {
       console.error("Erro ao atualizar perfil:", error);
-      
+
       // Mostrar mensagem de erro mais detalhada
-      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+      const errorMessage =
+        error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro ao atualizar perfil",
         description: `Ocorreu um erro ao salvar suas configurações: ${errorMessage}`,
@@ -202,7 +228,7 @@ export function ProfileSettings() {
       setFavoriteSeries({
         id: seriesId,
         name: seriesDetails.name,
-        poster_path: seriesDetails.poster_path ?? '',
+        poster_path: seriesDetails.poster_path ?? "",
       });
       setIsSearchOpen(false);
     } catch (error) {
@@ -273,12 +299,16 @@ export function ProfileSettings() {
                 <Box position="relative" width="fit-content" mx="auto">
                   <Avatar
                     size="2xl"
-                    src={(tempPhotoURL !== null ? tempPhotoURL : currentUser?.photoURL) || undefined}
+                    src={
+                      (tempPhotoURL !== null
+                        ? tempPhotoURL
+                        : currentUser?.photoURL) || undefined
+                    }
                     name={currentUser?.displayName || ""}
                   />
-                  <Box 
-                    position="absolute" 
-                    bottom={-2} 
+                  <Box
+                    position="absolute"
+                    bottom={-2}
                     right={-2}
                     bg="gray.800"
                     p={1}
@@ -293,7 +323,12 @@ export function ProfileSettings() {
                         rounded="full"
                         aria-label="Opções de foto de perfil"
                       />
-                      <MenuList bg="gray.700" borderColor="gray.600" zIndex={2000} minW="150px">
+                      <MenuList
+                        bg="gray.700"
+                        borderColor="gray.600"
+                        zIndex={2000}
+                        minW="150px"
+                      >
                         <MenuItem
                           icon={<UploadSimple weight="bold" />}
                           onClick={() => photoInputRef.current?.click()}
@@ -329,25 +364,33 @@ export function ProfileSettings() {
                   ref={coverInputRef}
                   onChange={handleCoverUpload}
                 />
-                <AspectRatio ratio={16/9} maxH="150px">
+                <AspectRatio ratio={16 / 9} maxH="150px">
                   <Box
                     bg="gray.700"
                     borderRadius="md"
                     overflow="hidden"
                     position="relative"
                   >
-                    {(tempCoverURL !== null ? tempCoverURL : currentUser?.coverURL) ? (
+                    {(
+                      tempCoverURL !== null
+                        ? tempCoverURL
+                        : currentUser?.coverURL
+                    ) ? (
                       <>
                         <Image
-                          src={tempCoverURL !== null ? tempCoverURL : currentUser?.coverURL}
+                          src={
+                            tempCoverURL !== null
+                              ? tempCoverURL
+                              : currentUser?.coverURL
+                          }
                           alt="Foto de capa"
                           objectFit="cover"
                           w="100%"
                           h="100%"
                         />
-                        <Box 
-                          position="absolute" 
-                          top={2} 
+                        <Box
+                          position="absolute"
+                          top={2}
                           right={2}
                           bg="blackAlpha.600"
                           p={1}
@@ -362,7 +405,12 @@ export function ProfileSettings() {
                               rounded="full"
                               aria-label="Opções de foto de capa"
                             />
-                            <MenuList bg="gray.700" borderColor="gray.600" zIndex={2000} minW="150px">
+                            <MenuList
+                              bg="gray.700"
+                              borderColor="gray.600"
+                              zIndex={2000}
+                              minW="150px"
+                            >
                               <MenuItem
                                 icon={<UploadSimple weight="bold" />}
                                 onClick={() => coverInputRef.current?.click()}
@@ -409,7 +457,9 @@ export function ProfileSettings() {
                 <FormLabel color="white">Nome</FormLabel>
                 <Input
                   value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value.slice(0, MAX_NAME_LENGTH))}
+                  onChange={(e) =>
+                    setDisplayName(e.target.value.slice(0, MAX_NAME_LENGTH))
+                  }
                   placeholder="Seu nome"
                   bg="gray.700"
                   color="white"
@@ -425,7 +475,11 @@ export function ProfileSettings() {
                 <FormLabel color="white">Descrição</FormLabel>
                 <Textarea
                   value={description}
-                  onChange={(e) => setDescription(e.target.value.slice(0, MAX_DESCRIPTION_LENGTH))}
+                  onChange={(e) =>
+                    setDescription(
+                      e.target.value.slice(0, MAX_DESCRIPTION_LENGTH)
+                    )
+                  }
                   placeholder="Fale um pouco sobre você..."
                   bg="gray.700"
                   color="white"
@@ -443,7 +497,13 @@ export function ProfileSettings() {
                 <FormLabel color="white">Série Favorita</FormLabel>
                 <VStack align="start" spacing={4}>
                   {favoriteSeries && (
-                    <HStack spacing={4} p={2} bg="gray.700" borderRadius="md" w="full">
+                    <HStack
+                      spacing={4}
+                      p={2}
+                      bg="gray.700"
+                      borderRadius="md"
+                      w="full"
+                    >
                       <Image
                         src={`https://image.tmdb.org/t/p/w92${favoriteSeries.poster_path}`}
                         alt={favoriteSeries.name}
@@ -452,7 +512,9 @@ export function ProfileSettings() {
                         borderRadius="md"
                         objectFit="cover"
                       />
-                      <Text color="white" flex="1">{favoriteSeries.name}</Text>
+                      <Text color="white" flex="1">
+                        {favoriteSeries.name}
+                      </Text>
                       <IconButton
                         aria-label="Remover série favorita"
                         icon={<X weight="bold" />}
@@ -467,7 +529,9 @@ export function ProfileSettings() {
                     variant="outline"
                     onClick={() => setIsSearchOpen(true)}
                   >
-                    {favoriteSeries ? "Alterar Série Favorita" : "Escolher Série Favorita"}
+                    {favoriteSeries
+                      ? "Alterar Série Favorita"
+                      : "Escolher Série Favorita"}
                   </Button>
                 </VStack>
               </FormControl>
@@ -492,4 +556,4 @@ export function ProfileSettings() {
       />
     </Box>
   );
-} 
+}
