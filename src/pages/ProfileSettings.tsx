@@ -178,12 +178,7 @@ export function ProfileSettings() {
       });
 
       // Redirecionar para o perfil
-      navigate("/profile", { replace: true });
-      
-      // Aguardar um momento antes de recarregar para garantir que os dados foram salvos
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      navigate("/profile");
     } catch (error) {
       console.error("Erro ao atualizar perfil:", error);
       
