@@ -22,8 +22,10 @@ const notificationsCollection = collection(db, "notifications");
 
 export enum NotificationType {
   NEW_FOLLOWER = "new_follower",
-  NEW_COMMENT = "new_comment",
+  NEW_COMMENT = "NEW_COMMENT",
   NEW_EPISODE = "new_episode",
+  NEW_REACTION = "NEW_REACTION",
+  NEW_REVIEW = "NEW_REVIEW"
 }
 
 export interface Notification {
@@ -60,12 +62,11 @@ export async function createNotification(
   }
 ): Promise<string> {
   try {
-    
     // Se houver um senderId, buscar informações do remetente
     let senderName, senderPhoto;
     if (data.senderId) {
       const senderData = await getUserData(data.senderId);
-      senderName = senderData?.displayName || senderData?.email;
+      senderName = senderData?.username || senderData?.displayName || senderData?.email;
       senderPhoto = senderData?.photoURL;
     }
 
@@ -136,7 +137,6 @@ export async function createNotification(
     if (data.seasonNumber !== undefined) notification.seasonNumber = data.seasonNumber;
     if (data.episodeNumber !== undefined) notification.episodeNumber = data.episodeNumber;
     if (data.reviewId) notification.reviewId = data.reviewId;
-
 
     const docRef = await addDoc(notificationsCollection, notification);
     return docRef.id;

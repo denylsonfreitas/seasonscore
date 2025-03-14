@@ -14,7 +14,7 @@ import { cleanupNotifications } from "../services/notifications";
 
 interface AuthContextType {
   currentUser: ExtendedUser | null;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, username: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -40,96 +40,78 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      async (user) => {
-        if (user) {
-          try {
-            const userData = await getUserData(user.uid);
-            const extendedUser: ExtendedUser = {
-              ...user,
-              coverURL: userData?.coverURL,
-              description: userData?.description,
-              favoriteSeries: userData?.favoriteSeries,
-            };
-            setCurrentUser(extendedUser);
-            await createOrUpdateUser(user);
-            
-            // Limpar notificações duplicadas quando o usuário já está logado
-            try {
-              // Apenas limpar notificações do usuário atual
-              if (user.uid === auth.currentUser?.uid) {
-                await cleanupNotifications(user.uid);
-              }
-            } catch (error) {
-              console.error("Erro ao limpar notificações:", error);
-            }
-          } catch (error) {
-            console.error("Erro ao carregar dados do usuário:", error);
-            setCurrentUser(user as ExtendedUser);
-          }
-        } else {
-          setCurrentUser(null);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setLoading(true);
+      if (user) {
+        try {
+          const userData = await getUserData(user.uid);
+          const extendedUser: ExtendedUser = {
+            ...user,
+            coverURL: userData?.coverURL,
+            description: userData?.description,
+            username: userData?.username,
+            favoriteSeries: userData?.favoriteSeries,
+          };
+          setCurrentUser(extendedUser);
+        } catch (error) {
+          console.error("Erro ao carregar dados do usuário:", error);
+          setCurrentUser(user);
         }
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Erro na autenticação:", error);
-        setLoading(false);
+      } else {
+        setCurrentUser(null);
       }
-    );
+      setLoading(false);
+    });
 
-    return () => {
-      unsubscribe();
-    };
+    return unsubscribe;
   }, []);
 
-  async function signUp(email: string, password: string) {
-    try {
-      const result = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      // Definir nome de usuário inicial
-      if (result.user && !result.user.displayName) {
-        await updateProfile(result.user, {
-          displayName: email.split("@")[0],
-        });
-        // Atualizar documento do usuário com o displayName
-        await createOrUpdateUser(result.user);
-      }
-    } catch (error) {
-      console.error("Erro no cadastro:", error);
-      throw error;
-    }
+  async function signUp(email: string, password: string, username: string) {
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    const displayName = email.split("@")[0];
+    
+    await updateProfile(result.user, {
+      displayName,
+    });
+
+    await createOrUpdateUser(result.user, {
+      username: username.toLowerCase(),
+      displayName,
+    });
+
+    // Buscar dados atualizados do usuário
+    const userData = await getUserData(result.user.uid);
+    const extendedUser: ExtendedUser = {
+      ...result.user,
+      coverURL: userData?.coverURL,
+      description: userData?.description,
+      username: userData?.username,
+      favoriteSeries: userData?.favoriteSeries,
+    };
+    setCurrentUser(extendedUser);
   }
 
   async function login(email: string, password: string) {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    const userData = await getUserData(result.user.uid);
+    const extendedUser: ExtendedUser = {
+      ...result.user,
+      coverURL: userData?.coverURL,
+      description: userData?.description,
+      username: userData?.username,
+      favoriteSeries: userData?.favoriteSeries,
+    };
+    setCurrentUser(extendedUser);
+    await createOrUpdateUser(result.user);
+    
+    // Limpar notificações duplicadas
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      const userData = await getUserData(result.user.uid);
-      const extendedUser: ExtendedUser = {
-        ...result.user,
-        coverURL: userData?.coverURL,
-        description: userData?.description,
-        favoriteSeries: userData?.favoriteSeries,
-      };
-      setCurrentUser(extendedUser);
-      await createOrUpdateUser(result.user);
-      
-      // Limpar notificações duplicadas
-      try {
-        // Apenas limpar notificações do usuário atual
-        if (result.user.uid === auth.currentUser?.uid) {
-          await cleanupNotifications(result.user.uid);
-        }
-      } catch (error) {
-        console.error("Erro ao limpar notificações:", error);
+      // Apenas limpar notificações do usuário atual
+      if (result.user.uid === auth.currentUser?.uid) {
+        await cleanupNotifications(result.user.uid);
       }
     } catch (error) {
-      console.error("Erro no login:", error);
-      throw error;
+      console.error("Erro ao limpar notificações:", error);
     }
   }
 
@@ -150,6 +132,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       ...result.user,
       coverURL: userData?.coverURL,
       description: userData?.description,
+      username: userData?.username,
       favoriteSeries: userData?.favoriteSeries,
     };
     setCurrentUser(extendedUser);

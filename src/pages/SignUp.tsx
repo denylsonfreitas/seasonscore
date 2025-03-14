@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -17,6 +17,7 @@ import {
   InputGroup,
   InputRightElement,
   IconButton,
+  FormErrorMessage,
 } from "@chakra-ui/react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -27,14 +28,20 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { auth } from "../config/firebase";
+import { isUsernameAvailable, createOrUpdateUser, isEmailAvailable } from "../services/users";
 
 export function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [usernameError, setUsernameError] = useState("");
+  const [emailError, setEmailError] = useState("");
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -53,15 +60,45 @@ export function SignUp() {
       return;
     }
 
+    if (!username) {
+      toast({
+        title: "Nome de usuário obrigatório",
+        description: "Por favor, escolha um nome de usuário.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (usernameError || emailError) {
+      toast({
+        title: "Erro na validação",
+        description: "Por favor, corrija os erros antes de continuar.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      await signUp(email, password);
+      await signUp(email, password, username);
       navigate("/");
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Erro ao criar conta:", error);
+      let errorMessage = "Não foi possível criar sua conta. Tente novamente.";
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "Este email já está em uso.";
+        setEmailError(errorMessage);
+      }
+      
       toast({
         title: "Erro ao criar conta",
-        description: "Não foi possível criar sua conta. Tente novamente.",
+        description: errorMessage,
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -80,11 +117,30 @@ export function SignUp() {
       });
       const result = await signInWithPopup(auth, provider);
 
+      // Gerar username base do displayName ou email
+      const baseUsername = (result.user.displayName || result.user.email?.split("@")[0] || "user").toLowerCase()
+        .replace(/[^a-z0-9]/g, ""); // Remove caracteres especiais
+
+      // Tentar encontrar um username único
+      let username = baseUsername;
+      let counter = 1;
+      while (!(await isUsernameAvailable(username))) {
+        username = `${baseUsername}${counter}`;
+        counter++;
+      }
+
+      // Atualizar perfil e criar usuário
       if (result.user && !result.user.displayName) {
         await updateProfile(result.user, {
           displayName: result.user.email?.split("@")[0],
         });
       }
+
+      // Criar ou atualizar usuário com o username gerado
+      await createOrUpdateUser(result.user, {
+        username: username,
+        displayName: result.user.displayName || result.user.email?.split("@")[0],
+      });
 
       navigate("/");
     } catch (error) {
@@ -100,6 +156,73 @@ export function SignUp() {
       setIsLoading(false);
     }
   };
+
+  const checkUsername = async (username: string) => {
+    if (username.length < 3) {
+      setUsernameError("O nome de usuário deve ter pelo menos 3 caracteres");
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      setUsernameError("O nome de usuário pode conter apenas letras, números e underscore");
+      return;
+    }
+
+    setIsCheckingUsername(true);
+    try {
+      const isAvailable = await isUsernameAvailable(username.toLowerCase());
+      if (!isAvailable) {
+        setUsernameError("Este nome de usuário já está em uso");
+      } else {
+        setUsernameError("");
+      }
+    } catch (error) {
+      console.error("Erro ao verificar username:", error);
+    } finally {
+      setIsCheckingUsername(false);
+    }
+  };
+
+  const checkEmail = async (email: string) => {
+    if (!email || !email.includes("@")) {
+      setEmailError("Digite um email válido");
+      return;
+    }
+
+    setIsCheckingEmail(true);
+    try {
+      const isAvailable = await isEmailAvailable(email.toLowerCase());
+      if (!isAvailable) {
+        setEmailError("Este email já está em uso");
+      } else {
+        setEmailError("");
+      }
+    } catch (error) {
+      console.error("Erro ao verificar email:", error);
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
+
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      if (username) {
+        checkUsername(username);
+      }
+    }, 500);
+
+    return () => clearTimeout(debounceTimer);
+  }, [username]);
+
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      if (email) {
+        checkEmail(email);
+      }
+    }, 500);
+
+    return () => clearTimeout(debounceTimer);
+  }, [email]);
 
   return (
     <HStack spacing={0} minH="100vh">
@@ -221,7 +344,22 @@ export function SignUp() {
               </HStack>
 
               <VStack as="form" spacing={4} w="100%" onSubmit={handleSubmit}>
-                <FormControl>
+                <FormControl isInvalid={!!usernameError}>
+                  <FormLabel color="white">Nome de usuário</FormLabel>
+                  <Input
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    bg="gray.700"
+                    border="none"
+                    color="white"
+                    size={{ base: "md", lg: "lg" }}
+                    required
+                    isDisabled={isCheckingUsername}
+                  />
+                  <FormErrorMessage>{usernameError}</FormErrorMessage>
+                </FormControl>
+
+                <FormControl isInvalid={!!emailError}>
                   <FormLabel color="white">Email</FormLabel>
                   <Input
                     type="email"
@@ -233,7 +371,9 @@ export function SignUp() {
                     size={{ base: "md", lg: "lg" }}
                     _placeholder={{ color: "gray.400" }}
                     required
+                    isDisabled={isCheckingEmail}
                   />
+                  <FormErrorMessage>{emailError}</FormErrorMessage>
                 </FormControl>
 
                 <FormControl>
@@ -299,7 +439,7 @@ export function SignUp() {
                   colorScheme="teal"
                   size={{ base: "md", lg: "lg" }}
                   w="100%"
-                  isLoading={isLoading}
+                  isLoading={isLoading || isCheckingUsername}
                 >
                   Criar Conta
                 </Button>

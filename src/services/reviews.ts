@@ -13,10 +13,15 @@ import {
   deleteDoc,
   Timestamp,
   doc,
+  arrayUnion,
+  arrayRemove,
+  limit,
 } from "firebase/firestore";
 import { auth } from "../config/firebase";
 import { getSeriesDetails } from "./tmdb";
 import { createNotification, NotificationType } from "./notifications";
+import { Comment } from "../types/review";
+import { getUserData } from "./users";
 
 const db = getFirestore();
 const reviewsCollection = collection(db, "reviews");
@@ -38,7 +43,12 @@ export interface SeasonReview {
   userId: string;
   userEmail: string;
   rating: number;
-  comment?: string;
+  comment: string;
+  comments?: Comment[];
+  reactions?: {
+    likes: string[];
+    dislikes: string[];
+  };
   createdAt: Date | Timestamp;
 }
 
@@ -90,6 +100,7 @@ export async function addSeasonReview(
     userEmail: auth.currentUser.email,
     rating,
     comment,
+    comments: [],
     createdAt: new Date(),
   };
 
@@ -137,17 +148,24 @@ export async function addSeasonReview(
   }
 }
 
-export async function getSeriesReviews(seriesId: number) {
+export async function getSeriesReviews(seriesId: number): Promise<SeriesReview[]> {
   const reviewsQuery = query(
     reviewsCollection,
     where("seriesId", "==", seriesId)
   );
 
   const snapshot = await getDocs(reviewsQuery);
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as SeriesReview[];
+  return snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      seasonReviews: data.seasonReviews.map((sr: SeasonReview) => ({
+        ...sr,
+        comments: sr.comments || []
+      }))
+    };
+  }) as SeriesReview[];
 }
 
 export async function getUserReview(seriesId: number, userId: string) {
@@ -320,4 +338,290 @@ export async function getTopRatedSeries(): Promise<SeriesReview[]> {
 
   // Retornar as reviews das top 10 séries
   return sortedSeries.flatMap(series => series.reviews);
+}
+
+export async function addCommentToReview(
+  reviewId: string,
+  seasonNumber: number,
+  content: string
+) {
+  if (!auth.currentUser) throw new Error("Usuário não autenticado");
+  if (!auth.currentUser.email) throw new Error("Email do usuário não encontrado");
+
+  const reviewRef = doc(reviewsCollection, reviewId);
+  const reviewDoc = await getDoc(reviewRef);
+  
+  if (!reviewDoc.exists()) throw new Error("Avaliação não encontrada");
+
+  const review = reviewDoc.data() as SeriesReview;
+  const seasonIndex = review.seasonReviews.findIndex(
+    (sr) => sr.seasonNumber === seasonNumber
+  );
+
+  if (seasonIndex === -1) throw new Error("Temporada não encontrada");
+
+  const newComment: Comment = {
+    id: crypto.randomUUID(),
+    userId: auth.currentUser.uid,
+    userEmail: auth.currentUser.email,
+    content,
+    createdAt: new Date(),
+    reactions: {
+      likes: [],
+      dislikes: []
+    }
+  };
+
+  // Criar uma cópia da avaliação para atualização
+  const updatedReview = {
+    ...review,
+    seasonReviews: [...review.seasonReviews]
+  };
+
+  // Inicializar o array de comentários se não existir
+  if (!updatedReview.seasonReviews[seasonIndex].comments) {
+    updatedReview.seasonReviews[seasonIndex].comments = [];
+  }
+
+  updatedReview.seasonReviews[seasonIndex].comments!.push(newComment);
+
+  try {
+    await updateDoc(reviewRef, updatedReview);
+
+    // Notificar o dono da avaliação sobre o novo comentário
+    if (review.userId !== auth.currentUser.uid) {
+      try {
+        const seriesDetails = await getSeriesDetails(review.seriesId);
+        const userData = await getUserData(auth.currentUser.uid);
+        const userName = userData?.username || userData?.displayName || auth.currentUser.email;
+        
+        await createNotification(
+          review.userId,
+          NotificationType.NEW_COMMENT,
+          {
+            senderId: auth.currentUser.uid,
+            seriesId: review.seriesId,
+            seriesName: seriesDetails.name,
+            seriesPoster: seriesDetails.poster_path || undefined,
+            seasonNumber,
+            reviewId,
+            message: `${userName} comentou na sua avaliação de ${seriesDetails.name} (Temporada ${seasonNumber}).`
+          }
+        );
+      } catch (error) {
+        console.error("Erro ao criar notificação de comentário:", error);
+      }
+    }
+
+    return newComment;
+  } catch (error) {
+    console.error("Erro ao adicionar comentário:", error);
+    throw new Error("Não foi possível adicionar o comentário. Por favor, tente novamente.");
+  }
+}
+
+export async function deleteComment(
+  reviewId: string,
+  seasonNumber: number,
+  commentId: string
+) {
+  if (!auth.currentUser) throw new Error("Usuário não autenticado");
+
+  const reviewDoc = await getDoc(doc(reviewsCollection, reviewId));
+  if (!reviewDoc.exists()) throw new Error("Avaliação não encontrada");
+
+  const review = reviewDoc.data() as SeriesReview;
+  const seasonIndex = review.seasonReviews.findIndex(
+    (sr) => sr.seasonNumber === seasonNumber
+  );
+
+  if (seasonIndex === -1) throw new Error("Temporada não encontrada");
+
+  const comments = review.seasonReviews[seasonIndex].comments;
+  if (!comments) throw new Error("Não há comentários nesta avaliação");
+
+  const commentIndex = comments.findIndex((c) => c.id === commentId);
+  if (commentIndex === -1) throw new Error("Comentário não encontrado");
+
+  const comment = comments[commentIndex];
+  if (comment.userId !== auth.currentUser.uid) {
+    throw new Error("Você não tem permissão para excluir este comentário");
+  }
+
+  comments.splice(commentIndex, 1);
+
+  await updateDoc(reviewDoc.ref, {
+    seasonReviews: review.seasonReviews,
+  });
+}
+
+export async function toggleReaction(
+  reviewId: string,
+  seasonNumber: number,
+  reactionType: "likes" | "dislikes"
+) {
+  if (!auth.currentUser) throw new Error("Usuário não autenticado");
+
+  const reviewRef = doc(reviewsCollection, reviewId);
+  const reviewDoc = await getDoc(reviewRef);
+  
+  if (!reviewDoc.exists()) throw new Error("Avaliação não encontrada");
+
+  const review = reviewDoc.data() as SeriesReview;
+  const seasonIndex = review.seasonReviews.findIndex(
+    (sr) => sr.seasonNumber === seasonNumber
+  );
+
+  if (seasonIndex === -1) throw new Error("Temporada não encontrada");
+
+  // Criar uma cópia da avaliação para atualização
+  const updatedReview = {
+    ...review,
+    seasonReviews: [...review.seasonReviews]
+  };
+
+  // Inicializar reactions se não existir
+  if (!updatedReview.seasonReviews[seasonIndex].reactions) {
+    updatedReview.seasonReviews[seasonIndex].reactions = {
+      likes: [],
+      dislikes: []
+    };
+  }
+
+  const userId = auth.currentUser.uid;
+  const reactions = updatedReview.seasonReviews[seasonIndex].reactions!;
+
+  // Remove a reação oposta se existir
+  const oppositeType = reactionType === "likes" ? "dislikes" : "likes";
+  const oppositeIndex = reactions[oppositeType].indexOf(userId);
+  if (oppositeIndex !== -1) {
+    reactions[oppositeType].splice(oppositeIndex, 1);
+  }
+
+  // Toggle da reação atual
+  const currentIndex = reactions[reactionType].indexOf(userId);
+  if (currentIndex === -1) {
+    reactions[reactionType].push(userId);
+  } else {
+    reactions[reactionType].splice(currentIndex, 1);
+  }
+
+  try {
+    await updateDoc(reviewRef, updatedReview);
+
+    // Notificar o dono da avaliação sobre a reação (apenas se for uma nova reação)
+    if (currentIndex === -1 && review.userId !== auth.currentUser.uid) {
+      try {
+        const seriesDetails = await getSeriesDetails(review.seriesId);
+        const userData = await getUserData(auth.currentUser.uid);
+        const userName = userData?.username || userData?.displayName || auth.currentUser.email;
+        
+        await createNotification(
+          review.userId,
+          NotificationType.NEW_REACTION,
+          {
+            senderId: auth.currentUser.uid,
+            seriesId: review.seriesId,
+            seriesName: seriesDetails.name,
+            seriesPoster: seriesDetails.poster_path || undefined,
+            seasonNumber,
+            reviewId,
+            message: `${userName} reagiu à sua avaliação de ${seriesDetails.name} (Temporada ${seasonNumber}).`
+          }
+        );
+      } catch (error) {
+        console.error("Erro ao criar notificação de reação:", error);
+      }
+    }
+
+    return updatedReview.seasonReviews[seasonIndex];
+  } catch (error) {
+    console.error("Erro ao atualizar reação:", error);
+    throw new Error("Não foi possível atualizar a reação. Por favor, tente novamente.");
+  }
+}
+
+export async function toggleCommentReaction(
+  reviewId: string,
+  seasonNumber: number,
+  commentId: string,
+  reactionType: "likes" | "dislikes"
+) {
+  if (!auth.currentUser) throw new Error("Usuário não autenticado");
+
+  const reviewRef = doc(reviewsCollection, reviewId);
+  const reviewDoc = await getDoc(reviewRef);
+  
+  if (!reviewDoc.exists()) throw new Error("Avaliação não encontrada");
+
+  const review = reviewDoc.data() as SeriesReview;
+  const seasonIndex = review.seasonReviews.findIndex(
+    (sr) => sr.seasonNumber === seasonNumber
+  );
+
+  if (seasonIndex === -1) throw new Error("Temporada não encontrada");
+
+  // Criar uma cópia da avaliação para atualização
+  const updatedReview = {
+    ...review,
+    seasonReviews: [...review.seasonReviews]
+  };
+
+  // Encontrar o comentário
+  const comment = updatedReview.seasonReviews[seasonIndex].comments?.find(
+    (c) => c.id === commentId
+  );
+
+  if (!comment) throw new Error("Comentário não encontrado");
+
+  const userId = auth.currentUser.uid;
+
+  // Remove a reação oposta se existir
+  const oppositeType = reactionType === "likes" ? "dislikes" : "likes";
+  const oppositeIndex = comment.reactions[oppositeType].indexOf(userId);
+  if (oppositeIndex !== -1) {
+    comment.reactions[oppositeType].splice(oppositeIndex, 1);
+  }
+
+  // Toggle da reação atual
+  const currentIndex = comment.reactions[reactionType].indexOf(userId);
+  if (currentIndex === -1) {
+    comment.reactions[reactionType].push(userId);
+  } else {
+    comment.reactions[reactionType].splice(currentIndex, 1);
+  }
+
+  try {
+    await updateDoc(reviewRef, updatedReview);
+
+    // Notificar o dono do comentário sobre a reação (apenas se for uma nova reação)
+    if (currentIndex === -1 && comment.userId !== auth.currentUser.uid) {
+      try {
+        const seriesDetails = await getSeriesDetails(review.seriesId);
+        const userData = await getUserData(auth.currentUser.uid);
+        const userName = userData?.username || userData?.displayName || auth.currentUser.email;
+        
+        await createNotification(
+          comment.userId,
+          NotificationType.NEW_REACTION,
+          {
+            senderId: auth.currentUser.uid,
+            seriesId: review.seriesId,
+            seriesName: seriesDetails.name,
+            seriesPoster: seriesDetails.poster_path || undefined,
+            seasonNumber,
+            reviewId,
+            message: `${userName} reagiu ao seu comentário em ${seriesDetails.name} (Temporada ${seasonNumber}).`
+          }
+        );
+      } catch (error) {
+        console.error("Erro ao criar notificação de reação:", error);
+      }
+    }
+
+    return comment;
+  } catch (error) {
+    console.error("Erro ao atualizar reação:", error);
+    throw new Error("Não foi possível atualizar a reação. Por favor, tente novamente.");
+  }
 }

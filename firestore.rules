@@ -2,17 +2,35 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isUsernameUnique(username) {
+      let existingUsers = getAfter(/databases/$(database)/documents/users)
+        .where("username", "==", username).limit(1);
+      return existingUsers.size() == 0 || 
+        (existingUsers.size() == 1 && existingUsers[0].id == request.auth.uid);
+    }
+
     match /users/{userId} {
       allow read;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == userId && 
+        request.resource.data.username is string &&
+        request.resource.data.username.size() > 0;
+      allow update: if request.auth != null && 
+        request.auth.uid == userId;
     }
     
     match /reviews/{reviewId} {
-      allow read;
+      allow read: if true;
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && 
-        (resource.data.userId == request.auth.uid || 
-         request.resource.data.userId == request.auth.uid);
+      allow update: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        (
+          request.resource.data.seriesId == resource.data.seriesId &&
+          request.resource.data.userId == resource.data.userId &&
+          request.resource.data.seasonReviews.size() == resource.data.seasonReviews.size()
+        )
+      );
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
     
     match /watchlist/{docId} {
@@ -43,6 +61,16 @@ service cloud.firestore {
         docId.matches(request.auth.uid + '_.*');
       allow create, write: if request.auth != null && 
         docId.matches(request.auth.uid + '_.*');
+    }
+
+    // Função auxiliar para verificar se o usuário está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Função auxiliar para verificar se o usuário é o dono do documento
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
     }
   }
 }

@@ -7,6 +7,7 @@ import {
   Text,
   HStack,
   Divider,
+  useToast,
 } from "@chakra-ui/react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +16,7 @@ import { User, Gear, SignOut } from "@phosphor-icons/react";
 export function UserMenu() {
   const { currentUser, signOut } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const handleSignOut = async () => {
     try {
@@ -40,7 +42,20 @@ export function UserMenu() {
         </Text>
         <Divider borderColor="gray.700" />
         <MenuItem
-          onClick={() => navigate("/profile")}
+          onClick={() => {
+            if (currentUser?.username) {
+              navigate(`/u/${currentUser.username}`);
+            } else {
+              navigate("/settings");
+              toast({
+                title: "Nome de usuário não definido",
+                description: "Por favor, defina seu nome de usuário nas configurações.",
+                status: "warning",
+                duration: 3000,
+                isClosable: true,
+              });
+            }
+          }}
           bg="gray.800"
           _hover={{ bg: "gray.700" }}
           color="white"

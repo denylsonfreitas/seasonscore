@@ -22,6 +22,7 @@ import {
   Alert,
   AlertIcon,
   Icon,
+  FormErrorMessage,
 } from "@chakra-ui/react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
@@ -43,6 +44,7 @@ import { useNavigate } from "react-router-dom";
 import { ExtendedUser } from "../types/auth";
 import { auth } from "../config/firebase";
 import { FcGoogle } from "react-icons/fc";
+import { isUsernameAvailable, updateUsername } from "../services/users";
 
 export function Settings() {
   const { currentUser, logout } = useAuth() as { currentUser: ExtendedUser | null, logout: () => Promise<void> };
@@ -80,6 +82,11 @@ export function Settings() {
   const isGoogleLinked = auth.currentUser?.providerData.some(
     (provider) => provider.providerId === "google.com"
   );
+
+  const [newUsername, setNewUsername] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleUpdateEmail = async () => {
     if (!auth.currentUser || !emailCurrentPassword) return;
@@ -298,6 +305,94 @@ export function Settings() {
     }
   };
 
+  const handleUsernameChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setUsernameError("");
+
+    try {
+      if (!passwordCurrentPassword) {
+        throw new Error("A senha atual é necessária para alterar o nome de usuário");
+      }
+
+      if (newUsername.length < 3) {
+        throw new Error("O nome de usuário deve ter pelo menos 3 caracteres");
+      }
+
+      if (!/^[a-zA-Z0-9_]+$/.test(newUsername)) {
+        throw new Error("O nome de usuário pode conter apenas letras, números e underscore");
+      }
+
+      // Verificar se o username está disponível
+      const isAvailable = await isUsernameAvailable(newUsername.toLowerCase());
+      if (!isAvailable) {
+        throw new Error("Este nome de usuário já está em uso");
+      }
+
+      // Reautenticar usuário
+      if (currentUser && currentUser.email) {
+        const credential = EmailAuthProvider.credential(
+          currentUser.email,
+          passwordCurrentPassword
+        );
+        await reauthenticateWithCredential(currentUser, credential);
+      }
+
+      // Atualizar username
+      if (currentUser) {
+        await updateUsername(currentUser.uid, newUsername.toLowerCase());
+        toast({
+          title: "Nome de usuário atualizado",
+          description: "Seu nome de usuário foi alterado com sucesso.",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+        setNewUsername("");
+        setPasswordCurrentPassword("");
+      }
+    } catch (error: any) {
+      setUsernameError(error.message || "Erro ao atualizar nome de usuário");
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao atualizar nome de usuário",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const checkUsername = async (username: string) => {
+    if (username.length >= 3) {
+      setIsCheckingUsername(true);
+      try {
+        const isAvailable = await isUsernameAvailable(username.toLowerCase());
+        if (!isAvailable) {
+          setUsernameError("Este nome de usuário já está em uso");
+        } else {
+          setUsernameError("");
+        }
+      } catch (error) {
+        console.error("Erro ao verificar username:", error);
+      } finally {
+        setIsCheckingUsername(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      if (newUsername) {
+        checkUsername(newUsername);
+      }
+    }, 500);
+
+    return () => clearTimeout(debounceTimer);
+  }, [newUsername]);
+
   return (
     <Box bg="gray.900" minH="100vh" pt="80px">
       <Container maxW="container.md" py={8}>
@@ -514,6 +609,60 @@ export function Settings() {
                   Excluir Conta
                 </Button>
               </Box>
+            </VStack>
+          </Box>
+
+          <Box bg="gray.800" p={6} borderRadius="lg">
+            <VStack spacing={4} as="form" onSubmit={handleUsernameChange}>
+              <Heading size="md" color="white">Alterar nome de usuário</Heading>
+              <FormControl isInvalid={!!usernameError}>
+                <FormLabel color="white">Novo nome de usuário</FormLabel>
+                <Input
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
+                  placeholder="Novo nome de usuário"
+                  bg="gray.700"
+                  color="white"
+                  _placeholder={{ color: "gray.400" }}
+                />
+                <FormErrorMessage>{usernameError}</FormErrorMessage>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel color="white">Senha atual</FormLabel>
+                <InputGroup>
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    value={passwordCurrentPassword}
+                    onChange={(e) => setPasswordCurrentPassword(e.target.value)}
+                    placeholder="Digite sua senha atual"
+                    bg="gray.700"
+                    color="white"
+                    _placeholder={{ color: "gray.400" }}
+                  />
+                  <InputRightElement width="4.5rem">
+                    <Button
+                      h="1.75rem"
+                      size="sm"
+                      onClick={() => setShowPassword(!showPassword)}
+                      bg="gray.600"
+                      _hover={{ bg: "gray.500" }}
+                    >
+                      {showPassword ? "Ocultar" : "Mostrar"}
+                    </Button>
+                  </InputRightElement>
+                </InputGroup>
+              </FormControl>
+
+              <Button
+                type="submit"
+                colorScheme="blue"
+                isLoading={isLoading || isCheckingUsername}
+                loadingText="Alterando..."
+                w="100%"
+              >
+                Alterar nome de usuário
+              </Button>
             </VStack>
           </Box>
         </VStack>

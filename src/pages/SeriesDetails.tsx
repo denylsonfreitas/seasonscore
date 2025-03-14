@@ -61,6 +61,7 @@ import { SeriesCard } from "../components/SeriesCard";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import { SeasonReview } from "../services/reviews";
 
 export function SeriesDetails() {
   const { id } = useParams<{ id: string }>();
@@ -316,7 +317,15 @@ export function SeriesDetails() {
                             .slice(0, showAllSeasons ? undefined : 3)
                             .map((season) => {
                               const seasonReviews = reviews.flatMap((review) =>
-                                review.seasonReviews.filter((sr) => sr.seasonNumber === season)
+                                review.seasonReviews
+                                  .filter((sr) => sr.seasonNumber === season)
+                                  .map((sr) => ({
+                                    ...sr,
+                                    id: review.id || '',
+                                    userId: review.userId,
+                                    userEmail: review.userEmail,
+                                    comments: sr.comments || []
+                                  }))
                               );
 
                               const averageRating =
@@ -353,11 +362,24 @@ export function SeriesDetails() {
                                         (sr) => sr.seasonNumber === season
                                       ) ? (
                                         <Box bg="gray.800" p={4} borderRadius="lg">
-                                          <HStack justify="space-between" mb={2}>
-                                            <Text color="white" fontWeight="bold">
-                                              Sua avaliação
-                                            </Text>
-                                            <HStack spacing={2}>
+                                          <UserReview
+                                            key={`${userReview.id}-${season}`}
+                                            reviewId={userReview.id!}
+                                            userId={userReview.userId}
+                                            userEmail={userReview.userEmail}
+                                            rating={userReview.seasonReviews.find(sr => sr.seasonNumber === season)?.rating || 0}
+                                            comment={userReview.seasonReviews.find(sr => sr.seasonNumber === season)?.comment || ""}
+                                            seasonNumber={season}
+                                            comments={userReview.seasonReviews.find(sr => sr.seasonNumber === season)?.comments || []}
+                                            reactions={userReview.seasonReviews.find(sr => sr.seasonNumber === season)?.reactions || { likes: [], dislikes: [] }}
+                                            createdAt={userReview.seasonReviews.find(sr => sr.seasonNumber === season)?.createdAt || new Date()}
+                                            onReviewUpdated={() => {
+                                              queryClient.invalidateQueries({
+                                                queryKey: ["reviews", id],
+                                              });
+                                            }}
+                                          >
+                                            <HStack justify="flex-end" spacing={2}>
                                               <Button
                                                 size="sm"
                                                 colorScheme="red"
@@ -380,25 +402,7 @@ export function SeriesDetails() {
                                                 Editar
                                               </Button>
                                             </HStack>
-                                          </HStack>
-                                          <RatingStars
-                                            rating={
-                                              userReview.seasonReviews.find(
-                                                (sr) => sr.seasonNumber === season
-                                              )?.rating || 0
-                                            }
-                                          />
-                                          {userReview.seasonReviews.find(
-                                            (sr) => sr.seasonNumber === season
-                                          )?.comment && (
-                                            <Text color="gray.400" mt={2}>
-                                              {
-                                                userReview.seasonReviews.find(
-                                                  (sr) => sr.seasonNumber === season
-                                                )?.comment
-                                              }
-                                            </Text>
-                                          )}
+                                          </UserReview>
                                         </Box>
                                       ) : (
                                         <Box bg="gray.800" pt={2} borderRadius="lg">
@@ -435,17 +439,24 @@ export function SeriesDetails() {
                                           </Text>
                                           <VStack spacing={4} align="stretch">
                                             {seasonReviews
-                                              .filter(
-                                                (review) => review.userId !== currentUser?.uid
-                                              )
+                                              .filter((review) => review.userId !== currentUser?.uid)
                                               .map((review) => (
                                                 <UserReview
-                                                  key={`review-${review.userId}-${season}`}
+                                                  key={`${review.id}-${season}`}
+                                                  reviewId={review.id!}
                                                   userId={review.userId}
                                                   userEmail={review.userEmail}
                                                   rating={review.rating}
-                                                  comment={review.comment}
+                                                  comment={review.comment || ""}
+                                                  seasonNumber={season}
+                                                  comments={review.comments ?? []}
+                                                  reactions={review.reactions || { likes: [], dislikes: [] }}
                                                   createdAt={review.createdAt}
+                                                  onReviewUpdated={() => {
+                                                    queryClient.invalidateQueries({
+                                                      queryKey: ["reviews", id],
+                                                    });
+                                                  }}
                                                 />
                                               ))}
                                           </VStack>
@@ -811,7 +822,7 @@ export function SeriesDetails() {
               </>
             ) : (
               <Text color="gray.400" textAlign="center">
-                Não foram encontradas séries relacionadas.
+                Não há séries relacionadas disponíveis.
               </Text>
             )}
           </Box>

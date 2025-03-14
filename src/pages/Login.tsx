@@ -28,6 +28,7 @@ import {
   sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth } from "../config/firebase";
+import { createOrUpdateUser, isUsernameAvailable } from "../services/users";
 
 export function Login() {
   const [email, setEmail] = useState("");
@@ -112,6 +113,24 @@ export function Login() {
             displayName: result.user.email?.split("@")[0],
           });
         }
+
+        // Gerar username base do displayName ou email
+        const baseUsername = (result.user.displayName || result.user.email?.split("@")[0] || "user").toLowerCase()
+          .replace(/[^a-z0-9]/g, ""); // Remove caracteres especiais
+
+        // Tentar encontrar um username único
+        let username = baseUsername;
+        let counter = 1;
+        while (!(await isUsernameAvailable(username))) {
+          username = `${baseUsername}${counter}`;
+          counter++;
+        }
+
+        // Criar ou atualizar usuário com o username gerado
+        await createOrUpdateUser(result.user, {
+          username: username,
+          displayName: result.user.displayName || result.user.email?.split("@")[0],
+        });
       }
 
       navigate("/");

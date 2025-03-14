@@ -233,7 +233,10 @@ export function NotificationMenu() {
 
   // Filtrar notificações baseado no tipo selecionado
   const filteredNotifications = notifications.filter(notification => 
-    activeFilter === 'all' || notification.type === activeFilter
+    activeFilter === 'all' || 
+    (activeFilter === NotificationType.NEW_COMMENT && 
+      (notification.type === NotificationType.NEW_COMMENT || notification.type === NotificationType.NEW_REACTION)) ||
+    notification.type === activeFilter
   );
 
   // Contar notificações por tipo
@@ -415,7 +418,7 @@ export function NotificationMenu() {
                 color="white"
                 _hover={{ bg: "blue.700" }}
               >
-                Avaliações ({notificationCounts[NotificationType.NEW_COMMENT] || 0})
+                Avaliações ({(notificationCounts[NotificationType.NEW_COMMENT] || 0) + (notificationCounts[NotificationType.NEW_REACTION] || 0)})
               </Button>
               <Button
                 size="xs"

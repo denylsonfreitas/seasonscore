@@ -54,7 +54,7 @@ import { getUserReviews, SeriesReview } from "../services/reviews";
 import { getUserWatchlist } from "../services/watchlist";
 import { FollowButton } from "../components/FollowButton";
 import { getFollowers, getFollowing } from "../services/followers";
-import { getUserData, UserData, createOrUpdateUser } from "../services/users";
+import { getUserData, UserData, createOrUpdateUser, getUserByUsername } from "../services/users";
 import { UserListModal } from "../components/UserListModal";
 import { ExtendedUser } from "../types/auth";
 
@@ -64,7 +64,7 @@ interface ExpandedReviews {
 
 export function Profile() {
   const { currentUser } = useAuth() as { currentUser: ExtendedUser | null };
-  const { userId } = useParams();
+  const { username } = useParams();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const navigate = useNavigate();
   const toast = useToast();
@@ -89,17 +89,32 @@ export function Profile() {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
-  const targetUserId = userId || currentUser?.uid;
+  const isOwnProfile = !username || (currentUser && profileUser?.id === currentUser.uid);
+  const targetUserId = profileUser?.id || currentUser?.uid;
 
   useEffect(() => {
     const fetchProfileUser = async () => {
-      if (targetUserId) {
-        const userData = await getUserData(targetUserId);
+      if (username) {
+        const userData = await getUserByUsername(username);
+        if (userData) {
+          setProfileUser(userData);
+        } else {
+          toast({
+            title: "Usuário não encontrado",
+            description: "O usuário que você procura não existe.",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+          navigate("/");
+        }
+      } else if (currentUser) {
+        const userData = await getUserData(currentUser.uid);
         setProfileUser(userData);
       }
     };
     fetchProfileUser();
-  }, [targetUserId, currentUser]);
+  }, [username, currentUser, navigate, toast]);
 
   const { data: reviews = [], isLoading: isLoadingReviews } = useQuery({
     queryKey: ["userReviews", targetUserId],
@@ -234,7 +249,7 @@ export function Profile() {
     }
   };
 
-  if (!currentUser && !userId) {
+  if (!currentUser && !username) {
     return (
       <Box bg="gray.900" minH="100vh" pt="80px">
         <Container maxW="1200px" py={8}>
@@ -244,7 +259,6 @@ export function Profile() {
     );
   }
 
-  const isOwnProfile = currentUser?.uid === targetUserId;
   const userName = isOwnProfile 
     ? currentUser?.displayName || currentUser?.email?.split("@")[0] || "Usuário"
     : profileUser?.displayName || profileUser?.email?.split("@")[0] || "Usuário";
@@ -311,12 +325,22 @@ export function Profile() {
                         <Heading size={{ base: "md", md: "lg" }} color="white" textAlign={{ base: "center", md: "left" }}>
                           {userName}
                         </Heading>
+                        <Text 
+                          color="gray.500" 
+                          fontSize={{ base: "xs", md: "sm" }}
+                          textAlign={{ base: "center", md: "left" }}
+                          letterSpacing="0.5px"
+                          fontWeight="medium"
+                        >
+                          @{isOwnProfile ? currentUser?.username : profileUser?.username}
+                        </Text>
                         {(isOwnProfile ? currentUser?.description : profileUser?.description) && (
                           <Text 
                             color="gray.400" 
                             maxW="600px"
                             textAlign={{ base: "center", md: "left" }}
                             fontSize={{ base: "sm", md: "md" }}
+                            mt={2}
                           >
                             {isOwnProfile ? currentUser?.description : profileUser?.description}
                           </Text>

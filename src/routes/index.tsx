@@ -28,6 +28,16 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
   return <>{children}</>;
 }
 
+function ProfileRedirect() {
+  const { currentUser } = useAuth();
+
+  if (!currentUser?.username) {
+    return <Navigate to="/settings" />;
+  }
+
+  return <Navigate to={`/u/${currentUser.username}`} />;
+}
+
 export const routes = [
   {
     path: "/",
@@ -73,12 +83,12 @@ export const routes = [
         path: "/profile",
         element: (
           <ProtectedRoute>
-            <Profile />
+            <ProfileRedirect />
           </ProtectedRoute>
         ),
       },
       {
-        path: "/profile/:userId",
+        path: "/u/:username",
         element: <Profile />,
       },
       {

@@ -6,26 +6,34 @@ import { getUserData } from "../services/users";
 interface UserNameProps {
   userId: string;
   color?: string;
+  showAt?: boolean;
 }
 
-export function UserName({ userId, color = "white" }: UserNameProps) {
-  const [userName, setUserName] = useState<string | null>(null);
+export function UserName({ userId, color = "white", showAt = true }: UserNameProps) {
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUserName = async () => {
+    const fetchUserInfo = async () => {
       try {
         const userData = await getUserData(userId);
-        setUserName(userData?.displayName || userData?.email?.split("@")[0] || "Usuário");
+        if (userData?.username) {
+          setUsername(userData.username);
+          setDisplayName(userData.username); // Usamos o username como display principal
+        } else {
+          // Só usamos o displayName se não houver username
+          setDisplayName(userData?.displayName || userData?.email?.split("@")[0] || "Usuário");
+        }
       } catch (error) {
-        console.error("Erro ao buscar nome do usuário:", error);
-        setUserName("Usuário");
+        console.error("Erro ao buscar informações do usuário:", error);
+        setDisplayName("Usuário");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchUserName();
+    fetchUserInfo();
   }, [userId]);
 
   if (isLoading) {
@@ -35,11 +43,15 @@ export function UserName({ userId, color = "white" }: UserNameProps) {
   return (
     <Link
       as={RouterLink}
-      to={`/profile/${userId}`}
+      to={`/u/${username}`}
       color={color}
       _hover={{ textDecoration: "underline", color: "teal.300" }}
+      fontSize={{ base: "sm", md: "md" }}
+      fontWeight="medium"
     >
-      <Text display="inline">{userName}</Text>
+      <Text display="inline">
+        {showAt && username ? "@" : ""}{displayName}
+      </Text>
     </Link>
   );
 } 
