@@ -5,20 +5,28 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   updateProfile,
+  EmailAuthProvider,
+  linkWithCredential,
+  fetchSignInMethodsForEmail,
+  GoogleAuthProvider,
+  linkWithPopup,
+  signInWithPopup,
 } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { auth } from "../config/firebase";
-import { createOrUpdateUser, getUserData } from "../services/users";
+import { createOrUpdateUser, getUserData, getUserByEmail } from "../services/users";
 import { ExtendedUser } from "../types/auth";
 import { cleanupNotifications } from "../services/notifications";
+import { useToast } from "@chakra-ui/react";
 
 interface AuthContextType {
   currentUser: ExtendedUser | null;
   signUp: (email: string, password: string, username: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
+  linkWithEmail: (email: string, password: string) => Promise<void>;
+  linkWithGoogle: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -38,6 +46,7 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [currentUser, setCurrentUser] = useState<ExtendedUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -67,51 +76,293 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   async function signUp(email: string, password: string, username: string) {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    const displayName = email.split("@")[0];
-    
-    await updateProfile(result.user, {
-      displayName,
-    });
+    try {
+      // Tentar criar a conta diretamente
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Se chegou aqui, a conta foi criada com sucesso
+      // Verificar se já existe um usuário com este email no Firestore
+      const existingUser = await getUserByEmail(email);
+      
+      // Definir o displayName
+      const displayName = existingUser?.displayName || email.split("@")[0];
+      
+      // Atualizar o perfil do Firebase Auth
+      await updateProfile(result.user, {
+        displayName: displayName
+      });
+      
+      // Atualizar dados do usuário
+      await createOrUpdateUser(result.user, {
+        username: username.toLowerCase(),
+        displayName: displayName,
+        ...(existingUser && {
+          description: existingUser.description,
+          coverURL: existingUser.coverURL,
+          favoriteSeries: existingUser.favoriteSeries,
+        }),
+      });
 
-    await createOrUpdateUser(result.user, {
-      username: username.toLowerCase(),
-      displayName,
-    });
-
-    // Buscar dados atualizados do usuário
-    const userData = await getUserData(result.user.uid);
-    const extendedUser: ExtendedUser = {
-      ...result.user,
-      coverURL: userData?.coverURL,
-      description: userData?.description,
-      username: userData?.username,
-      favoriteSeries: userData?.favoriteSeries,
-    };
-    setCurrentUser(extendedUser);
+      // Buscar dados atualizados
+      const userData = await getUserData(result.user.uid);
+      const extendedUser: ExtendedUser = {
+        ...result.user,
+        coverURL: userData?.coverURL,
+        description: userData?.description,
+        username: userData?.username,
+        favoriteSeries: userData?.favoriteSeries,
+      };
+      setCurrentUser(extendedUser);
+    } catch (error: any) {
+      console.error("Erro ao criar conta:", error);
+      
+      // Tratar erros específicos
+      if (error.code === 'auth/email-already-in-use') {
+        // Verificar se a conta existente é do Google
+        try {
+          const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+          if (signInMethods.includes(GoogleAuthProvider.PROVIDER_ID)) {
+            toast({
+              title: "Conta Google existente",
+              description: "Este email já está associado a uma conta Google. Por favor, faça login com o Google.",
+              status: "info",
+              duration: 5000,
+              isClosable: true,
+            });
+            throw new Error("Este email já está associado a uma conta Google. Por favor, faça login com o Google.");
+          } else {
+            toast({
+              title: "Email em uso",
+              description: "Este email já está em uso. Por favor, faça login ou use outro email.",
+              status: "error",
+              duration: 5000,
+              isClosable: true,
+            });
+            throw new Error("Este email já está em uso. Por favor, faça login ou use outro email.");
+          }
+        } catch (methodError) {
+          toast({
+            title: "Email em uso",
+            description: "Este email já está em uso. Por favor, faça login ou use outro email.",
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+          throw new Error("Este email já está em uso. Por favor, faça login ou use outro email.");
+        }
+      } else if (error.code === 'auth/weak-password') {
+        toast({
+          title: "Senha fraca",
+          description: "A senha deve ter pelo menos 6 caracteres.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        throw new Error("A senha deve ter pelo menos 6 caracteres.");
+      } else if (error.code === 'auth/invalid-email') {
+        toast({
+          title: "Email inválido",
+          description: "Por favor, forneça um endereço de email válido.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        throw new Error("Por favor, forneça um endereço de email válido.");
+      }
+      
+      // Para outros erros, mostrar mensagem genérica
+      toast({
+        title: "Erro ao criar conta",
+        description: "Ocorreu um erro inesperado. Por favor, tente novamente mais tarde.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      throw error;
+    }
   }
 
   async function login(email: string, password: string) {
-    const result = await signInWithEmailAndPassword(auth, email, password);
-    const userData = await getUserData(result.user.uid);
-    const extendedUser: ExtendedUser = {
-      ...result.user,
-      coverURL: userData?.coverURL,
-      description: userData?.description,
-      username: userData?.username,
-      favoriteSeries: userData?.favoriteSeries,
-    };
-    setCurrentUser(extendedUser);
-    await createOrUpdateUser(result.user);
-    
-    // Limpar notificações duplicadas
     try {
-      // Apenas limpar notificações do usuário atual
-      if (result.user.uid === auth.currentUser?.uid) {
-        await cleanupNotifications(result.user.uid);
+      // Tentar login com email/senha diretamente
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Buscar dados existentes do usuário
+      const existingUser = await getUserByEmail(email);
+      
+      // Atualizar dados do usuário preservando informações importantes
+      if (existingUser) {
+        await createOrUpdateUser(result.user, {
+          username: existingUser.username,
+          displayName: existingUser.displayName || result.user.displayName || "",
+          description: existingUser.description,
+          coverURL: existingUser.coverURL,
+          favoriteSeries: existingUser.favoriteSeries,
+        });
       }
+      
+      // Buscar dados atualizados
+      const userData = await getUserData(result.user.uid);
+      const extendedUser: ExtendedUser = {
+        ...result.user,
+        coverURL: userData?.coverURL,
+        description: userData?.description,
+        username: userData?.username,
+        favoriteSeries: userData?.favoriteSeries,
+      };
+      setCurrentUser(extendedUser);
+      
+      // Limpar notificações duplicadas
+      await cleanupNotifications(result.user.uid);
+    } catch (error: any) {
+      console.error("Erro no login:", error);
+      
+      if (error.code === 'auth/wrong-password') {
+        // Verificar se existe conta Google vinculada
+        try {
+          const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+          if (signInMethods.includes(GoogleAuthProvider.PROVIDER_ID)) {
+            toast({
+              title: "Conta vinculada ao Google",
+              description: "Esta conta está vinculada ao Google. Você pode entrar com o Google ou redefinir sua senha.",
+              status: "info",
+              duration: 8000,
+              isClosable: true,
+            });
+            throw new Error("Esta conta está vinculada ao Google. Você pode entrar com o Google ou redefinir sua senha.");
+          }
+        } catch (methodError) {
+          // Se não conseguir verificar, mostrar mensagem padrão de senha incorreta
+          throw new Error("Senha incorreta. Tente novamente.");
+        }
+        throw new Error("Senha incorreta. Tente novamente.");
+      } else if (error.code === 'auth/user-not-found') {
+        // Se o usuário não for encontrado, verificar se existe conta Google
+        try {
+          const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+          if (signInMethods.includes(GoogleAuthProvider.PROVIDER_ID)) {
+            toast({
+              title: "Conta vinculada ao Google",
+              description: "Esta conta está vinculada ao Google. Você pode entrar com o Google ou redefinir sua senha.",
+              status: "info",
+              duration: 8000,
+              isClosable: true,
+            });
+            throw new Error("Esta conta está vinculada ao Google. Você pode entrar com o Google ou redefinir sua senha.");
+          }
+        } catch (methodError) {
+          // Se não conseguir verificar os métodos, usar mensagem padrão
+          throw new Error("Usuário não encontrado. Verifique seu email ou crie uma nova conta.");
+        }
+        throw new Error("Usuário não encontrado. Verifique seu email ou crie uma nova conta.");
+      }
+      
+      throw error;
+    }
+  }
+
+  async function loginWithGoogle() {
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({
+        prompt: "select_account"
+      });
+      
+      const result = await signInWithPopup(auth, provider);
+      
+      // Verificar se já existe um usuário com este email
+      const existingUser = await getUserByEmail(result.user.email!);
+      
+      if (existingUser) {
+        
+        // Atualizar dados do usuário preservando informações importantes
+        const displayName = existingUser.displayName || "";
+        
+        // Atualizar o perfil do Firebase Auth preservando a foto existente
+        if (result.user) {
+          await updateProfile(result.user, {
+            displayName: displayName,
+            photoURL: existingUser.photoURL ?? result.user.photoURL ?? undefined
+          });
+        }
+        
+        // Atualizar dados no Firestore preservando a foto
+        await createOrUpdateUser(result.user, {
+          username: existingUser.username,
+          displayName: displayName,
+          description: existingUser.description,
+          coverURL: existingUser.coverURL,
+          favoriteSeries: existingUser.favoriteSeries,
+          photoURL: existingUser.photoURL ?? result.user.photoURL ?? undefined
+        });
+      } else {
+        // Criar novo usuário
+        const displayName = result.user.displayName || "";
+        await createOrUpdateUser(result.user, {
+          username: result.user.email!.split("@")[0].toLowerCase(),
+          displayName: displayName,
+        });
+      }
+      
+      // Buscar dados atualizados
+      const userData = await getUserData(result.user.uid);
+      const extendedUser: ExtendedUser = {
+        ...result.user,
+        coverURL: userData?.coverURL,
+        description: userData?.description,
+        username: userData?.username,
+        favoriteSeries: userData?.favoriteSeries,
+      };
+      setCurrentUser(extendedUser);
+      
+      // Se não existia usuário antes, mostrar mensagem para definir senha
+      if (!existingUser) {
+        toast({
+          title: "Conta criada com sucesso",
+          description: "Você pode definir uma senha nas configurações para acessar sua conta com email e senha também.",
+          status: "info",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    } catch (error: any) {
+      console.error("Erro no login com Google:", error);
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        throw new Error("O popup de login foi fechado. Tente novamente quando quiser.");
+      }
+      
+      throw error;
+    }
+  }
+
+  async function linkWithEmail(email: string, password: string) {
+    if (!currentUser) {
+      throw new Error("Nenhum usuário logado");
+    }
+
+    try {
+      const credential = EmailAuthProvider.credential(email, password);
+      await linkWithCredential(currentUser, credential);
+      await createOrUpdateUser(currentUser);
     } catch (error) {
-      console.error("Erro ao limpar notificações:", error);
+      console.error("Erro ao vincular conta:", error);
+      throw error;
+    }
+  }
+
+  async function linkWithGoogle() {
+    if (!currentUser) {
+      throw new Error("Nenhum usuário logado");
+    }
+
+    try {
+      const provider = new GoogleAuthProvider();
+      await linkWithPopup(currentUser, provider);
+      await createOrUpdateUser(currentUser);
+    } catch (error) {
+      console.error("Erro ao vincular conta com Google:", error);
+      throw error;
     }
   }
 
@@ -125,42 +376,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  const signIn = async (email: string, password: string) => {
-    const result = await signInWithEmailAndPassword(auth, email, password);
-    const userData = await getUserData(result.user.uid);
-    const extendedUser: ExtendedUser = {
-      ...result.user,
-      coverURL: userData?.coverURL,
-      description: userData?.description,
-      username: userData?.username,
-      favoriteSeries: userData?.favoriteSeries,
-    };
-    setCurrentUser(extendedUser);
-    await createOrUpdateUser(result.user);
-    
-    // Limpar notificações duplicadas
-    try {
-      // Apenas limpar notificações do usuário atual
-      if (result.user.uid === auth.currentUser?.uid) {
-        await cleanupNotifications(result.user.uid);
-      }
-    } catch (error) {
-      console.error("Erro ao limpar notificações:", error);
-    }
-  };
-
-  const signOut = async () => {
-    await firebaseSignOut(auth);
-    setCurrentUser(null);
-  };
-
   const value = {
     currentUser,
     signUp,
     login,
     logout,
-    signIn,
-    signOut,
+    loginWithGoogle,
+    linkWithEmail,
+    linkWithGoogle,
   };
 
   return (

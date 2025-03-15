@@ -22,10 +22,11 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
+  FormErrorMessage,
 } from "@chakra-ui/react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { createOrUpdateUser, getUserData } from "../services/users";
+import { createOrUpdateUser, getUserData, isUsernameAvailable, updateUsername } from "../services/users";
 import { updateProfile } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { getSeriesDetails } from "../services/tmdb";
@@ -63,6 +64,10 @@ export function ProfileSettings() {
   const navigate = useNavigate();
   const MAX_NAME_LENGTH = 15;
   const MAX_DESCRIPTION_LENGTH = 150;
+  const [newUsername, setNewUsername] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [isCurrentUsername, setIsCurrentUsername] = useState(false);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -75,6 +80,7 @@ export function ProfileSettings() {
           setCoverURL(userData.coverURL || "");
           setDescription(userData.description || "");
           setFavoriteSeries(userData.favoriteSeries || null);
+          setNewUsername(userData.username || "");
         }
       } catch (error) {
         console.error("Erro ao carregar dados do usuário:", error);
@@ -151,11 +157,75 @@ export function ProfileSettings() {
     }
   };
 
+  const checkUsername = async (username: string) => {
+    if (username.length >= 3) {
+      setIsCheckingUsername(true);
+      try {
+        // Se o username é igual ao atual, não precisa verificar disponibilidade
+        const userData = await getUserData(currentUser?.uid || "");
+        if (userData?.username?.toLowerCase() === username.toLowerCase()) {
+          setUsernameError("");
+          setIsCurrentUsername(true);
+          return;
+        }
+        setIsCurrentUsername(false);
+
+        const isAvailable = await isUsernameAvailable(username.toLowerCase());
+        if (!isAvailable) {
+          setUsernameError("Este nome de usuário já está em uso");
+        } else {
+          setUsernameError("");
+        }
+      } catch (error) {
+        console.error("Erro ao verificar username:", error);
+      } finally {
+        setIsCheckingUsername(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      if (newUsername) {
+        if (newUsername.length < 3) {
+          setUsernameError("O nome de usuário deve ter pelo menos 3 caracteres");
+        } else if (!/^[a-zA-Z0-9_]+$/.test(newUsername)) {
+          setUsernameError("O nome de usuário pode conter apenas letras, números e underscore");
+        } else {
+          checkUsername(newUsername);
+        }
+      } else {
+        setUsernameError("");
+      }
+    }, 500);
+
+    return () => clearTimeout(debounceTimer);
+  }, [newUsername]);
+
   const handleSave = async () => {
     if (!currentUser || !auth.currentUser) return;
 
     setIsSaving(true);
     try {
+      // Validar username se foi alterado
+      const userData = await getUserData(currentUser.uid);
+      const currentUsername = userData?.username?.toLowerCase();
+      
+      if (newUsername && newUsername.toLowerCase() !== currentUsername) {
+        if (newUsername.length < 3) {
+          throw new Error("O nome de usuário deve ter pelo menos 3 caracteres");
+        }
+        if (!/^[a-zA-Z0-9_]+$/.test(newUsername)) {
+          throw new Error("O nome de usuário pode conter apenas letras, números e underscore");
+        }
+        const isAvailable = await isUsernameAvailable(newUsername.toLowerCase());
+        if (!isAvailable) {
+          throw new Error("Este nome de usuário já está em uso");
+        }
+        // Atualizar username
+        await updateUsername(currentUser.uid, newUsername.toLowerCase());
+      }
+
       // Garantir que as URLs são strings válidas
       const photoURLToUse =
         tempPhotoURL === ""
@@ -175,13 +245,14 @@ export function ProfileSettings() {
         ...(displayName ? { displayName } : {}),
         ...(description ? { description } : {}),
         ...(photoURLToUse ? { photoURL: photoURLToUse } : {}),
-        ...(coverURLToUse ? { coverURL: coverURLToUse } : {})
+        ...(coverURLToUse ? { coverURL: coverURLToUse } : {}),
+        ...(newUsername ? { username: newUsername.toLowerCase() } : {})
       };
 
       // Adicionar favoriteSeries explicitamente
       const updatedData = {
         ...baseData,
-        favoriteSeries: favoriteSeries // Se for null, vai remover o campo
+        favoriteSeries: favoriteSeries || undefined
       };
 
       // Primeiro atualizar o documento do usuário
@@ -204,7 +275,6 @@ export function ProfileSettings() {
       // Redirecionar para o perfil
       navigate("/profile", { replace: true });
       window.location.reload();
-
 
     } catch (error) {
       console.error("Erro ao atualizar perfil:", error);
@@ -459,18 +529,34 @@ export function ProfileSettings() {
                 <FormLabel color="white">Nome</FormLabel>
                 <Input
                   value={displayName}
-                  onChange={(e) =>
-                    setDisplayName(e.target.value.slice(0, MAX_NAME_LENGTH))
-                  }
+                  onChange={(e) => setDisplayName(e.target.value.slice(0, MAX_NAME_LENGTH))}
                   placeholder="Seu nome"
                   bg="gray.700"
                   color="white"
                   border="none"
-                  maxLength={MAX_NAME_LENGTH}
                 />
                 <Text color="gray.400" fontSize="sm" mt={1}>
                   {displayName.length}/{MAX_NAME_LENGTH} caracteres
                 </Text>
+              </FormControl>
+
+              <FormControl isInvalid={!!usernameError}>
+                <FormLabel color="white">Nome de usuário</FormLabel>
+                <Input
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
+                  placeholder="Seu nome de usuário"
+                  bg="gray.700"
+                  color="white"
+                  border="none"
+                  _placeholder={{ color: "gray.400" }}
+                />
+                <FormErrorMessage>{usernameError}</FormErrorMessage>
+                {!usernameError && newUsername && (
+                  <Text color="gray.400" fontSize="sm" mt={1}>
+                    {isCurrentUsername ? "Nome de usuário atual" : "Nome de usuário disponível"}
+                  </Text>
+                )}
               </FormControl>
 
               <FormControl>

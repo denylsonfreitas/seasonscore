@@ -36,6 +36,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import { getUserData } from "../services/users";
 
 export function NotificationMenu() {
   const { currentUser } = useAuth();
@@ -111,7 +112,14 @@ export function NotificationMenu() {
     switch (notification.type) {
       case NotificationType.NEW_FOLLOWER:
         if (notification.senderId) {
-          navigate(`/profile/${notification.senderId}`);
+          try {
+            const userData = await getUserData(notification.senderId);
+            if (userData?.username) {
+              navigate(`/u/${userData.username}`);
+            }
+          } catch (error) {
+            console.error("Erro ao buscar dados do usuário:", error);
+          }
         }
         break;
       case NotificationType.NEW_COMMENT:

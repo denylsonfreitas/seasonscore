@@ -91,7 +91,6 @@ export function AddComment({
         isClosable: true,
       });
     } catch (error) {
-      console.error("Erro ao adicionar comentário:", error);
       toast({
         title: "Erro",
         description: error instanceof Error ? error.message : "Não foi possível adicionar o comentário",

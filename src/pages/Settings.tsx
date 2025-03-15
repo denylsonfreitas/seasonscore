@@ -39,12 +39,15 @@ import {
   linkWithPopup,
   unlink,
   OAuthProvider,
+  linkWithCredential,
+  signInWithPopup,
 } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { ExtendedUser } from "../types/auth";
 import { auth } from "../config/firebase";
 import { FcGoogle } from "react-icons/fc";
-import { isUsernameAvailable, updateUsername } from "../services/users";
+import { isUsernameAvailable, updateUsername, deleteUserData } from "../services/users";
+import { getFirestore, deleteDoc, doc } from "firebase/firestore";
 
 export function Settings() {
   const { currentUser, logout } = useAuth() as { currentUser: ExtendedUser | null, logout: () => Promise<void> };
@@ -174,16 +177,116 @@ export function Settings() {
     }
   };
 
+  const handleSetPasswordForGoogleAccount = async () => {
+    if (!auth.currentUser || newPassword !== confirmPassword) {
+      toast({
+        title: "Erro na validação",
+        description: "Verifique se as senhas coincidem.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Senha muito curta",
+        description: "A senha deve ter pelo menos 6 caracteres.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      // Criar credencial de email/senha
+      const credential = EmailAuthProvider.credential(
+        auth.currentUser.email!,
+        newPassword
+      );
+      
+      // Vincular credencial à conta atual
+      // Não precisamos vincular o Google novamente, pois já está vinculado
+      await linkWithCredential(auth.currentUser, credential);
+
+      toast({
+        title: "Senha definida",
+        description: "Sua senha foi definida com sucesso! Agora você pode fazer login com email e senha.",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+
+      // Limpar campos
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      console.error("Erro ao definir senha:", error);
+      
+      let errorMessage = "Não foi possível definir a senha. Tente novamente.";
+      
+      if (error.code === 'auth/provider-already-linked') {
+        errorMessage = "Sua conta já está vinculada ao Google.";
+      } else if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "Este email já está em uso por outra conta.";
+      } else if (error.code === 'auth/credential-already-in-use') {
+        errorMessage = "Esta credencial já está em uso por outra conta.";
+      } else if (error.code === 'auth/requires-recent-login') {
+        errorMessage = "Por motivos de segurança, faça login novamente antes de definir uma senha.";
+      }
+      
+      toast({
+        title: "Erro ao definir senha",
+        description: errorMessage,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
-    if (!auth.currentUser || !deleteAccountPassword) return;
+    if (!auth.currentUser) {
+      toast({
+        title: "Erro",
+        description: "Usuário não encontrado.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
 
     setIsDeletingAccount(true);
     try {
-      const credential = EmailAuthProvider.credential(
-        auth.currentUser.email!,
-        deleteAccountPassword
-      );
-      await reauthenticateWithCredential(auth.currentUser, credential);
+      
+      // Verificar se é uma conta do Google
+      const isGoogleAccount = auth.currentUser.providerData[0]?.providerId === "google.com";
+      
+      // Reautenticar o usuário
+      if (isGoogleAccount) {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+      } else {
+        if (!deleteAccountPassword) {
+          throw new Error("Por favor, insira sua senha para confirmar a exclusão da conta.");
+        }
+        const credential = EmailAuthProvider.credential(
+          auth.currentUser.email!,
+          deleteAccountPassword
+        );
+        await reauthenticateWithCredential(auth.currentUser, credential);
+      }
+
+      // Primeiro excluir os dados do usuário do banco de dados
+      await deleteUserData(auth.currentUser.uid);
+
+      // Depois excluir a conta de autenticação
       await deleteUser(auth.currentUser);
 
       toast({
@@ -195,13 +298,31 @@ export function Settings() {
       });
 
       navigate("/");
-    } catch (error) {
-      console.error("Erro ao excluir conta:", error);
+    } catch (error: any) {
+      console.error("Erro detalhado ao excluir conta:", {
+        error,
+        message: error.message,
+        code: error.code,
+        details: error.details
+      });
+
+      let errorMessage = "Verifique sua senha e tente novamente.";
+      
+      if (error.code === 'auth/wrong-password') {
+        errorMessage = "Senha incorreta. Por favor, verifique e tente novamente.";
+      } else if (error.code === 'auth/requires-recent-login') {
+        errorMessage = "Por motivos de segurança, faça login novamente antes de excluir sua conta.";
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = "Muitas tentativas. Por favor, aguarde alguns minutos e tente novamente.";
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = "O processo foi cancelado. Tente novamente quando quiser.";
+      }
+
       toast({
         title: "Erro ao excluir conta",
-        description: "Verifique sua senha e tente novamente.",
+        description: errorMessage,
         status: "error",
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
     } finally {
@@ -458,102 +579,20 @@ export function Settings() {
               <Divider borderColor="gray.600" />
 
               <FormControl>
-                <FormLabel color="white">
-                  {isGoogleAccount ? "Definir Senha" : "Alterar Senha"}
-                </FormLabel>
-                {isGoogleAccount ? (
-                  <VStack spacing={3} align="stretch">
-                    <Alert status="info" bg="blue.800" color="white">
-                      <AlertIcon />
-                      Sua conta foi criada com o Google. Você pode definir uma senha para acessar sua conta diretamente.
-                    </Alert>
-                    <Button
-                      colorScheme="teal"
-                      onClick={handleResetPassword}
-                    >
-                      Enviar Email para Definir Senha
-                    </Button>
-                  </VStack>
-                ) : (
-                  <VStack spacing={3} align="stretch">
-                    <InputGroup>
-                      <Input
-                        value={passwordCurrentPassword}
-                        onChange={(e) => setPasswordCurrentPassword(e.target.value)}
-                        placeholder="Senha atual"
-                        type={showCurrentPassword ? "text" : "password"}
-                        bg="gray.700"
-                        color="white"
-                        border="none"
-                        id="current-password-change"
-                      />
-                      <InputRightElement width="4.5rem">
-                        <Button
-                          h="1.75rem"
-                          size="sm"
-                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                          variant="ghost"
-                          color="gray.400"
-                        >
-                          {showCurrentPassword ? "Ocultar" : "Mostrar"}
-                        </Button>
-                      </InputRightElement>
-                    </InputGroup>
-                    <InputGroup>
-                      <Input
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Nova senha"
-                        type={showNewPassword ? "text" : "password"}
-                        bg="gray.700"
-                        color="white"
-                        border="none"
-                        id="new-password"
-                      />
-                      <InputRightElement width="4.5rem">
-                        <Button
-                          h="1.75rem"
-                          size="sm"
-                          onClick={() => setShowNewPassword(!showNewPassword)}
-                          variant="ghost"
-                          color="gray.400"
-                        >
-                          {showNewPassword ? "Ocultar" : "Mostrar"}
-                        </Button>
-                      </InputRightElement>
-                    </InputGroup>
-                    <InputGroup>
-                      <Input
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Confirmar nova senha"
-                        type={showConfirmPassword ? "text" : "password"}
-                        bg="gray.700"
-                        color="white"
-                        border="none"
-                        id="confirm-password"
-                      />
-                      <InputRightElement width="4.5rem">
-                        <Button
-                          h="1.75rem"
-                          size="sm"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          variant="ghost"
-                          color="gray.400"
-                        >
-                          {showConfirmPassword ? "Ocultar" : "Mostrar"}
-                        </Button>
-                      </InputRightElement>
-                    </InputGroup>
-                    <Button
-                      colorScheme="teal"
-                      onClick={handleUpdatePassword}
-                      isLoading={isUpdatingPassword}
-                    >
-                      Atualizar Senha
-                    </Button>
-                  </VStack>
-                )}
+                <FormLabel color="white">Alterar Senha</FormLabel>
+                <VStack spacing={3} align="stretch">
+                  <Alert status="info" bg="blue.800" color="white">
+                    <AlertIcon />
+                    Por questões de segurança, você receberá um email para alterar sua senha.
+                  </Alert>
+                  <Button
+                    colorScheme="teal"
+                    onClick={handleResetPassword}
+                    width="full"
+                  >
+                    Enviar Email para Alterar Senha
+                  </Button>
+                </VStack>
               </FormControl>
 
               <Divider borderColor="gray.600" />
@@ -611,60 +650,6 @@ export function Settings() {
               </Box>
             </VStack>
           </Box>
-
-          <Box bg="gray.800" p={6} borderRadius="lg">
-            <VStack spacing={4} as="form" onSubmit={handleUsernameChange}>
-              <Heading size="md" color="white">Alterar nome de usuário</Heading>
-              <FormControl isInvalid={!!usernameError}>
-                <FormLabel color="white">Novo nome de usuário</FormLabel>
-                <Input
-                  value={newUsername}
-                  onChange={(e) => setNewUsername(e.target.value)}
-                  placeholder="Novo nome de usuário"
-                  bg="gray.700"
-                  color="white"
-                  _placeholder={{ color: "gray.400" }}
-                />
-                <FormErrorMessage>{usernameError}</FormErrorMessage>
-              </FormControl>
-
-              <FormControl>
-                <FormLabel color="white">Senha atual</FormLabel>
-                <InputGroup>
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    value={passwordCurrentPassword}
-                    onChange={(e) => setPasswordCurrentPassword(e.target.value)}
-                    placeholder="Digite sua senha atual"
-                    bg="gray.700"
-                    color="white"
-                    _placeholder={{ color: "gray.400" }}
-                  />
-                  <InputRightElement width="4.5rem">
-                    <Button
-                      h="1.75rem"
-                      size="sm"
-                      onClick={() => setShowPassword(!showPassword)}
-                      bg="gray.600"
-                      _hover={{ bg: "gray.500" }}
-                    >
-                      {showPassword ? "Ocultar" : "Mostrar"}
-                    </Button>
-                  </InputRightElement>
-                </InputGroup>
-              </FormControl>
-
-              <Button
-                type="submit"
-                colorScheme="blue"
-                isLoading={isLoading || isCheckingUsername}
-                loadingText="Alterando..."
-                w="100%"
-              >
-                Alterar nome de usuário
-              </Button>
-            </VStack>
-          </Box>
         </VStack>
       </Container>
 
@@ -683,29 +668,37 @@ export function Settings() {
               <Text color="gray.300" mb={4}>
                 Tem certeza? Esta ação não pode ser desfeita.
               </Text>
-              <InputGroup>
-                <Input
-                  value={deleteAccountPassword}
-                  onChange={(e) => setDeleteAccountPassword(e.target.value)}
-                  placeholder="Digite sua senha para confirmar"
-                  type={showDeletePassword ? "text" : "password"}
-                  bg="gray.700"
-                  color="white"
-                  border="none"
-                  id="delete-account-password"
-                />
-                <InputRightElement width="4.5rem">
-                  <Button
-                    h="1.75rem"
-                    size="sm"
-                    onClick={() => setShowDeletePassword(!showDeletePassword)}
-                    variant="ghost"
-                    color="gray.400"
-                  >
-                    {showDeletePassword ? "Ocultar" : "Mostrar"}
-                  </Button>
-                </InputRightElement>
-              </InputGroup>
+              {!isGoogleAccount && (
+                <InputGroup>
+                  <Input
+                    value={deleteAccountPassword}
+                    onChange={(e) => setDeleteAccountPassword(e.target.value)}
+                    placeholder="Digite sua senha para confirmar"
+                    type={showDeletePassword ? "text" : "password"}
+                    bg="gray.700"
+                    color="white"
+                    border="none"
+                    id="delete-account-password"
+                  />
+                  <InputRightElement width="4.5rem">
+                    <Button
+                      h="1.75rem"
+                      size="sm"
+                      onClick={() => setShowDeletePassword(!showDeletePassword)}
+                      variant="ghost"
+                      color="gray.400"
+                    >
+                      {showDeletePassword ? "Ocultar" : "Mostrar"}
+                    </Button>
+                  </InputRightElement>
+                </InputGroup>
+              )}
+              {isGoogleAccount && (
+                <Alert status="info" bg="blue.800" color="white" mt={4}>
+                  <AlertIcon />
+                  Você será redirecionado para confirmar sua identidade com o Google
+                </Alert>
+              )}
             </AlertDialogBody>
 
             <AlertDialogFooter>

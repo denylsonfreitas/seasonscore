@@ -26,6 +26,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   updateProfile,
+  EmailAuthProvider,
 } from "firebase/auth";
 import { auth } from "../config/firebase";
 import { isUsernameAvailable, createOrUpdateUser, isEmailAvailable } from "../services/users";
@@ -42,7 +43,7 @@ export function SignUp() {
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [usernameError, setUsernameError] = useState("");
   const [emailError, setEmailError] = useState("");
-  const { signUp } = useAuth();
+  const { signUp, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -71,6 +72,17 @@ export function SignUp() {
       return;
     }
 
+    if (password.length < 6) {
+      toast({
+        title: "Senha muito curta",
+        description: "A senha deve ter pelo menos 6 caracteres.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     if (usernameError || emailError) {
       toast({
         title: "Erro na validação",
@@ -86,14 +98,31 @@ export function SignUp() {
 
     try {
       await signUp(email, password, username);
+      toast({
+        title: "Conta criada com sucesso!",
+        description: "Bem-vindo ao SeasonScore!",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
       navigate("/");
     } catch (error: any) {
       console.error("Erro ao criar conta:", error);
       let errorMessage = "Não foi possível criar sua conta. Tente novamente.";
       
       if (error.code === 'auth/email-already-in-use') {
-        errorMessage = "Este email já está em uso.";
+        errorMessage = "Este email já está em uso. Se você já tem uma conta com este email, faça login.";
         setEmailError(errorMessage);
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "Email inválido. Verifique o formato do email.";
+        setEmailError(errorMessage);
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "Senha muito fraca. Use uma senha mais forte.";
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = "Erro de conexão. Verifique sua internet e tente novamente.";
+      } else if (error.message) {
+        // Usar a mensagem de erro personalizada
+        errorMessage = error.message;
       }
       
       toast({
@@ -111,43 +140,27 @@ export function SignUp() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: "select_account",
-      });
-      const result = await signInWithPopup(auth, provider);
-
-      // Gerar username base do displayName ou email
-      const baseUsername = (result.user.displayName || result.user.email?.split("@")[0] || "user").toLowerCase()
-        .replace(/[^a-z0-9]/g, ""); // Remove caracteres especiais
-
-      // Tentar encontrar um username único
-      let username = baseUsername;
-      let counter = 1;
-      while (!(await isUsernameAvailable(username))) {
-        username = `${baseUsername}${counter}`;
-        counter++;
-      }
-
-      // Atualizar perfil e criar usuário
-      if (result.user && !result.user.displayName) {
-        await updateProfile(result.user, {
-          displayName: result.user.email?.split("@")[0],
-        });
-      }
-
-      // Criar ou atualizar usuário com o username gerado
-      await createOrUpdateUser(result.user, {
-        username: username,
-        displayName: result.user.displayName || result.user.email?.split("@")[0],
-      });
-
+      await loginWithGoogle();
       navigate("/");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro no login com Google:", error);
+      let errorMessage = "Ocorreu um erro ao criar conta com o Google. Tente novamente.";
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = "O popup de login foi fechado. Tente novamente.";
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        errorMessage = "A solicitação de login foi cancelada. Tente novamente.";
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = "O popup de login foi bloqueado pelo navegador. Verifique suas configurações.";
+      } else if (error.code === 'auth/account-exists-with-different-credential') {
+        errorMessage = "Já existe uma conta com este email usando outro método de login. Tente entrar com email e senha.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Erro ao criar conta",
-        description: "Ocorreu um erro ao criar conta com o Google. Tente novamente.",
+        description: errorMessage,
         status: "error",
         duration: 3000,
         isClosable: true,

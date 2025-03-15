@@ -26,9 +26,10 @@ import {
   signInWithPopup,
   updateProfile,
   sendPasswordResetEmail,
+  EmailAuthProvider,
 } from "firebase/auth";
 import { auth } from "../config/firebase";
-import { createOrUpdateUser, isUsernameAvailable } from "../services/users";
+import { createOrUpdateUser, isUsernameAvailable, getUserByEmail } from "../services/users";
 
 export function Login() {
   const [email, setEmail] = useState("");
@@ -36,21 +37,69 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
-  const { login } = useAuth();
+  const [isRecoveringAccount, setIsRecoveringAccount] = useState(false);
+  const [showRecoveryOption, setShowRecoveryOption] = useState(false);
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setShowRecoveryOption(false);
 
     try {
       await login(email, password);
       navigate("/");
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Erro ao fazer login:", error);
+      let errorMessage = "Email ou senha incorretos.";
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = "Usuário não encontrado. Verifique seu email.";
+        
+        // Verificar se existe usuário no Firestore
+        try {
+          const existingUser = await getUserByEmail(email);
+          if (existingUser) {
+            setShowRecoveryOption(true);
+          }
+        } catch (verifyError) {
+          console.error("Erro ao verificar usuário:", verifyError);
+        }
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = "Senha incorreta. Tente novamente.";
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = "Muitas tentativas de login. Tente novamente mais tarde ou redefina sua senha.";
+      } else if (error.code === 'auth/invalid-credential') {
+        errorMessage = "Credenciais inválidas. Verifique seu email e senha.";
+        
+        // Verificar se existe usuário no Firestore
+        try {
+          const existingUser = await getUserByEmail(email);
+          if (existingUser) {
+            setShowRecoveryOption(true);
+          }
+        } catch (verifyError) {
+          console.error("Erro ao verificar usuário:", verifyError);
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+        
+        // Verificar se existe usuário no Firestore
+        try {
+          const existingUser = await getUserByEmail(email);
+          if (existingUser) {
+            setShowRecoveryOption(true);
+          }
+        } catch (verifyError) {
+          console.error("Erro ao verificar usuário:", verifyError);
+        }
+      }
+      
       toast({
         title: "Erro ao fazer login",
-        description: "Email ou senha incorretos.",
+        description: errorMessage,
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -99,53 +148,77 @@ export function Login() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: "select_account",
-      });
-      const result = await signInWithPopup(auth, provider);
-
-      // Garantir que temos as informações do usuário
-      if (result.user) {
-        // Se não tiver nome, usar email
-        if (!result.user.displayName) {
-          await updateProfile(result.user, {
-            displayName: result.user.email?.split("@")[0],
-          });
-        }
-
-        // Gerar username base do displayName ou email
-        const baseUsername = (result.user.displayName || result.user.email?.split("@")[0] || "user").toLowerCase()
-          .replace(/[^a-z0-9]/g, ""); // Remove caracteres especiais
-
-        // Tentar encontrar um username único
-        let username = baseUsername;
-        let counter = 1;
-        while (!(await isUsernameAvailable(username))) {
-          username = `${baseUsername}${counter}`;
-          counter++;
-        }
-
-        // Criar ou atualizar usuário com o username gerado
-        await createOrUpdateUser(result.user, {
-          username: username,
-          displayName: result.user.displayName || result.user.email?.split("@")[0],
-        });
-      }
-
+      await loginWithGoogle();
       navigate("/");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro no login com Google:", error);
+      let errorMessage = "Ocorreu um erro ao fazer login com o Google. Tente novamente.";
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = "O popup de login foi fechado. Tente novamente.";
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        errorMessage = "A solicitação de login foi cancelada. Tente novamente.";
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = "O popup de login foi bloqueado pelo navegador. Verifique suas configurações.";
+      } else if (error.code === 'auth/account-exists-with-different-credential') {
+        errorMessage = "Já existe uma conta com este email usando outro método de login. Tente entrar com email e senha.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Erro ao fazer login",
-        description:
-          "Ocorreu um erro ao fazer login com o Google. Tente novamente.",
+        description: errorMessage,
         status: "error",
         duration: 3000,
         isClosable: true,
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRecoverAccount = async () => {
+    if (!email || !password) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Digite seu email e senha para recuperar sua conta.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setIsRecoveringAccount(true);
+    try {
+      // Tentar fazer login normal
+      await login(email, password);
+      toast({
+        title: "Login realizado",
+        description: "Você será redirecionado para a página inicial.",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      navigate("/");
+    } catch (error: any) {
+      console.error("Erro ao fazer login:", error);
+      let errorMessage = "Não foi possível fazer login. Tente novamente mais tarde.";
+      
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        title: "Erro ao fazer login",
+        description: errorMessage,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsRecoveringAccount(false);
     }
   };
 
@@ -338,6 +411,23 @@ export function Login() {
                   Entrar
                 </Button>
               </VStack>
+
+              {showRecoveryOption && (
+                <VStack spacing={2} w="100%">
+                  <Text color="yellow.300" fontSize="sm">
+                    Detectamos uma inconsistência na sua conta. Deseja tentar recuperá-la?
+                  </Text>
+                  <Button
+                    colorScheme="yellow"
+                    size="md"
+                    w="100%"
+                    onClick={handleRecoverAccount}
+                    isLoading={isRecoveringAccount}
+                  >
+                    Recuperar Conta
+                  </Button>
+                </VStack>
+              )}
 
               <VStack spacing={4} w="100%">
                 <Text 
