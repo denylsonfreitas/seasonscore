@@ -3,6 +3,7 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import { routes } from "./routes";
 import { AuthProvider } from "./contexts/AuthContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SeriesReviews } from "./pages/SeriesReviews";
 
 const queryClient = new QueryClient();
 

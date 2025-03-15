@@ -11,17 +11,20 @@ import {
   useToast,
   VStack,
 } from "@chakra-ui/react";
-import { ThumbsUp, ThumbsDown, DotsThree, Trash } from "@phosphor-icons/react";
+import { Heart, HeartBreak, DotsThree, Trash } from "@phosphor-icons/react";
 import { useAuth } from "../contexts/AuthContext";
 import { Comment } from "../types/review";
 import { deleteComment, toggleCommentReaction } from "../services/reviews";
 import { useState, useEffect } from "react";
 import { getUserData } from "../services/users";
 import { UserName } from "./UserName";
+import { useUserData } from "../hooks/useUserData";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ReviewCommentProps {
   reviewId: string;
   seasonNumber: number;
+  seriesId: number;
   comment: Comment;
   onCommentDeleted?: () => void;
 }
@@ -65,25 +68,26 @@ function formatDate(date: Date | { seconds: number; nanoseconds: number }) {
 export function ReviewComment({
   reviewId,
   seasonNumber,
+  seriesId,
   comment,
   onCommentDeleted,
 }: ReviewCommentProps) {
   const { currentUser } = useAuth();
   const toast = useToast();
-  const [userData, setUserData] = useState<{ photoURL?: string | null } | null>(null);
+  const { userData } = useUserData(comment.userId);
+  const queryClient = useQueryClient();
+  const [isLiked, setIsLiked] = useState(false);
+  const [isDisliked, setIsDisliked] = useState(false);
+  const [likes, setLikes] = useState(0);
+  const [dislikes, setDislikes] = useState(0);
+  const [currentComment, setCurrentComment] = useState(comment);
+
+  const userLiked = currentUser && comment.reactions.likes.includes(currentUser.uid);
+  const userDisliked = currentUser && comment.reactions.dislikes.includes(currentUser.uid);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const data = await getUserData(comment.userId);
-        setUserData(data);
-      } catch (error) {
-        console.error("Erro ao buscar dados do usuário:", error);
-      }
-    };
-
-    fetchUserData();
-  }, [comment.userId]);
+    setCurrentComment(comment);
+  }, [comment]);
 
   const handleReaction = async (type: "likes" | "dislikes") => {
     if (!currentUser) {
@@ -97,10 +101,57 @@ export function ReviewComment({
       return;
     }
 
+    // Atualização otimista do cache
+    const previousData = queryClient.getQueryData(["reviews", seriesId]);
+    
+    // Atualizar o cache imediatamente
+    queryClient.setQueryData(["reviews", seriesId], (oldData: any) => {
+      if (!oldData) return []; // Se não houver dados, retorna array vazio
+
+      return oldData.map((review: any) => {
+        if (review.id === reviewId) {
+          const updatedSeasonReviews = review.seasonReviews.map((sr: any) => {
+            if (sr.seasonNumber === seasonNumber) {
+              return {
+                ...sr,
+                comments: sr.comments.map((c: any) => {
+                  if (c.id === comment.id) {
+                    const isReacted = c.reactions[type].includes(currentUser.uid);
+                    return {
+                      ...c,
+                      reactions: {
+                        ...c.reactions,
+                        [type]: isReacted
+                          ? c.reactions[type].filter((id: string) => id !== currentUser.uid)
+                          : [...c.reactions[type], currentUser.uid]
+                      }
+                    };
+                  }
+                  return c;
+                })
+              };
+            }
+            return sr;
+          });
+
+          return {
+            ...review,
+            seasonReviews: updatedSeasonReviews
+          };
+        }
+        return review;
+      });
+    });
+
     try {
       await toggleCommentReaction(reviewId, seasonNumber, comment.id, type);
-      onCommentDeleted?.();
+      // Força uma nova busca dos dados
+      await queryClient.refetchQueries({ queryKey: ["reviews", seriesId] });
     } catch (error) {
+      // Reverter a atualização otimista em caso de erro
+      if (previousData) {
+        queryClient.setQueryData(["reviews", seriesId], previousData);
+      }
       toast({
         title: "Erro",
         description: "Não foi possível registrar sua reação",
@@ -112,9 +163,38 @@ export function ReviewComment({
   };
 
   const handleDelete = async () => {
+    // Atualização otimista para deleção
+    const previousData = queryClient.getQueryData(["reviews", seriesId]);
+    
+    // Atualizar o cache imediatamente removendo o comentário
+    queryClient.setQueryData(["reviews", seriesId], (oldData: any) => {
+      if (!oldData) return []; // Se não houver dados, retorna array vazio
+
+      return oldData.map((review: any) => {
+        if (review.id === reviewId) {
+          const updatedSeasonReviews = review.seasonReviews.map((sr: any) => {
+            if (sr.seasonNumber === seasonNumber) {
+              return {
+                ...sr,
+                comments: sr.comments.filter((c: any) => c.id !== comment.id)
+              };
+            }
+            return sr;
+          });
+
+          return {
+            ...review,
+            seasonReviews: updatedSeasonReviews
+          };
+        }
+        return review;
+      });
+    });
+
     try {
       await deleteComment(reviewId, seasonNumber, comment.id);
-      onCommentDeleted?.();
+      // Força uma nova busca dos dados
+      await queryClient.refetchQueries({ queryKey: ["reviews", seriesId] });
       toast({
         title: "Sucesso",
         description: "Comentário excluído com sucesso",
@@ -123,6 +203,10 @@ export function ReviewComment({
         isClosable: true,
       });
     } catch (error) {
+      // Reverter a atualização otimista em caso de erro
+      if (previousData) {
+        queryClient.setQueryData(["reviews", seriesId], previousData);
+      }
       toast({
         title: "Erro",
         description: "Não foi possível excluir o comentário",
@@ -132,9 +216,6 @@ export function ReviewComment({
       });
     }
   };
-
-  const userLiked = currentUser && comment.reactions.likes.includes(currentUser.uid);
-  const userDisliked = currentUser && comment.reactions.dislikes.includes(currentUser.uid);
 
   return (
     <Box 
@@ -163,10 +244,10 @@ export function ReviewComment({
               <HStack spacing={1}>
                 <IconButton
                   aria-label="Like"
-                  icon={<ThumbsUp weight={userLiked ? "fill" : "regular"} />}
+                  icon={<Heart weight={userLiked ? "fill" : "regular"} />}
                   size="sm"
                   variant="ghost"
-                  color={userLiked ? "teal.400" : "gray.400"}
+                  color={userLiked ? "red.400" : "gray.400"}
                   onClick={() => handleReaction("likes")}
                   _hover={{ bg: "gray.500" }}
                 />
@@ -180,7 +261,7 @@ export function ReviewComment({
               <HStack spacing={1}>
                 <IconButton
                   aria-label="Dislike"
-                  icon={<ThumbsDown weight={userDisliked ? "fill" : "regular"} />}
+                  icon={<HeartBreak weight={userDisliked ? "fill" : "regular"} />}
                   size="sm"
                   variant="ghost"
                   color={userDisliked ? "red.400" : "gray.400"}

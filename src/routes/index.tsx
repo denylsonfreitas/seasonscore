@@ -13,6 +13,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { Layout } from "../components/Layout";
 import { Settings } from "../pages/Settings";
 import { ProfileSettings } from "../pages/ProfileSettings";
+import { SeriesReviews } from "../pages/SeriesReviews";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -74,6 +75,10 @@ export const routes = [
       {
         path: "/series/:id",
         element: <SeriesDetails />,
+      },
+      {
+        path: "/series/:id/reviews",
+        element: <SeriesReviews />,
       },
       {
         path: "/streaming/:streaming",

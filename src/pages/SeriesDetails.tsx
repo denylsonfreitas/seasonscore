@@ -11,9 +11,7 @@ import {
   TabPanel,
   TabPanels,
   Tabs,
-  Grid,
   Icon,
-  Progress,
   Spinner,
   SimpleGrid,
   VStack,
@@ -40,28 +38,87 @@ import {
   AlertDialogHeader,
   AlertDialogOverlay,
   useToast,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  IconButton,
 } from "@chakra-ui/react";
-import { Star, Heart, CaretDown, CaretUp, TelevisionSimple, Calendar, PlayCircle } from "@phosphor-icons/react";
+import { CaretDown, CaretUp, TelevisionSimple, Calendar, PlayCircle, DotsThree, PencilSimple, Trash, Eye } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { getSeriesDetails, getRelatedSeries } from "../services/tmdb";
-import { ReviewSection } from "../components/ReviewSection";
 import { RatingStars } from "../components/RatingStars";
 import { ReviewModal } from "../components/ReviewModal";
 import { ReviewEditModal } from "../components/ReviewEditModal";
 import { useAuth } from "../contexts/AuthContext";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "../config/firebase";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { SeriesReview, getSeriesReviews, deleteReview } from "../services/reviews";
 import { Footer } from "../components/Footer";
 import { WatchlistButton } from "../components/WatchlistButton";
 import { UserReview } from "../components/UserReview";
 import { SeriesCard } from "../components/SeriesCard";
-import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import { SeasonReview } from "../services/reviews";
+import { ReviewDetailsModal } from "../components/ReviewDetailsModal";
+import { getUserData } from "../services/users";
+import { useUserData } from "../hooks/useUserData";
+import { UserName } from "../components/UserName";
+import { ReviewListItem } from "../components/ReviewListItem";
+import { PopularReviewsList } from "../components/PopularReviewsList";
+
+interface ReviewItemProps {
+  review: {
+    id: string;
+    userId: string;
+    userEmail: string;
+    rating: number;
+    comment: string;
+    reactions?: {
+      likes: string[];
+      dislikes: string[];
+    };
+  };
+  season: number;
+  onReviewClick: (review: any) => void;
+}
+
+function ReviewItem({ review, season, onReviewClick }: ReviewItemProps) {
+  const { userData: reviewUserData } = useUserData(review.userId);
+
+  return (
+    <Box
+      key={`${review.id}-${season}`}
+      bg="gray.800"
+      p={4}
+      borderRadius="lg"
+      cursor="pointer"
+      onClick={() => onReviewClick(review)}
+      _hover={{ bg: "gray.700" }}
+    >
+      <HStack justify="space-between" align="start">
+        <HStack spacing={3}>
+          <Avatar
+            size="md"
+            name={review.userEmail}
+            src={reviewUserData?.photoURL || undefined}
+          />
+          <VStack align="start" spacing={1}>
+            <UserName userId={review.userId} />
+            <Text color="gray.300" fontSize="sm" noOfLines={2}>
+              {review.comment}
+            </Text>
+          </VStack>
+        </HStack>
+        <RatingStars
+          rating={review.rating}
+          size={16}
+          showNumber={false}
+        />
+      </HStack>
+    </Box>
+  );
+}
 
 export function SeriesDetails() {
   const { id } = useParams<{ id: string }>();
@@ -74,6 +131,9 @@ export function SeriesDetails() {
   const [selectedSeason, setSelectedSeason] = useState(1);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [seasonToDelete, setSeasonToDelete] = useState<number | null>(null);
+  const [isReviewDetailsOpen, setIsReviewDetailsOpen] = useState(false);
+  const [userData, setUserData] = useState<{ photoURL?: string | null } | null>(null);
+  const [selectedReview, setSelectedReview] = useState<any>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -88,17 +148,103 @@ export function SeriesDetails() {
   const { data: reviews = [] } = useQuery({
     queryKey: ["reviews", id],
     queryFn: () => getSeriesReviews(Number(id)),
-  });
-
-  const { data: relatedSeries, isLoading: isLoadingRelated } = useQuery({
-    queryKey: ["related-series", id],
-    queryFn: () => getRelatedSeries(Number(id)),
+    refetchInterval: 3000,
+    refetchOnWindowFocus: true,
+    staleTime: 0
   });
 
   // Buscar avaliação do usuário atual
   const userReview = reviews.find(
     (review) => review.userId === currentUser?.uid
   );
+
+  // Encontra a review atualizada baseada no selectedReview
+  const currentReview = useMemo(() => {
+    if (!selectedReview || !series) return null;
+    
+    const review = reviews.find(r => r.id === selectedReview.id);
+    if (!review) return null;
+
+    const seasonReview = review.seasonReviews.find(sr => sr.seasonNumber === selectedSeason);
+    if (!seasonReview) return null;
+
+    return {
+      id: review.id,
+      seriesId: id!,
+      userId: review.userId,
+      userEmail: review.userEmail,
+      seriesName: series.name,
+      seriesPoster: series.poster_path || "",
+      seasonNumber: selectedSeason,
+      rating: seasonReview.rating,
+      comment: seasonReview.comment || "",
+      comments: seasonReview.comments || [],
+      reactions: seasonReview.reactions || { likes: [], dislikes: [] },
+      createdAt: seasonReview.createdAt || new Date()
+    };
+  }, [selectedReview, reviews, selectedSeason, id, series]);
+
+  // Encontra a review do usuário atual
+  const currentUserReview = useMemo(() => {
+    if (!userReview || !series) return null;
+
+    const seasonReview = userReview.seasonReviews.find(sr => sr.seasonNumber === selectedSeason);
+    if (!seasonReview) return null;
+
+    return {
+      id: userReview.id!,
+      seriesId: id!,
+      userId: userReview.userId!,
+      userEmail: userReview.userEmail!,
+      seriesName: series.name,
+      seriesPoster: series.poster_path || "",
+      seasonNumber: selectedSeason,
+      rating: seasonReview.rating,
+      comment: seasonReview.comment || "",
+      comments: seasonReview.comments || [],
+      reactions: seasonReview.reactions || { likes: [], dislikes: [] },
+      createdAt: seasonReview.createdAt || new Date()
+    };
+  }, [userReview, selectedSeason, id, series]);
+
+  // Atualiza o selectedReview quando os reviews forem atualizados
+  useEffect(() => {
+    if (selectedReview && reviews.length > 0) {
+      const updatedReview = reviews
+        .find(review => review.id === selectedReview.id)
+        ?.seasonReviews
+        .find(sr => sr.seasonNumber === selectedSeason);
+
+      if (updatedReview) {
+        setSelectedReview({
+          ...updatedReview,
+          id: selectedReview.id,
+          userId: selectedReview.userId,
+          userEmail: selectedReview.userEmail
+        });
+      }
+    }
+  }, [reviews, selectedReview, selectedSeason]);
+
+  const { data: relatedSeries, isLoading: isLoadingRelated } = useQuery({
+    queryKey: ["related-series", id],
+    queryFn: () => getRelatedSeries(Number(id)),
+  });
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (currentUser) {
+        try {
+          const data = await getUserData(currentUser.uid);
+          setUserData(data);
+        } catch (error) {
+          console.error("Erro ao buscar dados do usuário:", error);
+        }
+      }
+    };
+
+    fetchUserData();
+  }, [currentUser]);
 
   const handleDeleteReview = async () => {
     if (!userReview || seasonToDelete === null) return;
@@ -125,6 +271,24 @@ export function SeriesDetails() {
       setIsDeleteAlertOpen(false);
       setSeasonToDelete(null);
     }
+  };
+
+  const getPopularReviews = (season: number) => {
+    return reviews
+      .flatMap((review) =>
+        review.seasonReviews
+          .filter((sr) => sr.seasonNumber === season)
+          .map((sr) => ({
+            ...sr,
+            id: review.id || "",
+            userId: review.userId,
+            userEmail: review.userEmail,
+            comments: sr.comments || [],
+          }))
+      )
+      .filter((review) => review.userId !== currentUser?.uid)
+      .sort((a, b) => (b.reactions?.likes?.length || 0) - (a.reactions?.likes?.length || 0))
+      .slice(0, 3);
   };
 
   if (isLoading) {
@@ -321,10 +485,10 @@ export function SeriesDetails() {
                                   .filter((sr) => sr.seasonNumber === season)
                                   .map((sr) => ({
                                     ...sr,
-                                    id: review.id || '',
+                                    id: review.id || "",
                                     userId: review.userId,
                                     userEmail: review.userEmail,
-                                    comments: sr.comments || []
+                                    comments: sr.comments || [],
                                   }))
                               );
 
@@ -361,48 +525,67 @@ export function SeriesDetails() {
                                       {userReview?.seasonReviews.find(
                                         (sr) => sr.seasonNumber === season
                                       ) ? (
-                                        <Box bg="gray.800" p={4} borderRadius="lg">
-                                          <UserReview
-                                            key={`${userReview.id}-${season}`}
-                                            reviewId={userReview.id!}
-                                            userId={userReview.userId}
-                                            userEmail={userReview.userEmail}
-                                            rating={userReview.seasonReviews.find(sr => sr.seasonNumber === season)?.rating || 0}
-                                            comment={userReview.seasonReviews.find(sr => sr.seasonNumber === season)?.comment || ""}
-                                            seasonNumber={season}
-                                            comments={userReview.seasonReviews.find(sr => sr.seasonNumber === season)?.comments || []}
-                                            reactions={userReview.seasonReviews.find(sr => sr.seasonNumber === season)?.reactions || { likes: [], dislikes: [] }}
-                                            createdAt={userReview.seasonReviews.find(sr => sr.seasonNumber === season)?.createdAt || new Date()}
-                                            onReviewUpdated={() => {
-                                              queryClient.invalidateQueries({
-                                                queryKey: ["reviews", id],
-                                              });
-                                            }}
-                                          >
-                                            <HStack justify="flex-end" spacing={2}>
-                                              <Button
+                                        <Box bg="gray.700" p={2} borderRadius="lg">
+                                          <HStack pl={2} justify="space-between" align="center">
+                                            <HStack spacing={4}>
+                                              <Avatar
                                                 size="sm"
-                                                colorScheme="red"
-                                                variant="ghost"
-                                                onClick={() => {
-                                                  setSeasonToDelete(season);
-                                                  setIsDeleteAlertOpen(true);
-                                                }}
-                                              >
-                                                Excluir
-                                              </Button>
-                                              <Button
-                                                size="sm"
-                                                colorScheme="teal"
-                                                onClick={() => {
-                                                  setSelectedSeason(season);
-                                                  setExistingReview(userReview);
-                                                }}
-                                              >
-                                                Editar
-                                              </Button>
+                                                name={userReview.userEmail}
+                                                src={userData?.photoURL || undefined}
+                                              />
+                                              <Text color="white" fontWeight="medium">Sua avaliação:</Text>
+                                              <RatingStars
+                                                rating={userReview.seasonReviews.find(sr => sr.seasonNumber === season)?.rating || 0}
+                                                size={16}
+                                                showNumber={false}
+                                              />
                                             </HStack>
-                                          </UserReview>
+                                            <Menu>
+                                              <MenuButton
+                                                as={IconButton}
+                                                aria-label="Opções"
+                                                icon={<DotsThree size={24} />}
+                                                variant="ghost"
+                                                color="gray.400"
+                                                _hover={{ bg: "gray.700" }}
+                                              />
+                                              <MenuList bg="gray.800" borderColor="gray.600">
+                                                <MenuItem
+                                                  icon={<Eye size={20} />}
+                                                  onClick={() => setIsReviewDetailsOpen(true)}
+                                                  bg="gray.800"
+                                                  _hover={{ bg: "gray.700" }}
+                                                  color="white"
+                                                >
+                                                  Ver detalhes
+                                                </MenuItem>
+                                                <MenuItem
+                                                  icon={<PencilSimple size={20} />}
+                                                  onClick={() => {
+                                                    setSelectedSeason(season);
+                                                    setExistingReview(userReview);
+                                                  }}
+                                                  bg="gray.800"
+                                                  _hover={{ bg: "gray.700" }}
+                                                  color="white"
+                                                >
+                                                  Editar avaliação
+                                                </MenuItem>
+                                                <MenuItem
+                                                  icon={<Trash size={20} />}
+                                                  onClick={() => {
+                                                    setSeasonToDelete(season);
+                                                    setIsDeleteAlertOpen(true);
+                                                  }}
+                                                  bg="gray.800"
+                                                  _hover={{ bg: "gray.700" }}
+                                                  color="red.400"
+                                                >
+                                                  Excluir avaliação
+                                                </MenuItem>
+                                              </MenuList>
+                                            </Menu>
+                                          </HStack>
                                         </Box>
                                       ) : (
                                         <Box bg="gray.800" pt={2} borderRadius="lg">
@@ -434,32 +617,29 @@ export function SeriesDetails() {
 
                                       {seasonReviews.length > 0 && (
                                         <Box>
-                                          <Text color="white" fontWeight="bold" mb={2}>
-                                            Avaliações dos usuários
-                                          </Text>
-                                          <VStack spacing={4} align="stretch">
-                                            {seasonReviews
-                                              .filter((review) => review.userId !== currentUser?.uid)
-                                              .map((review) => (
-                                                <UserReview
-                                                  key={`${review.id}-${season}`}
-                                                  reviewId={review.id!}
-                                                  userId={review.userId}
-                                                  userEmail={review.userEmail}
-                                                  rating={review.rating}
-                                                  comment={review.comment || ""}
-                                                  seasonNumber={season}
-                                                  comments={review.comments ?? []}
-                                                  reactions={review.reactions || { likes: [], dislikes: [] }}
-                                                  createdAt={review.createdAt}
-                                                  onReviewUpdated={() => {
-                                                    queryClient.invalidateQueries({
-                                                      queryKey: ["reviews", id],
-                                                    });
-                                                  }}
-                                                />
-                                              ))}
-                                          </VStack>
+                                          <HStack justify="space-between" align="center" mb={4}>
+                                            <Text color="white" fontWeight="bold">
+                                              Avaliações Populares
+                                            </Text>
+                                            <Button
+                                              as={Link}
+                                              href={`/series/${id}/reviews?season=${season}`}
+                                              variant="link"
+                                              color="teal.400"
+                                              size="sm"
+                                            >
+                                              Todas as avaliações
+                                            </Button>
+                                          </HStack>
+                                          <PopularReviewsList
+                                            reviews={reviews}
+                                            currentUserId={currentUser?.uid}
+                                            season={season}
+                                            onReviewClick={(review) => {
+                                              setSelectedReview(review);
+                                              setIsReviewDetailsOpen(true);
+                                            }}
+                                          />
                                         </Box>
                                       )}
                                     </VStack>
@@ -909,6 +1089,20 @@ export function SeriesDetails() {
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
+
+      <ReviewDetailsModal
+        isOpen={isReviewDetailsOpen}
+        onClose={() => {
+          setIsReviewDetailsOpen(false);
+          setSelectedReview(null);
+        }}
+        review={currentReview || currentUserReview}
+        onReviewUpdated={() => {
+          queryClient.invalidateQueries({
+            queryKey: ["reviews", id],
+          });
+        }}
+      />
     </Flex>
   );
 }

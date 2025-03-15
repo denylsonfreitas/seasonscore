@@ -1,4 +1,4 @@
-import { Text, Link, Spinner } from "@chakra-ui/react";
+import { Text, Link, Spinner, Box } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { getUserData } from "../services/users";
@@ -49,9 +49,9 @@ export function UserName({ userId, color = "white", showAt = true }: UserNamePro
       fontSize={{ base: "sm", md: "md" }}
       fontWeight="medium"
     >
-      <Text display="inline">
+      <Box as="span" display="inline">
         {showAt && username ? "@" : ""}{displayName}
-      </Text>
+      </Box>
     </Link>
   );
 } 

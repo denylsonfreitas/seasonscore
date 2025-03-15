@@ -19,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogContent,
   AlertDialogOverlay,
+  Text,
 } from "@chakra-ui/react";
 import { useState, useRef } from "react";
 import { updateReview, deleteReview } from "../services/reviews";
@@ -37,6 +38,8 @@ interface ReviewEditModalProps {
   onReviewUpdated: () => void;
   initialSeasonNumber?: number;
 }
+
+const COMMENT_MAX_LENGTH = 280;
 
 export function ReviewEditModal({
   isOpen,
@@ -126,14 +129,12 @@ export function ReviewEditModal({
 
   return (
     <>
-      <Modal isOpen={isOpen} onClose={onClose}>
+      <Modal isOpen={isOpen} onClose={onClose} size="xl">
         <ModalOverlay />
-        <ModalContent bg="gray.800">
-          <ModalHeader color="white">
-            Editar avaliação - {review.series.name}
-          </ModalHeader>
+        <ModalContent bg="gray.900">
+          <ModalHeader color="white">Editar Avaliação</ModalHeader>
           <ModalCloseButton color="white" />
-          <ModalBody>
+          <ModalBody pb={6}>
             <VStack spacing={4}>
               <FormControl>
                 <FormLabel color="white">Temporada</FormLabel>
@@ -169,19 +170,22 @@ export function ReviewEditModal({
                   isEditable
                 />
               </FormControl>
-              <FormControl>
-                <FormLabel color="white">Comentário</FormLabel>
+              <FormControl mt={4}>
+                <FormLabel color="white">Comentário (opcional)</FormLabel>
                 <Textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  placeholder="Adicione um comentário (opcional)"
-                  bg="gray.700"
+                  placeholder="Escreva um comentário sobre a temporada..."
+                  bg="gray.800"
                   color="white"
                   borderColor="gray.600"
                   _hover={{ borderColor: "gray.500" }}
-                  _placeholder={{ color: "gray.400" }}
-                  resize="vertical"
+                  _focus={{ borderColor: "teal.400", boxShadow: "none" }}
+                  maxLength={COMMENT_MAX_LENGTH}
                 />
+                <Text color="gray.400" fontSize="sm" mt={1} textAlign="right">
+                  {comment.length}/{COMMENT_MAX_LENGTH} caracteres
+                </Text>
               </FormControl>
             </VStack>
           </ModalBody>

@@ -12,6 +12,8 @@ import {
   Select,
   useToast,
   Box,
+  FormControl,
+  FormLabel,
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { RatingStars } from "./RatingStars";
@@ -28,6 +30,8 @@ interface ReviewModalProps {
   numberOfSeasons: number;
   initialSeason?: number;
 }
+
+const COMMENT_MAX_LENGTH = 280;
 
 export function ReviewModal({
   isOpen,
@@ -130,63 +134,65 @@ export function ReviewModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} size="xl">
       <ModalOverlay />
-      <ModalContent bg="gray.800">
+      <ModalContent bg="gray.900">
         <ModalHeader color="white">Avaliar {seriesName}</ModalHeader>
         <ModalCloseButton color="white" />
         <ModalBody pb={6}>
-          <VStack spacing={6} align="stretch">
+          <VStack spacing={4} align="stretch">
             <Box>
-              <Text color="gray.400" mb={2}>Selecione a temporada:</Text>
+              <Text color="gray.400" mb={2}>Temporada:</Text>
               <Select
                 value={selectedSeason}
                 onChange={(e) => setSelectedSeason(Number(e.target.value))}
-                bg="gray.700"
+                bg="gray.800"
                 color="white"
                 borderColor="gray.600"
               >
-                {Array.from({ length: numberOfSeasons }, (_, i) => i + 1).map(
-                  (season) => (
-                    <option key={season} value={season} style={{ backgroundColor: "#2D3748" }}>
-                      Temporada {season}
-                    </option>
-                  )
-                )}
+                {Array.from({ length: numberOfSeasons }, (_, i) => i + 1).map((season) => (
+                  <option key={season} value={season}>
+                    Temporada {season}
+                  </option>
+                ))}
               </Select>
             </Box>
 
             <Box>
-              <Text color="gray.400" mb={2}>Sua avaliação:</Text>
+              <Text color="gray.400" mb={2}>Avaliação:</Text>
               <RatingStars
                 rating={rating}
-                onChange={setRating}
-                size={40}
+                onRatingChange={setRating}
+                size={32}
                 isEditable
               />
             </Box>
 
-            <Box>
-              <Text color="gray.400" mb={2}>Comentário (opcional):</Text>
+            <FormControl mt={4}>
+              <FormLabel color="white">Comentário (opcional)</FormLabel>
               <Textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Escreva um comentário sobre a temporada..."
-                bg="gray.700"
+                bg="gray.800"
                 color="white"
                 borderColor="gray.600"
-                _placeholder={{ color: "gray.400" }}
-                rows={4}
+                _hover={{ borderColor: "gray.500" }}
+                _focus={{ borderColor: "teal.400", boxShadow: "none" }}
+                maxLength={COMMENT_MAX_LENGTH}
               />
-            </Box>
+              <Text color="gray.400" fontSize="sm" mt={1} textAlign="right">
+                {comment.length}/{COMMENT_MAX_LENGTH} caracteres
+              </Text>
+            </FormControl>
 
             <Button
               colorScheme="teal"
               onClick={handleSubmit}
               isLoading={isSubmitting}
-              width="full"
+              loadingText="Salvando..."
             >
-              Enviar Avaliação
+              Salvar avaliação
             </Button>
           </VStack>
         </ModalBody>

@@ -13,10 +13,12 @@ import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { addCommentToReview } from "../services/reviews";
 import { ChatCircle } from "@phosphor-icons/react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface AddCommentProps {
   reviewId: string;
   seasonNumber: number;
+  seriesId: number;
   onCommentAdded?: () => void;
 }
 
@@ -25,6 +27,7 @@ const MAX_COMMENT_LENGTH = 200;
 export function AddComment({
   reviewId,
   seasonNumber,
+  seriesId,
   onCommentAdded,
 }: AddCommentProps) {
   const [content, setContent] = useState("");
@@ -32,6 +35,7 @@ export function AddComment({
   const [isExpanded, setIsExpanded] = useState(false);
   const { currentUser } = useAuth();
   const toast = useToast();
+  const queryClient = useQueryClient();
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
@@ -43,57 +47,66 @@ export function AddComment({
   const remainingChars = MAX_COMMENT_LENGTH - content.length;
   const isNearLimit = remainingChars <= 50;
 
-  const handleSubmit = async () => {
-    if (!currentUser) {
-      toast({
-        title: "Erro",
-        description: "Você precisa estar logado para comentar",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    if (!currentUser.email) {
-      toast({
-        title: "Erro",
-        description: "Seu email não foi encontrado. Por favor, faça login novamente.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    if (!content.trim()) {
-      toast({
-        title: "Erro",
-        description: "O comentário não pode estar vazio",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
 
     setIsSubmitting(true);
+    const newComment = {
+      id: "",
+      userId: currentUser.uid,
+      userEmail: currentUser.email || "",
+      content: content,
+      createdAt: new Date(),
+      reactions: {
+        likes: [],
+        dislikes: []
+      }
+    };
+
+    // Atualização otimista do cache
+    const previousData = queryClient.getQueryData<any>(["reviews", seriesId]);
+    
+    queryClient.setQueryData(["reviews", seriesId], (old: any) => {
+      if (!old) return old;
+      return old.map((review: any) => {
+        if (review.id === reviewId) {
+          const updatedReview = {
+            ...review,
+            seasonReviews: review.seasonReviews.map((sr: any) => {
+              if (sr.seasonNumber === seasonNumber) {
+                return {
+                  ...sr,
+                  comments: [...(sr.comments || []), newComment]
+                };
+              }
+              return sr;
+            })
+          };
+          return updatedReview;
+        }
+        return review;
+      });
+    });
+
     try {
-      await addCommentToReview(reviewId, seasonNumber, content.trim());
+      await addCommentToReview(reviewId, seasonNumber, content);
       setContent("");
       setIsExpanded(false);
       onCommentAdded?.();
       toast({
-        title: "Sucesso",
-        description: "Comentário adicionado com sucesso",
+        title: "Comentário adicionado",
+        description: "Seu comentário foi adicionado com sucesso!",
         status: "success",
         duration: 3000,
         isClosable: true,
       });
     } catch (error) {
+      // Reverte a atualização otimista em caso de erro
+      queryClient.setQueryData(["reviews", seriesId], previousData);
       toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Não foi possível adicionar o comentário",
+        title: "Erro ao adicionar comentário",
+        description: "Ocorreu um erro ao adicionar seu comentário. Tente novamente.",
         status: "error",
         duration: 3000,
         isClosable: true,
