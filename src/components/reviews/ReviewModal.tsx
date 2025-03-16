@@ -14,6 +14,9 @@ import {
   Box,
   FormControl,
   FormLabel,
+  Spinner,
+  Center,
+  HStack,
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { RatingStars } from "../common/RatingStars";
@@ -21,14 +24,16 @@ import { addSeasonReview } from "../../services/reviews";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../contexts/AuthContext";
 import { getSeriesReviews } from "../../services/reviews";
+import { getSeriesDetails } from "../../services/tmdb";
 
 interface ReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   seriesId: number;
-  seriesName: string;
-  numberOfSeasons: number;
+  seriesName?: string;
+  numberOfSeasons?: number;
   initialSeason?: number;
+  onBack?: () => void;
 }
 
 const COMMENT_MAX_LENGTH = 280;
@@ -37,17 +42,51 @@ export function ReviewModal({
   isOpen,
   onClose,
   seriesId,
-  seriesName,
-  numberOfSeasons,
+  seriesName: propSeriesName,
+  numberOfSeasons: propNumberOfSeasons,
   initialSeason = 1,
+  onBack,
 }: ReviewModalProps) {
   const [selectedSeason, setSelectedSeason] = useState<number>(initialSeason);
   const [rating, setRating] = useState<number>(0);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [seriesDetails, setSeriesDetails] = useState<{
+    name: string;
+    number_of_seasons: number;
+  } | null>(null);
   const toast = useToast();
   const queryClient = useQueryClient();
   const { currentUser } = useAuth();
+
+  const seriesName = propSeriesName || seriesDetails?.name || "";
+  const numberOfSeasons = propNumberOfSeasons || seriesDetails?.number_of_seasons || 0;
+
+  useEffect(() => {
+    if (isOpen && !propSeriesName && !propNumberOfSeasons) {
+      const fetchSeriesDetails = async () => {
+        setIsLoading(true);
+        try {
+          const details = await getSeriesDetails(seriesId);
+          setSeriesDetails(details);
+        } catch (error) {
+          console.error("Erro ao buscar detalhes da série:", error);
+          toast({
+            title: "Erro",
+            description: "Não foi possível carregar os detalhes da série",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      fetchSeriesDetails();
+    }
+  }, [isOpen, seriesId, propSeriesName, propNumberOfSeasons, toast]);
 
   useEffect(() => {
     setSelectedSeason(initialSeason);
@@ -133,8 +172,35 @@ export function ReviewModal({
     }
   };
 
+  if (isLoading) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent bg="gray.800" color="white">
+          <ModalHeader>Carregando...</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <Center py={10}>
+              <Spinner size="xl" color="teal.400" />
+            </Center>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    );
+  }
+
+  if (!seriesName || numberOfSeasons === 0) {
+    return null;
+  }
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl">
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      size="xl"
+      scrollBehavior="inside"
+      blockScrollOnMount={false}
+    >
       <ModalOverlay />
       <ModalContent bg="gray.900">
         <ModalHeader color="white">Avaliar {seriesName}</ModalHeader>
@@ -149,6 +215,12 @@ export function ReviewModal({
                 bg="gray.800"
                 color="white"
                 borderColor="gray.600"
+                sx={{
+                  "& option": {
+                    bg: "gray.800",
+                    color: "white"
+                  }
+                }}
               >
                 {Array.from({ length: numberOfSeasons }, (_, i) => i + 1).map((season) => (
                   <option key={season} value={season}>
@@ -186,14 +258,29 @@ export function ReviewModal({
               </Text>
             </FormControl>
 
-            <Button
-              colorScheme="teal"
-              onClick={handleSubmit}
-              isLoading={isSubmitting}
-              loadingText="Salvando..."
-            >
-              Salvar avaliação
-            </Button>
+            <HStack spacing={4} justify="space-between">
+              {onBack && (
+                <Button 
+                  variant="outline" 
+                  onClick={onBack}
+                  colorScheme="teal"
+                  borderColor="teal.500"
+                  color="teal.300"
+                  _hover={{ bg: "rgba(49, 151, 149, 0.2)" }}
+                >
+                  Voltar para busca
+                </Button>
+              )}
+              <Button
+                colorScheme="teal"
+                onClick={handleSubmit}
+                isLoading={isSubmitting}
+                loadingText="Salvando..."
+                ml={onBack ? 0 : 'auto'}
+              >
+                Salvar avaliação
+              </Button>
+            </HStack>
           </VStack>
         </ModalBody>
       </ModalContent>

@@ -21,9 +21,17 @@ interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (seriesId: number) => void;
+  title?: string;
+  subtitle?: string;
 }
 
-export function SearchModal({ isOpen, onClose, onSelect }: SearchModalProps) {
+export function SearchModal({ 
+  isOpen, 
+  onClose, 
+  onSelect, 
+  title = "Buscar Séries", 
+  subtitle = "Digite o nome da série que deseja encontrar" 
+}: SearchModalProps) {
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,21 +59,32 @@ export function SearchModal({ isOpen, onClose, onSelect }: SearchModalProps) {
   }, [search]);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl">
-      <ModalOverlay />
-      <ModalContent bg="gray.800">
-        <ModalHeader color="white">Buscar Série</ModalHeader>
-        <ModalCloseButton color="white" />
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      size="lg"
+      scrollBehavior="inside"
+      blockScrollOnMount={false}
+    >
+      <ModalOverlay bg="blackAlpha.700" backdropFilter="blur(5px)" />
+      <ModalContent bg="gray.800" color="white">
+        <ModalHeader>{title}</ModalHeader>
+        <ModalCloseButton />
         <ModalBody pb={6}>
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Digite o nome da série..."
-            bg="gray.700"
-            color="white"
-            border="none"
-            mb={4}
-          />
+          <VStack spacing={4} align="stretch">
+            <Text color="gray.400" fontSize="sm">
+              {subtitle}
+            </Text>
+            <Input
+              placeholder="Buscar séries..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              bg="gray.700"
+              border="none"
+              _focus={{ ring: 1, ringColor: "teal.500" }}
+              autoFocus
+            />
+          </VStack>
 
           {isLoading ? (
             <Box textAlign="center" py={4}>

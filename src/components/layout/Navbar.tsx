@@ -44,6 +44,7 @@ import { ExtendedUser } from "../../types/auth";
 import { NotificationMenu } from "../notifications/NotificationMenu";
 import { UserMenu } from "../user/UserMenu";
 import { SearchModal } from "./SearchModal";
+import { QuickAddButton } from "../common/QuickAddButton";
 
 export function Navbar() {
   const { currentUser, logout } = useAuth() as {
@@ -81,6 +82,11 @@ export function Navbar() {
     if (searchQuery.trim()) {
       navigate(`/series?search=${encodeURIComponent(searchQuery.trim())}`);
     }
+  };
+
+  const handleSeriesSelect = (seriesId: number) => {
+    onSearchClose();
+    navigate(`/series/${seriesId}`);
   };
 
   return (
@@ -172,7 +178,6 @@ export function Navbar() {
                       <Avatar
                         size="sm"
                         src={currentUser.photoURL || undefined}
-                        name={currentUser.displayName || undefined}
                       />
                     }
                   />
@@ -211,6 +216,7 @@ export function Navbar() {
                     </MenuItem>
                   </MenuList>
                 </Menu>
+                <QuickAddButton />
               </>
             ) : (
               <HStack spacing={4}>
@@ -234,14 +240,33 @@ export function Navbar() {
               onClick={onSearchOpen}
               _hover={{ bg: "gray.700" }}
             />
-            {currentUser && <NotificationMenu />}
-            <IconButton
-              aria-label="Menu"
-              icon={<List weight="bold" />}
-              variant="ghost"
-              color="white"
-              onClick={onOpen}
-            />
+            {currentUser && (
+              <>
+                <NotificationMenu />
+                <IconButton
+                  aria-label="Menu"
+                  icon={
+                    <Avatar
+                      size="sm"
+                      src={currentUser.photoURL || undefined}
+                    />
+                  }
+                  variant="unstyled"
+                  color="white"
+                  onClick={onOpen}
+                />
+                <QuickAddButton />
+              </>
+            )}
+            {!currentUser && (
+              <IconButton
+                aria-label="Menu"
+                icon={<List weight="bold" />}
+                variant="ghost"
+                color="white"
+                onClick={onOpen}
+              />
+            )}
           </HStack>
         </HStack>
       </Container>
@@ -250,10 +275,7 @@ export function Navbar() {
       <SearchModal 
         isOpen={isSearchOpen} 
         onClose={onSearchClose} 
-        onSelect={(seriesId) => {
-          onSearchClose();
-          navigate(`/series/${seriesId}`);
-        }}
+        onSelect={handleSeriesSelect}
       />
 
       {/* Drawer Mobile */}
