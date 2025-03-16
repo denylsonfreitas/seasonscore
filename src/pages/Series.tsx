@@ -24,6 +24,7 @@ import { Footer } from "../components/Footer";
 import { useSearchParams } from "react-router-dom";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { getSeriesReviews } from "../services/reviews";
+import { ScrollToTop } from "../components/ScrollToTop";
 
 export function Series() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -161,7 +162,7 @@ export function Series() {
             </Box>
           </Flex>
 
-          <SimpleGrid columns={{ base: 2, md: 3, lg: 5 }} spacing={6}>
+          <SimpleGrid columns={{ base: 3, md: 4, lg: 6 }} spacing={4}>
             {seriesWithRatings.map((series) => (
               <SeriesCard key={series.id} series={series} />
             ))}
@@ -182,6 +183,7 @@ export function Series() {
         </Container>
       </Box>
       <Footer />
+      <ScrollToTop />
     </Flex>
   );
 }

@@ -106,8 +106,8 @@ export function HomeSeriesSection({
           </Button>
         )}
       </Flex>
-      <SimpleGrid columns={{ base: 2, md: 3, lg: 5 }} spacing={6}>
-        {data.results.slice(0, 5).map((series) => (
+      <SimpleGrid columns={{ base: 3, md: 4, lg: 6 }} spacing={4}>
+        {data.results.slice(0, 6).map((series) => (
           <SeriesCard 
             key={series.id} 
             series={{

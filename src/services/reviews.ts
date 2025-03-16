@@ -22,8 +22,9 @@ import { getSeriesDetails } from "./tmdb";
 import { createNotification, NotificationType } from "./notifications";
 import { Comment } from "../types/review";
 import { getUserData } from "./users";
+import { db } from "../config/firebase";
+import { SeasonReview } from "../types/review";
 
-const db = getFirestore();
 const reviewsCollection = collection(db, "reviews");
 
 export interface Review {
@@ -34,22 +35,6 @@ export interface Review {
   rating: number;
   comment?: string;
   createdAt: Date;
-}
-
-export interface SeasonReview {
-  id?: string;
-  seriesId: number;
-  seasonNumber: number;
-  userId: string;
-  userEmail: string;
-  rating: number;
-  comment: string;
-  comments?: Comment[];
-  reactions?: {
-    likes: string[];
-    dislikes: string[];
-  };
-  createdAt: Date | Timestamp;
 }
 
 export interface SeriesReview {
@@ -624,4 +609,65 @@ export async function toggleCommentReaction(
     console.error("Erro ao atualizar reação:", error);
     throw new Error("Não foi possível atualizar a reação. Por favor, tente novamente.");
   }
+}
+
+export interface PopularReview {
+  id: string;
+  userId: string;
+  seriesId: number;
+  seriesName: string;
+  seriesPoster: string | null;
+  seasonNumber: number;
+  rating: number;
+  comment: string;
+  userName: string;
+  userAvatar: string;
+  createdAt: Date;
+  likes: number;
+  dislikes: number;
+}
+
+export async function getPopularReviews(): Promise<PopularReview[]> {
+  const reviewsRef = collection(db, "reviews");
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+  const q = query(
+    reviewsRef,
+    where("createdAt", ">=", oneWeekAgo),
+    orderBy("createdAt", "desc"),
+    limit(10)
+  );
+
+  const querySnapshot = await getDocs(q);
+  const reviews = await Promise.all(
+    querySnapshot.docs.map(async (doc) => {
+      const review = doc.data() as SeriesReview;
+      const userData = await getUserData(review.userId);
+      const seriesDetails = await getSeriesDetails(review.seriesId);
+      
+      // Pegar a primeira avaliação de temporada para mostrar
+      const firstSeasonReview = review.seasonReviews[0];
+      
+      return {
+        id: doc.id,
+        userId: review.userId,
+        seriesId: review.seriesId,
+        seriesName: seriesDetails.name,
+        seriesPoster: seriesDetails.poster_path,
+        seasonNumber: firstSeasonReview.seasonNumber,
+        rating: firstSeasonReview.rating,
+        comment: firstSeasonReview.comment,
+        userName: userData?.displayName || review.userEmail,
+        userAvatar: userData?.photoURL || "",
+        createdAt: firstSeasonReview.createdAt instanceof Date 
+          ? firstSeasonReview.createdAt 
+          : new Date(firstSeasonReview.createdAt.seconds * 1000),
+        likes: firstSeasonReview.reactions?.likes?.length || 0,
+        dislikes: firstSeasonReview.reactions?.dislikes?.length || 0,
+      };
+    })
+  );
+
+  return reviews;
 }

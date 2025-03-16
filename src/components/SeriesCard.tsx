@@ -23,7 +23,10 @@ interface SeriesCardProps {
 
 const sizeStyles = {
   sm: {
-    container: { maxW: "200px" },
+    container: { 
+      maxW: "150px",
+      aspectRatio: "2/3"
+    },
     title: { fontSize: "md" },
     overview: { fontSize: "xs" },
     rating: { fontSize: "sm" },
@@ -35,7 +38,10 @@ const sizeStyles = {
     },
   },
   md: {
-    container: { maxW: "250px" },
+    container: { 
+      maxW: "200px",
+      aspectRatio: "2/3"
+    },
     title: { fontSize: "lg" },
     overview: { fontSize: "sm" },
     rating: { fontSize: "md" },
@@ -47,7 +53,10 @@ const sizeStyles = {
     },
   },
   lg: {
-    container: { maxW: "300px" },
+    container: { 
+      maxW: "250px",
+      aspectRatio: "2/3"
+    },
     title: { fontSize: "xl" },
     overview: { fontSize: "md" },
     rating: { fontSize: "lg" },
@@ -113,103 +122,89 @@ export function SeriesCard({ series, size = "md", position }: SeriesCardProps) {
       mx="auto"
       role="group"
     >
-      <Box position="relative" bg="gray.700">
-        {series.poster_path ? (
-          <Image
-            src={`https://image.tmdb.org/t/p/w500${series.poster_path}`}
-            alt={series.name}
-            width="100%"
-            height="auto"
-            fallback={
-              <Center py={20}>
-                <VStack spacing={4}>
-                  <Icon as={TelevisionSimple} boxSize={12} color="gray.500" weight="thin" />
-                  <Text color="gray.500" fontSize="sm" textAlign="center">
-                    Imagem não disponível
-                  </Text>
-                </VStack>
-              </Center>
-            }
-          />
-        ) : (
-          <Center py={20}>
-            <VStack spacing={4}>
-              <Icon as={TelevisionSimple} boxSize={12} color="gray.500" weight="thin" />
-              <Text color="gray.500" fontSize="sm" textAlign="center">
-                Imagem não disponível
-              </Text>
-            </VStack>
-          </Center>
-        )}
+      <LinkOverlay as={RouterLink} to={`/series/${series.id}`}>
+        <Box position="relative" bg="gray.700" height="100%">
+          {series.poster_path ? (
+            <Image
+              src={`https://image.tmdb.org/t/p/w500${series.poster_path}`}
+              alt={series.name}
+              width="100%"
+              height="100%"
+              objectFit="cover"
+              fallback={
+                <Center py={20}>
+                  <VStack spacing={4}>
+                    <Icon as={TelevisionSimple} boxSize={12} color="gray.500" weight="thin" />
+                    <Text color="gray.500" fontSize="sm" textAlign="center">
+                      Imagem não disponível
+                    </Text>
+                  </VStack>
+                </Center>
+              }
+            />
+          ) : (
+            <Center py={20}>
+              <VStack spacing={4}>
+                <Icon as={TelevisionSimple} boxSize={12} color="gray.500" weight="thin" />
+                <Text color="gray.500" fontSize="sm" textAlign="center">
+                  Imagem não disponível
+                </Text>
+              </VStack>
+            </Center>
+          )}
 
-        {/* Posição (se existir) */}
-        {position && (
-          <Badge
+          {/* Posição (se existir) */}
+          {position && (
+            <Badge
+              position="absolute"
+              top={3}
+              left={3}
+              bg={badgeStyle?.bg}
+              color={badgeStyle?.color}
+              fontSize={styles.badge.fontSize}
+              p={2}
+              borderRadius="lg"
+              zIndex={1}
+            >
+              <Flex align="center" gap={2}>
+                {badgeStyle?.icon}
+                #{position}
+              </Flex>
+            </Badge>
+          )}
+
+          {/* Botão de Watchlist */}
+          <Box
             position="absolute"
             top={3}
-            left={3}
-            bg={badgeStyle?.bg}
-            color={badgeStyle?.color}
-            fontSize={styles.badge.fontSize}
-            p={2}
-            borderRadius="lg"
+            right={3}
+            opacity={0}
+            _groupHover={{ opacity: 1 }}
+            transition="opacity 0.2s"
             zIndex={1}
+            onClick={(e) => e.preventDefault()}
           >
-            <Flex align="center" gap={2}>
-              {badgeStyle?.icon}
-              #{position}
-            </Flex>
-          </Badge>
-        )}
+            <WatchlistButton series={series} variant="ghost" size={size === "sm" ? "sm" : "md"} />
+          </Box>
 
-        {/* Botão de Watchlist */}
-        <Box
-          position="absolute"
-          top={3}
-          right={3}
-          opacity={0}
-          _groupHover={{ opacity: 1 }}
-          transition="opacity 0.2s"
-          zIndex={1}
-          onClick={(e) => e.preventDefault()}
-        >
-          <WatchlistButton series={series} variant="ghost" size={size === "sm" ? "sm" : "md"} />
+          {/* Nota do SeasonScore */}
+          {series.rating && (
+            <Badge
+              position="absolute"
+              bottom={3}
+              left={3}
+              colorScheme="yellow"
+              fontSize="xs"
+              py={0.5}
+              px={1.5}
+              borderRadius="md"
+              zIndex={1}
+            >
+              {series.rating.toFixed(1)} ★
+            </Badge>
+          )}
         </Box>
-
-        {/* Nota do SeasonScore */}
-        {series.rating && (
-          <Badge
-            position="absolute"
-            bottom={3}
-            left={3}
-            colorScheme="yellow"
-            fontSize="xs"
-            py={0.5}
-            px={1.5}
-            borderRadius="md"
-            zIndex={1}
-          >
-            {series.rating.toFixed(1)} ★
-          </Badge>
-        )}
-      </Box>
-      
-      <VStack align="stretch" p={4} spacing={2}>
-        <LinkOverlay as={RouterLink} to={`/series/${series.id}`}>
-          <Text
-            color="white"
-            fontWeight="bold"
-            noOfLines={1}
-            {...styles.title}
-          >
-            {series.name}
-          </Text>
-        </LinkOverlay>
-        
-        <Text color="gray.400" noOfLines={2} {...styles.overview}>
-          {series.overview || "Nenhuma descrição disponível para esta série no momento."}
-        </Text>
-      </VStack>
+      </LinkOverlay>
     </LinkBox>
   );
 }

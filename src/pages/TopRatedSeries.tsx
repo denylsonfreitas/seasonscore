@@ -4,11 +4,8 @@ import {
   Heading,
   Text,
   SimpleGrid,
-  VStack,
   Flex,
   Spinner,
-  Image,
-  Badge,
   Grid,
   GridItem,
   Icon,
@@ -19,6 +16,7 @@ import { getSeriesDetails } from "../services/tmdb";
 import { SeriesCard } from "../components/SeriesCard";
 import { Footer } from "../components/Footer";
 import { Star, Trophy, TelevisionSimple } from "@phosphor-icons/react";
+import { ScrollToTop } from "../components/ScrollToTop";
 
 interface TopRatedSeries {
   id: number;
@@ -263,6 +261,7 @@ export function TopRatedSeries() {
         )}
       </Container>
       <Footer />
+      <ScrollToTop />
     </Box>
   );
 } 

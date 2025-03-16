@@ -317,3 +317,10 @@ export const streamingServices = {
   APPLE_TV: 2552,
   PARAMOUNT: 4330,
 } as const;
+
+export async function getTrendingSeries() {
+  const response = await api.get<SeriesResponse>("/trending/tv/week", {
+    params: defaultParams,
+  });
+  return response.data.results;
+}

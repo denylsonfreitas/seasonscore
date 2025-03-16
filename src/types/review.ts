@@ -17,5 +17,9 @@ export interface SeasonReview {
   rating: number;
   comment: string;
   comments?: Comment[];
-  createdAt: Date;
+  createdAt: Date | { seconds: number };
+  reactions?: {
+    likes: string[];
+    dislikes: string[];
+  };
 } 

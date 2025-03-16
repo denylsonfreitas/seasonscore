@@ -4,6 +4,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { getNetworkSeries, streamingServices } from "../services/tmdb";
 import { SeriesGrid } from "../components/SeriesGrid";
 import { Footer } from "../components/Footer";
+import { ScrollToTop } from "../components/ScrollToTop";
 
 const streamingNames: Record<string, { title: string; id: number }> = {
   netflix: { title: "Netflix", id: streamingServices.NETFLIX },
@@ -68,6 +69,7 @@ export function StreamingPage() {
         </Container>
       </Box>
       <Footer />
+      <ScrollToTop />
     </Flex>
   );
 }

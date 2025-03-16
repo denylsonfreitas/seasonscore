@@ -5,6 +5,7 @@ import { SeriesGrid } from "../components/SeriesGrid";
 import { Footer } from "../components/Footer";
 import { getSeriesReviews } from "../services/reviews";
 import { useMemo } from "react";
+import { ScrollToTop } from "../components/ScrollToTop";
 
 export function RecentSeries() {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
@@ -65,6 +66,7 @@ export function RecentSeries() {
         </Container>
       </Box>
       <Footer />
+      <ScrollToTop />
     </Flex>
   );
 } 

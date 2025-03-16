@@ -66,6 +66,7 @@ import { useUserData } from "../hooks/useUserData";
 import { UserName } from "../components/UserName";
 import { ReviewListItem } from "../components/ReviewListItem";
 import { PopularReviewsList } from "../components/PopularReviewsList";
+import { ScrollToTop } from "../components/ScrollToTop";
 
 interface ReviewItemProps {
   review: {
@@ -962,7 +963,7 @@ export function SeriesDetails() {
 
           <Box>
             {isLoadingRelated ? (
-              <SimpleGrid columns={{ base: 2, md: 3, lg: 6 }} spacing={6}>
+              <SimpleGrid columns={{ base: 3, md: 4, lg: 6 }} spacing={4}>
                 {[...Array(6)].map((_, i) => (
                   <Box key={i}>
                     <Skeleton height="300px" borderRadius="lg" />
@@ -971,10 +972,10 @@ export function SeriesDetails() {
               </SimpleGrid>
             ) : relatedSeries?.results && relatedSeries.results.length > 0 ? (
               <>
-                <SimpleGrid columns={{ base: 2, md: 3, lg: 6 }} spacing={6}>
+                <SimpleGrid columns={{ base: 3, md: 4, lg: 7 }} spacing={4}>
                   {relatedSeries.results
                     .filter(relatedSeries => relatedSeries.id !== Number(id))
-                    .slice(0, showAllRelated ? undefined : 6)
+                    .slice(0, showAllRelated ? undefined : 7)
                     .map((series) => (
                       <Box key={series.id}>
                         <SeriesCard
@@ -984,19 +985,19 @@ export function SeriesDetails() {
                       </Box>
                     ))}
                 </SimpleGrid>
-                {relatedSeries.results.length > 6 && (
+                {relatedSeries.results.length > 7 && (
                   <Button
                     variant="ghost"
                     color="teal.400"
                     onClick={() => setShowAllRelated(!showAllRelated)}
                     rightIcon={showAllRelated ? <CaretUp /> : <CaretDown />}
-                    mt={6}
+                    mt={7}
                     mx="auto"
                     display="block"
                   >
                     {showAllRelated 
                       ? "Ver menos" 
-                      : `Ver mais (${relatedSeries.results.length - 6} séries)`}
+                      : `Ver mais (${relatedSeries.results.length - 7} séries)`}
                   </Button>
                 )}
               </>
@@ -1010,6 +1011,7 @@ export function SeriesDetails() {
       </Box>
 
       <Footer />
+      <ScrollToTop />
 
       <ReviewModal
         isOpen={isOpen}

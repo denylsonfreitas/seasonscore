@@ -57,6 +57,7 @@ import { getFollowers, getFollowing } from "../services/followers";
 import { getUserData, UserData, createOrUpdateUser, getUserByUsername } from "../services/users";
 import { UserListModal } from "../components/UserListModal";
 import { ExtendedUser } from "../types/auth";
+import { ScrollToTop } from "../components/ScrollToTop";
 
 interface ExpandedReviews {
   [key: string]: boolean;
@@ -785,6 +786,7 @@ export function Profile() {
         </Container>
       </Box>
       <Footer />
+      <ScrollToTop />
     </Flex>
   );
 }

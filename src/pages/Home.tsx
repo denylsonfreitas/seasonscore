@@ -1,27 +1,21 @@
-import { Box, Container, Heading, Text, VStack, Flex } from "@chakra-ui/react";
+import { Box, Container, VStack, Flex } from "@chakra-ui/react";
 import { HomeSeriesSection } from "../components/HomeSeriesSection";
 import {
   getPopularSeries,
   getTopRatedSeries,
   getAiringTodaySeries,
-  getNetworkSeries,
-  streamingServices,
 } from "../services/tmdb";
 import { Footer } from "../components/Footer";
+import { TrendingBanner } from "../components/TrendingBanner";
+import { PopularReviews } from "../components/PopularReviews";
+import { ScrollToTop } from "../components/ScrollToTop";
 
 export function Home() {
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
-      <Box flex="1" pt="80px">
+      <Box flex="1">
         <Container maxW="1200px" py={8} pb={16}>
-          <VStack align="stretch" spacing={4} mb={12}>
-            <Heading color="white" size="2xl">
-              Bem-vindo ao SeasonScore
-            </Heading>
-            <Text color="gray.400" fontSize="xl">
-              Avalie e descubra suas séries favoritas, temporada por temporada
-            </Text>
-          </VStack>
+          <TrendingBanner />
 
           <HomeSeriesSection
             title="Séries Populares do Momento"
@@ -41,47 +35,11 @@ export function Home() {
             link="/series/recent"
           />
 
-          <Heading color="white" size="lg" mb={8}>
-            Por Streaming
-          </Heading>
-
-          <HomeSeriesSection
-            title="Netflix"
-            queryKey={["netflix"]}
-            queryFn={() => getNetworkSeries(streamingServices.NETFLIX)}
-            link="/streaming/netflix"
-          />
-
-          <HomeSeriesSection
-            title="Disney+"
-            queryKey={["disney"]}
-            queryFn={() => getNetworkSeries(streamingServices.DISNEY_PLUS)}
-            link="/streaming/disney"
-          />
-
-          <HomeSeriesSection
-            title="HBO Max"
-            queryKey={["hbo"]}
-            queryFn={() => getNetworkSeries(streamingServices.HBO)}
-            link="/streaming/hbo"
-          />
-
-          <HomeSeriesSection
-            title="Amazon Prime"
-            queryKey={["amazon"]}
-            queryFn={() => getNetworkSeries(streamingServices.AMAZON)}
-            link="/streaming/amazon"
-          />
-
-          <HomeSeriesSection
-            title="Apple TV+"
-            queryKey={["apple"]}
-            queryFn={() => getNetworkSeries(streamingServices.APPLE_TV)}
-            link="/streaming/apple"
-          />
+          <PopularReviews />
         </Container>
       </Box>
       <Footer />
+      <ScrollToTop />
     </Flex>
   );
 }
