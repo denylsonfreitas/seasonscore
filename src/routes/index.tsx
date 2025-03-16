@@ -5,12 +5,11 @@ import { SignUp } from "../pages/SignUp";
 import { SeriesDetails } from "../pages/SeriesDetails";
 import { Series } from "../pages/Series";
 import { Profile } from "../pages/Profile";
-import { StreamingPage } from "../pages/StreamingPage";
 import { PopularSeries } from "../pages/PopularSeries";
 import { RecentSeries } from "../pages/RecentSeries";
 import { TopRatedSeries } from "../pages/TopRatedSeries";
 import { useAuth } from "../contexts/AuthContext";
-import { Layout } from "../components/Layout";
+import { Layout } from "../components/layout/Layout";
 import { Settings } from "../pages/Settings";
 import { ProfileSettings } from "../pages/ProfileSettings";
 import { SeriesReviews } from "../pages/SeriesReviews";
@@ -79,10 +78,6 @@ export const routes = [
       {
         path: "/series/:id/reviews",
         element: <SeriesReviews />,
-      },
-      {
-        path: "/streaming/:streaming",
-        element: <StreamingPage />,
       },
       {
         path: "/profile",

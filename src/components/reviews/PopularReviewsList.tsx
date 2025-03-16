@@ -1,6 +1,6 @@
 import { VStack } from "@chakra-ui/react";
 import { ReviewListItem } from "./ReviewListItem";
-import { SeriesReview } from "../services/reviews";
+import { SeriesReview } from "../../services/reviews";
 
 interface PopularReviewsListProps {
   reviews: SeriesReview[];

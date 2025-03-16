@@ -1,7 +1,7 @@
 import { Button, useToast } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
-import { useAuth } from "../contexts/AuthContext";
-import { followUser, unfollowUser, isFollowing } from "../services/followers";
+import { useAuth } from "../../contexts/AuthContext";
+import { followUser, unfollowUser, isFollowing } from "../../services/followers";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 

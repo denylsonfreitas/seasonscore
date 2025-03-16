@@ -9,18 +9,18 @@ import {
   Divider,
   useToast,
 } from "@chakra-ui/react";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { User, Gear, SignOut } from "@phosphor-icons/react";
 
 export function UserMenu() {
-  const { currentUser, signOut } = useAuth();
+  const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await logout();
       navigate("/login");
     } catch (error) {
       console.error("Erro ao fazer logout:", error);

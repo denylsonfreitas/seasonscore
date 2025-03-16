@@ -1,13 +1,13 @@
 import { Box, Heading, VStack, Text, Avatar, HStack, Flex, Grid, Image, Icon, useDisclosure, Button } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
-import { getPopularReviews, PopularReview, getSeriesReviews } from "../services/reviews";
+import { getPopularReviews, PopularReview, getSeriesReviews } from "../../services/reviews";
 import { Heart, CaretDown } from "@phosphor-icons/react";
-import { RatingStars } from "./RatingStars";
-import { UserName } from "./UserName";
+import { RatingStars } from "../common/RatingStars";
+import { UserName } from "../common/UserName";
 import { ReviewDetailsModal } from "./ReviewDetailsModal";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getSeriesDetails } from "../services/tmdb";
+import { getSeriesDetails } from "../../services/tmdb";
 
 export function PopularReviews() {
   const [selectedReview, setSelectedReview] = useState<PopularReview | null>(null);

@@ -14,7 +14,7 @@ import {
   Spinner,
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
-import { searchSeries } from "../services/tmdb";
+import { searchSeries } from "../../services/tmdb";
 import { debounce } from "lodash";
 
 interface SearchModalProps {

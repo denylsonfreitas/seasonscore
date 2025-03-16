@@ -10,8 +10,8 @@ import {
   Collapse,
 } from "@chakra-ui/react";
 import { useState } from "react";
-import { useAuth } from "../contexts/AuthContext";
-import { addCommentToReview } from "../services/reviews";
+import { useAuth } from "../../contexts/AuthContext";
+import { addCommentToReview } from "../../services/reviews";
 import { ChatCircle } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 

@@ -12,13 +12,13 @@ import {
   useDisclosure,
   useBreakpointValue,
 } from "@chakra-ui/react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams, Link as RouterLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getSeriesDetails } from "../services/tmdb";
 import { getSeriesReviews } from "../services/reviews";
-import { RatingStars } from "../components/RatingStars";
-import { UserName } from "../components/UserName";
-import { ReviewDetailsModal } from "../components/ReviewDetailsModal";
+import { RatingStars } from "../components/common/RatingStars";
+import { UserName } from "../components/common/UserName";
+import { ReviewDetailsModal } from "../components/reviews/ReviewDetailsModal";
 import { useState, useMemo } from "react";
 import { useUsersData } from "../hooks/useUsersData";
 import { Heart, HeartBreak } from "@phosphor-icons/react";

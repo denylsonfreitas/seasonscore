@@ -9,10 +9,10 @@ import {
 } from "@chakra-ui/react";
 import { X } from "@phosphor-icons/react";
 import { useNavigate } from "react-router-dom";
-import { NotificationType } from "../types/notification";
-import { deleteNotification } from "../services/notifications";
+import { NotificationType } from "../../types/notification";
+import { deleteNotification } from "../../services/notifications";
 import { useState, useEffect } from "react";
-import { getUserData } from "../services/users";
+import { getUserData } from "../../services/users";
 
 interface NotificationItemProps {
   notification: {

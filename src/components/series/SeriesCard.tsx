@@ -11,9 +11,9 @@ import {
   Icon,
 } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
-import { SeriesListItem } from "../services/tmdb";
+import { SeriesListItem } from "../../services/tmdb";
 import { Star, Trophy, TelevisionSimple } from "@phosphor-icons/react";
-import { WatchlistButton } from "./WatchlistButton";
+import { WatchlistButton } from "../common/WatchlistButton";
 
 interface SeriesCardProps {
   series: SeriesListItem & { rating?: number };

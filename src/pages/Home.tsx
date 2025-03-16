@@ -1,14 +1,14 @@
+import { HomeSeriesSection } from "../components/series/HomeSeriesSection";
 import { Box, Container, VStack, Flex } from "@chakra-ui/react";
-import { HomeSeriesSection } from "../components/HomeSeriesSection";
 import {
   getPopularSeries,
   getTopRatedSeries,
   getAiringTodaySeries,
 } from "../services/tmdb";
-import { Footer } from "../components/Footer";
-import { TrendingBanner } from "../components/TrendingBanner";
-import { PopularReviews } from "../components/PopularReviews";
-import { ScrollToTop } from "../components/ScrollToTop";
+import { Footer } from "../components/common/Footer";
+import { TrendingBanner } from "../components/series/TrendingBanner";
+import { PopularReviews } from "../components/reviews/PopularReviews";
+import { ScrollToTop } from "../components/common/ScrollToTop";
 
 export function Home() {
   return (

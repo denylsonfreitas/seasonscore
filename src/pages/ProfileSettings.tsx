@@ -27,10 +27,10 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { createOrUpdateUser, getUserData, isUsernameAvailable, updateUsername } from "../services/users";
-import { updateProfile } from "firebase/auth";
+import { updateProfile, updateEmail, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { getSeriesDetails } from "../services/tmdb";
-import { SearchModal } from "../components/SearchModal";
+import { SearchModal } from "../components/layout/SearchModal";
 import { ExtendedUser } from "../types/auth";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
 import {
@@ -39,7 +39,8 @@ import {
   Plus,
   X,
 } from "@phosphor-icons/react";
-import { auth } from "../config/firebase";
+import { db, auth } from "../config/firebase";
+import { doc, updateDoc, getDoc } from "firebase/firestore";
 
 export function ProfileSettings() {
   const { currentUser } = useAuth() as { currentUser: ExtendedUser | null };

@@ -16,11 +16,11 @@ import {
   FormLabel,
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
-import { RatingStars } from "./RatingStars";
-import { addSeasonReview } from "../services/reviews";
+import { RatingStars } from "../common/RatingStars";
+import { addSeasonReview } from "../../services/reviews";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "../contexts/AuthContext";
-import { getSeriesReviews } from "../services/reviews";
+import { useAuth } from "../../contexts/AuthContext";
+import { getSeriesReviews } from "../../services/reviews";
 
 interface ReviewModalProps {
   isOpen: boolean;

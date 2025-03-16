@@ -1,7 +1,7 @@
 import { Box, HStack, Avatar, VStack, Text, Button } from "@chakra-ui/react";
-import { useUserData } from "../hooks/useUserData";
-import { UserName } from "./UserName";
-import { RatingStars } from "./RatingStars";
+import { useUserData } from "../../hooks/useUserData";
+import { UserName } from "../common/UserName";
+import { RatingStars } from "../common/RatingStars";
 import { useState } from "react";
 import { CaretDown, CaretUp } from "@phosphor-icons/react";
 

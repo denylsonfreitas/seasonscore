@@ -14,10 +14,10 @@ import {
   Spinner,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
-import { getUserData, UserData } from "../services/users";
+import { getUserData, UserData } from "../../services/users";
 import { Link as RouterLink } from "react-router-dom";
 import { FollowButton } from "./FollowButton";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface UserListModalProps {
   isOpen: boolean;

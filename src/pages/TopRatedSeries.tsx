@@ -4,19 +4,41 @@ import {
   Heading,
   Text,
   SimpleGrid,
+  Image,
   Flex,
+  VStack,
+  HStack,
   Spinner,
+  Button,
+  useBreakpointValue,
   Grid,
   GridItem,
   Icon,
 } from "@chakra-ui/react";
-import { useQuery } from "@tanstack/react-query";
-import { getTopRatedSeries } from "../services/reviews";
+import { useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
 import { getSeriesDetails } from "../services/tmdb";
-import { SeriesCard } from "../components/SeriesCard";
-import { Footer } from "../components/Footer";
+import { SeriesCard } from "../components/series/SeriesCard";
+import { Footer } from "../components/common/Footer";
 import { Star, Trophy, TelevisionSimple } from "@phosphor-icons/react";
-import { ScrollToTop } from "../components/ScrollToTop";
+import { ScrollToTop } from "../components/common/ScrollToTop";
+import { getSeriesReviews, getTopRatedSeries as getTopRatedReviews } from "../services/reviews";
+import { useMemo } from "react";
+
+interface SeriesReview {
+  id: string;
+  userId: string;
+  userEmail: string;
+  seriesId: number;
+  seasonReviews: {
+    seasonNumber: number;
+    rating: number;
+    comment?: string;
+  }[];
+  series?: {
+    name: string;
+    poster_path: string;
+  };
+}
 
 interface TopRatedSeries {
   id: number;
@@ -29,7 +51,7 @@ interface TopRatedSeries {
 export function TopRatedSeries() {
   const { data: reviews, isLoading: isLoadingReviews } = useQuery({
     queryKey: ["topRatedSeries"],
-    queryFn: getTopRatedSeries,
+    queryFn: () => getTopRatedReviews(),
   });
 
   const { data: topSeries, isLoading: isLoadingSeries } = useQuery({
@@ -39,11 +61,15 @@ export function TopRatedSeries() {
 
       // Agrupar reviews por série e calcular média
       const seriesMap = new Map<number, { total: number; count: number }>();
-      reviews.forEach((review) => {
+      
+      // Garantir que reviews é um array
+      const reviewsArray = Array.isArray(reviews) ? reviews : [];
+      
+      reviewsArray.forEach((review: SeriesReview) => {
         const seriesId = review.seriesId;
         const seasonRatings = review.seasonReviews.map((sr) => sr.rating);
         const averageRating =
-          seasonRatings.reduce((a, b) => a + b, 0) / seasonRatings.length;
+          seasonRatings.reduce((a: number, b: number) => a + b, 0) / seasonRatings.length;
 
         if (!seriesMap.has(seriesId)) {
           seriesMap.set(seriesId, { total: 0, count: 0 });

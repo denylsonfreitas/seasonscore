@@ -10,9 +10,9 @@ import {
   Heading,
   Badge,
 } from "@chakra-ui/react";
-import { useAuth } from "../contexts/AuthContext";
-import { cleanupNotifications } from "../services/notifications";
-import { auth } from "../config/firebase";
+import { useAuth } from "../../contexts/AuthContext";
+import { cleanupNotifications } from "../../services/notifications";
+import { auth } from "../../config/firebase";
 
 export function NotificationManager() {
   const { currentUser } = useAuth();

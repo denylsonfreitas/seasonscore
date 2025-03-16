@@ -8,11 +8,11 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { SeriesCard } from "./SeriesCard";
-import { SeriesResponse } from "../services/tmdb";
+import { SeriesResponse } from "../../services/tmdb";
 import { useQuery } from "@tanstack/react-query";
 import { CaretRight } from "@phosphor-icons/react";
 import { Link as RouterLink } from "react-router-dom";
-import { getSeriesReviews } from "../services/reviews";
+import { getSeriesReviews } from "../../services/reviews";
 
 interface HomeSectionProps {
   title: string;

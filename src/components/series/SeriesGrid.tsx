@@ -1,6 +1,6 @@
 import { Box, SimpleGrid, Spinner, Flex } from "@chakra-ui/react";
 import { SeriesCard } from "./SeriesCard";
-import { SeriesListItem } from "../services/tmdb";
+import { SeriesListItem } from "../../services/tmdb";
 
 interface SeriesGridProps {
   series: SeriesListItem[];

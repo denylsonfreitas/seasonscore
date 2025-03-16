@@ -23,20 +23,22 @@ import {
   Spinner,
 } from "@chakra-ui/react";
 import { BellIcon, DeleteIcon } from "@chakra-ui/icons";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   Notification,
   NotificationType,
   markAllNotificationsAsRead,
   markNotificationAsRead,
-  subscribeToNotifications,
+  getUserNotifications,
   deleteNotification,
-  cleanupNotifications,
-} from "../services/notifications";
+  subscribeToNotifications,
+  cleanupNotifications
+} from "../../services/notifications";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
-import { getUserData } from "../services/users";
+import { getUserData } from "../../services/users";
+import { NotificationItem } from "./NotificationItem";
 
 export function NotificationMenu() {
   const { currentUser } = useAuth();
@@ -59,10 +61,10 @@ export function NotificationMenu() {
     // Inscrever-se para receber notificações em tempo real
     const unsubscribe = subscribeToNotifications(
       currentUser.uid,
-      (updatedNotifications) => {
+      (updatedNotifications: Notification[]) => {
         setNotifications(updatedNotifications);
         setUnreadCount(
-          updatedNotifications.filter((notification) => !notification.read).length
+          updatedNotifications.filter((notification: Notification) => !notification.read).length
         );
       }
     );
@@ -264,7 +266,7 @@ export function NotificationMenu() {
         aria-label="Notificações"
         icon={
           <>
-            <BellIcon boxSize={{ base: 5, md: 6 }} color="white" />
+            <BellIcon boxSize={6} color="white" />
             {unreadCount > 0 && (
               <Badge
                 colorScheme="red"
@@ -289,9 +291,9 @@ export function NotificationMenu() {
         }
         variant="ghost"
         colorScheme="whiteAlpha"
-        _hover={{ bg: "whiteAlpha.200" }}
+        _hover={{ bg: "gray.700" }}
         _active={{ bg: "whiteAlpha.300" }}
-        size={{ base: "sm", md: "md" }}
+        size="md"
       />
       <MenuList
         bg="gray.800"

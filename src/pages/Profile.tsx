@@ -45,19 +45,19 @@ import { updateProfile } from "firebase/auth";
 import { db } from "../config/firebase";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
 import { Image as ImageIcon, UploadSimple } from "@phosphor-icons/react";
-import { RatingStars } from "../components/RatingStars";
-import { ReviewEditModal } from "../components/ReviewEditModal";
+import { RatingStars } from "../components/common/RatingStars";
+import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, Link as RouterLink, useParams } from "react-router-dom";
-import { Footer } from "../components/Footer";
+import { Footer } from "../components/common/Footer";
 import { getUserReviews, SeriesReview } from "../services/reviews";
 import { getUserWatchlist } from "../services/watchlist";
-import { FollowButton } from "../components/FollowButton";
+import { FollowButton } from "../components/user/FollowButton";
 import { getFollowers, getFollowing } from "../services/followers";
 import { getUserData, UserData, createOrUpdateUser, getUserByUsername } from "../services/users";
-import { UserListModal } from "../components/UserListModal";
+import { UserListModal } from "../components/user/UserListModal";
 import { ExtendedUser } from "../types/auth";
-import { ScrollToTop } from "../components/ScrollToTop";
+import { ScrollToTop } from "../components/common/ScrollToTop";
 
 interface ExpandedReviews {
   [key: string]: boolean;

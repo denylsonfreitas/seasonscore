@@ -9,22 +9,26 @@ import {
   InputRightElement,
   Button,
   Heading,
+  Text,
+  InputLeftElement,
+  VStack,
 } from "@chakra-ui/react";
-import { SeriesCard } from "../components/SeriesCard";
-import { useInfiniteQuery, useQueries } from "@tanstack/react-query";
+import { SeriesCard } from "../components/series/SeriesCard";
+import { useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
 import {
   searchSeries,
   getFilteredSeries,
   SeriesResponse,
   SeriesListItem,
+  getPopularSeries,
 } from "../services/tmdb";
 import { useState, useEffect, useMemo } from "react";
-import { SeriesFilter } from "../components/SeriesFilter";
-import { Footer } from "../components/Footer";
+import { SeriesFilter } from "../components/series/SeriesFilter";
+import { Footer } from "../components/common/Footer";
 import { useSearchParams } from "react-router-dom";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { getSeriesReviews } from "../services/reviews";
-import { ScrollToTop } from "../components/ScrollToTop";
+import { ScrollToTop } from "../components/common/ScrollToTop";
 
 export function Series() {
   const [searchParams, setSearchParams] = useSearchParams();

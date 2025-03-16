@@ -12,13 +12,13 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { Heart, HeartBreak, DotsThree, Trash } from "@phosphor-icons/react";
-import { useAuth } from "../contexts/AuthContext";
-import { Comment } from "../types/review";
-import { deleteComment, toggleCommentReaction } from "../services/reviews";
+import { useAuth } from "../../contexts/AuthContext";
+import { Comment } from "../../types/review";
+import { deleteComment, toggleCommentReaction } from "../../services/reviews";
 import { useState, useEffect } from "react";
-import { getUserData } from "../services/users";
-import { UserName } from "./UserName";
-import { useUserData } from "../hooks/useUserData";
+import { getUserData } from "../../services/users";
+import { UserName } from "../common/UserName";
+import { useUserData } from "../../hooks/useUserData";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface ReviewCommentProps {

@@ -8,7 +8,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { SeriesCard } from "./SeriesCard";
-import { SeriesResponse } from "../services/tmdb";
+import { SeriesResponse } from "../../services/tmdb";
 import { InfiniteData } from "@tanstack/react-query";
 import { CaretRight } from "@phosphor-icons/react";
 import { Link as RouterLink } from "react-router-dom";

@@ -22,10 +22,9 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { useState, useRef } from "react";
-import { updateReview, deleteReview } from "../services/reviews";
-import { RatingStars } from "./RatingStars";
-import { useAuth } from "../contexts/AuthContext";
-import { SeriesReview } from "../services/reviews";
+import { updateReview, deleteReview, SeriesReview } from "../../services/reviews";
+import { RatingStars } from "../common/RatingStars";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface ReviewEditModalProps {
   isOpen: boolean;
@@ -50,7 +49,7 @@ export function ReviewEditModal({
 }: ReviewEditModalProps) {
   // Encontrar a avaliação da temporada inicial
   const initialSeasonReview = initialSeasonNumber
-    ? review.seasonReviews.find(sr => sr.seasonNumber === initialSeasonNumber)
+    ? review.seasonReviews.find((sr: { seasonNumber: number }) => sr.seasonNumber === initialSeasonNumber)
     : review.seasonReviews[0];
 
   const [rating, setRating] = useState(initialSeasonReview?.rating || 0);
@@ -144,7 +143,7 @@ export function ReviewEditModal({
                     const newSeasonNumber = Number(e.target.value);
                     setSeasonNumber(newSeasonNumber);
                     const seasonReview = review.seasonReviews.find(
-                      (sr) => sr.seasonNumber === newSeasonNumber
+                      (sr: { seasonNumber: number; rating: number; comment?: string }) => sr.seasonNumber === newSeasonNumber
                     );
                     setRating(seasonReview?.rating || 0);
                     setComment(seasonReview?.comment || "");
@@ -154,7 +153,7 @@ export function ReviewEditModal({
                   borderColor="gray.600"
                   _hover={{ borderColor: "gray.500" }}
                 >
-                  {review.seasonReviews.map((sr) => (
+                  {review.seasonReviews.map((sr: { seasonNumber: number }) => (
                     <option key={sr.seasonNumber} value={sr.seasonNumber} style={{ backgroundColor: "#2D3748" }}>
                       Temporada {sr.seasonNumber}
                     </option>

@@ -35,12 +35,15 @@ import {
   Gear,
   UserCircle,
   Star,
+  MagnifyingGlass,
 } from "@phosphor-icons/react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { useState } from "react";
-import { ExtendedUser } from "../types/auth";
-import { NotificationMenu } from "./NotificationMenu";
+import { ExtendedUser } from "../../types/auth";
+import { NotificationMenu } from "../notifications/NotificationMenu";
+import { UserMenu } from "../user/UserMenu";
+import { SearchModal } from "./SearchModal";
 
 export function Navbar() {
   const { currentUser, logout } = useAuth() as {
@@ -51,6 +54,7 @@ export function Navbar() {
   const toast = useToast();
   const [searchQuery] = useState("");
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isSearchOpen, onOpen: onSearchOpen, onClose: onSearchClose } = useDisclosure();
 
   const handleLogout = async () => {
     try {
@@ -147,7 +151,15 @@ export function Navbar() {
           </HStack>
 
           {/* Menu Usuário Desktop */}
-          <HStack spacing={2} display={{ base: "none", md: "flex" }}>
+          <HStack spacing={3} display={{ base: "none", md: "flex" }}>
+            <IconButton
+              aria-label="Buscar séries"
+              icon={<MagnifyingGlass size={24} weight="bold" />}
+              variant="ghost"
+              color="white"
+              onClick={onSearchOpen}
+              _hover={{ bg: "gray.700" }}
+            />
             {currentUser ? (
               <>
                 <NotificationMenu />
@@ -213,7 +225,15 @@ export function Navbar() {
           </HStack>
 
           {/* Menu Mobile */}
-          <HStack spacing={2} display={{ base: "flex", md: "none" }}>
+          <HStack spacing={3} display={{ base: "flex", md: "none" }}>
+            <IconButton
+              aria-label="Buscar séries"
+              icon={<MagnifyingGlass size={24} weight="bold" />}
+              variant="ghost"
+              color="white"
+              onClick={onSearchOpen}
+              _hover={{ bg: "gray.700" }}
+            />
             {currentUser && <NotificationMenu />}
             <IconButton
               aria-label="Menu"
@@ -225,6 +245,16 @@ export function Navbar() {
           </HStack>
         </HStack>
       </Container>
+
+      {/* Modal de Busca */}
+      <SearchModal 
+        isOpen={isSearchOpen} 
+        onClose={onSearchClose} 
+        onSelect={(seriesId) => {
+          onSearchClose();
+          navigate(`/series/${seriesId}`);
+        }}
+      />
 
       {/* Drawer Mobile */}
       <Drawer isOpen={isOpen} placement="right" onClose={onClose}>

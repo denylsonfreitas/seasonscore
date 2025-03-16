@@ -9,18 +9,18 @@ import {
   IconButton,
   Divider,
 } from "@chakra-ui/react";
-import { RatingStars } from "./RatingStars";
+import { RatingStars } from "../common/RatingStars";
 import { useState, useEffect } from "react";
-import { Comment } from "../types/review";
+import { Comment } from "../../types/review";
 import { ReviewComment } from "./ReviewComment";
 import { AddComment } from "./AddComment";
 import { ChatCircle, ThumbsUp, ThumbsDown, CaretDown, CaretUp } from "@phosphor-icons/react";
-import { useAuth } from "../contexts/AuthContext";
-import { toggleReaction } from "../services/reviews";
+import { useAuth } from "../../contexts/AuthContext";
+import { toggleReaction } from "../../services/reviews";
 import { ReactNode } from "react";
-import { getUserData } from "../services/users";
-import { UserName } from "./UserName";
-import { useUserData } from "../hooks/useUserData";
+import { getUserData } from "../../services/users";
+import { UserName } from "../common/UserName";
+import { useUserData } from "../../hooks/useUserData";
 
 interface UserReviewProps {
   reviewId: string;
@@ -29,6 +29,7 @@ interface UserReviewProps {
   rating: number;
   comment: string;
   seasonNumber: number;
+  seriesId: number;
   comments: Comment[];
   reactions?: {
     likes: string[];
@@ -46,6 +47,7 @@ export function UserReview({
   rating,
   comment,
   seasonNumber,
+  seriesId,
   comments = [],
   reactions = { likes: [], dislikes: [] },
   createdAt,
@@ -149,6 +151,7 @@ export function UserReview({
           <AddComment
             reviewId={reviewId}
             seasonNumber={seasonNumber}
+            seriesId={seriesId}
             onCommentAdded={onReviewUpdated}
           />
 
@@ -158,6 +161,7 @@ export function UserReview({
               key={comment.id}
               reviewId={reviewId}
               seasonNumber={seasonNumber}
+              seriesId={seriesId}
               comment={comment}
               onCommentDeleted={onReviewUpdated}
             />

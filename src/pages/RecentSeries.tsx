@@ -1,11 +1,11 @@
 import { Box, Container, Heading, Flex } from "@chakra-ui/react";
 import { useInfiniteQuery, useQueries } from "@tanstack/react-query";
 import { getAiringTodaySeries } from "../services/tmdb";
-import { SeriesGrid } from "../components/SeriesGrid";
-import { Footer } from "../components/Footer";
+import { SeriesGrid } from "../components/series/SeriesGrid";
+import { Footer } from "../components/common/Footer";
 import { getSeriesReviews } from "../services/reviews";
 import { useMemo } from "react";
-import { ScrollToTop } from "../components/ScrollToTop";
+import { ScrollToTop } from "../components/common/ScrollToTop";
 
 export function RecentSeries() {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =

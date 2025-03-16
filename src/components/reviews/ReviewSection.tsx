@@ -17,12 +17,12 @@ import {
   Badge,
 } from "@chakra-ui/react";
 import { Star } from "@phosphor-icons/react";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   SeriesReview,
   addSeasonReview,
   getSeriesReviews,
-} from "../services/reviews";
+} from "../../services/reviews";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface ReviewSectionProps {
@@ -85,12 +85,12 @@ export function ReviewSection({
 
   // Calcula a média das avaliações por temporada
   const seasonAverages = Array.from({ length: numberOfSeasons }, (_, i) => {
-    const seasonReviews = reviews.flatMap((review) =>
-      review.seasonReviews.filter((sr) => sr.seasonNumber === i + 1)
+    const seasonReviews = reviews.flatMap((review: SeriesReview) =>
+      review.seasonReviews.filter((sr: { seasonNumber: number; rating: number; comment?: string }) => sr.seasonNumber === i + 1)
     );
     if (seasonReviews.length === 0) return null;
     const average =
-      seasonReviews.reduce((acc, review) => acc + review.rating, 0) /
+      seasonReviews.reduce((acc: number, review: { rating: number }) => acc + review.rating, 0) /
       seasonReviews.length;
     return average.toFixed(1);
   });
@@ -171,9 +171,9 @@ export function ReviewSection({
           <Accordion allowMultiple>
             {Array.from({ length: numberOfSeasons }, (_, i) => i + 1).map(
               (season) => {
-                const seasonReviews = reviews.flatMap((review) =>
+                const seasonReviews = reviews.flatMap((review: SeriesReview) =>
                   review.seasonReviews.filter(
-                    (sr) => sr.seasonNumber === season
+                    (sr: { seasonNumber: number }) => sr.seasonNumber === season
                   )
                 );
 
@@ -201,7 +201,7 @@ export function ReviewSection({
                     </AccordionButton>
                     <AccordionPanel pb={4}>
                       <VStack spacing={4} align="stretch">
-                        {seasonReviews.map((review) => (
+                        {seasonReviews.map((review: any) => (
                           <Box
                             key={`review-${review.userId}-${season}`}
                             bg="gray.800"

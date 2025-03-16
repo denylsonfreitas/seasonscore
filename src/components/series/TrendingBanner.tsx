@@ -1,6 +1,6 @@
 import { Box, Heading, Text, VStack, HStack, IconButton } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
-import { getTrendingSeries } from "../services/tmdb";
+import { getTrendingSeries } from "../../services/tmdb";
 import { useNavigate } from "react-router-dom";
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 

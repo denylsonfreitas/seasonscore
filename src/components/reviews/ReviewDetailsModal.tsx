@@ -21,15 +21,15 @@ import {
   Button,
   useToast,
 } from "@chakra-ui/react";
-import { RatingStars } from "./RatingStars";
-import { UserName } from "./UserName";
+import { RatingStars } from "../common/RatingStars";
+import { UserName } from "../common/UserName";
 import { Heart, HeartBreak, CaretDown, CaretUp } from "@phosphor-icons/react";
-import { useAuth } from "../contexts/AuthContext";
-import { toggleReaction } from "../services/reviews";
+import { useAuth } from "../../contexts/AuthContext";
+import { toggleReaction } from "../../services/reviews";
 import { AddComment } from "./AddComment";
 import { ReviewComment } from "./ReviewComment";
 import { useState } from "react";
-import { useUserData } from "../hooks/useUserData";
+import { useUserData } from "../../hooks/useUserData";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface ReviewDetailsModalProps {

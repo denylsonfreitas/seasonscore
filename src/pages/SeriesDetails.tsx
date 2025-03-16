@@ -47,26 +47,26 @@ import {
 import { CaretDown, CaretUp, TelevisionSimple, Calendar, PlayCircle, DotsThree, PencilSimple, Trash, Eye } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { getSeriesDetails, getRelatedSeries } from "../services/tmdb";
-import { RatingStars } from "../components/RatingStars";
-import { ReviewModal } from "../components/ReviewModal";
-import { ReviewEditModal } from "../components/ReviewEditModal";
+import { RatingStars } from "../components/common/RatingStars";
+import { ReviewModal } from "../components/reviews/ReviewModal";
+import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 import { useAuth } from "../contexts/AuthContext";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { SeriesReview, getSeriesReviews, deleteReview } from "../services/reviews";
-import { Footer } from "../components/Footer";
-import { WatchlistButton } from "../components/WatchlistButton";
-import { UserReview } from "../components/UserReview";
-import { SeriesCard } from "../components/SeriesCard";
+import { Footer } from "../components/common/Footer";
+import { WatchlistButton } from "../components/common/WatchlistButton";
+import { UserReview } from "../components/reviews/UserReview";
+import { SeriesCard } from "../components/series/SeriesCard";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import { ReviewDetailsModal } from "../components/ReviewDetailsModal";
+import { ReviewDetailsModal } from "../components/reviews/ReviewDetailsModal";
 import { getUserData } from "../services/users";
 import { useUserData } from "../hooks/useUserData";
-import { UserName } from "../components/UserName";
-import { ReviewListItem } from "../components/ReviewListItem";
-import { PopularReviewsList } from "../components/PopularReviewsList";
-import { ScrollToTop } from "../components/ScrollToTop";
+import { UserName } from "../components/common/UserName";
+import { ReviewListItem } from "../components/reviews/ReviewListItem";
+import { PopularReviewsList } from "../components/reviews/PopularReviewsList";
+import { ScrollToTop } from "../components/common/ScrollToTop";
 
 interface ReviewItemProps {
   review: {
