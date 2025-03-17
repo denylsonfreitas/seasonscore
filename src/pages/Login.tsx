@@ -16,22 +16,16 @@ import {
   Icon,
   InputGroup,
   InputRightElement,
-  IconButton,
   InputLeftElement,
-  Tooltip,
 } from "@chakra-ui/react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { GoogleLogo, Eye, EyeSlash, Envelope, At } from "@phosphor-icons/react";
+import { GoogleLogo, Envelope, At } from "@phosphor-icons/react";
 import {
-  GoogleAuthProvider,
-  signInWithPopup,
-  updateProfile,
   sendPasswordResetEmail,
-  EmailAuthProvider,
 } from "firebase/auth";
 import { auth } from "../config/firebase";
-import { createOrUpdateUser, isUsernameAvailable, getUserByEmail } from "../services/users";
+import { getUserByEmail } from "../services/users";
 
 export function Login() {
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
@@ -378,25 +372,6 @@ export function Login() {
                       pl="2.5rem"
                       required
                     />
-                    {usernameOrEmail && (
-                      <Tooltip 
-                        label={isEmailInput ? "Reconhecido como email" : "Reconhecido como nome de usuário"} 
-                        placement="top"
-                      >
-                        <InputRightElement pr={2.5}>
-                          <Box 
-                            bg={isEmailInput ? "blue.800" : "teal.800"} 
-                            borderRadius="full" 
-                            px={2} 
-                            py={0.5} 
-                            fontSize="xs"
-                            color="white"
-                          >
-                            {isEmailInput ? "email" : "@user"}
-                          </Box>
-                        </InputRightElement>
-                      </Tooltip>
-                    )}
                   </InputGroup>
                 </FormControl>
 
