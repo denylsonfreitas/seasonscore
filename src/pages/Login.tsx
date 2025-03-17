@@ -17,10 +17,12 @@ import {
   InputGroup,
   InputRightElement,
   IconButton,
+  InputLeftElement,
+  Tooltip,
 } from "@chakra-ui/react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { GoogleLogo, Eye, EyeSlash } from "@phosphor-icons/react";
+import { GoogleLogo, Eye, EyeSlash, Envelope, At } from "@phosphor-icons/react";
 import {
   GoogleAuthProvider,
   signInWithPopup,
@@ -32,7 +34,7 @@ import { auth } from "../config/firebase";
 import { createOrUpdateUser, isUsernameAvailable, getUserByEmail } from "../services/users";
 
 export function Login() {
-  const [email, setEmail] = useState("");
+  const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,26 +45,32 @@ export function Login() {
   const navigate = useNavigate();
   const toast = useToast();
 
+  // Verificar se o input parece ser um email ou username
+  const isEmailInput = usernameOrEmail.includes('@');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setShowRecoveryOption(false);
 
     try {
-      await login(email, password);
+      await login(usernameOrEmail, password);
       navigate("/");
     } catch (error: any) {
       console.error("Erro ao fazer login:", error);
-      let errorMessage = "Email ou senha incorretos.";
+      let errorMessage = "Email/nome de usuário ou senha incorretos.";
       
-      if (error.code === 'auth/user-not-found') {
-        errorMessage = "Usuário não encontrado. Verifique seu email.";
+      if (error.code === 'auth/user-not-found' || error.message.includes("Usuário não encontrado")) {
+        errorMessage = "Usuário não encontrado. Verifique seu nome de usuário ou email.";
         
         // Verificar se existe usuário no Firestore
         try {
-          const existingUser = await getUserByEmail(email);
-          if (existingUser) {
-            setShowRecoveryOption(true);
+          const isEmail = usernameOrEmail.includes('@');
+          if (isEmail) {
+            const existingUser = await getUserByEmail(usernameOrEmail);
+            if (existingUser) {
+              setShowRecoveryOption(true);
+            }
           }
         } catch (verifyError) {
           console.error("Erro ao verificar usuário:", verifyError);
@@ -72,29 +80,22 @@ export function Login() {
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = "Muitas tentativas de login. Tente novamente mais tarde ou redefina sua senha.";
       } else if (error.code === 'auth/invalid-credential') {
-        errorMessage = "Credenciais inválidas. Verifique seu email e senha.";
+        errorMessage = "Credenciais inválidas. Verifique seu nome de usuário ou email e senha.";
         
         // Verificar se existe usuário no Firestore
         try {
-          const existingUser = await getUserByEmail(email);
-          if (existingUser) {
-            setShowRecoveryOption(true);
+          const isEmail = usernameOrEmail.includes('@');
+          if (isEmail) {
+            const existingUser = await getUserByEmail(usernameOrEmail);
+            if (existingUser) {
+              setShowRecoveryOption(true);
+            }
           }
         } catch (verifyError) {
           console.error("Erro ao verificar usuário:", verifyError);
         }
       } else if (error.message) {
         errorMessage = error.message;
-        
-        // Verificar se existe usuário no Firestore
-        try {
-          const existingUser = await getUserByEmail(email);
-          if (existingUser) {
-            setShowRecoveryOption(true);
-          }
-        } catch (verifyError) {
-          console.error("Erro ao verificar usuário:", verifyError);
-        }
       }
       
       toast({
@@ -110,7 +111,7 @@ export function Login() {
   };
 
   const handleForgotPassword = async () => {
-    if (!email) {
+    if (!usernameOrEmail) {
       toast({
         title: "Digite seu email",
         description: "Digite seu email para receber o link de recuperação de senha.",
@@ -121,9 +122,21 @@ export function Login() {
       return;
     }
 
+    // Verificar se o input é um email
+    if (!usernameOrEmail.includes('@')) {
+      toast({
+        title: "Digite um email válido",
+        description: "Para redefinir sua senha, você precisa informar seu email, não seu nome de usuário.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     setIsResettingPassword(true);
     try {
-      await sendPasswordResetEmail(auth, email);
+      await sendPasswordResetEmail(auth, usernameOrEmail);
       toast({
         title: "Email enviado",
         description: "Verifique sua caixa de entrada para redefinir sua senha.",
@@ -179,10 +192,10 @@ export function Login() {
   };
 
   const handleRecoverAccount = async () => {
-    if (!email || !password) {
+    if (!usernameOrEmail || !password) {
       toast({
         title: "Campos obrigatórios",
-        description: "Digite seu email e senha para recuperar sua conta.",
+        description: "Digite seu email ou nome de usuário e senha para recuperar sua conta.",
         status: "warning",
         duration: 3000,
         isClosable: true,
@@ -193,7 +206,7 @@ export function Login() {
     setIsRecoveringAccount(true);
     try {
       // Tentar fazer login normal
-      await login(email, password);
+      await login(usernameOrEmail, password);
       toast({
         title: "Login realizado",
         description: "Você será redirecionado para a página inicial.",
@@ -343,18 +356,48 @@ export function Login() {
 
               <VStack as="form" spacing={4} w="100%" onSubmit={handleSubmit}>
                 <FormControl>
-                  <FormLabel color="white">Email</FormLabel>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    bg="gray.700"
-                    border="none"
-                    color="white"
-                    size={{ base: "md", lg: "lg" }}
-                    _placeholder={{ color: "gray.400" }}
-                    required
-                  />
+                  <FormLabel color="white">Email ou Nome de usuário</FormLabel>
+                  <InputGroup size={{ base: "md", lg: "lg" }}>
+                    <InputLeftElement pointerEvents="none">
+                      <Icon 
+                        as={isEmailInput ? Envelope : At} 
+                        color={isEmailInput ? "blue.300" : "teal.300"} 
+                        weight="bold"
+                      />
+                    </InputLeftElement>
+                    <Input
+                      type="text"
+                      value={usernameOrEmail}
+                      onChange={(e) => setUsernameOrEmail(e.target.value)}
+                      bg="gray.700"
+                      border="none"
+                      color="white"
+                      size={{ base: "md", lg: "lg" }}
+                      _placeholder={{ color: "gray.400" }}
+                      placeholder="Digite seu email ou nome de usuário"
+                      pl="2.5rem"
+                      required
+                    />
+                    {usernameOrEmail && (
+                      <Tooltip 
+                        label={isEmailInput ? "Reconhecido como email" : "Reconhecido como nome de usuário"} 
+                        placement="top"
+                      >
+                        <InputRightElement pr={2.5}>
+                          <Box 
+                            bg={isEmailInput ? "blue.800" : "teal.800"} 
+                            borderRadius="full" 
+                            px={2} 
+                            py={0.5} 
+                            fontSize="xs"
+                            color="white"
+                          >
+                            {isEmailInput ? "email" : "@user"}
+                          </Box>
+                        </InputRightElement>
+                      </Tooltip>
+                    )}
+                  </InputGroup>
                 </FormControl>
 
                 <FormControl>

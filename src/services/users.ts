@@ -288,6 +288,29 @@ export async function getUserByUsername(username: string): Promise<UserData | nu
   }
 }
 
+export async function getUserByUsernameOrEmail(usernameOrEmail: string): Promise<UserData | null> {
+  if (!usernameOrEmail) return null;
+  
+  try {
+    // Remove espaços e converte para minúsculas
+    const normalizedInput = usernameOrEmail.toLowerCase().trim();
+    
+    // Verifica se parece com um email (contém @)
+    const isEmail = normalizedInput.includes('@');
+    
+    if (isEmail) {
+      // Se parece com um email, busca por email
+      return await getUserByEmail(normalizedInput);
+    } else {
+      // Se não parece com um email, busca por username
+      return await getUserByUsername(normalizedInput);
+    }
+  } catch (error) {
+    console.error("Erro ao buscar usuário por username ou email:", error);
+    return null;
+  }
+}
+
 export async function deleteUserData(userId: string) {
   try {
     const db = getFirestore();

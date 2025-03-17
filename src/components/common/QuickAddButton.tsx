@@ -1,4 +1,4 @@
-import { Circle, useDisclosure } from "@chakra-ui/react";
+import { useDisclosure, Button, useBreakpointValue, IconButton } from "@chakra-ui/react";
 import { Plus } from "@phosphor-icons/react";
 import { useState } from "react";
 import { SearchModal } from "../layout/SearchModal";
@@ -22,6 +22,9 @@ export function QuickAddButton({ size = "32px" }: QuickAddButtonProps) {
   } = useDisclosure();
   
   const [selectedSeriesId, setSelectedSeriesId] = useState<number | null>(null);
+  
+  // Determine se deve mostrar o texto do botão com base no tamanho da tela
+  const showButtonText = useBreakpointValue({ base: false, sm: true });
 
   const handleQuickAddSelect = (seriesId: number) => {
     setSelectedSeriesId(seriesId);
@@ -36,16 +39,35 @@ export function QuickAddButton({ size = "32px" }: QuickAddButtonProps) {
 
   return (
     <>
-      <Circle 
-        size={size} 
-        bg="teal.500" 
-        color="white" 
-        cursor="pointer"
-        _hover={{ bg: "teal.600" }}
-        onClick={onQuickAddOpen}
-      >
-        <Plus size={parseInt(size) * 0.625} weight="bold" />
-      </Circle>
+      {showButtonText ? (
+        <Button
+          bg="teal.500"
+          color="white"
+          borderRadius="full"
+          height={size}
+          px="16px"
+          _hover={{ bg: "teal.600" }}
+          onClick={onQuickAddOpen}
+          leftIcon={<Plus weight="bold" />}
+          fontWeight="500"
+          fontSize="14px"
+        >
+          Avaliar
+        </Button>
+      ) : (
+        <IconButton
+          aria-label="Avaliar série"
+          icon={<Plus weight="bold" />}
+          bg="teal.500"
+          color="white"
+          borderRadius="full"
+          height={size}
+          width={size}
+          minW={size}
+          _hover={{ bg: "teal.600" }}
+          onClick={onQuickAddOpen}
+        />
+      )}
 
       {/* Modal de Busca para Avaliação Rápida */}
       <SearchModal 

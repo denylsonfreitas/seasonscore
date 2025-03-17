@@ -19,9 +19,6 @@ import {
   VStack,
   Avatar,
   Text,
-  useToast,
-  MenuDivider,
-  MenuGroup,
   Flex,
   Divider,
   Image,
@@ -35,59 +32,20 @@ import {
   Gear,
   UserCircle,
   Star,
-  MagnifyingGlass,
 } from "@phosphor-icons/react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { useState } from "react";
 import { ExtendedUser } from "../../types/auth";
 import { NotificationMenu } from "../notifications/NotificationMenu";
-import { UserMenu } from "../user/UserMenu";
-import { SearchModal } from "./SearchModal";
 import { QuickAddButton } from "../common/QuickAddButton";
+import { ProfileMenu } from "../user/ProfileMenu";
 
 export function Navbar() {
-  const { currentUser, logout } = useAuth() as {
+  const { currentUser } = useAuth() as {
     currentUser: ExtendedUser | null;
-    logout: () => Promise<void>;
   };
   const navigate = useNavigate();
-  const toast = useToast();
-  const [searchQuery] = useState("");
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const { isOpen: isSearchOpen, onOpen: onSearchOpen, onClose: onSearchClose } = useDisclosure();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate("/login");
-    } catch (error) {
-      toast({
-        title: "Erro ao sair",
-        description: "Não foi possível fazer logout.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && searchQuery.trim()) {
-      navigate(`/series?search=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
-
-  const handleSearchClick = () => {
-    if (searchQuery.trim()) {
-      navigate(`/series?search=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
-
-  const handleSeriesSelect = (seriesId: number) => {
-    onSearchClose();
-    navigate(`/series/${seriesId}`);
-  };
 
   return (
     <Box
@@ -101,13 +59,14 @@ export function Navbar() {
       borderBottom="1px solid"
       borderColor="gray.700"
     >
-      <Container maxW="1200px" py={4}>
-        <HStack justify="space-between">
-          <HStack spacing={8}>
+      <Container maxW="1200px" py={2}>
+        <HStack justify="space-between" align="center">
+          {/* Logo e Menu de Navegação à esquerda */}
+          <HStack spacing={6}>
             <Link
               as={RouterLink}
               to="/"
-              fontSize="xl"
+              fontSize="lg"
               fontWeight="bold"
               color="white"
               _hover={{ textDecoration: "none", color: "teal.300" }}
@@ -115,17 +74,18 @@ export function Navbar() {
               alignItems="center"
               gap={2}
             >
-              <Image src="/icon.svg" alt="SeasonScore Logo" boxSize="30px" />
+              <Image src="/icon.svg" alt="SeasonScore Logo" boxSize="24px" />
               SeasonScore
             </Link>
 
-            {/* Menu Desktop */}
-            <HStack spacing={6} display={{ base: "none", md: "flex" }}>
+            {/* Menu de Navegação */}
+            <HStack spacing={5} display={{ base: "none", md: "flex" }}>
               <Link
                 as={RouterLink}
                 to="/series"
                 color="gray.300"
                 _hover={{ color: "brand.200" }}
+                fontSize="sm"
               >
                 Séries
               </Link>
@@ -134,6 +94,7 @@ export function Navbar() {
                 to="/series/popular"
                 color="gray.300"
                 _hover={{ color: "brand.200" }}
+                fontSize="sm"
               >
                 Populares
               </Link>
@@ -142,6 +103,7 @@ export function Navbar() {
                 to="/series/recent"
                 color="gray.300"
                 _hover={{ color: "brand.200" }}
+                fontSize="sm"
               >
                 Novidades
               </Link>
@@ -150,133 +112,67 @@ export function Navbar() {
                 to="/series/top10"
                 color="gray.300"
                 _hover={{ color: "brand.200" }}
+                fontSize="sm"
               >
                 Top 10
               </Link>
             </HStack>
           </HStack>
 
-          {/* Menu Usuário Desktop */}
-          <HStack spacing={3} display={{ base: "none", md: "flex" }}>
-            <IconButton
-              aria-label="Buscar séries"
-              icon={<MagnifyingGlass size={24} weight="bold" />}
-              variant="ghost"
-              color="white"
-              onClick={onSearchOpen}
-              _hover={{ bg: "gray.700" }}
-            />
+          {/* Menu Usuário */}
+          <HStack spacing={3}>
             {currentUser ? (
               <>
-                <NotificationMenu />
-                <Menu>
-                  <MenuButton
-                    as={IconButton}
-                    variant="unstyled"
-                    aria-label="Opções do usuário"
-                    icon={
-                      <Avatar
-                        size="sm"
-                        src={currentUser.photoURL || undefined}
-                      />
-                    }
-                  />
-                  <MenuList bg="gray.800" borderColor="gray.600">
-                    <MenuGroup title={currentUser.displayName || "Usuário"} ml={3} mb={1} color="gray.300">
-                      <MenuItem
-                        as={RouterLink}
-                        to="/profile"
-                        icon={<UserCircle weight="fill" color="currentColor" />}
-                        color="gray.300"
-                        bg="gray.800"
-                        _hover={{ bg: "gray.600" }}
-                      >
-                        Meu Perfil
-                      </MenuItem>
-                      <MenuItem
-                        as={RouterLink}
-                        to="/settings"
-                        icon={<Gear weight="fill" color="currentColor" />}
-                        color="gray.300"
-                        bg="gray.800"
-                        _hover={{ bg: "gray.600" }}
-                      >
-                        Configurações
-                      </MenuItem>
-                    </MenuGroup>
-                    <MenuDivider borderColor="gray.600" />
-                    <MenuItem
-                      onClick={handleLogout}
-                      icon={<SignOut weight="fill" color="currentColor" />}
-                      color="red.400"
-                      bg="gray.800"
-                      _hover={{ bg: "gray.600" }}
-                    >
-                      Sair da Conta
-                    </MenuItem>
-                  </MenuList>
-                </Menu>
-                <QuickAddButton />
+                <HStack spacing={2} display={{ base: "none", md: "flex" }}>
+                  <QuickAddButton size="30px" />
+                  <NotificationMenu />
+                  <ProfileMenu />
+                </HStack>
+                
+                {/* Menu Mobile */}
+                <HStack spacing={3} display={{ base: "flex", md: "none" }}>
+                  <QuickAddButton size="26px" />
+                  <NotificationMenu />
+                  <ProfileMenu isMobile onMobileMenuOpen={onOpen} />
+                </HStack>
               </>
             ) : (
-              <HStack spacing={4}>
-                <Button as={RouterLink} to="/signup" variant="solid">
-                  Criar Conta
-                </Button>
-                <Button as={RouterLink} to="/login" variant="solid">
-                  Entrar
-                </Button>
-              </HStack>
-            )}
-          </HStack>
-
-          {/* Menu Mobile */}
-          <HStack spacing={3} display={{ base: "flex", md: "none" }}>
-            <IconButton
-              aria-label="Buscar séries"
-              icon={<MagnifyingGlass size={24} weight="bold" />}
-              variant="ghost"
-              color="white"
-              onClick={onSearchOpen}
-              _hover={{ bg: "gray.700" }}
-            />
-            {currentUser && (
               <>
-                <NotificationMenu />
-                <IconButton
-                  aria-label="Menu"
-                  icon={
-                    <Avatar
-                      size="sm"
-                      src={currentUser.photoURL || undefined}
-                    />
-                  }
-                  variant="unstyled"
-                  color="white"
-                  onClick={onOpen}
-                />
-                <QuickAddButton />
+                {/* Botões Desktop */}
+                <HStack spacing={3} display={{ base: "none", md: "flex" }}>
+                  <Button as={RouterLink} to="/signup" variant="solid" size="sm">
+                    Criar Conta
+                  </Button>
+                  <Button as={RouterLink} to="/login" variant="solid" size="sm">
+                    Entrar
+                  </Button>
+                </HStack>
+                
+                {/* Botões Mobile */}
+                <HStack spacing={3} display={{ base: "flex", md: "none" }}>
+                  <Button 
+                    as={RouterLink} 
+                    to="/login" 
+                    variant="outline" 
+                    size="sm" 
+                    colorScheme="teal"
+                  >
+                    Entrar
+                  </Button>
+                  <IconButton
+                    aria-label="Menu"
+                    icon={<List weight="bold" size={18} />}
+                    variant="ghost"
+                    color="white"
+                    size="sm"
+                    onClick={onOpen}
+                  />
+                </HStack>
               </>
-            )}
-            {!currentUser && (
-              <IconButton
-                aria-label="Menu"
-                icon={<List weight="bold" />}
-                variant="ghost"
-                color="white"
-                onClick={onOpen}
-              />
             )}
           </HStack>
         </HStack>
       </Container>
-
-      {/* Modal de Busca */}
-      <SearchModal 
-        isOpen={isSearchOpen} 
-        onClose={onSearchClose} 
-        onSelect={handleSeriesSelect}
-      />
 
       {/* Drawer Mobile */}
       <Drawer isOpen={isOpen} placement="right" onClose={onClose}>
@@ -301,7 +197,7 @@ export function Navbar() {
           </DrawerHeader>
 
           <DrawerBody bg="gray.800">
-            <VStack spacing={4} align="stretch">
+            <VStack spacing={3} align="stretch" pt={2}>
               <Link
                 as={RouterLink}
                 to="/series"
@@ -310,9 +206,19 @@ export function Navbar() {
                 onClick={onClose}
                 display="flex"
                 alignItems="center"
-                gap={2}
+                gap={3}
+                py={2}
               >
-                <TelevisionSimple weight="fill" color="currentColor" />
+                <Box 
+                  bg="gray.700" 
+                  p={2} 
+                  borderRadius="md"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  <TelevisionSimple weight="fill" size={18} color="#38B2AC" />
+                </Box>
                 Séries
               </Link>
               <Link
@@ -323,9 +229,19 @@ export function Navbar() {
                 onClick={onClose}
                 display="flex"
                 alignItems="center"
-                gap={2}
+                gap={3}
+                py={2}
               >
-                <TrendUp weight="fill" color="currentColor" />
+                <Box 
+                  bg="gray.700" 
+                  p={2} 
+                  borderRadius="md"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  <TrendUp weight="fill" size={18} color="#4299E1" />
+                </Box>
                 Populares
               </Link>
               <Link
@@ -336,9 +252,19 @@ export function Navbar() {
                 onClick={onClose}
                 display="flex"
                 alignItems="center"
-                gap={2}
+                gap={3}
+                py={2}
               >
-                <Confetti weight="fill" color="currentColor" />
+                <Box 
+                  bg="gray.700" 
+                  p={2} 
+                  borderRadius="md"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  <Confetti weight="fill" size={18} color="#9F7AEA" />
+                </Box>
                 Novidades
               </Link>
               <Link
@@ -349,9 +275,19 @@ export function Navbar() {
                 onClick={onClose}
                 display="flex"
                 alignItems="center"
-                gap={2}
+                gap={3}
+                py={2}
               >
-                <Star weight="fill" color="currentColor" />
+                <Box 
+                  bg="gray.700" 
+                  p={2} 
+                  borderRadius="md"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  <Star weight="fill" size={18} color="#F6AD55" />
+                </Box>
                 Top 10
               </Link>
 
@@ -366,9 +302,19 @@ export function Navbar() {
                     onClick={onClose}
                     display="flex"
                     alignItems="center"
-                    gap={2}
+                    gap={3}
+                    py={2}
                   >
-                    <UserCircle weight="fill" color="currentColor" />
+                    <Box 
+                      bg="blue.500" 
+                      p={2} 
+                      borderRadius="md"
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
+                    >
+                      <UserCircle weight="fill" size={18} color="white" />
+                    </Box>
                     Meu Perfil
                   </Link>
                   <Link
@@ -379,42 +325,96 @@ export function Navbar() {
                     onClick={onClose}
                     display="flex"
                     alignItems="center"
-                    gap={2}
+                    gap={3}
+                    py={2}
                   >
-                    <Gear weight="fill" color="currentColor" />
+                    <Box 
+                      bg="teal.500" 
+                      p={2} 
+                      borderRadius="md"
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
+                    >
+                      <Gear weight="fill" size={18} color="white" />
+                    </Box>
                     Configurações
                   </Link>
                   <Divider borderColor="gray.600" />
                   <Button
                     onClick={() => {
-                      handleLogout();
                       onClose();
+                      navigate("/login");
                     }}
                     variant="ghost"
                     color="red.400"
                     justifyContent="flex-start"
-                    leftIcon={<SignOut weight="fill" color="currentColor" />}
-                    _hover={{ bg: "whiteAlpha.200" }}
-                    p={0}
+                    leftIcon={
+                      <Box 
+                        bg="red.500" 
+                        p={2} 
+                        borderRadius="md"
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                      >
+                        <SignOut weight="fill" size={18} color="white" />
+                      </Box>
+                    }
+                    _hover={{ bg: "red.900", color: "white" }}
+                    py={2}
+                    pl={0}
+                    gap={3}
                   >
                     Sair da Conta
                   </Button>
                 </>
               ) : (
-                <VStack align="stretch" spacing={4}>
+                <VStack align="stretch" spacing={3} mt={2}>
                   <Button
                     as={RouterLink}
                     to="/signup"
                     variant="solid"
                     onClick={onClose}
+                    colorScheme="teal"
+                    leftIcon={
+                      <Box 
+                        bg="teal.600" 
+                        p={1.5} 
+                        borderRadius="md"
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                      >
+                        <UserCircle weight="fill" size={18} color="white" />
+                      </Box>
+                    }
+                    justifyContent="flex-start"
+                    height="44px"
                   >
                     Criar Conta
                   </Button>
                   <Button
                     as={RouterLink}
                     to="/login"
-                    variant="solid"
+                    variant="outline"
+                    colorScheme="blue"
                     onClick={onClose}
+                    leftIcon={
+                      <Box 
+                        bg="blue.600" 
+                        p={1.5} 
+                        borderRadius="md"
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                      >
+                        <SignOut weight="fill" size={18} color="white" transform="rotate(180deg)" />
+                      </Box>
+                    }
+                    justifyContent="flex-start"
+                    height="44px"
+                    borderColor="blue.600"
                   >
                     Entrar
                   </Button>

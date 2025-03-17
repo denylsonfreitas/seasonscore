@@ -14,7 +14,12 @@ import {
 } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { auth } from "../config/firebase";
-import { createOrUpdateUser, getUserData, getUserByEmail } from "../services/users";
+import { 
+  createOrUpdateUser, 
+  getUserData, 
+  getUserByEmail, 
+  getUserByUsernameOrEmail
+} from "../services/users";
 import { ExtendedUser } from "../types/auth";
 import { cleanupNotifications } from "../services/notifications";
 import { useToast } from "@chakra-ui/react";
@@ -22,7 +27,7 @@ import { useToast } from "@chakra-ui/react";
 interface AuthContextType {
   currentUser: ExtendedUser | null;
   signUp: (email: string, password: string, username: string) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  login: (usernameOrEmail: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   linkWithEmail: (email: string, password: string) => Promise<void>;
@@ -182,33 +187,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  async function login(email: string, password: string) {
+  async function login(usernameOrEmail: string, password: string) {
     try {
-      // Tentar login com email/senha diretamente
-      const result = await signInWithEmailAndPassword(auth, email, password);
+      // Verificar se o input é um username ou email
+      const userData = await getUserByUsernameOrEmail(usernameOrEmail);
       
-      // Buscar dados existentes do usuário
-      const existingUser = await getUserByEmail(email);
-      
-      // Atualizar dados do usuário preservando informações importantes
-      if (existingUser) {
-        await createOrUpdateUser(result.user, {
-          username: existingUser.username,
-          displayName: existingUser.displayName || result.user.displayName || "",
-          description: existingUser.description,
-          coverURL: existingUser.coverURL,
-          favoriteSeries: existingUser.favoriteSeries,
-        });
+      if (!userData) {
+        throw new Error("Usuário não encontrado. Verifique seu nome de usuário ou email.");
       }
       
+      // Usar o email associado à conta para fazer login
+      const email = userData.email;
+      
+      // Tentar login com email/senha
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Atualizar dados do usuário preservando informações importantes
+      await createOrUpdateUser(result.user, {
+        username: userData.username,
+        displayName: userData.displayName || result.user.displayName || "",
+        description: userData.description,
+        coverURL: userData.coverURL,
+        favoriteSeries: userData.favoriteSeries,
+      });
+      
       // Buscar dados atualizados
-      const userData = await getUserData(result.user.uid);
+      const updatedUserData = await getUserData(result.user.uid);
       const extendedUser: ExtendedUser = {
         ...result.user,
-        coverURL: userData?.coverURL,
-        description: userData?.description,
-        username: userData?.username,
-        favoriteSeries: userData?.favoriteSeries,
+        coverURL: updatedUserData?.coverURL,
+        description: updatedUserData?.description,
+        username: updatedUserData?.username,
+        favoriteSeries: updatedUserData?.favoriteSeries,
       };
       setCurrentUser(extendedUser);
       
@@ -220,7 +230,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (error.code === 'auth/wrong-password') {
         // Verificar se existe conta Google vinculada
         try {
-          const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+          // Obter o email para verificação do Google
+          const userData = await getUserByUsernameOrEmail(usernameOrEmail);
+          if (!userData || !userData.email) {
+            throw new Error("Usuário não encontrado. Verifique seu nome de usuário ou email.");
+          }
+          
+          const signInMethods = await fetchSignInMethodsForEmail(auth, userData.email);
           if (signInMethods.includes(GoogleAuthProvider.PROVIDER_ID)) {
             toast({
               title: "Conta vinculada ao Google",
@@ -231,32 +247,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
             });
             throw new Error("Esta conta está vinculada ao Google. Você pode entrar com o Google ou redefinir sua senha.");
           }
-        } catch (methodError) {
+        } catch (methodError: any) {
           // Se não conseguir verificar, mostrar mensagem padrão de senha incorreta
-          throw new Error("Senha incorreta. Tente novamente.");
+          if (methodError.message.includes("Usuário não encontrado")) {
+            throw methodError;
+          } else {
+            throw new Error("Senha incorreta. Tente novamente.");
+          }
         }
         throw new Error("Senha incorreta. Tente novamente.");
-      } else if (error.code === 'auth/user-not-found') {
-        // Se o usuário não for encontrado, verificar se existe conta Google
-        try {
-          const signInMethods = await fetchSignInMethodsForEmail(auth, email);
-          if (signInMethods.includes(GoogleAuthProvider.PROVIDER_ID)) {
-            toast({
-              title: "Conta vinculada ao Google",
-              description: "Esta conta está vinculada ao Google. Você pode entrar com o Google ou redefinir sua senha.",
-              status: "info",
-              duration: 8000,
-              isClosable: true,
-            });
-            throw new Error("Esta conta está vinculada ao Google. Você pode entrar com o Google ou redefinir sua senha.");
-          }
-        } catch (methodError) {
-          // Se não conseguir verificar os métodos, usar mensagem padrão
-          throw new Error("Usuário não encontrado. Verifique seu email ou crie uma nova conta.");
-        }
-        throw new Error("Usuário não encontrado. Verifique seu email ou crie uma nova conta.");
+      } else if (error.code === 'auth/user-not-found' || error.message.includes("Usuário não encontrado")) {
+        // Se o erro é personalizado por nossa lógica ou do Firebase
+        throw new Error("Usuário não encontrado. Verifique seu nome de usuário ou email.");
+      } else if (error.code === 'auth/invalid-credential') {
+        throw new Error("Credenciais inválidas. Verifique seu nome de usuário ou email e senha.");
       }
       
+      // Para outros erros, repassar
       throw error;
     }
   }
