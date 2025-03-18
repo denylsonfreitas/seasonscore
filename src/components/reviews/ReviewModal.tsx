@@ -68,7 +68,8 @@ export function ReviewModal({
   const { currentUser } = useAuth();
 
   const seriesName = propSeriesName || seriesDetails?.name || "";
-  const numberOfSeasons = propNumberOfSeasons || seriesDetails?.number_of_seasons || 0;
+  const numberOfSeasons =
+    propNumberOfSeasons || seriesDetails?.number_of_seasons || 0;
   const posterPath = propPosterPath || seriesDetails?.poster_path || "";
 
   useEffect(() => {
@@ -91,7 +92,7 @@ export function ReviewModal({
           setIsLoading(false);
         }
       };
-      
+
       fetchSeriesDetails();
     }
   }, [isOpen, seriesId, propSeriesName, propNumberOfSeasons, toast]);
@@ -105,10 +106,12 @@ export function ReviewModal({
       if (!currentUser) return;
       try {
         const reviews = await getSeriesReviews(seriesId);
-        const userReview = reviews.find(review => review.userId === currentUser.uid);
+        const userReview = reviews.find(
+          (review) => review.userId === currentUser.uid
+        );
         if (userReview) {
           const seasonReview = userReview.seasonReviews.find(
-            sr => sr.seasonNumber === selectedSeason
+            (sr) => sr.seasonNumber === selectedSeason
           );
           if (seasonReview) {
             setRating(seasonReview.rating);
@@ -147,7 +150,8 @@ export function ReviewModal({
     if (rating < 0.5 || rating > 5 || (rating * 2) % 1 !== 0) {
       toast({
         title: "Erro",
-        description: "Por favor, selecione uma nota válida (0.5 a 5, apenas incrementos de 0.5)",
+        description:
+          "Por favor, selecione uma nota válida (0.5 a 5, apenas incrementos de 0.5)",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -170,7 +174,8 @@ export function ReviewModal({
     } catch (error) {
       toast({
         title: "Erro ao enviar avaliação",
-        description: "Ocorreu um erro ao salvar sua avaliação. Tente novamente.",
+        description:
+          "Ocorreu um erro ao salvar sua avaliação. Tente novamente.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -202,9 +207,9 @@ export function ReviewModal({
   }
 
   return (
-    <Modal 
-      isOpen={isOpen} 
-      onClose={onClose} 
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
       size="xl"
       scrollBehavior="inside"
       blockScrollOnMount={false}
@@ -229,7 +234,7 @@ export function ReviewModal({
         <ModalBody pb={6}>
           <HStack spacing={6} align="start" mb={4}>
             {posterPath && (
-              <Box width="120px" flexShrink={0}>
+              <Box width="85px" flexShrink={0}>
                 <Image
                   src={`https://image.tmdb.org/t/p/w500${posterPath}`}
                   alt={seriesName}
@@ -239,9 +244,13 @@ export function ReviewModal({
               </Box>
             )}
             <VStack spacing={4} align="stretch" flex={1}>
-              <Text color="white" fontSize="2xl" fontWeight="bold">{seriesName}</Text>
+              <Text color="white" fontSize="2xl" fontWeight="bold">
+                {seriesName}
+              </Text>
               <Box>
-                <Text color="gray.400" mb={2}>Temporada:</Text>
+                <Text color="gray.400" mb={2}>
+                  Temporada:
+                </Text>
                 <Select
                   value={selectedSeason}
                   onChange={(e) => setSelectedSeason(Number(e.target.value))}
@@ -251,20 +260,24 @@ export function ReviewModal({
                   sx={{
                     "& option": {
                       bg: "gray.800",
-                      color: "white"
-                    }
+                      color: "white",
+                    },
                   }}
                 >
-                  {Array.from({ length: numberOfSeasons }, (_, i) => i + 1).map((season) => (
-                    <option key={season} value={season}>
-                      Temporada {season}
-                    </option>
-                  ))}
+                  {Array.from({ length: numberOfSeasons }, (_, i) => i + 1).map(
+                    (season) => (
+                      <option key={season} value={season}>
+                        Temporada {season}
+                      </option>
+                    )
+                  )}
                 </Select>
               </Box>
 
               <Box>
-                <Text color="gray.400" mb={2}>Avaliação:</Text>
+                <Text color="gray.400" mb={2}>
+                  Avaliação:
+                </Text>
                 <RatingStars
                   rating={rating}
                   onRatingChange={setRating}
