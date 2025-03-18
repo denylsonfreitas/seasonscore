@@ -230,11 +230,11 @@ export function ReviewModal({
           )}
           Avaliar
         </ModalHeader>
-        <ModalCloseButton color="white" />
+        <ModalCloseButton color="white" p={6} />
         <ModalBody pb={6}>
           <HStack spacing={6} align="start" mb={4}>
             {posterPath && (
-              <Box width="85px" flexShrink={0}>
+              <Box width="93px" flexShrink={0}>
                 <Image
                   src={`https://image.tmdb.org/t/p/w500${posterPath}`}
                   alt={seriesName}

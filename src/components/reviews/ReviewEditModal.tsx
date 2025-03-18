@@ -4,7 +4,6 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
-  ModalFooter,
   ModalCloseButton,
   Button,
   FormControl,
@@ -23,6 +22,7 @@ import {
   HStack,
   Box,
   Image,
+  Flex,
 } from "@chakra-ui/react";
 import { useState, useRef } from "react";
 import { updateReview, deleteReview, SeriesReview } from "../../services/reviews";
@@ -132,15 +132,21 @@ export function ReviewEditModal({
 
   return (
     <>
-      <Modal isOpen={isOpen} onClose={onClose} size="xl">
+      <Modal 
+        isOpen={isOpen} 
+        onClose={onClose} 
+        size="xl"
+        scrollBehavior="inside"
+        blockScrollOnMount={false}
+      >
         <ModalOverlay />
         <ModalContent bg="gray.900">
           <ModalHeader color="white">Editar Avaliação</ModalHeader>
-          <ModalCloseButton color="white" />
+          <ModalCloseButton color="white" p={6} />
           <ModalBody pb={6}>
             <HStack spacing={6} align="start" mb={4}>
               {review.series.poster_path && (
-                <Box width="120px" flexShrink={0}>
+                <Box width="93px" flexShrink={0}>
                   <Image
                     src={`https://image.tmdb.org/t/p/w500${review.series.poster_path}`}
                     alt={review.series.name}
@@ -150,11 +156,13 @@ export function ReviewEditModal({
                 </Box>
               )}
               <VStack spacing={4} align="stretch" flex={1}>
-                <Text color="white" fontSize="xl" fontWeight="bold">
+                <Text color="white" fontSize="2xl" fontWeight="bold">
                   {review.series.name}
                 </Text>
-                <FormControl>
-                  <FormLabel color="white">Temporada</FormLabel>
+                <Box>
+                  <Text color="gray.400" mb={2}>
+                    Temporada:
+                  </Text>
                   <Select
                     value={seasonNumber}
                     onChange={(e) => {
@@ -166,10 +174,16 @@ export function ReviewEditModal({
                       setRating(seasonReview?.rating || 0);
                       setComment(seasonReview?.comment || "");
                     }}
-                    bg="gray.700"
+                    bg="gray.800"
                     color="white"
                     borderColor="gray.600"
                     _hover={{ borderColor: "gray.500" }}
+                    sx={{
+                      "& option": {
+                        bg: "gray.800",
+                        color: "white",
+                      },
+                    }}
                   >
                     {review.seasonReviews.map((sr: { seasonNumber: number }) => (
                       <option key={sr.seasonNumber} value={sr.seasonNumber} style={{ backgroundColor: "#2D3748" }}>
@@ -177,16 +191,18 @@ export function ReviewEditModal({
                       </option>
                     ))}
                   </Select>
-                </FormControl>
-                <FormControl>
-                  <FormLabel color="white">Nota</FormLabel>
+                </Box>
+                <Box>
+                  <Text color="gray.400" mb={2}>
+                    Avaliação:
+                  </Text>
                   <RatingStars
                     rating={rating}
                     onChange={setRating}
-                    size={40}
+                    size={32}
                     isEditable
                   />
-                </FormControl>
+                </Box>
                 <FormControl mt={4}>
                   <FormLabel color="white">Comentário (opcional)</FormLabel>
                   <Textarea
@@ -204,27 +220,28 @@ export function ReviewEditModal({
                     {comment.length}/{COMMENT_MAX_LENGTH} caracteres
                   </Text>
                 </FormControl>
+                
+                <Flex direction="row" gap={3} mt={2}>
+                  <Button
+                    colorScheme="red"
+                    onClick={() => setIsDeleteAlertOpen(true)}
+                    isLoading={isDeleting}
+                    flex="1"
+                  >
+                    Excluir
+                  </Button>
+                  <Button
+                    colorScheme="teal"
+                    onClick={handleUpdateReview}
+                    isLoading={isUpdating}
+                    flex="1"
+                  >
+                    Salvar
+                  </Button>
+                </Flex>
               </VStack>
             </HStack>
           </ModalBody>
-
-          <ModalFooter>
-            <Button
-              colorScheme="red"
-              mr={3}
-              onClick={() => setIsDeleteAlertOpen(true)}
-              isLoading={isDeleting}
-            >
-              Excluir
-            </Button>
-            <Button
-              colorScheme="teal"
-              onClick={handleUpdateReview}
-              isLoading={isUpdating}
-            >
-              Salvar
-            </Button>
-          </ModalFooter>
         </ModalContent>
       </Modal>
 
