@@ -1,5 +1,6 @@
 import { HStack, Icon, Text, Box } from "@chakra-ui/react";
 import { Star } from "@phosphor-icons/react";
+import { useState } from "react";
 
 interface RatingStarsProps {
   rating: number;
@@ -18,6 +19,8 @@ export function RatingStars({
   onRatingChange,
   size = 24,
 }: RatingStarsProps) {
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
+
   const handleStarClick = (event: React.MouseEvent, index: number) => {
     if (!isEditable) return;
 
@@ -31,12 +34,30 @@ export function RatingStars({
     if (onRatingChange) onRatingChange(newRating);
   };
 
+  const handleStarHover = (event: React.MouseEvent, index: number) => {
+    if (!isEditable) return;
+
+    const star = event.currentTarget as HTMLDivElement;
+    const rect = star.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const isHalfHover = x < rect.width / 2;
+    
+    const newHoverRating = isHalfHover ? index + 0.5 : index + 1;
+    setHoverRating(newHoverRating);
+  };
+
+  const handleMouseLeave = () => {
+    setHoverRating(null);
+  };
+
+  const displayRating = hoverRating !== null ? hoverRating : rating;
+
   return (
-    <HStack spacing={1}>
+    <HStack spacing={1} onMouseLeave={handleMouseLeave}>
       {[...Array(5)].map((_, index) => {
         const starValue = index + 1;
-        const isHalfStar = rating - index > 0 && rating - index < 1;
-        const isFullStar = rating >= starValue;
+        const isHalfStar = displayRating - index > 0 && displayRating - index < 1;
+        const isFullStar = displayRating >= starValue;
 
         return (
           <Box
@@ -44,8 +65,11 @@ export function RatingStars({
             position="relative"
             cursor={isEditable ? "pointer" : "default"}
             onClick={(e) => handleStarClick(e, index)}
+            onMouseMove={(e) => handleStarHover(e, index)}
             width={`${size}px`}
             height={`${size}px`}
+            transition="transform 0.1s ease-in-out"
+            _hover={isEditable ? { transform: "scale(1.1)" } : {}}
           >
             {/* Estrela base (vazia) */}
             <Icon
@@ -80,34 +104,12 @@ export function RatingStars({
                 fontSize={`${size}px`}
               />
             )}
-
-            {/* Áreas clicáveis invisíveis */}
-            {isEditable && (
-              <>
-                <Box
-                  position="absolute"
-                  left="0"
-                  width="50%"
-                  height="100%"
-                  zIndex={2}
-                  title="Meia estrela"
-                />
-                <Box
-                  position="absolute"
-                  left="50%"
-                  width="50%"
-                  height="100%"
-                  zIndex={2}
-                  title="Estrela cheia"
-                />
-              </>
-            )}
           </Box>
         );
       })}
       {showNumber && (
         <Text color="white" fontSize="sm" ml={2}>
-          ({rating}/5)
+          ({hoverRating !== null && isEditable ? hoverRating : rating}/5)
         </Text>
       )}
     </HStack>

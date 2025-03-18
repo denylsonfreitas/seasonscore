@@ -20,6 +20,9 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
   Text,
+  HStack,
+  Box,
+  Image,
 } from "@chakra-ui/react";
 import { useState, useRef } from "react";
 import { updateReview, deleteReview, SeriesReview } from "../../services/reviews";
@@ -32,6 +35,7 @@ interface ReviewEditModalProps {
   review: SeriesReview & {
     series: {
       name: string;
+      poster_path?: string;
     };
   };
   onReviewUpdated: () => void;
@@ -134,59 +138,74 @@ export function ReviewEditModal({
           <ModalHeader color="white">Editar Avaliação</ModalHeader>
           <ModalCloseButton color="white" />
           <ModalBody pb={6}>
-            <VStack spacing={4}>
-              <FormControl>
-                <FormLabel color="white">Temporada</FormLabel>
-                <Select
-                  value={seasonNumber}
-                  onChange={(e) => {
-                    const newSeasonNumber = Number(e.target.value);
-                    setSeasonNumber(newSeasonNumber);
-                    const seasonReview = review.seasonReviews.find(
-                      (sr: { seasonNumber: number; rating: number; comment?: string }) => sr.seasonNumber === newSeasonNumber
-                    );
-                    setRating(seasonReview?.rating || 0);
-                    setComment(seasonReview?.comment || "");
-                  }}
-                  bg="gray.700"
-                  color="white"
-                  borderColor="gray.600"
-                  _hover={{ borderColor: "gray.500" }}
-                >
-                  {review.seasonReviews.map((sr: { seasonNumber: number }) => (
-                    <option key={sr.seasonNumber} value={sr.seasonNumber} style={{ backgroundColor: "#2D3748" }}>
-                      Temporada {sr.seasonNumber}
-                    </option>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl>
-                <FormLabel color="white">Nota</FormLabel>
-                <RatingStars
-                  rating={rating}
-                  onChange={setRating}
-                  size={40}
-                  isEditable
-                />
-              </FormControl>
-              <FormControl mt={4}>
-                <FormLabel color="white">Comentário (opcional)</FormLabel>
-                <Textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Escreva um comentário sobre a temporada..."
-                  bg="gray.800"
-                  color="white"
-                  borderColor="gray.600"
-                  _hover={{ borderColor: "gray.500" }}
-                  _focus={{ borderColor: "teal.400", boxShadow: "none" }}
-                  maxLength={COMMENT_MAX_LENGTH}
-                />
-                <Text color="gray.400" fontSize="sm" mt={1} textAlign="right">
-                  {comment.length}/{COMMENT_MAX_LENGTH} caracteres
+            <HStack spacing={6} align="start" mb={4}>
+              {review.series.poster_path && (
+                <Box width="120px" flexShrink={0}>
+                  <Image
+                    src={`https://image.tmdb.org/t/p/w500${review.series.poster_path}`}
+                    alt={review.series.name}
+                    borderRadius="md"
+                    width="100%"
+                  />
+                </Box>
+              )}
+              <VStack spacing={4} align="stretch" flex={1}>
+                <Text color="white" fontSize="xl" fontWeight="bold">
+                  {review.series.name}
                 </Text>
-              </FormControl>
-            </VStack>
+                <FormControl>
+                  <FormLabel color="white">Temporada</FormLabel>
+                  <Select
+                    value={seasonNumber}
+                    onChange={(e) => {
+                      const newSeasonNumber = Number(e.target.value);
+                      setSeasonNumber(newSeasonNumber);
+                      const seasonReview = review.seasonReviews.find(
+                        (sr: { seasonNumber: number; rating: number; comment?: string }) => sr.seasonNumber === newSeasonNumber
+                      );
+                      setRating(seasonReview?.rating || 0);
+                      setComment(seasonReview?.comment || "");
+                    }}
+                    bg="gray.700"
+                    color="white"
+                    borderColor="gray.600"
+                    _hover={{ borderColor: "gray.500" }}
+                  >
+                    {review.seasonReviews.map((sr: { seasonNumber: number }) => (
+                      <option key={sr.seasonNumber} value={sr.seasonNumber} style={{ backgroundColor: "#2D3748" }}>
+                        Temporada {sr.seasonNumber}
+                      </option>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl>
+                  <FormLabel color="white">Nota</FormLabel>
+                  <RatingStars
+                    rating={rating}
+                    onChange={setRating}
+                    size={40}
+                    isEditable
+                  />
+                </FormControl>
+                <FormControl mt={4}>
+                  <FormLabel color="white">Comentário (opcional)</FormLabel>
+                  <Textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Escreva um comentário sobre a temporada..."
+                    bg="gray.800"
+                    color="white"
+                    borderColor="gray.600"
+                    _hover={{ borderColor: "gray.500" }}
+                    _focus={{ borderColor: "teal.400", boxShadow: "none" }}
+                    maxLength={COMMENT_MAX_LENGTH}
+                  />
+                  <Text color="gray.400" fontSize="sm" mt={1} textAlign="right">
+                    {comment.length}/{COMMENT_MAX_LENGTH} caracteres
+                  </Text>
+                </FormControl>
+              </VStack>
+            </HStack>
           </ModalBody>
 
           <ModalFooter>

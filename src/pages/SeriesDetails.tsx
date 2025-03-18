@@ -1023,6 +1023,7 @@ export function SeriesDetails() {
         seriesName={series.name}
         numberOfSeasons={series.number_of_seasons}
         initialSeason={selectedSeason}
+        posterPath={series.poster_path || undefined}
       />
 
       {existingReview && (

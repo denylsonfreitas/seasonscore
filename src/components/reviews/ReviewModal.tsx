@@ -17,6 +17,9 @@ import {
   Spinner,
   Center,
   HStack,
+  Image,
+  Flex,
+  IconButton,
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { RatingStars } from "../common/RatingStars";
@@ -25,6 +28,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../contexts/AuthContext";
 import { getSeriesReviews } from "../../services/reviews";
 import { getSeriesDetails } from "../../services/tmdb";
+import { ArrowLeft } from "@phosphor-icons/react";
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -34,6 +38,7 @@ interface ReviewModalProps {
   numberOfSeasons?: number;
   initialSeason?: number;
   onBack?: () => void;
+  posterPath?: string;
 }
 
 const COMMENT_MAX_LENGTH = 280;
@@ -46,6 +51,7 @@ export function ReviewModal({
   numberOfSeasons: propNumberOfSeasons,
   initialSeason = 1,
   onBack,
+  posterPath: propPosterPath,
 }: ReviewModalProps) {
   const [selectedSeason, setSelectedSeason] = useState<number>(initialSeason);
   const [rating, setRating] = useState<number>(0);
@@ -55,6 +61,7 @@ export function ReviewModal({
   const [seriesDetails, setSeriesDetails] = useState<{
     name: string;
     number_of_seasons: number;
+    poster_path?: string | null;
   } | null>(null);
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -62,6 +69,7 @@ export function ReviewModal({
 
   const seriesName = propSeriesName || seriesDetails?.name || "";
   const numberOfSeasons = propNumberOfSeasons || seriesDetails?.number_of_seasons || 0;
+  const posterPath = propPosterPath || seriesDetails?.poster_path || "";
 
   useEffect(() => {
     if (isOpen && !propSeriesName && !propNumberOfSeasons) {
@@ -203,85 +211,97 @@ export function ReviewModal({
     >
       <ModalOverlay />
       <ModalContent bg="gray.900">
-        <ModalHeader color="white">Avaliar {seriesName}</ModalHeader>
+        <ModalHeader color="white" display="flex" alignItems="center">
+          {onBack && (
+            <IconButton
+              aria-label="Voltar para busca"
+              icon={<ArrowLeft size={20} />}
+              variant="ghost"
+              color="teal.300"
+              mr={2}
+              onClick={onBack}
+              _hover={{ bg: "gray.700" }}
+            />
+          )}
+          Avaliar
+        </ModalHeader>
         <ModalCloseButton color="white" />
         <ModalBody pb={6}>
-          <VStack spacing={4} align="stretch">
-            <Box>
-              <Text color="gray.400" mb={2}>Temporada:</Text>
-              <Select
-                value={selectedSeason}
-                onChange={(e) => setSelectedSeason(Number(e.target.value))}
-                bg="gray.800"
-                color="white"
-                borderColor="gray.600"
-                sx={{
-                  "& option": {
-                    bg: "gray.800",
-                    color: "white"
-                  }
-                }}
-              >
-                {Array.from({ length: numberOfSeasons }, (_, i) => i + 1).map((season) => (
-                  <option key={season} value={season}>
-                    Temporada {season}
-                  </option>
-                ))}
-              </Select>
-            </Box>
-
-            <Box>
-              <Text color="gray.400" mb={2}>Avaliação:</Text>
-              <RatingStars
-                rating={rating}
-                onRatingChange={setRating}
-                size={32}
-                isEditable
-              />
-            </Box>
-
-            <FormControl mt={4}>
-              <FormLabel color="white">Comentário (opcional)</FormLabel>
-              <Textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Escreva um comentário sobre a temporada..."
-                bg="gray.800"
-                color="white"
-                borderColor="gray.600"
-                _hover={{ borderColor: "gray.500" }}
-                _focus={{ borderColor: "teal.400", boxShadow: "none" }}
-                maxLength={COMMENT_MAX_LENGTH}
-              />
-              <Text color="gray.400" fontSize="sm" mt={1} textAlign="right">
-                {comment.length}/{COMMENT_MAX_LENGTH} caracteres
-              </Text>
-            </FormControl>
-
-            <HStack spacing={4} justify="space-between">
-              {onBack && (
-                <Button 
-                  variant="outline" 
-                  onClick={onBack}
-                  colorScheme="teal"
-                  borderColor="teal.500"
-                  color="teal.300"
-                  _hover={{ bg: "rgba(49, 151, 149, 0.2)" }}
+          <HStack spacing={6} align="start" mb={4}>
+            {posterPath && (
+              <Box width="120px" flexShrink={0}>
+                <Image
+                  src={`https://image.tmdb.org/t/p/w500${posterPath}`}
+                  alt={seriesName}
+                  borderRadius="md"
+                  width="100%"
+                />
+              </Box>
+            )}
+            <VStack spacing={4} align="stretch" flex={1}>
+              <Text color="white" fontSize="2xl" fontWeight="bold">{seriesName}</Text>
+              <Box>
+                <Text color="gray.400" mb={2}>Temporada:</Text>
+                <Select
+                  value={selectedSeason}
+                  onChange={(e) => setSelectedSeason(Number(e.target.value))}
+                  bg="gray.800"
+                  color="white"
+                  borderColor="gray.600"
+                  sx={{
+                    "& option": {
+                      bg: "gray.800",
+                      color: "white"
+                    }
+                  }}
                 >
-                  Voltar para busca
-                </Button>
-              )}
+                  {Array.from({ length: numberOfSeasons }, (_, i) => i + 1).map((season) => (
+                    <option key={season} value={season}>
+                      Temporada {season}
+                    </option>
+                  ))}
+                </Select>
+              </Box>
+
+              <Box>
+                <Text color="gray.400" mb={2}>Avaliação:</Text>
+                <RatingStars
+                  rating={rating}
+                  onRatingChange={setRating}
+                  size={32}
+                  isEditable
+                />
+              </Box>
+
+              <FormControl mt={4}>
+                <FormLabel color="white">Comentário (opcional)</FormLabel>
+                <Textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Escreva um comentário sobre a temporada..."
+                  bg="gray.800"
+                  color="white"
+                  borderColor="gray.600"
+                  _hover={{ borderColor: "gray.500" }}
+                  _focus={{ borderColor: "teal.400", boxShadow: "none" }}
+                  maxLength={COMMENT_MAX_LENGTH}
+                />
+                <Text color="gray.400" fontSize="sm" mt={1} textAlign="right">
+                  {comment.length}/{COMMENT_MAX_LENGTH} caracteres
+                </Text>
+              </FormControl>
+
               <Button
                 colorScheme="teal"
                 onClick={handleSubmit}
                 isLoading={isSubmitting}
                 loadingText="Salvando..."
-                ml={onBack ? 0 : 'auto'}
+                width="100%"
               >
                 Salvar avaliação
               </Button>
-            </HStack>
-          </VStack>
+            </VStack>
+          </HStack>
         </ModalBody>
       </ModalContent>
     </Modal>

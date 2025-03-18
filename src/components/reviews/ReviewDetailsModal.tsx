@@ -261,7 +261,7 @@ export function ReviewDetailsModal({
                         <IconButton
                           aria-label="Like"
                           icon={<Heart weight={userLiked ? "fill" : "regular"} />}
-                          size="sm"
+                          size="md"
                           variant="ghost"
                           color={userLiked ? "red.400" : "gray.400"}
                           onClick={() => handleReaction("likes")}
@@ -275,9 +275,9 @@ export function ReviewDetailsModal({
                         <IconButton
                           aria-label="Dislike"
                           icon={<HeartBreak weight={userDisliked ? "fill" : "regular"} />}
-                          size="sm"
+                          size="md"
                           variant="ghost"
-                          color={userDisliked ? "red.400" : "gray.400"}
+                          color={userDisliked ? "red.800" : "gray.400"}
                           onClick={() => handleReaction("dislikes")}
                         />
                         <Text color="gray.400" fontSize="sm">
