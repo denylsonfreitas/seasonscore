@@ -212,7 +212,7 @@ export function NotificationMenu() {
                   ? `https://image.tmdb.org/t/p/w92${notification.seriesPoster}`
                   : undefined
               }
-              fallbackSrc="https://via.placeholder.com/32"
+              fallbackSrc="https://dummyimage.com/32/ffffff/000000.png&text=Poster"
               alt={notification.seriesName || "Série"}
             />
           </Box>

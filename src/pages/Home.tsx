@@ -2,7 +2,6 @@ import { HomeSeriesSection } from "../components/series/HomeSeriesSection";
 import { Box, Container, VStack, Flex } from "@chakra-ui/react";
 import {
   getPopularSeries,
-  getTopRatedSeries,
   getAiringTodaySeries,
 } from "../services/tmdb";
 import { Footer } from "../components/common/Footer";
@@ -17,6 +16,8 @@ export function Home() {
         <Container maxW="1200px" py={8} pb={16}>
           <TrendingBanner />
 
+          
+
           <HomeSeriesSection
             title="Séries Populares do Momento"
             queryKey={["popular"]}
@@ -27,7 +28,7 @@ export function Home() {
           />
 
           <HomeSeriesSection
-            title="Lançamentos Recentes"
+            title="Novidades"
             queryKey={["recent"]}
             queryFn={() => {
               return getAiringTodaySeries();

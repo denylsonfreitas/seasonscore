@@ -7,7 +7,6 @@ import {
   HStack,
   Avatar,
   Text,
-  Collapse,
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";

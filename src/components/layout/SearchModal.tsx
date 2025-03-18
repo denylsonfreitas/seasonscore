@@ -110,7 +110,7 @@ export function SearchModal({
                     height="69px"
                     borderRadius="md"
                     objectFit="cover"
-                    fallbackSrc="https://via.placeholder.com/46x69"
+                    fallbackSrc="https://dummyimage.com/46x69/ffffff/000000.png&text=Poster"
                   />
                   <Box flex="1">
                     <Text color="white" fontWeight="bold">

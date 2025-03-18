@@ -100,7 +100,7 @@ export function PopularReviews() {
                   <Image
                     src={review.seriesPoster 
                       ? `https://image.tmdb.org/t/p/w92${review.seriesPoster}`
-                      : "https://via.placeholder.com/92x138?text=No+Image"
+                      : "https://dummyimage.com/92x138/ffffff/000000.png&text=No+Image"
                     }
                     alt={review.seriesName}
                     w="80px"

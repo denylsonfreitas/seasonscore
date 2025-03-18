@@ -14,9 +14,9 @@ import {
   Link,
 } from "@chakra-ui/react";
 import { useState } from "react";
-import { RatingStars } from "./RatingStars";
-import { useAuth } from "../contexts/AuthContext";
-import { addSeasonReview } from "../services/reviews";
+import { RatingStars } from "../common/RatingStars";
+import { useAuth } from "../../contexts/AuthContext";
+import { addSeasonReview } from "../../services/reviews";
 import { Link as RouterLink } from "react-router-dom";
 
 interface SeasonRatingModalProps {
