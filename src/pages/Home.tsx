@@ -8,6 +8,7 @@ import { Footer } from "../components/common/Footer";
 import { TrendingBanner } from "../components/series/TrendingBanner";
 import { PopularReviews } from "../components/reviews/PopularReviews";
 import { ScrollToTop } from "../components/common/ScrollToTop";
+import { PersonalizedRecommendations } from "../components/series/PersonalizedRecommendations";
 
 export function Home() {
   return (
@@ -16,7 +17,7 @@ export function Home() {
         <Container maxW="1200px" py={8} pb={16}>
           <TrendingBanner />
 
-          
+          <PersonalizedRecommendations />
 
           <HomeSeriesSection
             title="Séries Populares do Momento"

@@ -64,13 +64,26 @@ export async function isInWatchlist(userId: string, seriesId: number): Promise<b
   return docSnap.exists();
 }
 
-export async function getUserWatchlist(userId: string): Promise<WatchlistItem[]> {
-  const watchlistRef = collection(db, "watchlist");
-  const q = query(watchlistRef, where("userId", "==", userId));
-  const querySnapshot = await getDocs(q);
+/**
+ * Obtém todas as séries da watchlist do usuário
+ */
+export async function getUserWatchlist(userId: string) {
+  if (!userId) return [];
   
-  return querySnapshot.docs.map((doc) => ({
-    ...doc.data(),
-    addedAt: doc.data().addedAt.toDate(),
-  })) as WatchlistItem[];
+  try {
+    const watchlistRef = collection(db, "watchlist");
+    const q = query(watchlistRef, where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
+    
+    const watchlistItems: any[] = [];
+    
+    querySnapshot.forEach((doc) => {
+      watchlistItems.push(doc.data());
+    });
+    
+    return watchlistItems;
+  } catch (error) {
+    console.error("Erro ao buscar watchlist:", error);
+    return [];
+  }
 } 

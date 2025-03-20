@@ -122,7 +122,7 @@ export function SeriesCard({ series, size = "md", position }: SeriesCardProps) {
       mx="auto"
       role="group"
     >
-      <LinkOverlay as={RouterLink} to={`/series/${series.id}`}>
+      <Box as={RouterLink} to={`/series/${series.id}`}>
         <Box position="relative" bg="gray.700" height="100%">
           {series.poster_path ? (
             <LazyImage
@@ -131,11 +131,15 @@ export function SeriesCard({ series, size = "md", position }: SeriesCardProps) {
               fallbackText="Imagem não disponível"
             />
           ) : (
-            <Center py={20}>
-              <VStack spacing={4}>
+            <Center height="100%" py={4} px={2} bg="gray.700" position="relative">
+              <VStack spacing={2} align="center" justify="center">
                 <Icon as={TelevisionSimple} boxSize={12} color="gray.500" weight="thin" />
-                <Text color="gray.500" fontSize="sm" textAlign="center">
-                  Imagem não disponível
+                <Text color="white" fontSize={styles.title.fontSize} fontWeight="bold" textAlign="center" noOfLines={2}>
+                  {series.name}
+                </Text>
+                <Text color="gray.400" fontSize="xs" textAlign="center" noOfLines={3}>
+                  {series.overview.substring(0, 100)}
+                  {series.overview.length > 100 ? "..." : ""}
                 </Text>
               </VStack>
             </Center>
@@ -192,7 +196,7 @@ export function SeriesCard({ series, size = "md", position }: SeriesCardProps) {
             </Badge>
           )}
         </Box>
-      </LinkOverlay>
+      </Box>
     </LinkBox>
   );
 }

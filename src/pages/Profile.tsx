@@ -33,6 +33,7 @@ import {
   AspectRatio,
   Stack,
   useBreakpointValue,
+  IconButton,
 } from "@chakra-ui/react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
@@ -44,14 +45,14 @@ import {
 import { updateProfile } from "firebase/auth";
 import { db } from "../config/firebase";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
-import { Image as ImageIcon, UploadSimple } from "@phosphor-icons/react";
+import { Image as ImageIcon, UploadSimple, Bookmark } from "@phosphor-icons/react";
 import { RatingStars } from "../components/common/RatingStars";
 import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, Link as RouterLink, useParams } from "react-router-dom";
 import { Footer } from "../components/common/Footer";
 import { getUserReviews, SeriesReview } from "../services/reviews";
-import { getUserWatchlist } from "../services/watchlist";
+import { getUserWatchlist, removeFromWatchlist } from "../services/watchlist";
 import { FollowButton } from "../components/user/FollowButton";
 import { getFollowers, getFollowing } from "../services/followers";
 import { getUserData, UserData, createOrUpdateUser, getUserByUsername } from "../services/users";
@@ -598,7 +599,50 @@ export function Profile() {
                             p={{ base: 2, md: 4 }}
                             borderRadius="lg"
                             position="relative"
+                            _hover={{ 
+                              "& .remove-button": {
+                                opacity: 1
+                              } 
+                            }}
                           >
+                            {isOwnProfile && (
+                              <IconButton
+                                aria-label="Remover da watchlist"
+                                icon={<Bookmark weight="fill" />}
+                                size="sm"
+                                variant="solid"
+                                colorScheme="red"
+                                position="absolute"
+                                top={3}
+                                right={3}
+                                zIndex={2}
+                                opacity={0}
+                                className="remove-button"
+                                transition="opacity 0.2s"
+                                onClick={async (e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  if (!currentUser) return;
+                                  
+                                  try {
+                                    await removeFromWatchlist(currentUser.uid, item.seriesId);
+                                    queryClient.invalidateQueries({ queryKey: ["userWatchlist"] });
+                                    toast({
+                                      title: "Removido da watchlist",
+                                      status: "success",
+                                      duration: 2000,
+                                    });
+                                  } catch (error) {
+                                    console.error("Erro ao remover da watchlist:", error);
+                                    toast({
+                                      title: "Erro ao remover da watchlist",
+                                      status: "error",
+                                      duration: 3000,
+                                    });
+                                  }
+                                }}
+                              />
+                            )}
                             <RouterLink to={`/series/${item.seriesId}`}>
                               <Image
                                 src={`https://image.tmdb.org/t/p/w500${item.seriesData.poster_path}`}

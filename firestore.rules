@@ -71,6 +71,10 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid;
     }
     
+    match /series_by_genre/{docId} {
+      allow read: if true;
+    }
+    
     match /lastNotifiedEpisodes/{docId} {
       allow read: if request.auth != null && 
         docId.matches(request.auth.uid + '_.*');
