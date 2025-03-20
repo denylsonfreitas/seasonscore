@@ -8,6 +8,8 @@ import {
   WrapItem,
   Avatar,
   Image,
+  Flex,
+  Center,
 } from "@chakra-ui/react";
 
 interface SeriesDetailsTabProps {
@@ -74,37 +76,50 @@ export function SeriesDetailsTab({ series }: SeriesDetailsTabProps) {
           <Heading size="md" color="white" mb={4}>
             Produção
           </Heading>
-          <Wrap spacing={4}>
+          <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={6}>
             {series.production_companies.map((company: any) => (
-              <WrapItem key={company.id}>
-                <Box
-                  bg="gray.800"
-                  p={4}
-                  borderRadius="md"
-                  textAlign="center"
-                  minW="150px"
-                >
+              <Box
+                key={company.id}
+                bg="gray.800"
+                p={4}
+                borderRadius="md"
+                textAlign="center"
+                height="150px"
+                display="flex"
+                flexDirection="column"
+                justifyContent="space-between"
+              >
+                <Center flex="1" mb={3}>
                   {company.logo_path ? (
                     <Image
                       src={`https://image.tmdb.org/t/p/w200${company.logo_path}`}
                       alt={company.name}
-                      height="50px"
+                      maxH="60px"
+                      maxW="95%"
                       objectFit="contain"
                       mx="auto"
-                      mb={2}
                     />
                   ) : (
-                    <Text color="white" fontSize="xl" mb={2}>
-                      {company.name[0]}
-                    </Text>
+                    <Flex 
+                      align="center" 
+                      justify="center" 
+                      bg="gray.700" 
+                      width="60px" 
+                      height="60px" 
+                      borderRadius="md"
+                    >
+                      <Text color="white" fontSize="xl">
+                        {company.name.charAt(0)}
+                      </Text>
+                    </Flex>
                   )}
-                  <Text color="white" fontSize="sm">
-                    {company.name}
-                  </Text>
-                </Box>
-              </WrapItem>
+                </Center>
+                <Text color="white" fontSize="sm" isTruncated title={company.name}>
+                  {company.name}
+                </Text>
+              </Box>
             ))}
-          </Wrap>
+          </SimpleGrid>
         </Box>
       )}
     </VStack>

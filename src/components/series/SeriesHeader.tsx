@@ -11,16 +11,16 @@ import {
   Stack,
   Icon,
   Divider,
-  Wrap,
-  WrapItem,
-  Badge,
   Skeleton,
+  useToast,
+  Flex,
 } from "@chakra-ui/react";
-import { CaretDown, CaretUp, Calendar, PlayCircle } from "@phosphor-icons/react";
-import { useState } from "react";
+import { CaretDown, CaretUp, Calendar, PlayCircle, VideoCamera } from "@phosphor-icons/react";
+import { useState, useEffect } from "react";
 import { WatchlistButton } from "../common/WatchlistButton";
 import { SeriesDetailsTabs } from "./SeriesDetailsTabs";
 import { SeriesReview } from "../../services/reviews";
+import { getSeriesVideos } from "../../services/tmdb";
 
 interface SeriesHeaderProps {
   series: any; // O tipo completo seria melhor, mas usando any para simplicidade
@@ -56,6 +56,55 @@ export function SeriesHeader({
   navigate
 }: SeriesHeaderProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [trailerUrl, setTrailerUrl] = useState<string | null>(null);
+  const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
+  const toast = useToast();
+  
+  // Buscar trailer da série
+  useEffect(() => {
+    const fetchTrailer = async () => {
+      if (!seriesId) return;
+      
+      setIsLoadingTrailer(true);
+      try {
+        const videos = await getSeriesVideos(parseInt(seriesId));
+        
+        // Procurar por trailers, teasers ou clipes - pela ordem de preferência
+        const trailer = videos.find(video => 
+          video.type === "Trailer" && video.site === "YouTube"
+        ) || videos.find(video => 
+          video.type === "Teaser" && video.site === "YouTube"
+        ) || videos.find(video => 
+          (video.type === "Clip" || video.type === "Featurette") && video.site === "YouTube"
+        );
+        
+        if (trailer) {
+          setTrailerUrl(`https://www.youtube.com/watch?v=${trailer.key}`);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar trailer:", error);
+      } finally {
+        setIsLoadingTrailer(false);
+      }
+    };
+    
+    fetchTrailer();
+  }, [seriesId]);
+  
+  // Abrir trailer
+  const handleOpenTrailer = () => {
+    if (trailerUrl) {
+      window.open(trailerUrl, "_blank", "noopener,noreferrer");
+    } else {
+      toast({
+        title: "Trailer não disponível",
+        description: "Não foi possível encontrar um trailer para esta série.",
+        status: "info",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
 
   return (
     <>
@@ -121,22 +170,39 @@ export function SeriesHeader({
               </Skeleton>
             </Box>
 
-            <Box>
+            <Box width="100%">
               <Text color="gray.400" noOfLines={isExpanded ? undefined : 3}>
                 {series.overview}
               </Text>
-              {series.overview && series.overview.length > 250 && (
+              <Flex mt={3} align="center" wrap="wrap" gap={2}>
+                {series.overview && series.overview.length > 250 && (
+                  <Button
+                    variant="link"
+                    color="teal.400"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    rightIcon={isExpanded ? <CaretUp /> : <CaretDown />}
+                    size="sm"
+                  >
+                    {isExpanded ? "Menos" : "Mais..."}
+                  </Button>
+                )}
+                
+                {/* Botão para assistir trailer */}
                 <Button
-                  variant="link"
-                  color="teal.400"
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  rightIcon={isExpanded ? <CaretUp /> : <CaretDown />}
+                  leftIcon={<VideoCamera weight="fill" />}
+                  colorScheme="teal"
+                  variant="outline"
                   size="sm"
-                  mt={2}
+                  isLoading={isLoadingTrailer}
+                  loadingText="Carregando"
+                  onClick={handleOpenTrailer}
+                  _hover={{ bg: "teal.900" }}
+                  transition="all 0.2s"
+                  ml={series.overview && series.overview.length > 250 ? 2 : 0}
                 >
-                  {isExpanded ? "Menos" : "Mais..."}
+                  Assistir Trailer
                 </Button>
-              )}
+              </Flex>
             </Box>
 
             <Stack 
@@ -179,14 +245,6 @@ export function SeriesHeader({
               <WatchlistButton series={series} />
             </Stack>
 
-            <Wrap spacing={2}>
-              {series.genres?.map((genre: any) => (
-                <WrapItem key={genre.id}>
-                  <Badge colorScheme="teal">{genre.name}</Badge>
-                </WrapItem>
-              ))}
-            </Wrap>
-            
             {/* Abas de detalhes da série */}
             <SeriesDetailsTabs
               series={series}

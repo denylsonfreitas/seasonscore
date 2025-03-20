@@ -324,3 +324,26 @@ export async function getTrendingSeries() {
   });
   return response.data.results;
 }
+
+// Interface para vídeos
+export interface Video {
+  id: string;
+  key: string;
+  name: string;
+  site: string;
+  size: number;
+  type: string;
+  official: boolean;
+  published_at: string;
+}
+
+// Obter vídeos de uma série
+export async function getSeriesVideos(seriesId: number): Promise<Video[]> {
+  try {
+    const response = await api.get(`/tv/${seriesId}/videos`);
+    return response.data.results;
+  } catch (error) {
+    console.error("Erro ao buscar vídeos:", error);
+    return [];
+  }
+}

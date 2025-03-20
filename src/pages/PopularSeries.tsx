@@ -2,53 +2,28 @@ import { Box, Container, Heading, Flex } from "@chakra-ui/react";
 import { getPopularSeries } from "../services/tmdb";
 import { SeriesGrid } from "../components/series/SeriesGrid";
 import { Footer } from "../components/common/Footer";
-import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { ScrollToTop } from "../components/common/ScrollToTop";
-import { useInfiniteQuery, useQueries } from "@tanstack/react-query";
-import { getSeriesReviews } from "../services/reviews";
-import { useMemo } from "react";
 
 export function PopularSeries() {
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    useInfiniteQuery({
-      queryKey: ["popular-series"],
-      queryFn: async ({ pageParam = 1 }) => {
-        const result = await getPopularSeries(pageParam as number);
-        return result;
-      },
-      getNextPageParam: (lastPage) =>
-        lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
-      initialPageParam: 1,
-    });
-
-  const allSeries = data?.pages.flatMap((page) => page.results) ?? [];
-
-  // Buscar avaliações para todas as séries
-  const seriesReviewsQueries = useQueries({
-    queries: allSeries.map(series => ({
-      queryKey: ['series-reviews', series.id],
-      queryFn: async () => {
-        const reviews = await getSeriesReviews(series.id);
-        if (reviews.length > 0) {
-          const allRatings = reviews.flatMap(review => 
-            review.seasonReviews.map(sr => sr.rating)
-          );
-          return allRatings.reduce((a, b) => a + b, 0) / allRatings.length;
-        }
-        return null;
-      },
-      staleTime: 1000 * 60 * 5, // 5 minutos
-    }))
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteQuery({
+    queryKey: ["popular-series"],
+    queryFn: async ({ pageParam = 1 }) => {
+      const result = await getPopularSeries(pageParam as number);
+      return result;
+    },
+    getNextPageParam: (lastPage) =>
+      lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
+    initialPageParam: 1,
   });
 
-  // Mapear as avaliações para as séries
-  const seriesWithRatings = useMemo(() => {
-    return allSeries.map((series, index) => ({
-      ...series,
-      rating: seriesReviewsQueries[index].data ?? undefined
-    }));
-  }, [allSeries, seriesReviewsQueries]);
+  const allSeries = data?.pages.flatMap((page) => page.results) ?? [];
 
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
@@ -59,7 +34,7 @@ export function PopularSeries() {
           </Heading>
 
           <SeriesGrid
-            series={seriesWithRatings}
+            series={allSeries}
             isLoading={isLoading}
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}

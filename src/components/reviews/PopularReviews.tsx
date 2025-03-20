@@ -7,6 +7,7 @@ import { UserName } from "../common/UserName";
 import { ReviewDetailsModal } from "./ReviewDetailsModal";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { getSeriesDetails } from "../../services/tmdb";
 
 export function PopularReviews() {
@@ -14,6 +15,7 @@ export function PopularReviews() {
   const [isExpanded, setIsExpanded] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: reviews = [] } = useQuery({
     queryKey: ["popularReviews"],
@@ -62,6 +64,18 @@ export function PopularReviews() {
   // Filtrar reviews com pelo menos 1 like
   const popularReviews = reviews.filter(review => review.likes > 0);
   const displayedReviews = isExpanded ? popularReviews : popularReviews.slice(0, 6);
+
+  // Função para atualizar dados após mudanças
+  const handleReviewUpdated = () => {
+    // Invalidar ambas as queries para garantir dados atualizados
+    queryClient.invalidateQueries({
+      queryKey: ["reviews", selectedReview?.seriesId],
+    });
+    
+    queryClient.invalidateQueries({
+      queryKey: ["popularReviews"],
+    });
+  };
 
   return (
     <Box mt={12}>
@@ -180,12 +194,12 @@ export function PopularReviews() {
             comment: seasonReview?.comment || selectedReview.comment,
             comments: seasonReview?.comments || [],
             reactions: seasonReview?.reactions || {
-              likes: Array(selectedReview.likes).fill(""),
-              dislikes: Array(selectedReview.dislikes).fill("")
+              likes: [],
+              dislikes: []
             },
             createdAt: seasonReview?.createdAt || selectedReview.createdAt
           }}
-          onReviewUpdated={() => {}}
+          onReviewUpdated={handleReviewUpdated}
         />
       )}
     </Box>

@@ -20,6 +20,7 @@ import {
   Image,
   Button,
   useToast,
+  Link,
 } from "@chakra-ui/react";
 import { RatingStars } from "../common/RatingStars";
 import { UserName } from "../common/UserName";
@@ -31,6 +32,7 @@ import { ReviewComment } from "./ReviewComment";
 import { useState } from "react";
 import { useUserData } from "../../hooks/useUserData";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 interface ReviewDetailsModalProps {
   isOpen: boolean;
@@ -77,6 +79,7 @@ export function ReviewDetailsModal({
   const { userData } = useUserData(review?.userId || "");
   const queryClient = useQueryClient();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const COMMENTS_PER_PAGE = 3;
   const hasMoreComments = (review?.comments?.length ?? 0) > COMMENTS_PER_PAGE;
@@ -99,38 +102,58 @@ export function ReviewDetailsModal({
       return;
     }
 
-    // Atualização otimista do cache
-    const previousReview = queryClient.getQueryData<any>(["reviews", review.seriesId]);
-    const updatedReview = {
-      ...review,
-      reactions: {
-        ...review.reactions,
-        [type]: userLiked || userDisliked
-          ? review.reactions[type].filter(id => id !== currentUser.uid)
-          : [...review.reactions[type], currentUser.uid]
-      }
+    const userId = currentUser.uid;
+    const isLikeAction = type === "likes";
+    const isCurrentlyActive = isLikeAction 
+      ? userLiked 
+      : userDisliked;
+    
+    // Construir as novas reações
+    const newReactions = {
+      likes: [...(review.reactions?.likes || [])],
+      dislikes: [...(review.reactions?.dislikes || [])]
     };
 
-    // Atualiza o cache imediatamente
-    queryClient.setQueryData(["reviews", review.seriesId], (old: any) => {
-      return old.map((r: any) => 
-        r.id === review.id ? {
-          ...r,
-          seasonReviews: r.seasonReviews.map((sr: any) =>
-            sr.seasonNumber === review.seasonNumber
-              ? { ...sr, reactions: updatedReview.reactions }
-              : sr
-          )
-        } : r
-      );
-    });
+    // Remover reação oposta se existir
+    const oppositeType = isLikeAction ? "dislikes" : "likes";
+    const oppositeIndex = newReactions[oppositeType].indexOf(userId);
+    if (oppositeIndex !== -1) {
+      newReactions[oppositeType].splice(oppositeIndex, 1);
+    }
+
+    // Alternar a reação atual
+    const currentIndex = newReactions[type].indexOf(userId);
+    if (currentIndex === -1 && !isCurrentlyActive) {
+      // Adicionar
+      newReactions[type].push(userId);
+    } else if (isCurrentlyActive) {
+      // Remover
+      const index = newReactions[type].indexOf(userId);
+      if (index !== -1) {
+        newReactions[type].splice(index, 1);
+      }
+    }
+
+    // Salvamos as reações atuais para atualização local imediata
+    const updatedReactions = { ...newReactions };
+
+    // Alteramos diretamente o objeto review para refletir mudanças imediatamente na interface
+    if (review.reactions) {
+      review.reactions.likes = [...updatedReactions.likes];
+      review.reactions.dislikes = [...updatedReactions.dislikes];
+    }
 
     try {
+      // Tentamos atualizar a reação no backend
       await toggleReaction(review.id, review.seasonNumber, type);
+      
+      // Se a atualização for bem-sucedida, atualizamos o cache com os dados mais recentes
+      queryClient.invalidateQueries({
+        queryKey: ["reviews", review.seriesId],
+      });
       onReviewUpdated();
     } catch (error) {
-      // Em caso de erro, reverte a atualização otimista
-      queryClient.setQueryData(["reviews", review.seriesId], previousReview);
+      // Em caso de erro, revertemos as mudanças locais
       toast({
         title: "Erro",
         description: "Não foi possível registrar sua reação",
@@ -138,6 +161,12 @@ export function ReviewDetailsModal({
         duration: 3000,
         isClosable: true,
       });
+      
+      // Revertemos as mudanças no objeto review
+      if (review.reactions) {
+        review.reactions.likes = newReactions.likes.filter(id => id !== userId);
+        review.reactions.dislikes = newReactions.dislikes.filter(id => id !== userId);
+      }
     }
   };
 
@@ -162,6 +191,13 @@ export function ReviewDetailsModal({
         return r;
       });
     });
+  };
+
+  const handleSeriesClick = () => {
+    if (review) {
+      onClose();
+      navigate(`/series/${review.seriesId}`);
+    }
   };
 
   if (!review) return null;
@@ -237,7 +273,15 @@ export function ReviewDetailsModal({
                     </HStack>
 
                     <Box>
-                      <Text color="gray.400" fontSize="sm" mb={2}>
+                      <Text 
+                        color="gray.400" 
+                        fontSize="sm" 
+                        mb={2}
+                        onClick={handleSeriesClick}
+                        cursor="pointer"
+                        _hover={{ color: "teal.400", textDecoration: "underline" }}
+                        display="inline-block"
+                      >
                         {review.seriesName} • Temporada {review.seasonNumber}
                       </Text>
                       <HStack spacing={2} align="center">
@@ -287,7 +331,13 @@ export function ReviewDetailsModal({
                     </HStack>
                   </VStack>
 
-                  <Box width="150px" flexShrink={0}>
+                  <Box 
+                    width="150px" 
+                    flexShrink={0}
+                    cursor="pointer"
+                    onClick={handleSeriesClick}
+                    _hover={{ transform: "scale(1.03)", transition: "transform 0.2s ease" }}
+                  >
                     <Image
                       src={`https://image.tmdb.org/t/p/w500${review.seriesPoster}`}
                       alt={review.seriesName}

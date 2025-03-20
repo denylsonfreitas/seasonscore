@@ -1,6 +1,5 @@
 import {
   Box,
-  Image,
   Text,
   VStack,
   Badge,
@@ -14,6 +13,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { SeriesListItem } from "../../services/tmdb";
 import { Star, Trophy, TelevisionSimple } from "@phosphor-icons/react";
 import { WatchlistButton } from "../common/WatchlistButton";
+import { LazyImage } from "../common/LazyImage";
 
 interface SeriesCardProps {
   series: SeriesListItem & { rating?: number };
@@ -125,22 +125,10 @@ export function SeriesCard({ series, size = "md", position }: SeriesCardProps) {
       <LinkOverlay as={RouterLink} to={`/series/${series.id}`}>
         <Box position="relative" bg="gray.700" height="100%">
           {series.poster_path ? (
-            <Image
+            <LazyImage
               src={`https://image.tmdb.org/t/p/w500${series.poster_path}`}
               alt={series.name}
-              width="100%"
-              height="100%"
-              objectFit="cover"
-              fallback={
-                <Center py={20}>
-                  <VStack spacing={4}>
-                    <Icon as={TelevisionSimple} boxSize={12} color="gray.500" weight="thin" />
-                    <Text color="gray.500" fontSize="sm" textAlign="center">
-                      Imagem não disponível
-                    </Text>
-                  </VStack>
-                </Center>
-              }
+              fallbackText="Imagem não disponível"
             />
           ) : (
             <Center py={20}>

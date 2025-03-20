@@ -12,6 +12,9 @@ import {
   Text,
   InputLeftElement,
   VStack,
+  Tag,
+  HStack,
+  CloseButton,
 } from "@chakra-ui/react";
 import { SeriesCard } from "../components/series/SeriesCard";
 import { useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
@@ -25,7 +28,7 @@ import {
 import { useState, useEffect, useMemo } from "react";
 import { SeriesFilter } from "../components/series/SeriesFilter";
 import { Footer } from "../components/common/Footer";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { getSeriesReviews } from "../services/reviews";
 import { ScrollToTop } from "../components/common/ScrollToTop";
@@ -34,13 +37,23 @@ export function Series() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [activeSearch, setActiveSearch] = useState(searchParams.get("search") || "");
-  const [genreFilter, setGenreFilter] = useState("");
+  const [genreFilter, setGenreFilter] = useState(searchParams.get("genre") || "");
+  const [genreName, setGenreName] = useState(searchParams.get("name") || "");
+  const navigate = useNavigate();
 
   useEffect(() => {
+    // Atualiza os estados com base nos parâmetros da URL
     if (searchParams.get("search")) {
       const search = searchParams.get("search") || "";
       setSearchQuery(search);
       setActiveSearch(search);
+    }
+    
+    if (searchParams.get("genre")) {
+      const genre = searchParams.get("genre") || "";
+      const name = searchParams.get("name") || "";
+      setGenreFilter(genre);
+      setGenreName(decodeURIComponent(name));
     }
   }, [searchParams]);
 
@@ -87,21 +100,61 @@ export function Series() {
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       setActiveSearch(searchQuery);
+      
+      const params: Record<string, string> = {};
       if (searchQuery.trim()) {
-        setSearchParams({ search: searchQuery.trim() });
-      } else {
-        setSearchParams({});
+        params.search = searchQuery.trim();
       }
+      if (genreFilter) {
+        params.genre = genreFilter;
+        if (genreName) params.name = genreName;
+      }
+      
+      setSearchParams(params);
     }
   };
 
   const handleSearchClick = () => {
     setActiveSearch(searchQuery);
+    
+    const params: Record<string, string> = {};
     if (searchQuery.trim()) {
-      setSearchParams({ search: searchQuery.trim() });
-    } else {
-      setSearchParams({});
+      params.search = searchQuery.trim();
     }
+    if (genreFilter) {
+      params.genre = genreFilter;
+      if (genreName) params.name = genreName;
+    }
+    
+    setSearchParams(params);
+  };
+
+  const handleGenreChange = (genre: string, name: string = "") => {
+    setGenreFilter(genre);
+    setGenreName(name);
+    
+    const params: Record<string, string> = {};
+    if (searchQuery.trim()) {
+      params.search = searchQuery.trim();
+    }
+    if (genre) {
+      params.genre = genre;
+      if (name) params.name = name;
+    }
+    
+    setSearchParams(params);
+  };
+
+  const clearGenreFilter = () => {
+    setGenreFilter("");
+    setGenreName("");
+    
+    const params: Record<string, string> = {};
+    if (searchQuery.trim()) {
+      params.search = searchQuery.trim();
+    }
+    
+    setSearchParams(params);
   };
 
   if (isLoading) {
@@ -119,6 +172,20 @@ export function Series() {
           <Heading color="white" size="2xl" mb={8}>
             Explorar Séries
           </Heading>
+
+          {genreFilter && genreName && (
+            <Box mb={6}>
+              <HStack spacing={2}>
+                <Text color="white">Filtrando por gênero:</Text>
+                <Tag colorScheme="teal" size="lg">
+                  <HStack spacing={2}>
+                    <Text>{genreName}</Text>
+                    <CloseButton size="sm" onClick={clearGenreFilter} />
+                  </HStack>
+                </Tag>
+              </HStack>
+            </Box>
+          )}
 
           <Flex 
             gap={4} 
@@ -161,16 +228,24 @@ export function Series() {
             <Box minW={{ base: "100%", md: "200px" }}>
               <SeriesFilter
                 genreFilter={genreFilter}
-                onGenreChange={setGenreFilter}
+                onGenreChange={(genre) => handleGenreChange(genre)}
               />
             </Box>
           </Flex>
 
-          <SimpleGrid columns={{ base: 3, md: 4, lg: 6 }} spacing={4}>
-            {seriesWithRatings.map((series) => (
-              <SeriesCard key={series.id} series={series} />
-            ))}
-          </SimpleGrid>
+          {seriesWithRatings.length > 0 ? (
+            <SimpleGrid columns={{ base: 3, md: 4, lg: 6 }} spacing={4}>
+              {seriesWithRatings.map((series) => (
+                <SeriesCard key={series.id} series={series} />
+              ))}
+            </SimpleGrid>
+          ) : (
+            <Box textAlign="center" py={12}>
+              <Text color="gray.400" fontSize="lg">
+                Nenhuma série encontrada com os filtros aplicados.
+              </Text>
+            </Box>
+          )}
 
           {hasNextPage && (
             <Box textAlign="center" mt={4}>
