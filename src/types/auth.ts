@@ -9,5 +9,11 @@ export interface ExtendedUser extends FirebaseUser {
     id: number;
     name: string;
     poster_path: string;
+    backdrop_path: string;
+    images?: {
+      logos?: Array<{
+        file_path: string;
+      }>;
+    };
   };
 } 

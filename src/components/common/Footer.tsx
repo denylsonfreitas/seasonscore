@@ -1,4 +1,4 @@
-import { Box, Container, Text, HStack, Link, Icon, VStack } from "@chakra-ui/react";
+import { Box, Container, Text, HStack, Link, Icon, VStack, Button } from "@chakra-ui/react";
 import { GithubLogo, LinkedinLogo } from "@phosphor-icons/react";
 
 export function Footer() {
@@ -32,9 +32,15 @@ export function Footer() {
               </HStack>
             </Link>
           </HStack>
+          {/*© {new Date().getFullYear()}*/}
           <Text color="gray.500" fontSize="sm">
-            © {new Date().getFullYear()} SeasonScore. Todos os direitos reservados.
+            SeasonScore é um projeto independente e esta limitado a erros, feedbacks e melhorias são sempre bem-vindos.
           </Text>
+          <Button onClick={() => {
+            window.open("https://github.com/denylsonfreitas/seasonscore/issues", "_blank");
+          }}>
+            Reportar um erro
+          </Button>
           <Text color="gray.600" fontSize="xs">
             Dados fornecidos por TMDb
           </Text>

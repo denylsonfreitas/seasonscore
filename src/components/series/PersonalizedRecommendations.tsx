@@ -58,7 +58,7 @@ export function PersonalizedRecommendations() {
 
   if (!currentUser) {
     return (
-      <Box mt={12} mb={8}>
+      <Box mb={12}>
         <HStack spacing={2} mb={6}>
           <Heading color="white" size="lg">Recomendações para Você</Heading>
           <Tooltip 
@@ -84,7 +84,7 @@ export function PersonalizedRecommendations() {
 
   if (isLoading) {
     return (
-      <Box mt={12} mb={8}>
+      <Box mb={12}>
         <Heading color="white" size="lg" mb={6}>
           Recomendações para Você
         </Heading>
@@ -97,7 +97,7 @@ export function PersonalizedRecommendations() {
 
   if (isError || recommendations.length === 0) {
     return (
-      <Box mt={12} mb={8}>
+      <Box mb={12}>
         <Heading color="white" size="lg" mb={6}>
           Recomendações para Você
         </Heading>
@@ -118,7 +118,7 @@ export function PersonalizedRecommendations() {
   }
 
   return (
-    <Box mt={12} mb={8}>
+    <Box mb={12}>
       <HStack spacing={2} mb={6}>
         <Heading color="white" size="lg">Recomendações para Você</Heading>
         <Tooltip 

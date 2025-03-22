@@ -60,6 +60,12 @@ export function ProfileSettings() {
     id: number;
     name: string;
     poster_path: string;
+    backdrop_path: string;
+    images?: {
+      logos?: Array<{
+        file_path: string;
+      }>;
+    };
   } | null>(null);
   const toast = useToast();
   const navigate = useNavigate();
@@ -302,6 +308,12 @@ export function ProfileSettings() {
         id: seriesId,
         name: seriesDetails.name,
         poster_path: seriesDetails.poster_path ?? "",
+        backdrop_path: seriesDetails.backdrop_path ?? "",
+        images: seriesDetails.images ? {
+          logos: seriesDetails.images.logos ? seriesDetails.images.logos.map(logo => ({
+            file_path: logo.file_path
+          })) : undefined
+        } : undefined
       });
       setIsSearchOpen(false);
     } catch (error) {

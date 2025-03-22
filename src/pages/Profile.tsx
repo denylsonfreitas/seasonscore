@@ -267,182 +267,254 @@ export function Profile() {
 
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
-      <Box flex="1" pt={{ base: "60px", md: "80px" }}>
-        <Container maxW="container.lg" py={containerPadding} pb={16}>
-          <VStack spacing={8} align="stretch">
-            <Box position="relative">
-              <Box
-                h={coverHeight}
-                w="100%"
-                bg="gray.700"
-                borderTopRadius="lg"
-                bgImage={isOwnProfile ? currentUser?.coverURL || undefined : profileUser?.coverURL || undefined}
-                bgSize="cover"
-                bgPosition="center"
-              />
-              <Box bg="gray.800" borderBottomRadius="lg">
-                <Container maxW="container.lg" py={{ base: 4, md: 6 }}>
-                  <Stack
-                    direction={{ base: "column", md: "row" }}
-                    justify="space-between"
-                    align={{ base: "center", md: "start" }}
-                    spacing={{ base: 4, md: 6 }}
-                  >
-                    <Stack
-                      direction={{ base: "column", md: "row" }}
-                      spacing={{ base: 4, md: 6 }}
-                      align={{ base: "center", md: "start" }}
-                      w="full"
-                    >
-                      <Box position="relative">
-                        <Avatar
-                          size={avatarSize}
-                          src={isOwnProfile ? currentUser?.photoURL || undefined : profileUser?.photoURL || undefined}
-                          name={userName}
-                          mt={{ base: "-40px", md: "-60px" }}
-                          border="4px solid"
-                          borderColor="gray.800"
-                        />
-                        {isOwnProfile && (
-                          <Box
-                            position={{ base: "absolute", md: "static" }}
-                            right={{ base: "-100px", md: "auto" }}
-                            top={{ base: "50%", md: "auto" }}
-                            transform={{ base: "translateY(-50%)", md: "none" }}
-                            display={{ base: "block", md: "none" }}
-                          >
-                            <Button
-                              as="span"
-                              colorScheme="teal"
-                              variant="outline"
-                              onClick={() => navigate("/settings/profile")}
-                              size="sm"
-                            >
-                              Editar
-                            </Button>
-                          </Box>
-                        )}
-                      </Box>
-                      <VStack align={{ base: "center", md: "start" }} spacing={2} w="full">
-                        <Heading size={{ base: "md", md: "lg" }} color="white" textAlign={{ base: "center", md: "left" }}>
-                          {userName}
-                        </Heading>
-                        <Text 
-                          color="gray.500" 
-                          fontSize={{ base: "xs", md: "sm" }}
-                          textAlign={{ base: "center", md: "left" }}
-                          letterSpacing="0.5px"
-                          fontWeight="medium"
-                        >
-                          @{isOwnProfile ? currentUser?.username : profileUser?.username}
-                        </Text>
-                        {(isOwnProfile ? currentUser?.description : profileUser?.description) && (
-                          <Text 
-                            color="gray.400" 
-                            maxW="600px"
-                            textAlign={{ base: "center", md: "left" }}
-                            fontSize={{ base: "sm", md: "md" }}
-                            mt={2}
-                          >
-                            {isOwnProfile ? currentUser?.description : profileUser?.description}
-                          </Text>
-                        )}
-                        <Stack
-                          direction={{ base: "row", md: "row" }}
-                          spacing={{ base: 4, md: 8 }}
-                          mt={2}
-                          justify={{ base: "center", md: "start" }}
-                          wrap="wrap"
-                        >
-                          <Stat minW={{ base: "auto", md: "100px" }} textAlign={{ base: "center", md: "left" }}>
-                            <StatLabel color="gray.400" fontSize={{ base: "xs", md: "sm" }}>Avaliações</StatLabel>
-                            <StatNumber color="white" fontSize={{ base: "md", md: "lg" }}>{reviews.length}</StatNumber>
-                          </Stat>
-                          <Stat
-                            cursor="pointer"
-                            onClick={() => setShowFollowers(true)}
-                            _hover={{ color: "teal.300" }}
-                            minW={{ base: "auto", md: "100px" }}
-                            textAlign={{ base: "center", md: "left" }}
-                          >
-                            <StatLabel color="gray.400" fontSize={{ base: "xs", md: "sm" }}>Seguidores</StatLabel>
-                            <StatNumber color="white" fontSize={{ base: "md", md: "lg" }}>{followers.length}</StatNumber>
-                          </Stat>
-                          <Stat
-                            cursor="pointer"
-                            onClick={() => setShowFollowing(true)}
-                            _hover={{ color: "teal.300" }}
-                            minW={{ base: "auto", md: "100px" }}
-                            textAlign={{ base: "center", md: "left" }}
-                          >
-                            <StatLabel color="gray.400" fontSize={{ base: "xs", md: "sm" }}>Seguindo</StatLabel>
-                            <StatNumber color="white" fontSize={{ base: "md", md: "lg" }}>{following.length}</StatNumber>
-                          </Stat>
-                        </Stack>
-                      </VStack>
-                    </Stack>
-                    <VStack align={{ base: "center", md: "end" }} spacing={4} w={{ base: "full", md: "auto" }}>
-                      <HStack justify={{ base: "center", md: "end" }} w="full">
-                        {!isOwnProfile && <FollowButton userId={targetUserId!} />}
-                        {isOwnProfile && (
-                          <Button
-                            colorScheme="teal"
-                            variant="outline"
-                            onClick={() => navigate("/settings/profile")}
-                            size={{ base: "sm", md: "md" }}
-                            display={{ base: "none", md: "flex" }}
-                          >
-                            Editar Perfil
-                          </Button>
-                        )}
-                      </HStack>
-                      {(isOwnProfile ? currentUser?.favoriteSeries : profileUser?.favoriteSeries) && (
-                        <Stack
-                          direction={{ base: "row", md: "row" }}
-                          bg="gray.700"
-                          p={3}
-                          borderRadius="md"
-                          spacing={4}
-                          align="center"
-                          w={{ base: "full", md: "auto" }}
-                          justify={{ base: "center", md: "start" }}
-                        >
-                          <RouterLink to={`/series/${(isOwnProfile ? currentUser?.favoriteSeries : profileUser?.favoriteSeries)?.id}`}>
-                            <Image
-                              src={`https://image.tmdb.org/t/p/w200${(isOwnProfile ? currentUser?.favoriteSeries : profileUser?.favoriteSeries)?.poster_path}`}
-                              alt={(isOwnProfile ? currentUser?.favoriteSeries : profileUser?.favoriteSeries)?.name}
-                              borderRadius="md"
-                              height={{ base: "50px", md: "60px" }}
-                              width={{ base: "35px", md: "60px" }}
-                              objectFit="cover"
-                            />
-                          </RouterLink>
-                          <VStack align={{ base: "center", md: "start" }} spacing={0}>
-                            <Text color="gray.400" fontSize="xs">
-                              Série Favorita
-                            </Text>
-                            <RouterLink to={`/series/${(isOwnProfile ? currentUser?.favoriteSeries : profileUser?.favoriteSeries)?.id}`}>
-                              <Text 
-                                color="white" 
-                                fontWeight="bold" 
-                                fontSize="sm" 
-                                noOfLines={2}
-                                maxW="150px"
-                                textAlign={{ base: "center", md: "left" }}
-                                _hover={{ color: "teal.300" }}
-                              >
-                                {(isOwnProfile ? currentUser?.favoriteSeries : profileUser?.favoriteSeries)?.name}
-                              </Text>
-                            </RouterLink>
-                          </VStack>
-                        </Stack>
-                      )}
-                    </VStack>
-                  </Stack>
-                </Container>
-              </Box>
-            </Box>
+      <Box flex="1">
+        {/* Banner de perfil estilo TrendingBanner */}
+        <Box 
+          position="relative"
+          sx={{
+            width: "100vw",
+            marginLeft: "calc(50% - 50vw)",
+            marginRight: "calc(50% - 50vw)",
+            paddingTop: "60px",
+            marginTop: "-60px",
+            position: "relative",
+            zIndex: 1,
+            transform: "translateZ(0)",
+            willChange: "transform",
+          }}
+        >
+          <Box
+            h={{ base: "200px", md: "300px" }}
+            w="100%"
+            position="relative"
+            overflow="hidden"
+          >
+            <Box
+              position="absolute"
+              top={0}
+              left={0}
+              right={0}
+              bottom={0}
+              bgImage={isOwnProfile ? currentUser?.coverURL || "url('/images/default-cover.jpg')" : profileUser?.coverURL || "url('/images/default-cover.jpg')"}
+              bgSize="cover"
+              bgPosition="center"
+              transition="all 0.5s ease-in-out"
+              transform="scale(1)"
+              _hover={{ transform: "scale(1.05)" }}
+              _after={{
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                bg: "linear-gradient(to bottom, rgba(23, 25, 35, 0.3), rgba(23, 25, 35, 0.9) 60%, rgba(23, 25, 35, 1))",
+              }}
+            />
 
+            <Input
+              type="file"
+              accept="image/*"
+              display="none"
+              ref={coverInputRef}
+              onChange={handleCoverUpload}
+            />
+          </Box>
+          
+          <Container maxW="container.lg" position="relative" px={{ base: 4, md: 8 }}>
+            <Flex 
+              direction="row"
+              position="relative" 
+              mt={{ base: "-80px", md: "-100px" }}
+              align="center"
+              justify="space-between"
+              mb={6}
+            >
+              <Flex 
+                direction="row" 
+                align="center" 
+                gap={4} 
+                flex="1"
+                maxW={{ base: "75%", md: "80%" }}
+              >
+                <Box position="relative">
+                  <Avatar
+                    size={{ base: "xl", md: "2xl" }}
+                    src={isOwnProfile ? currentUser?.photoURL || undefined : profileUser?.photoURL || undefined}
+                    name={userName}
+                    border="3px solid"
+                    borderColor="gray.800"
+                    boxShadow="0 4px 12px rgba(0,0,0,0.3)"
+                  />
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    display="none"
+                    ref={photoInputRef}
+                    onChange={handlePhotoUpload}
+                  />
+                </Box>
+                
+                <VStack align="flex-start" spacing={1} maxW={{ base: "160px", md: "600px" }}>
+                  <Heading 
+                    size={{ base: "md", md: "xl" }}
+                    color="white" 
+                    textShadow="0 2px 4px rgba(0,0,0,0.3)"
+                    textAlign="left"
+                    noOfLines={1}
+                  >
+                    {userName}
+                  </Heading>
+                  <Text 
+                    color="gray.300" 
+                    fontSize={{ base: "xs", md: "md" }}
+                    textAlign="left"
+                    letterSpacing="0.5px"
+                    fontWeight="medium"
+                    noOfLines={1}
+                  >
+                    @{isOwnProfile ? currentUser?.username : profileUser?.username}
+                  </Text>
+                  {(isOwnProfile ? currentUser?.description : profileUser?.description) && (
+                    <Text 
+                      color="gray.200" 
+                      maxW="600px"
+                      textAlign="left"
+                      fontSize={{ base: "xs", md: "md" }}
+                      mt={1}
+                      noOfLines={{ base: 1, md: 2 }}
+                    >
+                      {isOwnProfile ? currentUser?.description : profileUser?.description}
+                    </Text>
+                  )}
+                </VStack>
+              </Flex>
+              
+              <Box>
+                {!isOwnProfile && <FollowButton userId={targetUserId!} />}
+                {isOwnProfile && (
+                  <Button
+                    colorScheme="teal"
+                    onClick={() => navigate("/settings/profile")}
+                    size={{ base: "sm", md: "md" }}
+                  >
+                    Editar Perfil
+                  </Button>
+                )}
+              </Box>
+            </Flex>
+            
+            <VStack 
+              spacing={4} 
+              align="stretch"
+              mb={6}
+            >
+              <HStack 
+                spacing={{ base: 4, md: 8 }} 
+                justify="center" 
+                bg="gray.800"
+                p={{ base: 3, md: 4 }}
+                borderRadius="lg"
+                boxShadow="0 4px 12px rgba(0,0,0,0.1)"
+              >
+                <Stat textAlign="center" flex="1">
+                  <StatLabel color="gray.400" fontSize={{ base: "xs", md: "sm" }}>Avaliações</StatLabel>
+                  <StatNumber color="white" fontSize={{ base: "md", md: "lg" }}>{reviews.length}</StatNumber>
+                </Stat>
+                <Stat
+                  cursor="pointer"
+                  onClick={() => setShowFollowers(true)}
+                  _hover={{ color: "teal.300" }}
+                  textAlign="center"
+                  flex="1"
+                >
+                  <StatLabel color="gray.400" fontSize={{ base: "xs", md: "sm" }}>Seguidores</StatLabel>
+                  <StatNumber color="white" fontSize={{ base: "md", md: "lg" }}>{followers.length}</StatNumber>
+                </Stat>
+                <Stat
+                  cursor="pointer"
+                  onClick={() => setShowFollowing(true)}
+                  _hover={{ color: "teal.300" }}
+                  textAlign="center"
+                  flex="1"
+                >
+                  <StatLabel color="gray.400" fontSize={{ base: "xs", md: "sm" }}>Seguindo</StatLabel>
+                  <StatNumber color="white" fontSize={{ base: "md", md: "lg" }}>{following.length}</StatNumber>
+                </Stat>
+              </HStack>
+              
+              {(isOwnProfile ? currentUser?.favoriteSeries : profileUser?.favoriteSeries) && (
+                <Box 
+                  bg="gray.800" 
+                  borderRadius="lg" 
+                  boxShadow="0 4px 12px rgba(0,0,0,0.1)"
+                  height={{ base: "100px", md: "120px" }}
+                  position="relative"
+                  overflow="hidden"
+                >
+                  <RouterLink to={`/series/${(isOwnProfile ? currentUser?.favoriteSeries : profileUser?.favoriteSeries)?.id}`}>
+                    <Box
+                      position="absolute"
+                      top={0}
+                      left={0}
+                      right={0}
+                      bottom={0}
+                      bgImage={`url(https://image.tmdb.org/t/p/w780${(isOwnProfile ? currentUser?.favoriteSeries : profileUser?.favoriteSeries)?.backdrop_path || (isOwnProfile ? currentUser?.favoriteSeries : profileUser?.favoriteSeries)?.poster_path})`}
+                      bgSize="cover"
+                      bgPosition="center"
+                      transition="all 0.3s ease"
+                      _hover={{ transform: "scale(1.05)" }}
+                      _after={{
+                        content: '""',
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        bg: "linear-gradient(to bottom, rgba(23, 25, 35, 0.3), rgba(23, 25, 35, 0.8))",
+                      }}
+                    />
+                    
+                    <Flex
+                      position="absolute"
+                      top={0}
+                      left={0}
+                      right={0}
+                      bottom={0}
+                      align="center"
+                      justify="center"
+                      p={4}
+                      zIndex={1}
+                    >
+                      {(isOwnProfile ? currentUser?.favoriteSeries?.images?.logos?.[0]?.file_path : profileUser?.favoriteSeries?.images?.logos?.[0]?.file_path) ? (
+                        <Image
+                          src={`https://image.tmdb.org/t/p/w500${(isOwnProfile ? currentUser?.favoriteSeries?.images?.logos?.[0]?.file_path : profileUser?.favoriteSeries?.images?.logos?.[0]?.file_path)}`}
+                          alt={(isOwnProfile ? currentUser?.favoriteSeries?.name : profileUser?.favoriteSeries?.name) || ''}
+                          maxH={{ base: "60px", md: "70px" }}
+                          objectFit="contain"
+                        />
+                      ) : (
+                        <Text 
+                          color="white" 
+                          fontWeight="bold" 
+                          fontSize={{ base: "md", md: "lg" }}
+                          textAlign="center"
+                          textShadow="0 2px 4px rgba(0,0,0,0.4)"
+                          noOfLines={2}
+                        >
+                          {(isOwnProfile ? currentUser?.favoriteSeries : profileUser?.favoriteSeries)?.name}
+                        </Text>
+                      )}
+                    </Flex>
+                  </RouterLink>
+                </Box>
+              )}
+            </VStack>
+          </Container>
+        </Box>
+
+        <Container maxW="container.lg" pt={0} pb={16} px={{ base: 4, md: 8 }}>
+          <VStack spacing={6} align="stretch">
             <Tabs variant="soft-rounded" colorScheme="teal">
               <TabList mb={4} overflowX="auto" pb={2}>
                 <Tab 

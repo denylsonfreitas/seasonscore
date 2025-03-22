@@ -13,9 +13,10 @@ import {
   Timestamp,
   limit,
   deleteDoc,
+  getDoc,
 } from "firebase/firestore";
 import { auth } from "../config/firebase";
-import { getUserData } from "./users";
+import { getUserData, addToUserWatchedSeries } from "./users";
 
 const db = getFirestore();
 const notificationsCollection = collection(db, "notifications");
@@ -60,8 +61,50 @@ export async function createNotification(
     reviewId?: string;
     message: string;
   }
-): Promise<string> {
+): Promise<string | null> {
   try {
+    // Verificar configurações de notificação do usuário
+    const userDoc = await getDoc(doc(db, "users", userId));
+    if (!userDoc.exists()) {
+      console.warn(`Usuário ${userId} não encontrado. Notificação não será criada.`);
+      return null;
+    }
+    
+    const userData = userDoc.data();
+    const notificationSettings = userData.notificationSettings || {
+      newEpisode: true,
+      newFollower: true,
+      newComment: true,
+      newReaction: true,
+      newReview: true
+    };
+    
+    // Verificar se o tipo de notificação está habilitado para este usuário
+    let isEnabled = true;
+    
+    switch (type) {
+      case NotificationType.NEW_EPISODE:
+        isEnabled = notificationSettings.newEpisode;
+        break;
+      case NotificationType.NEW_FOLLOWER:
+        isEnabled = notificationSettings.newFollower;
+        break;
+      case NotificationType.NEW_COMMENT:
+        isEnabled = notificationSettings.newComment;
+        break;
+      case NotificationType.NEW_REACTION:
+        isEnabled = notificationSettings.newReaction;
+        break;
+      case NotificationType.NEW_REVIEW:
+        isEnabled = notificationSettings.newReview;
+        break;
+    }
+    
+    // Se o tipo de notificação estiver desabilitado, não criar a notificação
+    if (!isEnabled) {
+      return null;
+    }
+    
     // Se houver um senderId, buscar informações do remetente
     let senderName, senderPhoto;
     if (data.senderId) {
@@ -116,6 +159,12 @@ export async function createNotification(
         console.error("Erro ao verificar notificações existentes:", error);
         // Continuar e criar uma nova notificação mesmo se houver erro na verificação
       }
+    }
+
+    // Se for uma notificação de novo episódio, rastrear a série
+    if (type === NotificationType.NEW_EPISODE && data.seriesId) {
+      // Adicionar a série à lista de séries acompanhadas pelo usuário
+      await addToUserWatchedSeries(userId, data.seriesId);
     }
 
     // Criar objeto base de notificação

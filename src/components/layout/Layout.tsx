@@ -7,9 +7,9 @@ export function Layout() {
   const isAuthPage = location.pathname === "/login" || location.pathname === "/signup";
 
   return (
-    <Box>
+    <Box minH="100vh" position="relative">
       {!isAuthPage && <Navbar />}
-      <Box>
+      <Box w="100%">
         <Outlet />
       </Box>
     </Box>

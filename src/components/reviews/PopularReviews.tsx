@@ -1,7 +1,7 @@
 import { Box, Heading, VStack, Text, Avatar, HStack, Flex, Grid, Image, Icon, useDisclosure, Button } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { getPopularReviews, PopularReview, getSeriesReviews } from "../../services/reviews";
-import { Heart, CaretDown } from "@phosphor-icons/react";
+import { Heart, CaretDown, CaretUp } from "@phosphor-icons/react";
 import { RatingStars } from "../common/RatingStars";
 import { UserName } from "../common/UserName";
 import { ReviewDetailsModal } from "./ReviewDetailsModal";
@@ -163,9 +163,8 @@ export function PopularReviews() {
                 variant="ghost"
                 colorScheme="whiteAlpha"
                 onClick={() => setIsExpanded(!isExpanded)}
-                rightIcon={<CaretDown weight="bold" size={20} />}
+                rightIcon={isExpanded ? <CaretUp weight="bold" size={20} /> : <CaretDown weight="bold" size={20} />}
                 _hover={{ bg: "whiteAlpha.200" }}
-                transform={isExpanded ? "rotate(180deg)" : "none"}
                 transition="all 0.2s ease"
               >
                 {isExpanded ? "Ver Menos" : "Ver Mais"}

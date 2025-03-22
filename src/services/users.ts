@@ -3,6 +3,14 @@ import { db } from "../config/firebase";
 import { User } from "firebase/auth";
 import { collection, query, where, getDocs, writeBatch } from "firebase/firestore";
 import { getFirestore } from "firebase/firestore";
+import {
+  serverTimestamp,
+  increment,
+  orderBy,
+  startAt,
+  endAt,
+  FieldPath,
+} from "firebase/firestore";
 
 export interface UserData {
   id: string;
@@ -16,7 +24,21 @@ export interface UserData {
     id: number;
     name: string;
     poster_path: string;
+    backdrop_path: string;
+    images?: {
+      logos?: Array<{
+        file_path: string;
+      }>;
+    };
   } | undefined;
+  notificationSettings?: {
+    newEpisode: boolean;
+    newFollower: boolean;
+    newComment: boolean;
+    newReaction: boolean;
+    newReview: boolean;
+  };
+  watchedSeriesIds?: number[]; // Array de IDs de séries que o usuário acompanha
 }
 
 export async function isUsernameAvailable(username: string): Promise<boolean> {
@@ -321,6 +343,7 @@ export async function deleteUserData(userId: string) {
         await operation();
         return true;
       } catch (error: any) {
+        console.error(`❌ Erro na operação "${name}":`, error);
         return false;
       }
     };
@@ -369,13 +392,56 @@ export async function deleteUserData(userId: string) {
 
     // Excluir lastNotifiedEpisodes
     await safeOperation(async () => {
-      const lastNotifiedSnapshot = await getDocs(collection(db, "lastNotifiedEpisodes"));
-      const docsToDelete = lastNotifiedSnapshot.docs.filter(doc => doc.id.startsWith(`${userId}_`));
       
-      if (docsToDelete.length > 0) {
-        const batch = writeBatch(db);
-        docsToDelete.forEach(doc => batch.delete(doc.ref));
-        await batch.commit();
+      try {
+        // Buscar o usuário para verificar se temos a lista de séries acompanhadas
+        const userRef = doc(db, "users", userId);
+        const userDoc = await getDoc(userRef);
+        
+        if (!userDoc.exists()) {
+          return;
+        }
+        
+        const userData = userDoc.data();
+        const watchedSeriesIds = userData.watchedSeriesIds || [];
+        
+        // Se temos a lista de séries, vamos tentar excluir especificamente esses documentos
+        let seriesIdsToTry: number[] = [];
+        
+        if (watchedSeriesIds.length > 0) {
+          seriesIdsToTry = watchedSeriesIds;
+        } else {
+          // Se não temos a lista, tentamos alguns IDs comuns (1-30) como fallback
+          seriesIdsToTry = Array.from({ length: 30 }, (_, i) => i + 1);
+        }
+        
+        let successCount = 0;
+        let errorCount = 0;
+        
+        // Processar exclusão para cada série
+        for (const seriesId of seriesIdsToTry) {
+          const docId = `${userId}_${seriesId}`;
+          try {
+            const docRef = doc(db, "lastNotifiedEpisodes", docId);
+            await deleteDoc(docRef);
+            successCount++;
+          } catch (error: any) {
+            // Se o erro for "not-found", isso é normal e esperado
+            if (error.code === 'not-found') {
+              // Não contabilizamos como erro, apenas continuamos
+            } else {
+              console.error(`❌ Erro ao excluir documento ${docId}:`, error);
+              errorCount++;
+            }
+          }
+        }
+        
+        // Adicionar mensagem sobre o resultado
+        if (successCount > 0) {
+        } else {
+        }
+      } catch (error) {
+        throw error;
       }
     }, "excluir registros de episódios");
 
@@ -413,5 +479,80 @@ export async function deleteUserData(userId: string) {
       details: error.details
     });
     throw error;
+  }
+}
+
+export async function updateUserNotificationSettings(
+  userId: string, 
+  settings: {
+    newEpisode?: boolean;
+    newFollower?: boolean;
+    newComment?: boolean;
+    newReaction?: boolean;
+    newReview?: boolean;
+  }
+): Promise<void> {
+  try {
+    if (!userId) throw new Error("ID de usuário não fornecido");
+    
+    const userRef = doc(db, "users", userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      throw new Error("Usuário não encontrado");
+    }
+    
+    // Obter configurações atuais ou usar defaults
+    const currentSettings = userDoc.data().notificationSettings || {
+      newEpisode: true,
+      newFollower: true,
+      newComment: true,
+      newReaction: true,
+      newReview: true
+    };
+    
+    // Mesclar configurações existentes com as novas
+    const updatedSettings = {
+      ...currentSettings,
+      ...settings
+    };
+    
+    await updateDoc(userRef, {
+      notificationSettings: updatedSettings,
+      updatedAt: new Date()
+    });
+    
+  } catch (error) {
+    console.error("Erro ao atualizar configurações de notificação:", error);
+    throw error;
+  }
+}
+
+// Nova função para adicionar uma série à lista de séries que o usuário acompanha
+export async function addToUserWatchedSeries(userId: string, seriesId: number): Promise<void> {
+  try {
+    const userRef = doc(db, "users", userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      console.warn(`Usuário ${userId} não encontrado`);
+      return;
+    }
+    
+    // Obter a lista atual ou inicializar se não existir
+    const userData = userDoc.data();
+    const currentWatchedSeries = userData.watchedSeriesIds || [];
+    
+    // Verificar se a série já está na lista
+    if (!currentWatchedSeries.includes(seriesId)) {
+      // Adicionar a série à lista
+      await updateDoc(userRef, {
+        watchedSeriesIds: [...currentWatchedSeries, seriesId],
+        updatedAt: new Date()
+      });
+      
+    }
+  } catch (error) {
+    console.error(`❌ Erro ao adicionar série à lista do usuário:`, error);
   }
 } 

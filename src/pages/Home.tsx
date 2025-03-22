@@ -14,9 +14,9 @@ export function Home() {
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
       <Box flex="1">
+        <TrendingBanner />
+        
         <Container maxW="1200px" py={8} pb={16}>
-          <TrendingBanner />
-
           <PersonalizedRecommendations />
 
           <HomeSeriesSection

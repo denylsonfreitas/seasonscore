@@ -1,8 +1,10 @@
-import { Box, Heading, Text, VStack, HStack, IconButton } from "@chakra-ui/react";
+import { Box, Heading, Text, VStack, HStack, IconButton, Button } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { getTrendingSeries } from "../../services/tmdb";
 import { useNavigate } from "react-router-dom";
-import { CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { CaretLeft, CaretRight, SignIn, UserCircle } from "@phosphor-icons/react";
+import { useAuth } from "../../contexts/AuthContext";
+import { useAuthUIStore } from "../../services/uiState";
 
 interface TrendingSeries {
   id: number;
@@ -16,6 +18,8 @@ export function TrendingBanner() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const { openLoginPopover, openSignUpModal } = useAuthUIStore();
 
   useEffect(() => {
     const fetchTrendingSeries = async () => {
@@ -62,19 +66,33 @@ export function TrendingBanner() {
 
   const currentSeries = trendingSeries[currentIndex];
 
+  const handleLoginClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    openLoginPopover();
+  };
+
+  const handleSignUpClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    openSignUpModal();
+  };
+
   return (
     <Box 
-      position="relative" 
-      mb={12} 
-      width="99.5vw" 
-      left="50%" 
-      right="50%" 
-      marginLeft="-50vw" 
-      marginRight="-50vw"
+      position="relative"
       cursor="pointer"
       onClick={() => navigate(`/series/${currentSeries.id}`)}
       transition="transform 0.3s ease"
-
+      sx={{
+        width: "100vw",
+        marginLeft: "calc(50% - 50vw)",
+        marginRight: "calc(50% - 50vw)",
+        paddingTop: "60px",
+        marginTop: "-60px",
+        position: "relative",
+        zIndex: 1,
+        transform: "translateZ(0)",
+        willChange: "transform",
+      }}
     >
       <Box
         h={{ base: "300px", md: "500px" }}
@@ -101,7 +119,6 @@ export function TrendingBanner() {
             left: 0,
             right: 0,
             bottom: 0,
-
             bg: "linear-gradient(to bottom, rgba(23, 25, 35, 0.5), rgba(23, 25, 35, 1))",
           }}
         />
@@ -118,7 +135,7 @@ export function TrendingBanner() {
         transition="opacity 0.5s ease-in-out"
         opacity={isTransitioning ? 0 : 1}
       >
-        <Box maxW="1150px" width="100%">
+        <Box maxW="1150px" width="100%" position="relative">
           <VStack align={{ base: "center", md: "start" }} spacing={3} maxW="600px">
             <Heading 
               color="white" 
@@ -137,7 +154,32 @@ export function TrendingBanner() {
             >
               {currentSeries.overview}
             </Text>
-            <HStack spacing={4} align="center">
+            
+            {!currentUser && (
+              <HStack spacing={4} align="center" mt={2}>
+                <Button 
+                  colorScheme="teal" 
+                  leftIcon={<UserCircle weight="bold" />}
+                  onClick={handleSignUpClick}
+                  size="md"
+                  px={6}
+                >
+                  Criar Conta
+                </Button>
+                <Button 
+                  variant="outline" 
+                  colorScheme="whiteAlpha"
+                  leftIcon={<SignIn weight="bold" />}
+                  onClick={handleLoginClick}
+                  size="md"
+                  _hover={{ bg: "whiteAlpha.200" }}
+                >
+                  Entrar
+                </Button>
+              </HStack>
+            )}
+            
+            <HStack spacing={4} align="center" mt={currentUser ? 0 : 2}>
               <IconButton
                 icon={<CaretLeft size={20} weight="bold" />}
                 aria-label="Anterior"

@@ -12,7 +12,7 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { currentUser } = useAuth();
 
   if (!currentUser) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/" />;
   }
 
   return <>{children}</>;
@@ -30,8 +30,6 @@ function ProfileRedirect() {
 
 // Lazy loading para todos os componentes de página
 const HomeLazy = React.lazy(() => import("../pages/Home").then(module => ({ default: module.Home })));
-const LoginLazy = React.lazy(() => import("../pages/Login").then(module => ({ default: module.Login })));
-const SignUpLazy = React.lazy(() => import("../pages/SignUp").then(module => ({ default: module.SignUp })));
 const SeriesDetailsLazy = React.lazy(() => import("../pages/SeriesDetails").then(module => ({ default: module.SeriesDetails })));
 const SeriesLazy = React.lazy(() => import("../pages/Series").then(module => ({ default: module.Series })));
 const ProfileLazy = React.lazy(() => import("../pages/Profile").then(module => ({ default: module.Profile })));
@@ -64,19 +62,11 @@ export const routes = [
       },
       {
         path: "/login",
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <LoginLazy />
-          </Suspense>
-        ),
+        element: <Navigate to="/" replace />,
       },
       {
         path: "/signup",
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <SignUpLazy />
-          </Suspense>
-        ),
+        element: <Navigate to="/" replace />,
       },
       {
         path: "/series",
