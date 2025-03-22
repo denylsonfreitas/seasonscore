@@ -1,6 +1,8 @@
 import { Box } from "@chakra-ui/react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Navbar } from "./Navbar";
+import { BackToTopButton } from "../common/BackToTopButton";
+import { ResetScroll } from "../common/ResetScroll";
 
 export function Layout() {
   const location = useLocation();
@@ -8,10 +10,17 @@ export function Layout() {
 
   return (
     <Box minH="100vh" position="relative">
+      {/* Âncora invisível para o topo da página */}
+      <div id="top" style={{ position: "absolute", top: 0, left: 0 }}></div>
+      
+      <ResetScroll />
+      
       {!isAuthPage && <Navbar />}
+      
       <Box w="100%">
         <Outlet />
       </Box>
+      <BackToTopButton />
     </Box>
   );
 }

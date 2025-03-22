@@ -25,7 +25,6 @@ import { ReviewModal } from "../components/reviews/ReviewModal";
 import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 import { ReviewDetailsModal } from "../components/reviews/ReviewDetailsModal";
 import { getUserData } from "../services/users";
-import { ScrollToTop } from "../components/common/ScrollToTop";
 import { SeriesHeader } from "../components/series/SeriesHeader";
 import { RelatedSeries } from "../components/series/RelatedSeries";
 
@@ -229,7 +228,6 @@ export function SeriesDetails() {
       </Box>
 
       <Footer />
-      <ScrollToTop />
 
       {/* Modais */}
       <ReviewModal

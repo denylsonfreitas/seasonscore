@@ -11,8 +11,28 @@ import {
 } from "@chakra-ui/react";
 import { TelevisionSimple } from "@phosphor-icons/react";
 
+interface Provider {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string;
+}
+
+interface WatchProviders {
+  flatrate?: Provider[];
+  rent?: Provider[];
+  buy?: Provider[];
+  link?: string;
+}
+
 interface SeriesWatchProvidersTabProps {
-  series: any; // O tipo completo seria melhor
+  series: {
+    "watch/providers"?: {
+      results?: {
+        BR?: WatchProviders;
+      };
+    };
+    [key: string]: any;
+  };
 }
 
 export function SeriesWatchProvidersTab({ series }: SeriesWatchProvidersTabProps) {
@@ -34,7 +54,7 @@ export function SeriesWatchProvidersTab({ series }: SeriesWatchProvidersTabProps
             Disponível no Streaming
           </Heading>
           <Wrap spacing={4}>
-            {watchProviders.flatrate.map((provider: any) => (
+            {watchProviders.flatrate.map((provider: Provider) => (
               <WrapItem key={provider.provider_id}>
                 <Box
                   bg="gray.800"
@@ -66,7 +86,7 @@ export function SeriesWatchProvidersTab({ series }: SeriesWatchProvidersTabProps
             Alugar
           </Heading>
           <Wrap spacing={4}>
-            {watchProviders.rent.map((provider: any) => (
+            {watchProviders.rent.map((provider: Provider) => (
               <WrapItem key={provider.provider_id}>
                 <Box
                   bg="gray.800"
@@ -98,7 +118,7 @@ export function SeriesWatchProvidersTab({ series }: SeriesWatchProvidersTabProps
             Comprar
           </Heading>
           <Wrap spacing={4}>
-            {watchProviders.buy.map((provider: any) => (
+            {watchProviders.buy.map((provider: Provider) => (
               <WrapItem key={provider.provider_id}>
                 <Box
                   bg="gray.800"

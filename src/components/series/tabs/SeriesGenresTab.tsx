@@ -15,8 +15,16 @@ import {
 } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 
+interface Genre {
+  id: number;
+  name: string;
+}
+
 interface SeriesGenresTabProps {
-  series: any; // O tipo completo seria melhor
+  series: {
+    genres?: Genre[];
+    [key: string]: any;
+  };
 }
 
 export function SeriesGenresTab({ series }: SeriesGenresTabProps) {
@@ -44,7 +52,7 @@ export function SeriesGenresTab({ series }: SeriesGenresTabProps) {
         </Heading>
         
         <Wrap spacing={4}>
-          {series.genres.map((genre: any) => (
+          {series.genres.map((genre: Genre) => (
             <WrapItem key={genre.id}>
               <Card 
                 bg="gray.800" 

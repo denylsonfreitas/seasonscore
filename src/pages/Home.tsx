@@ -7,7 +7,6 @@ import {
 import { Footer } from "../components/common/Footer";
 import { TrendingBanner } from "../components/series/TrendingBanner";
 import { PopularReviews } from "../components/reviews/PopularReviews";
-import { ScrollToTop } from "../components/common/ScrollToTop";
 import { PersonalizedRecommendations } from "../components/series/PersonalizedRecommendations";
 
 export function Home() {
@@ -41,7 +40,6 @@ export function Home() {
         </Container>
       </Box>
       <Footer />
-      <ScrollToTop />
     </Flex>
   );
 }

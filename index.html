@@ -9,5 +9,21 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Helper para garantir função de voltar ao topo
+      window.scrollToTop = function() {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+        
+        // Segunda tentativa com método direto
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+        }, 100);
+      };
+    </script>
   </body>
 </html>

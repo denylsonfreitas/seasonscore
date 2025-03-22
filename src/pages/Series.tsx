@@ -31,7 +31,6 @@ import { Footer } from "../components/common/Footer";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { getSeriesReviews } from "../services/reviews";
-import { ScrollToTop } from "../components/common/ScrollToTop";
 
 export function Series() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -167,7 +166,7 @@ export function Series() {
 
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
-      <Box flex="1" pt="80px">
+      <Box flex="1">
         <Container maxW="1200px" py={8} pb={16}>
           <Heading color="white" size="2xl" mb={8}>
             Explorar Séries
@@ -262,7 +261,6 @@ export function Series() {
         </Container>
       </Box>
       <Footer />
-      <ScrollToTop />
     </Flex>
   );
 }

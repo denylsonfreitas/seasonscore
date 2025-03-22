@@ -3,7 +3,6 @@ import { getPopularSeries } from "../services/tmdb";
 import { SeriesGrid } from "../components/series/SeriesGrid";
 import { Footer } from "../components/common/Footer";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { ScrollToTop } from "../components/common/ScrollToTop";
 
 export function PopularSeries() {
   const {
@@ -27,7 +26,7 @@ export function PopularSeries() {
 
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
-      <Box flex="1" pt="80px">
+      <Box flex="1">
         <Container maxW="1200px" py={8} pb={16}>
           <Heading color="white" size="2xl" mb={8}>
             Séries Populares do Momento
@@ -43,7 +42,6 @@ export function PopularSeries() {
         </Container>
       </Box>
       <Footer />
-      <ScrollToTop />
     </Flex>
   );
 } 

@@ -22,12 +22,40 @@ import { SeriesDetailsTabs } from "./SeriesDetailsTabs";
 import { SeriesReview } from "../../services/reviews";
 import { getSeriesVideos } from "../../services/tmdb";
 
+// Definição para a estrutura de séries
+interface Series {
+  id: number;
+  name: string;
+  overview: string;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  first_air_date: string;
+  vote_average: number;
+  number_of_episodes?: number;
+  number_of_seasons: number;
+  seasons?: {
+    id: number;
+    name: string;
+    season_number: number;
+    episode_count: number;
+    poster_path: string | null;
+  }[];
+  [key: string]: any; // Para outras propriedades que possam existir
+}
+
+// Definição para usuário atual
+interface User {
+  uid: string;
+  email: string | null;
+  [key: string]: any;
+}
+
 interface SeriesHeaderProps {
-  series: any; // O tipo completo seria melhor, mas usando any para simplicidade
+  series: Series;
   isLoading: boolean;
   reviews: SeriesReview[];
   userReview?: SeriesReview;
-  currentUser: any | null;
+  currentUser: User | null;
   userData: { photoURL?: string | null } | null;
   seriesId: string;
   onSeasonSelect: (season: number) => void;
@@ -35,7 +63,7 @@ interface SeriesHeaderProps {
   onSetExistingReview: (review: SeriesReview) => void;
   onSetDeleteAlertOpen: (isOpen: boolean) => void;
   onSetSeasonToDelete: (season: number | null) => void;
-  onReviewClick: (review: any) => void;
+  onReviewClick: (review: SeriesReview) => void;
   navigate: (path: string) => void;
 }
 

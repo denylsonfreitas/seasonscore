@@ -20,7 +20,6 @@ import { getSeriesDetails } from "../services/tmdb";
 import { SeriesCard } from "../components/series/SeriesCard";
 import { Footer } from "../components/common/Footer";
 import { Star, Trophy, TelevisionSimple } from "@phosphor-icons/react";
-import { ScrollToTop } from "../components/common/ScrollToTop";
 import { getSeriesReviews, getTopRatedSeries as getTopRatedReviews } from "../services/reviews";
 import { useMemo } from "react";
 
@@ -124,7 +123,7 @@ export function TopRatedSeries() {
   }
 
   return (
-    <Box minH="100vh" bg="gray.900" pt="80px">
+    <Box minH="100vh" bg="gray.900">
       <Container maxW="1200px" py={8}>
         <Box>
           <Heading color="white" size="2xl" mb={4}>
@@ -287,7 +286,6 @@ export function TopRatedSeries() {
         )}
       </Container>
       <Footer />
-      <ScrollToTop />
     </Box>
   );
 } 

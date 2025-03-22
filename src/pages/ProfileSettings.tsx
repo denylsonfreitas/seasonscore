@@ -356,7 +356,7 @@ export function ProfileSettings() {
 
   if (isLoading) {
     return (
-      <Box bg="gray.900" minH="100vh" pt="80px">
+      <Box bg="gray.900" minH="100vh">
         <Container maxW="container.md" py={8}>
           <Spinner color="teal.500" />
         </Container>
@@ -365,7 +365,7 @@ export function ProfileSettings() {
   }
 
   return (
-    <Box bg="gray.900" minH="100vh" pt="80px">
+    <Box bg="gray.900" minH="100vh">
       <Container maxW="container.md" py={8}>
         <VStack spacing={8} align="stretch">
           <Heading color="white">Configurações do Perfil</Heading>

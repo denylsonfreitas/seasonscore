@@ -9,8 +9,20 @@ import {
 import { CaretDown, CaretUp } from "@phosphor-icons/react";
 import { useState } from "react";
 
+interface CastMember {
+  id: number;
+  name: string;
+  character: string;
+  profile_path: string | null;
+}
+
 interface SeriesCastTabProps {
-  series: any; // O tipo completo seria melhor
+  series: {
+    credits?: {
+      cast?: CastMember[];
+    };
+    [key: string]: any;
+  };
 }
 
 export function SeriesCastTab({ series }: SeriesCastTabProps) {
@@ -31,7 +43,7 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
       <SimpleGrid columns={{ base: 2, md: 3 }} spacing={4}>
         {cast
           .slice(0, showAllCast ? undefined : 6)
-          .map((actor: any) => (
+          .map((actor: CastMember) => (
             <Box
               key={actor.id}
               bg="gray.800"

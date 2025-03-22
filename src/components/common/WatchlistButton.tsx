@@ -3,7 +3,6 @@ import { IconButton, Tooltip, useToast, useMediaQuery } from "@chakra-ui/react";
 import { Bookmark, BookmarkSimple } from "@phosphor-icons/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { addToWatchlist, removeFromWatchlist, isInWatchlist } from "../../services/watchlist";
-import { Series } from "../../services/tmdb";
 
 interface WatchlistButtonProps {
   series: {

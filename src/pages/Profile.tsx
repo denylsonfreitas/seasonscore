@@ -38,14 +38,15 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import {
-  doc,
-  updateDoc,
-} from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { updateProfile } from "firebase/auth";
 import { db } from "../config/firebase";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
-import { Image as ImageIcon, UploadSimple, Bookmark } from "@phosphor-icons/react";
+import {
+  Image as ImageIcon,
+  UploadSimple,
+  Bookmark,
+} from "@phosphor-icons/react";
 import { RatingStars } from "../components/common/RatingStars";
 import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 import { useQueryClient } from "@tanstack/react-query";
@@ -55,10 +56,14 @@ import { getUserReviews, SeriesReview } from "../services/reviews";
 import { getUserWatchlist, removeFromWatchlist } from "../services/watchlist";
 import { FollowButton } from "../components/user/FollowButton";
 import { getFollowers, getFollowing } from "../services/followers";
-import { getUserData, UserData, createOrUpdateUser, getUserByUsername } from "../services/users";
+import {
+  getUserData,
+  UserData,
+  createOrUpdateUser,
+  getUserByUsername,
+} from "../services/users";
 import { UserListModal } from "../components/user/UserListModal";
 import { ExtendedUser } from "../types/auth";
-import { ScrollToTop } from "../components/common/ScrollToTop";
 
 interface ExpandedReviews {
   [key: string]: boolean;
@@ -77,7 +82,9 @@ export function Profile() {
   const containerPadding = useBreakpointValue({ base: 4, md: 8 });
   const ratingStarSize = useBreakpointValue({ base: 16, md: 20 });
 
-  const [displayName, setDisplayName] = useState(currentUser?.displayName || "");
+  const [displayName, setDisplayName] = useState(
+    currentUser?.displayName || ""
+  );
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedReview, setSelectedReview] = useState<any>(null);
   const [profileUser, setProfileUser] = useState<UserData | null>(null);
@@ -91,7 +98,8 @@ export function Profile() {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
-  const isOwnProfile = !username || (currentUser && profileUser?.id === currentUser.uid);
+  const isOwnProfile =
+    !username || (currentUser && profileUser?.id === currentUser.uid);
   const targetUserId = profileUser?.id || currentUser?.uid;
 
   useEffect(() => {
@@ -188,7 +196,9 @@ export function Profile() {
     }));
   };
 
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     if (!event.target.files || !event.target.files[0] || !currentUser) return;
 
     setUploadingPhoto(true);
@@ -220,7 +230,9 @@ export function Profile() {
     }
   };
 
-  const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     if (!event.target.files || !event.target.files[0] || !currentUser) return;
 
     setUploadingCover(true);
@@ -241,7 +253,8 @@ export function Profile() {
       console.error("Erro ao atualizar capa:", error);
       toast({
         title: "Erro ao atualizar capa",
-        description: "Ocorreu um erro ao atualizar sua foto de capa. Tente novamente.",
+        description:
+          "Ocorreu um erro ao atualizar sua foto de capa. Tente novamente.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -255,21 +268,25 @@ export function Profile() {
     return (
       <Box bg="gray.900" minH="100vh" pt="80px">
         <Container maxW="1200px" py={8}>
-          <Text color="white">Você precisa estar logado para acessar esta página.</Text>
+          <Text color="white">
+            Você precisa estar logado para acessar esta página.
+          </Text>
         </Container>
       </Box>
     );
   }
 
-  const userName = isOwnProfile 
+  const userName = isOwnProfile
     ? currentUser?.displayName || currentUser?.email?.split("@")[0] || "Usuário"
-    : profileUser?.displayName || profileUser?.email?.split("@")[0] || "Usuário";
+    : profileUser?.displayName ||
+      profileUser?.email?.split("@")[0] ||
+      "Usuário";
 
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
       <Box flex="1">
         {/* Banner de perfil estilo TrendingBanner */}
-        <Box 
+        <Box
           position="relative"
           sx={{
             width: "100vw",
@@ -295,7 +312,11 @@ export function Profile() {
               left={0}
               right={0}
               bottom={0}
-              bgImage={isOwnProfile ? currentUser?.coverURL || "url('/images/default-cover.jpg')" : profileUser?.coverURL || "url('/images/default-cover.jpg')"}
+              bgImage={
+                isOwnProfile
+                  ? currentUser?.coverURL || "url('/images/default-cover.jpg')"
+                  : profileUser?.coverURL || "url('/images/default-cover.jpg')"
+              }
               bgSize="cover"
               bgPosition="center"
               transition="all 0.5s ease-in-out"
@@ -320,32 +341,45 @@ export function Profile() {
               onChange={handleCoverUpload}
             />
           </Box>
-          
-          <Container maxW="container.lg" position="relative" px={{ base: 4, md: 8 }}>
-            <Flex 
+
+          <Container
+            maxW="container.lg"
+            position="relative"
+            px={{ base: 4, md: 8 }}
+          >
+            <Flex
               direction="row"
-              position="relative" 
+              position="relative"
               mt={{ base: "-80px", md: "-100px" }}
               align="center"
               justify="space-between"
               mb={6}
             >
-              <Flex 
-                direction="row" 
-                align="center" 
-                gap={4} 
+              <Flex
+                direction="row"
+                align="center"
+                gap={4}
                 flex="1"
                 maxW={{ base: "75%", md: "80%" }}
               >
                 <Box position="relative">
-                  <Avatar
-                    size={{ base: "xl", md: "2xl" }}
-                    src={isOwnProfile ? currentUser?.photoURL || undefined : profileUser?.photoURL || undefined}
-                    name={userName}
-                    border="3px solid"
-                    borderColor="gray.800"
-                    boxShadow="0 4px 12px rgba(0,0,0,0.3)"
-                  />
+                  <Box
+                    borderRadius="full"
+                    bg="gray.700"
+                    p="3px"
+                    boxShadow="0 4px 12px rgba(0,0,0,0.5)"
+                    display="inline-block"
+                  >
+                    <Avatar
+                      size={{ base: "xl", md: "2xl" }}
+                      src={
+                        isOwnProfile
+                          ? currentUser?.photoURL || undefined
+                          : profileUser?.photoURL || undefined
+                      }
+                      name={userName}
+                    />
+                  </Box>
                   <Input
                     type="file"
                     accept="image/*"
@@ -354,42 +388,53 @@ export function Profile() {
                     onChange={handlePhotoUpload}
                   />
                 </Box>
-                
-                <VStack align="flex-start" spacing={1} maxW={{ base: "160px", md: "600px" }}>
-                  <Heading 
+
+                <VStack
+                  align="flex-start"
+                  spacing={1}
+                  maxW={{ base: "160px", md: "600px" }}
+                >
+                  <Heading
                     size={{ base: "md", md: "xl" }}
-                    color="white" 
+                    color="white"
                     textShadow="0 2px 4px rgba(0,0,0,0.3)"
                     textAlign="left"
                     noOfLines={1}
                   >
                     {userName}
                   </Heading>
-                  <Text 
-                    color="gray.300" 
+                  <Text
+                    color="gray.300"
                     fontSize={{ base: "xs", md: "md" }}
                     textAlign="left"
                     letterSpacing="0.5px"
                     fontWeight="medium"
                     noOfLines={1}
                   >
-                    @{isOwnProfile ? currentUser?.username : profileUser?.username}
+                    @
+                    {isOwnProfile
+                      ? currentUser?.username
+                      : profileUser?.username}
                   </Text>
-                  {(isOwnProfile ? currentUser?.description : profileUser?.description) && (
-                    <Text 
-                      color="gray.200" 
+                  {(isOwnProfile
+                    ? currentUser?.description
+                    : profileUser?.description) && (
+                    <Text
+                      color="gray.200"
                       maxW="600px"
                       textAlign="left"
                       fontSize={{ base: "xs", md: "md" }}
                       mt={1}
                       noOfLines={{ base: 1, md: 2 }}
                     >
-                      {isOwnProfile ? currentUser?.description : profileUser?.description}
+                      {isOwnProfile
+                        ? currentUser?.description
+                        : profileUser?.description}
                     </Text>
                   )}
                 </VStack>
               </Flex>
-              
+
               <Box>
                 {!isOwnProfile && <FollowButton userId={targetUserId!} />}
                 {isOwnProfile && (
@@ -403,23 +448,26 @@ export function Profile() {
                 )}
               </Box>
             </Flex>
-            
-            <VStack 
-              spacing={4} 
-              align="stretch"
-              mb={6}
-            >
-              <HStack 
-                spacing={{ base: 4, md: 8 }} 
-                justify="center" 
+
+            <VStack spacing={4} align="stretch" mb={6}>
+              <HStack
+                spacing={{ base: 4, md: 8 }}
+                justify="center"
                 bg="gray.800"
                 p={{ base: 3, md: 4 }}
                 borderRadius="lg"
                 boxShadow="0 4px 12px rgba(0,0,0,0.1)"
               >
                 <Stat textAlign="center" flex="1">
-                  <StatLabel color="gray.400" fontSize={{ base: "xs", md: "sm" }}>Avaliações</StatLabel>
-                  <StatNumber color="white" fontSize={{ base: "md", md: "lg" }}>{reviews.length}</StatNumber>
+                  <StatLabel
+                    color="gray.400"
+                    fontSize={{ base: "xs", md: "sm" }}
+                  >
+                    Avaliações
+                  </StatLabel>
+                  <StatNumber color="white" fontSize={{ base: "md", md: "lg" }}>
+                    {reviews.length}
+                  </StatNumber>
                 </Stat>
                 <Stat
                   cursor="pointer"
@@ -428,8 +476,15 @@ export function Profile() {
                   textAlign="center"
                   flex="1"
                 >
-                  <StatLabel color="gray.400" fontSize={{ base: "xs", md: "sm" }}>Seguidores</StatLabel>
-                  <StatNumber color="white" fontSize={{ base: "md", md: "lg" }}>{followers.length}</StatNumber>
+                  <StatLabel
+                    color="gray.400"
+                    fontSize={{ base: "xs", md: "sm" }}
+                  >
+                    Seguidores
+                  </StatLabel>
+                  <StatNumber color="white" fontSize={{ base: "md", md: "lg" }}>
+                    {followers.length}
+                  </StatNumber>
                 </Stat>
                 <Stat
                   cursor="pointer"
@@ -438,28 +493,53 @@ export function Profile() {
                   textAlign="center"
                   flex="1"
                 >
-                  <StatLabel color="gray.400" fontSize={{ base: "xs", md: "sm" }}>Seguindo</StatLabel>
-                  <StatNumber color="white" fontSize={{ base: "md", md: "lg" }}>{following.length}</StatNumber>
+                  <StatLabel
+                    color="gray.400"
+                    fontSize={{ base: "xs", md: "sm" }}
+                  >
+                    Seguindo
+                  </StatLabel>
+                  <StatNumber color="white" fontSize={{ base: "md", md: "lg" }}>
+                    {following.length}
+                  </StatNumber>
                 </Stat>
               </HStack>
-              
-              {(isOwnProfile ? currentUser?.favoriteSeries : profileUser?.favoriteSeries) && (
-                <Box 
-                  bg="gray.800" 
-                  borderRadius="lg" 
+
+              {(isOwnProfile
+                ? currentUser?.favoriteSeries
+                : profileUser?.favoriteSeries) && (
+                <Box
+                  bg="gray.800"
+                  borderRadius="lg"
                   boxShadow="0 4px 12px rgba(0,0,0,0.1)"
                   height={{ base: "100px", md: "120px" }}
                   position="relative"
                   overflow="hidden"
                 >
-                  <RouterLink to={`/series/${(isOwnProfile ? currentUser?.favoriteSeries : profileUser?.favoriteSeries)?.id}`}>
+                  <RouterLink
+                    to={`/series/${
+                      (isOwnProfile
+                        ? currentUser?.favoriteSeries
+                        : profileUser?.favoriteSeries
+                      )?.id
+                    }`}
+                  >
                     <Box
                       position="absolute"
                       top={0}
                       left={0}
                       right={0}
                       bottom={0}
-                      bgImage={`url(https://image.tmdb.org/t/p/w780${(isOwnProfile ? currentUser?.favoriteSeries : profileUser?.favoriteSeries)?.backdrop_path || (isOwnProfile ? currentUser?.favoriteSeries : profileUser?.favoriteSeries)?.poster_path})`}
+                      bgImage={`url(https://image.tmdb.org/t/p/w780${
+                        (isOwnProfile
+                          ? currentUser?.favoriteSeries
+                          : profileUser?.favoriteSeries
+                        )?.backdrop_path ||
+                        (isOwnProfile
+                          ? currentUser?.favoriteSeries
+                          : profileUser?.favoriteSeries
+                        )?.poster_path
+                      })`}
                       bgSize="cover"
                       bgPosition="center"
                       transition="all 0.3s ease"
@@ -474,7 +554,7 @@ export function Profile() {
                         bg: "linear-gradient(to bottom, rgba(23, 25, 35, 0.3), rgba(23, 25, 35, 0.8))",
                       }}
                     />
-                    
+
                     <Flex
                       position="absolute"
                       top={0}
@@ -486,23 +566,44 @@ export function Profile() {
                       p={4}
                       zIndex={1}
                     >
-                      {(isOwnProfile ? currentUser?.favoriteSeries?.images?.logos?.[0]?.file_path : profileUser?.favoriteSeries?.images?.logos?.[0]?.file_path) ? (
+                      {(
+                        isOwnProfile
+                          ? currentUser?.favoriteSeries?.images?.logos?.[0]
+                              ?.file_path
+                          : profileUser?.favoriteSeries?.images?.logos?.[0]
+                              ?.file_path
+                      ) ? (
                         <Image
-                          src={`https://image.tmdb.org/t/p/w500${(isOwnProfile ? currentUser?.favoriteSeries?.images?.logos?.[0]?.file_path : profileUser?.favoriteSeries?.images?.logos?.[0]?.file_path)}`}
-                          alt={(isOwnProfile ? currentUser?.favoriteSeries?.name : profileUser?.favoriteSeries?.name) || ''}
+                          src={`https://image.tmdb.org/t/p/w500${
+                            isOwnProfile
+                              ? currentUser?.favoriteSeries?.images?.logos?.[0]
+                                  ?.file_path
+                              : profileUser?.favoriteSeries?.images?.logos?.[0]
+                                  ?.file_path
+                          }`}
+                          alt={
+                            (isOwnProfile
+                              ? currentUser?.favoriteSeries?.name
+                              : profileUser?.favoriteSeries?.name) || ""
+                          }
                           maxH={{ base: "60px", md: "70px" }}
                           objectFit="contain"
                         />
                       ) : (
-                        <Text 
-                          color="white" 
-                          fontWeight="bold" 
+                        <Text
+                          color="white"
+                          fontWeight="bold"
                           fontSize={{ base: "md", md: "lg" }}
                           textAlign="center"
                           textShadow="0 2px 4px rgba(0,0,0,0.4)"
                           noOfLines={2}
                         >
-                          {(isOwnProfile ? currentUser?.favoriteSeries : profileUser?.favoriteSeries)?.name}
+                          {
+                            (isOwnProfile
+                              ? currentUser?.favoriteSeries
+                              : profileUser?.favoriteSeries
+                            )?.name
+                          }
                         </Text>
                       )}
                     </Flex>
@@ -517,8 +618,8 @@ export function Profile() {
           <VStack spacing={6} align="stretch">
             <Tabs variant="soft-rounded" colorScheme="teal">
               <TabList mb={4} overflowX="auto" pb={2}>
-                <Tab 
-                  color="white" 
+                <Tab
+                  color="white"
                   _selected={{ color: "white", bg: "teal.500" }}
                   fontSize={{ base: "sm", md: "md" }}
                   px={{ base: 3, md: 4 }}
@@ -526,8 +627,8 @@ export function Profile() {
                   Avaliações
                 </Tab>
                 {isOwnProfile && (
-                  <Tab 
-                    color="white" 
+                  <Tab
+                    color="white"
                     _selected={{ color: "white", bg: "teal.500" }}
                     fontSize={{ base: "sm", md: "md" }}
                     px={{ base: 3, md: 4 }}
@@ -545,7 +646,10 @@ export function Profile() {
                     </Flex>
                   ) : reviews.length > 0 ? (
                     <VStack spacing={6} align="stretch">
-                      <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={{ base: 4, md: 6 }}>
+                      <SimpleGrid
+                        columns={{ base: 1, sm: 2, lg: 3 }}
+                        spacing={{ base: 4, md: 6 }}
+                      >
                         {reviews
                           .slice(0, showAllReviews ? undefined : 6)
                           .map((review) => (
@@ -555,7 +659,11 @@ export function Profile() {
                               p={{ base: 3, md: 4 }}
                               borderRadius="lg"
                             >
-                              <Stack direction={{ base: "column", sm: "row" }} spacing={4} align="start">
+                              <Stack
+                                direction={{ base: "column", sm: "row" }}
+                                spacing={4}
+                                align="start"
+                              >
                                 <RouterLink to={`/series/${review.seriesId}`}>
                                   <Box
                                     width={{ base: "100%", sm: "60px" }}
@@ -579,7 +687,11 @@ export function Profile() {
                                           alignItems="center"
                                           justifyContent="center"
                                         >
-                                          <Text color="gray.500" fontSize="xs" textAlign="center">
+                                          <Text
+                                            color="gray.500"
+                                            fontSize="xs"
+                                            textAlign="center"
+                                          >
                                             Sem imagem
                                           </Text>
                                         </Box>
@@ -589,10 +701,10 @@ export function Profile() {
                                 </RouterLink>
                                 <Box flex="1">
                                   <RouterLink to={`/series/${review.seriesId}`}>
-                                    <Text 
-                                      color="white" 
-                                      fontWeight="bold" 
-                                      mb={2} 
+                                    <Text
+                                      color="white"
+                                      fontWeight="bold"
+                                      mb={2}
                                       _hover={{ color: "teal.300" }}
                                       fontSize={{ base: "sm", md: "md" }}
                                     >
@@ -600,36 +712,69 @@ export function Profile() {
                                     </Text>
                                   </RouterLink>
                                   {review.seasonReviews
-                                    .slice(0, expandedReviews[review.id] ? undefined : 2)
+                                    .slice(
+                                      0,
+                                      expandedReviews[review.id] ? undefined : 2
+                                    )
                                     .map((seasonReview) => (
-                                    <Box key={`${review.id}_${seasonReview.seasonNumber}`} mt={4}>
-                                      <Text color="gray.400" mb={1} fontSize={{ base: "xs", md: "sm" }}>
-                                        Temporada {seasonReview.seasonNumber}
-                                      </Text>
-                                      <RatingStars rating={seasonReview.rating} size={ratingStarSize} />
-                                      {seasonReview.comment && (
-                                        <Text color="white" mt={2} fontSize={{ base: "sm", md: "md" }}>
-                                          {seasonReview.comment}
+                                      <Box
+                                        key={`${review.id}_${seasonReview.seasonNumber}`}
+                                        mt={4}
+                                      >
+                                        <Text
+                                          color="gray.400"
+                                          mb={1}
+                                          fontSize={{ base: "xs", md: "sm" }}
+                                        >
+                                          Temporada {seasonReview.seasonNumber}
                                         </Text>
-                                      )}
-                                      <Text color="gray.400" fontSize={{ base: "xs", md: "sm" }} mt={2}>
-                                        {seasonReview.createdAt instanceof Date 
-                                          ? seasonReview.createdAt.toLocaleDateString()
-                                          : new Date(seasonReview.createdAt.seconds * 1000).toLocaleDateString()}
-                                      </Text>
-                                    </Box>
-                                  ))}
+                                        <RatingStars
+                                          rating={seasonReview.rating}
+                                          size={ratingStarSize}
+                                        />
+                                        {seasonReview.comment && (
+                                          <Text
+                                            color="white"
+                                            mt={2}
+                                            fontSize={{ base: "sm", md: "md" }}
+                                          >
+                                            {seasonReview.comment}
+                                          </Text>
+                                        )}
+                                        <Text
+                                          color="gray.400"
+                                          fontSize={{ base: "xs", md: "sm" }}
+                                          mt={2}
+                                        >
+                                          {seasonReview.createdAt instanceof
+                                          Date
+                                            ? seasonReview.createdAt.toLocaleDateString()
+                                            : new Date(
+                                                seasonReview.createdAt.seconds *
+                                                  1000
+                                              ).toLocaleDateString()}
+                                        </Text>
+                                      </Box>
+                                    ))}
                                   {review.seasonReviews.length > 2 && (
                                     <Button
                                       variant="ghost"
                                       size={{ base: "xs", md: "sm" }}
                                       color="teal.400"
                                       mt={2}
-                                      onClick={() => toggleReviewExpansion(review.id)}
+                                      onClick={() =>
+                                        toggleReviewExpansion(review.id)
+                                      }
                                     >
                                       {expandedReviews[review.id]
                                         ? "Ver menos"
-                                        : `Ver mais ${review.seasonReviews.length - 2} temporada${review.seasonReviews.length - 2 > 1 ? 's' : ''}`}
+                                        : `Ver mais ${
+                                            review.seasonReviews.length - 2
+                                          } temporada${
+                                            review.seasonReviews.length - 2 > 1
+                                              ? "s"
+                                              : ""
+                                          }`}
                                     </Button>
                                   )}
                                 </Box>
@@ -645,14 +790,16 @@ export function Profile() {
                           alignSelf="center"
                           size={{ base: "sm", md: "md" }}
                         >
-                          {showAllReviews 
-                            ? "Ver menos" 
+                          {showAllReviews
+                            ? "Ver menos"
                             : `Ver mais (${reviews.length - 6} avaliações)`}
                         </Button>
                       )}
                     </VStack>
                   ) : (
-                    <Text color="gray.400" fontSize={{ base: "sm", md: "md" }}>Nenhuma avaliação ainda.</Text>
+                    <Text color="gray.400" fontSize={{ base: "sm", md: "md" }}>
+                      Nenhuma avaliação ainda.
+                    </Text>
                   )}
                 </TabPanel>
 
@@ -663,7 +810,10 @@ export function Profile() {
                         <Spinner color="teal.500" />
                       </Flex>
                     ) : watchlist.length > 0 ? (
-                      <SimpleGrid columns={{ base: 2, sm: 3, lg: 4 }} spacing={{ base: 3, md: 6 }}>
+                      <SimpleGrid
+                        columns={{ base: 2, sm: 3, lg: 4 }}
+                        spacing={{ base: 3, md: 6 }}
+                      >
                         {watchlist.map((item) => (
                           <Box
                             key={item.seriesId}
@@ -671,10 +821,10 @@ export function Profile() {
                             p={{ base: 2, md: 4 }}
                             borderRadius="lg"
                             position="relative"
-                            _hover={{ 
+                            _hover={{
                               "& .remove-button": {
-                                opacity: 1
-                              } 
+                                opacity: 1,
+                              },
                             }}
                           >
                             {isOwnProfile && (
@@ -695,17 +845,25 @@ export function Profile() {
                                   e.preventDefault();
                                   e.stopPropagation();
                                   if (!currentUser) return;
-                                  
+
                                   try {
-                                    await removeFromWatchlist(currentUser.uid, item.seriesId);
-                                    queryClient.invalidateQueries({ queryKey: ["userWatchlist"] });
+                                    await removeFromWatchlist(
+                                      currentUser.uid,
+                                      item.seriesId
+                                    );
+                                    queryClient.invalidateQueries({
+                                      queryKey: ["userWatchlist"],
+                                    });
                                     toast({
                                       title: "Removido da watchlist",
                                       status: "success",
                                       duration: 2000,
                                     });
                                   } catch (error) {
-                                    console.error("Erro ao remover da watchlist:", error);
+                                    console.error(
+                                      "Erro ao remover da watchlist:",
+                                      error
+                                    );
                                     toast({
                                       title: "Erro ao remover da watchlist",
                                       status: "error",
@@ -723,9 +881,9 @@ export function Profile() {
                                 height="auto"
                                 borderRadius="md"
                               />
-                              <Text 
-                                color="white" 
-                                fontWeight="bold" 
+                              <Text
+                                color="white"
+                                fontWeight="bold"
                                 mt={2}
                                 fontSize={{ base: "xs", md: "sm" }}
                                 noOfLines={2}
@@ -737,7 +895,12 @@ export function Profile() {
                         ))}
                       </SimpleGrid>
                     ) : (
-                      <Text color="gray.400" fontSize={{ base: "sm", md: "md" }}>Nenhuma série na watchlist.</Text>
+                      <Text
+                        color="gray.400"
+                        fontSize={{ base: "sm", md: "md" }}
+                      >
+                        Nenhuma série na watchlist.
+                      </Text>
                     )}
                   </TabPanel>
                 )}
@@ -763,11 +926,19 @@ export function Profile() {
                         onChange={handlePhotoUpload}
                       />
                       <Box position="relative" width="fit-content" mx="auto">
-                        <Avatar
-                          size="2xl"
-                          src={currentUser?.photoURL || undefined}
-                          name={currentUser?.displayName || ""}
-                        />
+                        <Box
+                          borderRadius="full"
+                          bg="teal.500"
+                          p="3px"
+                          boxShadow="0 4px 12px rgba(0,0,0,0.5)"
+                          display="inline-block"
+                        >
+                          <Avatar
+                            size="2xl"
+                            src={currentUser?.photoURL || undefined}
+                            name={currentUser?.displayName || ""}
+                          />
+                        </Box>
                         <Box
                           position="absolute"
                           bottom="0"
@@ -796,7 +967,7 @@ export function Profile() {
                         ref={coverInputRef}
                         onChange={handleCoverUpload}
                       />
-                      <AspectRatio ratio={16/9} maxH="150px">
+                      <AspectRatio ratio={16 / 9} maxH="150px">
                         <Box
                           bg="gray.700"
                           borderRadius="md"
@@ -887,7 +1058,7 @@ export function Profile() {
               isOpen={showFollowers}
               onClose={() => setShowFollowers(false)}
               title="Seguidores"
-              userIds={followers.map(f => f.followerId)}
+              userIds={followers.map((f) => f.followerId)}
               type="followers"
             />
 
@@ -895,14 +1066,13 @@ export function Profile() {
               isOpen={showFollowing}
               onClose={() => setShowFollowing(false)}
               title="Seguindo"
-              userIds={following.map(f => f.userId)}
+              userIds={following.map((f) => f.userId)}
               type="following"
             />
           </VStack>
         </Container>
       </Box>
       <Footer />
-      <ScrollToTop />
     </Flex>
   );
 }
