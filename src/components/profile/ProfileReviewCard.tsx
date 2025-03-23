@@ -3,148 +3,139 @@ import {
   Text,
   Image,
   Flex,
-  VStack,
   HStack,
-  Button,
-  Avatar,
-  Divider,
-  Icon,
+  Badge,
+  AspectRatio,
+  Tooltip,
 } from "@chakra-ui/react";
-import { RatingStars } from "../common/RatingStars";
-import { UserName } from "../common/UserName";
-import { Heart, CaretUp, CaretDown } from "@phosphor-icons/react";
 import { SeriesReview } from "../../services/reviews";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { useMemo } from "react";
+import { formatRating } from "../../utils/format";
 
 interface ProfileReviewCardProps {
   review: SeriesReview;
-  isExpanded: boolean;
-  onToggleExpand: (reviewId: string) => void;
   onReviewClick: (review: SeriesReview) => void;
 }
 
 export function ProfileReviewCard({
   review,
-  isExpanded,
-  onToggleExpand,
   onReviewClick,
 }: ProfileReviewCardProps) {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   
-  // Sempre mostrar a primeira avaliação de temporada
-  const firstSeasonReview = review.seasonReviews[0];
-  
-  const formatDate = (date: Date | { seconds: number }) => {
-    if (date instanceof Date) {
-      return date.toLocaleDateString();
-    }
-    return new Date(date.seconds * 1000).toLocaleDateString();
+  // Calcular a média das avaliações de todas as temporadas
+  const averageRating = useMemo(() => {
+    if (!review.seasonReviews.length) return 0;
+    
+    const sum = review.seasonReviews.reduce(
+      (acc, season) => acc + season.rating,
+      0
+    );
+    return sum / review.seasonReviews.length;
+  }, [review.seasonReviews]);
+
+  const handleReviewClick = (seasonNumber: number) => {
+    // Criar uma cópia da review com apenas a temporada selecionada para mostrar detalhes
+    const reviewWithSingleSeason = {
+      ...review,
+      selectedSeasonNumber: seasonNumber
+    };
+    onReviewClick(reviewWithSingleSeason);
   };
 
   return (
-    <Box
-      bg="gray.800"
-      p={4}
-      borderRadius="lg"
-      cursor="pointer"
-      onClick={() => onReviewClick(review)}
-      _hover={{ transform: "translateY(-2px)", transition: "all 0.2s ease" }}
+    <Box 
+      bg="gray.800" 
+      borderRadius="md" 
+      overflow="hidden"
+      transition="all 0.2s ease"
+      _hover={{
+        transform: "translateY(-4px)",
+        boxShadow: "lg",
+        bg: "gray.700",
+      }}
     >
-      <Flex gap={4} mb={4}>
+      <AspectRatio ratio={16 / 9} maxH="150px">
         <Image
-          src={`https://image.tmdb.org/t/p/w92${review.series.poster_path}`}
+          src={review.series.poster_path 
+            ? `https://image.tmdb.org/t/p/w500${review.series.poster_path}` 
+            : "/images/poster-placeholder.png"}
           alt={review.series.name}
-          w="80px"
-          h="120px"
           objectFit="cover"
-          borderRadius="md"
+          w="100%"
+          h="100%"
+          transition="transform 0.3s ease"
+          _hover={{ transform: "scale(1.05)" }}
           cursor="pointer"
           onClick={(e) => {
             e.stopPropagation();
             navigate(`/series/${review.seriesId}`);
           }}
-          _hover={{ transform: "scale(1.05)", transition: "transform 0.2s ease" }}
-          fallbackSrc="https://dummyimage.com/92x138/ffffff/000000.png&text=No+Image"
         />
-        <VStack align="start" spacing={1} flex="1">
-          <HStack>
-            <Avatar 
-              size="sm" 
-              src={currentUser?.photoURL || undefined} 
-              name={currentUser?.displayName || undefined} 
-            />
-            <UserName userId={review.userId} />
-          </HStack>
-          <Text color="white" fontSize="md" fontWeight="bold">
+      </AspectRatio>
+
+      <Box p={4}>
+        <Flex justify="space-between" align="start" mb={2}>
+          <Text
+            fontWeight="bold"
+            fontSize="md"
+            noOfLines={1}
+            color="white"
+            transition="color 0.2s"
+            _hover={{ color: "primary.300" }}
+            cursor="pointer"
+            onClick={() => navigate(`/series/${review.seriesId}`)}
+          >
             {review.series.name}
           </Text>
-          <Text color="gray.400" fontSize="sm">
-            Temporada {firstSeasonReview.seasonNumber}
-          </Text>
-          <RatingStars rating={firstSeasonReview.rating} size={16} showNumber={false} />
-        </VStack>
-      </Flex>
+          <Tooltip 
+            label={`Média: ${formatRating(averageRating)}`} 
+            placement="top"
+            hasArrow
+          >
+            <Text fontWeight="bold" color="primary.400">
+              {formatRating(averageRating)}
+            </Text>
+          </Tooltip>
+        </Flex>
 
-      <Text color="gray.300" fontSize="sm" mb={3} noOfLines={3}>
-        {firstSeasonReview.comment}
-      </Text>
+        <HStack spacing={2} wrap="wrap" mb={3}>
+          <Badge colorScheme="primary">
+            {review.seasonReviews.length} temporada{review.seasonReviews.length !== 1 ? 's' : ''}
+          </Badge>
+        </HStack>
 
-      <HStack spacing={4} color="gray.400" fontSize="sm">
-        {firstSeasonReview.reactions && (
-          <HStack spacing={2}>
-            <Icon as={Heart} weight="fill" color="gray.400" />
-            <Text>{firstSeasonReview.reactions.likes?.length || 0}</Text>
-          </HStack>
-        )}
-        <Text color="gray.500" fontSize="xs">
-          {formatDate(firstSeasonReview.createdAt)}
-        </Text>
-      </HStack>
-      
-      {review.seasonReviews.length > 1 && (
-        <Button
-          variant="ghost"
-          size="xs"
-          color="primary.400"
-          mt={2}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleExpand(review.id);
-          }}
-        >
-          {isExpanded
-            ? "Menos temporadas"
-            : `+${review.seasonReviews.length - 1} temporada${
-                review.seasonReviews.length - 1 > 1 ? "s" : ""
-              }`}
-        </Button>
-      )}
-
-      {isExpanded && review.seasonReviews.length > 1 && (
-        <VStack mt={4} spacing={4} align="start">
-          <Divider borderColor="gray.700" />
-          {review.seasonReviews.slice(1).map((otherSeason) => (
-            <Box key={`${review.id}_${otherSeason.seasonNumber}_expanded`} width="100%">
-              <HStack justify="space-between" mb={1}>
-                <Text color="gray.400" fontSize="sm">
-                  Temporada {otherSeason.seasonNumber}
+        <HStack spacing={2} wrap="wrap">
+          {review.seasonReviews.map((seasonReview) => (
+            <Box 
+              key={seasonReview.seasonNumber} 
+              onClick={() => handleReviewClick(seasonReview.seasonNumber)}
+              bg="gray.700"
+              px={2}
+              py={1}
+              borderRadius="md"
+              fontSize="xs"
+              color="white"
+              cursor="pointer"
+              transition="all 0.2s ease"
+              _hover={{
+                bg: "primary.500",
+                transform: "scale(1.05)"
+              }}
+            >
+              <HStack spacing={3.5}>
+                <Text>T{seasonReview.seasonNumber}</Text>
+                <Text color="primary.300" fontWeight="bold">
+                  {formatRating(seasonReview.rating)}
                 </Text>
-                <RatingStars rating={otherSeason.rating} size={14} showNumber={false} />
               </HStack>
-              {otherSeason.comment && (
-                <Text color="gray.300" fontSize="sm" mb={1}>
-                  {otherSeason.comment}
-                </Text>
-              )}
-              <Text color="gray.500" fontSize="xs">
-                {formatDate(otherSeason.createdAt)}
-              </Text>
             </Box>
           ))}
-        </VStack>
-      )}
+        </HStack>
+      </Box>
     </Box>
   );
 } 

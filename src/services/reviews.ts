@@ -47,6 +47,8 @@ export interface SeriesReview {
     name: string;
     poster_path: string;
   };
+  selectedSeasonNumber?: number;
+  createdAt?: Date | { seconds: number };
 }
 
 export async function addReview(

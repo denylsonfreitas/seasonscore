@@ -1,3 +1,4 @@
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Modal,
   ModalOverlay,
@@ -26,12 +27,11 @@ import { RatingStars } from "../common/RatingStars";
 import { UserName } from "../common/UserName";
 import { CaretDown, CaretUp } from "@phosphor-icons/react";
 import { useAuth } from "../../contexts/AuthContext";
-import { toggleReaction } from "../../services/reviews";
+import { toggleReaction, getSeriesReviews } from "../../services/reviews";
 import { AddComment } from "./AddComment";
 import { ReviewComment } from "./ReviewComment";
-import { useState } from "react";
 import { useUserData } from "../../hooks/useUserData";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { ReactionButtons } from "./ReactionButtons";
 
@@ -75,24 +75,68 @@ export function ReviewDetailsModal({
   onReviewUpdated,
 }: ReviewDetailsModalProps) {
   const { currentUser } = useAuth();
+  const { userData } = useUserData(review?.userId || "");
   const [activeTab, setActiveTab] = useState(0);
   const [showAllComments, setShowAllComments] = useState(false);
-  const { userData } = useUserData(review?.userId || "");
   const queryClient = useQueryClient();
-  const toast = useToast();
   const navigate = useNavigate();
+  const toast = useToast();
 
-  const COMMENTS_PER_PAGE = 3;
-  const hasMoreComments = (review?.comments?.length ?? 0) > COMMENTS_PER_PAGE;
-  const visibleComments = showAllComments 
-    ? review?.comments ?? []
-    : review?.comments?.slice(0, COMMENTS_PER_PAGE) ?? [];
+  const COMMENTS_PER_PAGE = 5;
+  const hasMoreComments = (review?.comments?.length || 0) > COMMENTS_PER_PAGE;
+  const visibleComments = showAllComments
+    ? review?.comments || []
+    : review?.comments?.slice(0, COMMENTS_PER_PAGE) || [];
 
   const userLiked = currentUser && review?.reactions?.likes?.includes(currentUser.uid);
   const userDisliked = currentUser && review?.reactions?.dislikes?.includes(currentUser.uid);
 
+  // Consulta para buscar atualizações em tempo real da revisão
+  const { data: updatedReviews } = useQuery({
+    queryKey: ["reviews", review?.seriesId],
+    queryFn: () => review?.seriesId ? getSeriesReviews(Number(review.seriesId)) : Promise.resolve([]),
+    enabled: isOpen && !!review?.seriesId,
+    refetchInterval: isOpen ? 5000 : false, // Atualizar apenas quando o modal estiver aberto
+    staleTime: 1000 // Um pequeno atraso para evitar atualizações muito frequentes
+  });
+
+  // Encontrar a versão mais atualizada da revisão selecionada
+  const updatedReview = useMemo(() => {
+    if (!updatedReviews || !review) return review;
+
+    const fullReview = updatedReviews.find(r => r.id === review.id);
+    if (!fullReview) return review;
+
+    const seasonReview = fullReview.seasonReviews.find(sr => sr.seasonNumber === review.seasonNumber);
+    if (!seasonReview) return review;
+
+    // Comparar com a versão atual para evitar renderizações desnecessárias
+    const currentComments = review.comments || [];
+    const updatedComments = seasonReview.comments || [];
+    const currentReactions = review.reactions || { likes: [], dislikes: [] };
+    const updatedReactions = seasonReview.reactions || { likes: [], dislikes: [] };
+
+    // Só atualizar se os comentários ou reações mudaram
+    if (
+      JSON.stringify(currentComments) === JSON.stringify(updatedComments) &&
+      JSON.stringify(currentReactions) === JSON.stringify(updatedReactions)
+    ) {
+      return review;
+    }
+
+    // Retorna a versão mais atualizada da revisão com todos os comentários e reações
+    return {
+      ...review,
+      comments: updatedComments,
+      reactions: updatedReactions
+    };
+  }, [updatedReviews, review]);
+
+  // Usar o review atualizado para os componentes renderizados
+  const activeReview = updatedReview || review;
+
   const handleReaction = async (type: "likes" | "dislikes") => {
-    if (!currentUser || !review) {
+    if (!currentUser || !activeReview) {
       toast({
         title: "Erro",
         description: "Você precisa estar logado para reagir a uma avaliação",
@@ -111,8 +155,8 @@ export function ReviewDetailsModal({
     
     // Construir as novas reações
     const newReactions = {
-      likes: [...(review.reactions?.likes || [])],
-      dislikes: [...(review.reactions?.dislikes || [])]
+      likes: [...(activeReview.reactions?.likes || [])],
+      dislikes: [...(activeReview.reactions?.dislikes || [])]
     };
 
     // Remover reação oposta se existir
@@ -139,18 +183,18 @@ export function ReviewDetailsModal({
     const updatedReactions = { ...newReactions };
 
     // Alteramos diretamente o objeto review para refletir mudanças imediatamente na interface
-    if (review.reactions) {
-      review.reactions.likes = [...updatedReactions.likes];
-      review.reactions.dislikes = [...updatedReactions.dislikes];
+    if (activeReview.reactions) {
+      activeReview.reactions.likes = [...updatedReactions.likes];
+      activeReview.reactions.dislikes = [...updatedReactions.dislikes];
     }
 
     try {
       // Tentamos atualizar a reação no backend
-      await toggleReaction(review.id, review.seasonNumber, type);
+      await toggleReaction(activeReview.id, activeReview.seasonNumber, type);
       
       // Se a atualização for bem-sucedida, atualizamos o cache com os dados mais recentes
       queryClient.invalidateQueries({
-        queryKey: ["reviews", review.seriesId],
+        queryKey: ["reviews", activeReview.seriesId],
       });
       onReviewUpdated();
     } catch (error) {
@@ -164,9 +208,9 @@ export function ReviewDetailsModal({
       });
       
       // Revertemos as mudanças no objeto review
-      if (review.reactions) {
-        review.reactions.likes = newReactions.likes.filter(id => id !== userId);
-        review.reactions.dislikes = newReactions.dislikes.filter(id => id !== userId);
+      if (activeReview.reactions) {
+        activeReview.reactions.likes = newReactions.likes.filter(id => id !== userId);
+        activeReview.reactions.dislikes = newReactions.dislikes.filter(id => id !== userId);
       }
     }
   };
@@ -178,18 +222,18 @@ export function ReviewDetailsModal({
   };
 
   const handleCommentAdded = () => {
-    if (!review) return;
+    if (!activeReview) return;
     
     onReviewUpdated();
     // Atualiza apenas os comentários sem recarregar toda a review
-    queryClient.setQueryData(["reviews", review.seriesId], (old: any) => {
+    queryClient.setQueryData(["reviews", activeReview.seriesId], (old: any) => {
       if (!old) return old;
       return old.map((r: any) => {
-        if (r.id === review.id) {
+        if (r.id === activeReview.id) {
           return {
             ...r,
             seasonReviews: r.seasonReviews.map((sr: any) =>
-              sr.seasonNumber === review.seasonNumber
+              sr.seasonNumber === activeReview.seasonNumber
                 ? { ...sr, comments: [...(sr.comments || [])] }
                 : sr
             )
@@ -201,13 +245,13 @@ export function ReviewDetailsModal({
   };
 
   const handleSeriesClick = () => {
-    if (review) {
+    if (activeReview) {
       onClose();
-      navigate(`/series/${review.seriesId}`);
+      navigate(`/series/${activeReview.seriesId}`);
     }
   };
 
-  if (!review) return null;
+  if (!activeReview) return null;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
@@ -216,12 +260,12 @@ export function ReviewDetailsModal({
         <ModalHeader color="white">
           <HStack spacing={4}>
             <Box>
-              {currentUser?.uid === review.userId 
+              {currentUser?.uid === activeReview.userId 
                 ? <Text>Sua avaliação</Text>
                 : (
                   <HStack>
                     <Box as="span">Avaliação de</Box>
-                    <UserName userId={review.userId} />
+                    <UserName userId={activeReview.userId} />
                   </HStack>
                 )
               }
@@ -247,7 +291,7 @@ export function ReviewDetailsModal({
                 color="gray.400" 
                 _selected={{ color: "white", borderColor: "primary.500" }}
               >
-                Comentários ({review.comments.length})
+                Comentários ({activeReview.comments.length})
               </Tab>
             </TabList>
 
@@ -259,16 +303,16 @@ export function ReviewDetailsModal({
                     <HStack spacing={4}>
                       <Avatar 
                         size="md" 
-                        name={review.userEmail} 
+                        name={activeReview.userEmail} 
                         src={userData?.photoURL || undefined}
                       />
                       <VStack align="start" spacing={0}>
-                        <UserName userId={review.userId} />
+                        <UserName userId={activeReview.userId} />
                         <Text color="gray.400" fontSize="sm">
                           {new Date(
-                            review.createdAt instanceof Date 
-                              ? review.createdAt 
-                              : review.createdAt.seconds * 1000
+                            activeReview.createdAt instanceof Date 
+                              ? activeReview.createdAt 
+                              : activeReview.createdAt.seconds * 1000
                           ).toLocaleDateString()}
                         </Text>
                       </VStack>
@@ -284,30 +328,30 @@ export function ReviewDetailsModal({
                         _hover={{ color: "primary.500", textDecoration: "underline" }}
                         display="inline-block"
                       >
-                        {review.seriesName} • Temporada {review.seasonNumber}
+                        {activeReview.seriesName} • Temporada {activeReview.seasonNumber}
                       </Text>
                       <HStack spacing={2} align="center">
-                        <RatingStars rating={review.rating} size={24} />
+                        <RatingStars rating={activeReview.rating} size={24} />
                       </HStack>
                     </Box>
 
-                    {review.comment && (
+                    {activeReview.comment && (
                       <Text 
                         color="gray.300" 
                         mt={4}
                         whiteSpace="pre-wrap"
                         wordBreak="break-word"
                       >
-                        {review.comment}
+                        {activeReview.comment}
                       </Text>
                     )}
 
                     <HStack spacing={4}>
                       <ReactionButtons 
-                        reviewId={review.id}
-                        seasonNumber={review.seasonNumber}
-                        likes={review.reactions.likes}
-                        dislikes={review.reactions.dislikes}
+                        reviewId={activeReview.id}
+                        seasonNumber={activeReview.seasonNumber}
+                        likes={activeReview.reactions.likes}
+                        dislikes={activeReview.reactions.dislikes}
                         onReaction={handleReactionWrapper}
                       />
                     </HStack>
@@ -321,8 +365,8 @@ export function ReviewDetailsModal({
                     _hover={{ transform: "scale(1.03)", transition: "transform 0.2s ease" }}
                   >
                     <Image
-                      src={`https://image.tmdb.org/t/p/w500${review.seriesPoster}`}
-                      alt={review.seriesName}
+                      src={`https://image.tmdb.org/t/p/w500${activeReview.seriesPoster}`}
+                      alt={activeReview.seriesName}
                       borderRadius="md"
                       width="100%"
                     />
@@ -334,26 +378,26 @@ export function ReviewDetailsModal({
               <TabPanel px={0}>
                 <VStack spacing={4} align="stretch">
                   <AddComment
-                    reviewId={review.id}
-                    seasonNumber={review.seasonNumber}
-                    seriesId={Number(review.seriesId)}
+                    reviewId={activeReview.id}
+                    seasonNumber={activeReview.seasonNumber}
+                    seriesId={Number(activeReview.seriesId)}
                     onCommentAdded={handleCommentAdded}
                   />
 
                   <Divider borderColor="gray.600" />
 
-                  {visibleComments?.length > 0 ? (
+                  {(visibleComments?.length || 0) > 0 ? (
                     <>
-                      {visibleComments.map((comment) => (
+                      {visibleComments?.map((comment) => (
                         <ReviewComment
                           key={comment.id}
-                          reviewId={review.id}
-                          seasonNumber={review.seasonNumber}
-                          seriesId={Number(review.seriesId)}
+                          reviewId={activeReview.id}
+                          seasonNumber={activeReview.seasonNumber}
+                          seriesId={Number(activeReview.seriesId)}
                           comment={comment}
                           onCommentDeleted={() => {
                             onReviewUpdated();
-                            queryClient.invalidateQueries({ queryKey: ["reviews", review.seriesId] });
+                            queryClient.invalidateQueries({ queryKey: ["reviews", activeReview.seriesId] });
                           }}
                         />
                       ))}
@@ -369,7 +413,7 @@ export function ReviewDetailsModal({
                         >
                           {showAllComments 
                             ? "Ver menos" 
-                            : `Ver mais ${review.comments.length - COMMENTS_PER_PAGE} comentários`}
+                            : `Ver mais ${activeReview.comments.length - COMMENTS_PER_PAGE} comentários`}
                         </Button>
                       )}
                     </>
