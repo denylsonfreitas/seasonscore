@@ -12,17 +12,22 @@ import {
   useDisclosure,
   useBreakpointValue,
   Center,
+  IconButton,
+  useToast,
+  Divider,
 } from "@chakra-ui/react";
 import { useParams, useSearchParams, Link as RouterLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getSeriesDetails } from "../services/tmdb";
-import { getSeriesReviews } from "../services/reviews";
+import { getSeriesReviews, toggleReaction } from "../services/reviews";
 import { RatingStars } from "../components/common/RatingStars";
 import { UserName } from "../components/common/UserName";
 import { ReviewDetailsModal } from "../components/reviews/ReviewDetailsModal";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useUsersData } from "../hooks/useUsersData";
-import { Heart, HeartBreak } from "@phosphor-icons/react";
+import { useAuth } from "../contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { ReactionButtons } from "../components/reviews/ReactionButtons";
 
 export function SeriesReviews() {
   const { id } = useParams<{ id: string }>();
@@ -93,6 +98,38 @@ export function SeriesReviews() {
       userEmail: review.userEmail
     };
   }, [selectedReviewId, reviews, selectedSeason]);
+
+  const { currentUser } = useAuth();
+  const toast = useToast();
+  const queryClient = useQueryClient();
+
+  const handleReaction = useCallback(async (reviewId: string, seasonNumber: number, type: "likes" | "dislikes", event: React.MouseEvent) => {
+    event.stopPropagation(); // Impedir que abra o modal
+
+    if (!currentUser) {
+      toast({
+        title: "Erro",
+        description: "Você precisa estar logado para reagir a uma avaliação",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      await toggleReaction(reviewId, seasonNumber, type);
+      queryClient.invalidateQueries({ queryKey: ["reviews", id] });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível registrar sua reação",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  }, [currentUser, id, queryClient, toast]);
 
   if (isLoadingSeries || isLoadingReviews || isLoadingUsers) {
     return (
@@ -223,28 +260,14 @@ export function SeriesReviews() {
                       </HStack>
 
                       <HStack spacing={4} pl={{ base: 12, md: 16 }}>
-                        <HStack>
-                          <Heart 
-                            size={18}
-                            weight={(review.reactions?.likes?.length || 0) > 0 ? "fill" : "regular"}
-                            color={(review.reactions?.likes?.length || 0) > 0 ? "#E53E3E" : "#A0AEC0"}
-                          />
-                          <Text color="gray.400" fontSize="sm">
-                            {review.reactions?.likes?.length || 0}
-                          </Text>
-                        </HStack>
-
-                        <HStack>
-                          <HeartBreak 
-                            size={18}
-                            weight={(review.reactions?.dislikes?.length || 0) > 0 ? "fill" : "regular"}
-                            color={(review.reactions?.dislikes?.length || 0) > 0 ? "#E53E3E" : "#A0AEC0"}
-                          />
-                          <Text color="gray.400" fontSize="sm">
-                            {review.reactions?.dislikes?.length || 0}
-                          </Text>
-                        </HStack>
-
+                        <ReactionButtons 
+                          reviewId={review.id}
+                          seasonNumber={selectedSeason}
+                          likes={review.reactions?.likes || []}
+                          dislikes={review.reactions?.dislikes || []}
+                          onReaction={handleReaction}
+                        />
+                        <Divider borderColor="gray.600" orientation="vertical" height="20px" display={{ base: "none", md: "flex" }} />
                         <HStack>
                           <Text color="gray.400" fontSize="sm">
                             {review.comments?.length || 0} comentários

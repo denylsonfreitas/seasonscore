@@ -213,7 +213,6 @@ const theme = extendTheme({
         }
       }
     },
-    // Você pode personalizar mais componentes aqui
   },
 });
 

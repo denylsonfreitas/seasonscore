@@ -17,8 +17,8 @@ export interface UserData {
   email: string;
   username: string;
   displayName?: string;
-  photoURL?: string;
-  coverURL?: string;
+  photoURL?: string | null;
+  coverURL?: string | null;
   description?: string;
   favoriteSeries?: {
     id: number;
@@ -30,7 +30,7 @@ export interface UserData {
         file_path: string;
       }>;
     };
-  } | undefined;
+  } | null | undefined;
   notificationSettings?: {
     newEpisode: boolean;
     newFollower: boolean;
@@ -135,11 +135,12 @@ export async function createOrUpdateUser(user: User, additionalData?: Partial<Us
 
   const userRef = doc(db, "users", user.uid);
   
-  // Remover campos undefined ou vazios
+  // Remover campos undefined ou vazios, mas manter valores null explícitos
   const cleanData = (data: any) => {
     const cleaned: any = {};
     for (const [key, value] of Object.entries(data)) {
-      if (value !== undefined && value !== "") {
+      // Preservar valores null, remover apenas undefined e strings vazias
+      if (value !== undefined && (value !== "" || value === null)) {
         cleaned[key] = value;
       }
     }

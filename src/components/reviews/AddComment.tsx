@@ -130,7 +130,6 @@ export function AddComment({
       <HStack spacing={3} align="start">
         <Avatar 
           size="sm" 
-          name={currentUser.email || undefined} 
           src={currentUser.photoURL || undefined}
         />
         <VStack spacing={3} flex={1}>
@@ -146,6 +145,9 @@ export function AddComment({
               _hover={{ bg: "gray.500" }}
               onClick={() => setIsExpanded(true)}
               leftIcon={<ChatCircle size={20} />}
+              display="flex"
+              alignItems="center"
+              justifyContent="flex-start"
             >
               Escreva um comentário...
             </Button>
@@ -181,6 +183,7 @@ export function AddComment({
                     setIsExpanded(false);
                     setContent("");
                   }}
+                  color="gray.500"
                 >
                   Cancelar
                 </Button>

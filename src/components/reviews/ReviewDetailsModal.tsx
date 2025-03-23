@@ -24,7 +24,7 @@ import {
 } from "@chakra-ui/react";
 import { RatingStars } from "../common/RatingStars";
 import { UserName } from "../common/UserName";
-import { Heart, HeartBreak, CaretDown, CaretUp } from "@phosphor-icons/react";
+import { CaretDown, CaretUp } from "@phosphor-icons/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { toggleReaction } from "../../services/reviews";
 import { AddComment } from "./AddComment";
@@ -33,6 +33,7 @@ import { useState } from "react";
 import { useUserData } from "../../hooks/useUserData";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { ReactionButtons } from "./ReactionButtons";
 
 interface ReviewDetailsModalProps {
   isOpen: boolean;
@@ -170,6 +171,12 @@ export function ReviewDetailsModal({
     }
   };
 
+  // Criar um wrapper para ser compatível com o ReactionButtons
+  const handleReactionWrapper = (reviewId: string, seasonNumber: number, type: "likes" | "dislikes", e: React.MouseEvent) => {
+    e.preventDefault();
+    handleReaction(type);
+  };
+
   const handleCommentAdded = () => {
     if (!review) return;
     
@@ -296,33 +303,13 @@ export function ReviewDetailsModal({
                     )}
 
                     <HStack spacing={4}>
-                      <HStack>
-                        <IconButton
-                          aria-label="Like"
-                          icon={<Heart weight={userLiked ? "fill" : "regular"} />}
-                          size="md"
-                          variant="ghost"
-                          color={userLiked ? "reactions.like" : "gray.400"}
-                          onClick={() => handleReaction("likes")}
-                        />
-                        <Text color="gray.400" fontSize="sm">
-                          {review.reactions.likes.length}
-                        </Text>
-                      </HStack>
-
-                      <HStack>
-                        <IconButton
-                          aria-label="Dislike"
-                          icon={<HeartBreak weight={userDisliked ? "fill" : "regular"} />}
-                          size="md"
-                          variant="ghost"
-                          color={userDisliked ? "reactions.dislike" : "gray.400"}
-                          onClick={() => handleReaction("dislikes")}
-                        />
-                        <Text color="gray.400" fontSize="sm">
-                          {review.reactions.dislikes.length}
-                        </Text>
-                      </HStack>
+                      <ReactionButtons 
+                        reviewId={review.id}
+                        seasonNumber={review.seasonNumber}
+                        likes={review.reactions.likes}
+                        dislikes={review.reactions.dislikes}
+                        onReaction={handleReactionWrapper}
+                      />
                     </HStack>
                   </VStack>
 

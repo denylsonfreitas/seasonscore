@@ -52,6 +52,8 @@ export function ProfileSettings() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [isRemovingPhoto, setIsRemovingPhoto] = useState(false);
+  const [isRemovingCover, setIsRemovingCover] = useState(false);
   const [tempPhotoURL, setTempPhotoURL] = useState<string | null>(null);
   const [tempCoverURL, setTempCoverURL] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -81,6 +83,12 @@ export function ProfileSettings() {
       if (!currentUser) return;
 
       try {
+        // Resetar os estados de remoção
+        setIsRemovingPhoto(false);
+        setIsRemovingCover(false);
+        setTempPhotoURL(null);
+        setTempCoverURL(null);
+        
         const userData = await getUserData(currentUser.uid);
         if (userData) {
           setDisplayName(userData.displayName || "");
@@ -109,6 +117,7 @@ export function ProfileSettings() {
       const file = event.target.files[0];
       const photoURL = await uploadProfilePhoto(file, currentUser.uid);
       setTempPhotoURL(photoURL);
+      setIsRemovingPhoto(false);
 
       toast({
         title: "Foto carregada",
@@ -141,6 +150,7 @@ export function ProfileSettings() {
       const file = event.target.files[0];
       const coverURL = await uploadCoverPhoto(file, currentUser.uid);
       setTempCoverURL(coverURL);
+      setIsRemovingCover(false);
 
       toast({
         title: "Capa carregada",
@@ -234,42 +244,55 @@ export function ProfileSettings() {
       }
 
       // Garantir que as URLs são strings válidas
-      const photoURLToUse =
-        tempPhotoURL === ""
-          ? null
-          : tempPhotoURL !== null
-          ? tempPhotoURL
-          : currentUser.photoURL;
-      const coverURLToUse =
-        tempCoverURL === ""
-          ? null
-          : tempCoverURL !== null
-          ? tempCoverURL
-          : currentUser.coverURL;
+      // Se tempPhotoURL for null e estamos removendo, queremos remover a foto
+      const photoURLToUse = isRemovingPhoto ? null : tempPhotoURL || currentUser?.photoURL;
+      const coverURLToUse = isRemovingCover ? null : tempCoverURL || currentUser?.coverURL;
 
-      // Construir objeto base
+      // Construir objeto base com valores explícitos para permitir remoção
       const baseData = {
-        ...(displayName ? { displayName } : {}),
-        ...(description ? { description } : {}),
-        ...(photoURLToUse ? { photoURL: photoURLToUse } : {}),
-        ...(coverURLToUse ? { coverURL: coverURLToUse } : {}),
+        displayName,
+        description,
+        photoURL: photoURLToUse,
+        coverURL: coverURLToUse,
         ...(newUsername ? { username: newUsername.toLowerCase() } : {})
       };
 
-      // Adicionar favoriteSeries explicitamente
+      // Adicionar favoriteSeries explicitamente, permitindo valor null para remover
       const updatedData = {
         ...baseData,
-        favoriteSeries: favoriteSeries || undefined
+        favoriteSeries
       };
 
       // Primeiro atualizar o documento do usuário
       await createOrUpdateUser(auth.currentUser, updatedData);
 
       // Depois atualizar o perfil do usuário autenticado
-      await updateProfile(auth.currentUser, {
-        ...(displayName ? { displayName } : {}),
-        ...(photoURLToUse ? { photoURL: photoURLToUse } : {}),
-      });
+      // updateProfile não aceita null, então convertemos para undefined
+      if (isRemovingPhoto) {
+        // Força a remoção da foto de perfil
+        try {
+          // Primeiro, tentamos o método convencional
+          await updateProfile(auth.currentUser, {
+            displayName,
+            photoURL: '',  // String vazia em vez de null
+          });
+          
+          // Para garantir, também atualizamos diretamente no Firestore
+          const userRef = doc(db, "users", auth.currentUser.uid);
+          await updateDoc(userRef, {
+            photoURL: null
+          });
+          
+        } catch (err) {
+          console.error('Error removing photo:', err);
+        }
+      } else {
+        // Atualização normal quando não está removendo a foto
+        await updateProfile(auth.currentUser, {
+          displayName,
+          photoURL: photoURLToUse,
+        });
+      }
 
       toast({
         title: "Perfil atualizado",
@@ -322,7 +345,8 @@ export function ProfileSettings() {
   };
 
   const handleRemoveProfilePhoto = () => {
-    setTempPhotoURL("");
+    setIsRemovingPhoto(true);
+    setTempPhotoURL(null);
     toast({
       title: "Foto removida",
       description: "Clique em Salvar Alterações para confirmar a remoção",
@@ -333,7 +357,8 @@ export function ProfileSettings() {
   };
 
   const handleRemoveCoverPhoto = () => {
-    setTempCoverURL("");
+    setIsRemovingCover(true);
+    setTempCoverURL(null);
     toast({
       title: "Capa removida",
       description: "Clique em Salvar Alterações para confirmar a remoção",
@@ -382,13 +407,10 @@ export function ProfileSettings() {
                   onChange={handlePhotoUpload}
                 />
                 <Box position="relative" width="fit-content" mx="auto">
+                  {/* Avatar com placeholder quando foto removida */}
                   <Avatar
                     size="2xl"
-                    src={
-                      (tempPhotoURL !== null
-                        ? tempPhotoURL
-                        : currentUser?.photoURL) || undefined
-                    }
+                    src={isRemovingPhoto ? undefined : (tempPhotoURL || currentUser?.photoURL || undefined) as string | undefined}
                     name={currentUser?.displayName || ""}
                   />
                   <Box
@@ -456,17 +478,72 @@ export function ProfileSettings() {
                     overflow="hidden"
                     position="relative"
                   >
-                    {(
-                      tempCoverURL !== null
-                        ? tempCoverURL
-                        : currentUser?.coverURL
-                    ) ? (
+                    {isRemovingCover ? (
+                      // Placeholder quando capa for removida
+                      <Flex
+                        align="center"
+                        justify="center"
+                        h="100%"
+                        color="gray.500"
+                        flexDir="column"
+                        position="relative"
+                      >
+                        <ImageIcon size={24} />
+                        <Text fontSize="sm" mt={2}>
+                          Capa será removida
+                        </Text>
+                        <Box
+                          position="absolute"
+                          top={2}
+                          right={2}
+                          bg="blackAlpha.600"
+                          p={1}
+                          borderRadius="full"
+                        >
+                          <Menu placement="bottom-end" offset={[0, 4]}>
+                            <MenuButton
+                              as={IconButton}
+                              icon={<Plus weight="bold" />}
+                              size="sm"
+                              colorScheme="primary"
+                              rounded="full"
+                              aria-label="Opções de foto de capa"
+                            />
+                            <MenuList
+                              bg="gray.700"
+                              borderColor="gray.600"
+                              zIndex={2000}
+                              minW="150px"
+                            >
+                              <MenuItem
+                                icon={<UploadSimple weight="bold" />}
+                                onClick={() => coverInputRef.current?.click()}
+                                bg="gray.700"
+                                _hover={{ bg: "gray.600" }}
+                                color="white"
+                              >
+                                Mudar capa
+                              </MenuItem>
+                              <MenuItem
+                                icon={<X weight="bold" />}
+                                onClick={handleRemoveCoverPhoto}
+                                bg="gray.700"
+                                _hover={{ bg: "gray.600" }}
+                                color="red.300"
+                              >
+                                Remover capa
+                              </MenuItem>
+                            </MenuList>
+                          </Menu>
+                        </Box>
+                      </Flex>
+                    ) : (tempCoverURL || currentUser?.coverURL) ? (
                       <>
                         <Image
                           src={
-                            tempCoverURL !== null
+                            tempCoverURL 
                               ? tempCoverURL
-                              : currentUser?.coverURL
+                              : currentUser?.coverURL || ''
                           }
                           alt="Foto de capa"
                           objectFit="cover"
@@ -626,11 +703,28 @@ export function ProfileSettings() {
                     </HStack>
                   )}
                   <Button
-                    colorScheme="primary"
+                    colorScheme={favoriteSeries === null && currentUser?.favoriteSeries ? "blue" : "primary"}
                     variant="outline"
-                    onClick={() => setIsSearchOpen(true)}
+                    onClick={() => {
+                      if (favoriteSeries === null && currentUser?.favoriteSeries) {
+                        // Restaurar a série favorita se estava marcada para remoção
+                        setFavoriteSeries(currentUser.favoriteSeries);
+                        toast({
+                          title: "Remoção cancelada",
+                          description: "A série favorita não será removida",
+                          status: "info",
+                          duration: 3000,
+                          isClosable: true,
+                        });
+                      } else {
+                        // Comportamento normal de abrir a seleção
+                        setIsSearchOpen(true);
+                      }
+                    }}
                   >
-                    {favoriteSeries
+                    {favoriteSeries === null && currentUser?.favoriteSeries
+                      ? "Cancelar remoção"
+                      : favoriteSeries
                       ? "Alterar Série Favorita"
                       : "Escolher Série Favorita"}
                   </Button>
