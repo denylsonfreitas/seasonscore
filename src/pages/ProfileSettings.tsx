@@ -358,7 +358,7 @@ export function ProfileSettings() {
     return (
       <Box bg="gray.900" minH="100vh">
         <Container maxW="container.md" py={8}>
-          <Spinner color="teal.500" />
+          <Spinner color="primary.500" />
         </Container>
       </Box>
     );
@@ -404,7 +404,7 @@ export function ProfileSettings() {
                         as={IconButton}
                         icon={<Plus weight="bold" />}
                         size="sm"
-                        colorScheme="teal"
+                        colorScheme="primary"
                         rounded="full"
                         aria-label="Opções de foto de perfil"
                       />
@@ -486,7 +486,7 @@ export function ProfileSettings() {
                               as={IconButton}
                               icon={<Plus weight="bold" />}
                               size="sm"
-                              colorScheme="teal"
+                              colorScheme="primary"
                               rounded="full"
                               aria-label="Opções de foto de capa"
                             />
@@ -626,7 +626,7 @@ export function ProfileSettings() {
                     </HStack>
                   )}
                   <Button
-                    colorScheme="teal"
+                    colorScheme="primary"
                     variant="outline"
                     onClick={() => setIsSearchOpen(true)}
                   >
@@ -638,7 +638,7 @@ export function ProfileSettings() {
               </FormControl>
 
               <Button
-                colorScheme="teal"
+                colorScheme="primary"
                 onClick={handleSave}
                 isLoading={isSaving}
                 mt={4}

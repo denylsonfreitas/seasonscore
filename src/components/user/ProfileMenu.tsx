@@ -144,7 +144,7 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
         >
           <Flex align="center">
             <Box 
-              bg="teal.500" 
+              bg="primary.500" 
               p={1.5} 
               borderRadius="md" 
               mr={3}

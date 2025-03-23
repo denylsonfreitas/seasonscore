@@ -34,6 +34,9 @@ import {
   Stack,
   useBreakpointValue,
   IconButton,
+  Grid,
+  Divider,
+  Icon,
 } from "@chakra-ui/react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
@@ -46,6 +49,9 @@ import {
   Image as ImageIcon,
   UploadSimple,
   Bookmark,
+  Heart,
+  CaretUp,
+  CaretDown,
 } from "@phosphor-icons/react";
 import { RatingStars } from "../components/common/RatingStars";
 import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
@@ -64,10 +70,32 @@ import {
 } from "../services/users";
 import { UserListModal } from "../components/user/UserListModal";
 import { ExtendedUser } from "../types/auth";
+import { UserName } from "../components/common/UserName";
+import { ReviewDetailsModal } from "../components/reviews/ReviewDetailsModal";
 
 interface ExpandedReviews {
   [key: string]: boolean;
 }
+
+// Função para adaptar a avaliação para o formato esperado pelo ReviewDetailsModal
+const adaptReviewForDetails = (review: SeriesReview): any => {
+  // Obter a primeira avaliação de temporada (a que é mostrada na lista)
+  const firstSeasonReview = review.seasonReviews[0];
+  return {
+    id: review.id,
+    seriesId: review.seriesId.toString(),
+    userId: review.userId,
+    userEmail: review.userEmail,
+    seriesName: review.series.name,
+    seriesPoster: review.series.poster_path,
+    seasonNumber: firstSeasonReview.seasonNumber,
+    rating: firstSeasonReview.rating,
+    comment: firstSeasonReview.comment || "",
+    comments: firstSeasonReview.comments || [],
+    reactions: firstSeasonReview.reactions || { likes: [], dislikes: [] },
+    createdAt: firstSeasonReview.createdAt || new Date()
+  };
+};
 
 export function Profile() {
   const { currentUser } = useAuth() as { currentUser: ExtendedUser | null };
@@ -94,6 +122,8 @@ export function Profile() {
   const [expandedReviews, setExpandedReviews] = useState<ExpandedReviews>({});
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [selectedReviewForDetails, setSelectedReviewForDetails] = useState<SeriesReview | null>(null);
+  const [isReviewDetailsOpen, setIsReviewDetailsOpen] = useState(false);
 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -439,7 +469,7 @@ export function Profile() {
                 {!isOwnProfile && <FollowButton userId={targetUserId!} />}
                 {isOwnProfile && (
                   <Button
-                    colorScheme="teal"
+                    colorScheme="primary"
                     onClick={() => navigate("/settings/profile")}
                     size={{ base: "sm", md: "md" }}
                   >
@@ -472,7 +502,7 @@ export function Profile() {
                 <Stat
                   cursor="pointer"
                   onClick={() => setShowFollowers(true)}
-                  _hover={{ color: "teal.300" }}
+                  _hover={{ color: "primary.300" }}
                   textAlign="center"
                   flex="1"
                 >
@@ -489,7 +519,7 @@ export function Profile() {
                 <Stat
                   cursor="pointer"
                   onClick={() => setShowFollowing(true)}
-                  _hover={{ color: "teal.300" }}
+                  _hover={{ color: "primary.300" }}
                   textAlign="center"
                   flex="1"
                 >
@@ -616,11 +646,11 @@ export function Profile() {
 
         <Container maxW="container.lg" pt={0} pb={16} px={{ base: 4, md: 8 }}>
           <VStack spacing={6} align="stretch">
-            <Tabs variant="soft-rounded" colorScheme="teal">
+            <Tabs variant="soft-rounded" colorScheme="primary">
               <TabList mb={4} overflowX="auto" pb={2}>
                 <Tab
                   color="white"
-                  _selected={{ color: "white", bg: "teal.500" }}
+                  _selected={{ color: "white", bg: "primary.500" }}
                   fontSize={{ base: "sm", md: "md" }}
                   px={{ base: 3, md: 4 }}
                 >
@@ -629,7 +659,7 @@ export function Profile() {
                 {isOwnProfile && (
                   <Tab
                     color="white"
-                    _selected={{ color: "white", bg: "teal.500" }}
+                    _selected={{ color: "white", bg: "primary.500" }}
                     fontSize={{ base: "sm", md: "md" }}
                     px={{ base: 3, md: 4 }}
                   >
@@ -642,13 +672,13 @@ export function Profile() {
                 <TabPanel p={0}>
                   {isLoadingReviews ? (
                     <Flex justify="center" py={8}>
-                      <Spinner color="teal.500" />
+                      <Spinner color="primary.500" />
                     </Flex>
                   ) : reviews.length > 0 ? (
                     <VStack spacing={6} align="stretch">
-                      <SimpleGrid
-                        columns={{ base: 1, sm: 2, lg: 3 }}
-                        spacing={{ base: 4, md: 6 }}
+                      <Grid 
+                        templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} 
+                        gap={6}
                       >
                         {reviews
                           .slice(0, showAllReviews ? undefined : 6)
@@ -656,144 +686,131 @@ export function Profile() {
                             <Box
                               key={review.id}
                               bg="gray.800"
-                              p={{ base: 3, md: 4 }}
+                              p={4}
                               borderRadius="lg"
+                              cursor="pointer"
+                              onClick={() => {
+                                setSelectedReviewForDetails(review);
+                                setIsReviewDetailsOpen(true);
+                              }}
+                              _hover={{ transform: "translateY(-2px)", transition: "all 0.2s ease" }}
                             >
-                              <Stack
-                                direction={{ base: "column", sm: "row" }}
-                                spacing={4}
-                                align="start"
-                              >
-                                <RouterLink to={`/series/${review.seriesId}`}>
-                                  <Box
-                                    width={{ base: "100%", sm: "60px" }}
-                                    height={{ base: "150px", sm: "90px" }}
-                                    borderRadius="md"
-                                    overflow="hidden"
-                                    bg="gray.700"
-                                  >
+                              {review.seasonReviews.slice(0, 1).map((seasonReview) => (
+                                <Box key={`${review.id}_${seasonReview.seasonNumber}`}>
+                                  <Flex gap={4} mb={4}>
                                     <Image
                                       src={`https://image.tmdb.org/t/p/w92${review.series.poster_path}`}
                                       alt={review.series.name}
-                                      width="100%"
-                                      height="100%"
+                                      w="80px"
+                                      h="120px"
                                       objectFit="cover"
-                                      fallback={
-                                        <Box
-                                          width="100%"
-                                          height="100%"
-                                          bg="gray.700"
-                                          display="flex"
-                                          alignItems="center"
-                                          justifyContent="center"
-                                        >
-                                          <Text
-                                            color="gray.500"
-                                            fontSize="xs"
-                                            textAlign="center"
-                                          >
-                                            Sem imagem
-                                          </Text>
-                                        </Box>
-                                      }
+                                      borderRadius="md"
+                                      cursor="pointer"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/series/${review.seriesId}`);
+                                      }}
+                                      _hover={{ transform: "scale(1.05)", transition: "transform 0.2s ease" }}
+                                      fallbackSrc="https://dummyimage.com/92x138/ffffff/000000.png&text=No+Image"
                                     />
-                                  </Box>
-                                </RouterLink>
-                                <Box flex="1">
-                                  <RouterLink to={`/series/${review.seriesId}`}>
-                                    <Text
-                                      color="white"
-                                      fontWeight="bold"
-                                      mb={2}
-                                      _hover={{ color: "teal.300" }}
-                                      fontSize={{ base: "sm", md: "md" }}
-                                    >
-                                      {review.series.name}
-                                    </Text>
-                                  </RouterLink>
-                                  {review.seasonReviews
-                                    .slice(
-                                      0,
-                                      expandedReviews[review.id] ? undefined : 2
-                                    )
-                                    .map((seasonReview) => (
-                                      <Box
-                                        key={`${review.id}_${seasonReview.seasonNumber}`}
-                                        mt={4}
-                                      >
-                                        <Text
-                                          color="gray.400"
-                                          mb={1}
-                                          fontSize={{ base: "xs", md: "sm" }}
-                                        >
-                                          Temporada {seasonReview.seasonNumber}
-                                        </Text>
-                                        <RatingStars
-                                          rating={seasonReview.rating}
-                                          size={ratingStarSize}
+                                    <VStack align="start" spacing={1} flex="1">
+                                      <HStack>
+                                        <Avatar 
+                                          size="sm" 
+                                          src={currentUser?.photoURL || undefined} 
+                                          name={currentUser?.displayName || undefined} 
                                         />
-                                        {seasonReview.comment && (
-                                          <Text
-                                            color="white"
-                                            mt={2}
-                                            fontSize={{ base: "sm", md: "md" }}
-                                          >
-                                            {seasonReview.comment}
-                                          </Text>
-                                        )}
-                                        <Text
-                                          color="gray.400"
-                                          fontSize={{ base: "xs", md: "sm" }}
-                                          mt={2}
-                                        >
-                                          {seasonReview.createdAt instanceof
-                                          Date
-                                            ? seasonReview.createdAt.toLocaleDateString()
-                                            : new Date(
-                                                seasonReview.createdAt.seconds *
-                                                  1000
-                                              ).toLocaleDateString()}
-                                        </Text>
-                                      </Box>
-                                    ))}
-                                  {review.seasonReviews.length > 2 && (
+                                        <UserName userId={review.userId} />
+                                      </HStack>
+                                      <Text color="white" fontSize="md" fontWeight="bold">
+                                        {review.series.name}
+                                      </Text>
+                                      <Text color="gray.400" fontSize="sm">
+                                        Temporada {seasonReview.seasonNumber}
+                                      </Text>
+                                      <RatingStars rating={seasonReview.rating} size={16} showNumber={false} />
+                                    </VStack>
+                                  </Flex>
+
+                                  <Text color="gray.300" fontSize="sm" mb={3} noOfLines={3}>
+                                    {seasonReview.comment}
+                                  </Text>
+
+                                  <HStack spacing={4} color="gray.400" fontSize="sm">
+                                    {seasonReview.reactions && (
+                                      <HStack spacing={2}>
+                                        <Icon as={Heart} weight="fill" color="gray.400" />
+                                        <Text>{seasonReview.reactions.likes?.length || 0}</Text>
+                                      </HStack>
+                                    )}
+                                    <Text color="gray.500" fontSize="xs">
+                                      {seasonReview.createdAt instanceof Date
+                                        ? seasonReview.createdAt.toLocaleDateString()
+                                        : new Date(seasonReview.createdAt.seconds * 1000).toLocaleDateString()}
+                                    </Text>
+                                  </HStack>
+                                  
+                                  {review.seasonReviews.length > 1 && (
                                     <Button
                                       variant="ghost"
-                                      size={{ base: "xs", md: "sm" }}
-                                      color="teal.400"
+                                      size="xs"
+                                      color="primary.400"
                                       mt={2}
-                                      onClick={() =>
-                                        toggleReviewExpansion(review.id)
-                                      }
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleReviewExpansion(review.id);
+                                      }}
                                     >
                                       {expandedReviews[review.id]
-                                        ? "Ver menos"
-                                        : `Ver mais ${
-                                            review.seasonReviews.length - 2
-                                          } temporada${
-                                            review.seasonReviews.length - 2 > 1
-                                              ? "s"
-                                              : ""
+                                        ? "Menos temporadas"
+                                        : `+${review.seasonReviews.length - 1} temporada${
+                                            review.seasonReviews.length - 1 > 1 ? "s" : ""
                                           }`}
                                     </Button>
                                   )}
+
+                                  {expandedReviews[review.id] && review.seasonReviews.length > 1 && (
+                                    <VStack mt={4} spacing={4} align="start">
+                                      <Divider borderColor="gray.700" />
+                                      {review.seasonReviews.slice(1).map((otherSeason) => (
+                                        <Box key={`${review.id}_${otherSeason.seasonNumber}_expanded`} width="100%">
+                                          <HStack justify="space-between" mb={1}>
+                                            <Text color="gray.400" fontSize="sm">
+                                              Temporada {otherSeason.seasonNumber}
+                                            </Text>
+                                            <RatingStars rating={otherSeason.rating} size={14} showNumber={false} />
+                                          </HStack>
+                                          {otherSeason.comment && (
+                                            <Text color="gray.300" fontSize="sm" mb={1}>
+                                              {otherSeason.comment}
+                                            </Text>
+                                          )}
+                                          <Text color="gray.500" fontSize="xs">
+                                            {otherSeason.createdAt instanceof Date
+                                              ? otherSeason.createdAt.toLocaleDateString()
+                                              : new Date(otherSeason.createdAt.seconds * 1000).toLocaleDateString()}
+                                          </Text>
+                                        </Box>
+                                      ))}
+                                    </VStack>
+                                  )}
                                 </Box>
-                              </Stack>
+                              ))}
                             </Box>
                           ))}
-                      </SimpleGrid>
+                      </Grid>
                       {reviews.length > 6 && (
-                        <Button
-                          variant="ghost"
-                          color="teal.400"
-                          onClick={() => setShowAllReviews(!showAllReviews)}
-                          alignSelf="center"
-                          size={{ base: "sm", md: "md" }}
-                        >
-                          {showAllReviews
-                            ? "Ver menos"
-                            : `Ver mais (${reviews.length - 6} avaliações)`}
-                        </Button>
+                        <Flex justify="center" mt={6}>
+                          <Button
+                            variant="ghost"
+                            colorScheme="primary"
+                            onClick={() => setShowAllReviews(!showAllReviews)}
+                            rightIcon={showAllReviews ? <CaretUp weight="bold" size={20} /> : <CaretDown weight="bold" size={20} />}
+                            transition="all 0.2s ease"
+                          >
+                            {showAllReviews ? "Ver Menos" : `Ver Mais (${reviews.length - 6})`}
+                          </Button>
+                        </Flex>
                       )}
                     </VStack>
                   ) : (
@@ -807,7 +824,7 @@ export function Profile() {
                   <TabPanel p={0}>
                     {isLoadingWatchlist ? (
                       <Flex justify="center" py={8}>
-                        <Spinner color="teal.500" />
+                        <Spinner color="primary.500" />
                       </Flex>
                     ) : watchlist.length > 0 ? (
                       <SimpleGrid
@@ -928,7 +945,7 @@ export function Profile() {
                       <Box position="relative" width="fit-content" mx="auto">
                         <Box
                           borderRadius="full"
-                          bg="teal.500"
+                          bg="primary.500"
                           p="3px"
                           boxShadow="0 4px 12px rgba(0,0,0,0.5)"
                           display="inline-block"
@@ -948,7 +965,7 @@ export function Profile() {
                         >
                           <Button
                             size="sm"
-                            colorScheme="teal"
+                            colorScheme="primary"
                             rounded="full"
                             isLoading={uploadingPhoto}
                           >
@@ -1009,7 +1026,7 @@ export function Profile() {
                               align="center"
                               justify="center"
                             >
-                              <Spinner color="teal.500" />
+                              <Spinner color="primary.500" />
                             </Flex>
                           )}
                         </Box>
@@ -1029,7 +1046,7 @@ export function Profile() {
                     </FormControl>
 
                     <Button
-                      colorScheme="teal"
+                      colorScheme="primary"
                       onClick={handleUpdateProfile}
                       isLoading={isUpdating}
                       width="full"
@@ -1041,6 +1058,20 @@ export function Profile() {
               </ModalContent>
             </Modal>
 
+            {selectedReviewForDetails && (
+              <ReviewDetailsModal
+                isOpen={isReviewDetailsOpen}
+                onClose={() => {
+                  setIsReviewDetailsOpen(false);
+                  setSelectedReviewForDetails(null);
+                }}
+                review={adaptReviewForDetails(selectedReviewForDetails)}
+                onReviewUpdated={() => {
+                  queryClient.invalidateQueries({ queryKey: ["userReviews", targetUserId] });
+                }}
+              />
+            )}
+            
             {selectedReview && (
               <ReviewEditModal
                 isOpen={!!selectedReview}
@@ -1049,7 +1080,7 @@ export function Profile() {
                 initialSeasonNumber={selectedReview.selectedSeasonNumber}
                 onReviewUpdated={() => {
                   setSelectedReview(null);
-                  queryClient.invalidateQueries({ queryKey: ["userReviews"] });
+                  queryClient.invalidateQueries({ queryKey: ["userReviews", targetUserId] });
                 }}
               />
             )}

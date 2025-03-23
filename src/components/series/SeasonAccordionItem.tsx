@@ -135,7 +135,7 @@ export function SeasonAccordionItem({
                 onClick={() => onDeleteReview(season)}
                 bg="gray.800"
                 _hover={{ bg: "gray.700" }}
-                color="red.400"
+                color="primary.700"
               >
                 Excluir avaliação
               </MenuItem>
@@ -152,7 +152,7 @@ export function SeasonAccordionItem({
       <Box bg="gray.800" pt={2} borderRadius="lg">
         {currentUser ? (
           <Button
-            colorScheme="teal"
+            colorScheme="primary"
             onClick={() => {
               onSeasonSelect(season);
               onOpenReviewModal();
@@ -163,7 +163,7 @@ export function SeasonAccordionItem({
           </Button>
         ) : (
           <Button
-            colorScheme="teal"
+            colorScheme="primary"
             onClick={() => navigate("/login")}
             width="100%"
           >
@@ -210,7 +210,7 @@ export function SeasonAccordionItem({
                   as={Link}
                   href={`/series/${seriesId}/reviews?season=${season}`}
                   variant="link"
-                  color="teal.400"
+                  color="primary.400"
                   size="sm"
                 >
                   Todas as avaliações

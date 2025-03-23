@@ -13,6 +13,7 @@ import {
   AlertDialogOverlay,
   Button,
   useToast,
+  Center,
 } from "@chakra-ui/react";
 import { useQuery } from "@tanstack/react-query";
 import { getSeriesDetails, getRelatedSeries } from "../services/tmdb";
@@ -179,9 +180,9 @@ export function SeriesDetails() {
 
   if (isLoading) {
     return (
-      <Flex minH="100vh" align="center" justify="center" bg="gray.900">
-        <Spinner size="xl" color="teal.500" />
-      </Flex>
+      <Center minH="70vh">
+        <Spinner size="xl" color="primary.500" />
+      </Center>
     );
   }
 
@@ -202,7 +203,7 @@ export function SeriesDetails() {
         <SeriesHeader 
           series={series} 
           isLoading={isLoading}
-                                            reviews={reviews}
+          reviews={reviews}
           userReview={userReview}
           currentUser={currentUser}
           userData={userData}
@@ -212,10 +213,10 @@ export function SeriesDetails() {
           onSetExistingReview={setExistingReview}
           onSetDeleteAlertOpen={setIsDeleteAlertOpen}
           onSetSeasonToDelete={setSeasonToDelete}
-                                            onReviewClick={(review) => {
-                                              setSelectedReview(review);
-                                              setIsReviewDetailsOpen(true);
-                                            }}
+          onReviewClick={(review) => {
+            setSelectedReview(review);
+            setIsReviewDetailsOpen(true);
+          }}
           navigate={navigate}
         />
 

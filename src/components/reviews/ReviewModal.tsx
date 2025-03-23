@@ -194,7 +194,7 @@ export function ReviewModal({
           <ModalCloseButton />
           <ModalBody pb={6}>
             <Center py={10}>
-              <Spinner size="xl" color="teal.400" />
+              <Spinner size="xl" color="primary.500" />
             </Center>
           </ModalBody>
         </ModalContent>
@@ -222,7 +222,7 @@ export function ReviewModal({
               aria-label="Voltar para busca"
               icon={<ArrowLeft size={20} />}
               variant="ghost"
-              color="teal.300"
+              color="primary.500"
               mr={2}
               onClick={onBack}
               _hover={{ bg: "gray.700" }}
@@ -296,7 +296,7 @@ export function ReviewModal({
                   color="white"
                   borderColor="gray.600"
                   _hover={{ borderColor: "gray.500" }}
-                  _focus={{ borderColor: "teal.400", boxShadow: "none" }}
+                  _focus={{ borderColor: "primary.400", boxShadow: "none" }}
                   maxLength={COMMENT_MAX_LENGTH}
                 />
                 <Text color="gray.400" fontSize="sm" mt={1} textAlign="right">
@@ -305,13 +305,13 @@ export function ReviewModal({
               </FormControl>
 
               <Button
-                colorScheme="teal"
                 onClick={handleSubmit}
+                colorScheme="primary"
                 isLoading={isSubmitting}
-                loadingText="Salvando..."
-                width="100%"
+                isDisabled={isSubmitting || !selectedSeason}
+                
               >
-                Salvar avaliação
+                {isSubmitting ? "Salvando..." : "Salvar avaliação"}
               </Button>
             </VStack>
           </HStack>

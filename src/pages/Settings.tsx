@@ -435,7 +435,7 @@ export function Settings() {
                   id="new-episode-notifications"
                   isChecked={notificationSettings.newEpisode}
                   onChange={() => handleNotificationSettingsChange('newEpisode')}
-                  colorScheme="teal"
+                  colorScheme="primary"
                 />
               </FormControl>
               
@@ -447,7 +447,7 @@ export function Settings() {
                   id="new-follower-notifications"
                   isChecked={notificationSettings.newFollower}
                   onChange={() => handleNotificationSettingsChange('newFollower')}
-                  colorScheme="teal"
+                  colorScheme="primary"
                 />
               </FormControl>
               
@@ -459,7 +459,7 @@ export function Settings() {
                   id="new-comment-notifications"
                   isChecked={notificationSettings.newComment}
                   onChange={() => handleNotificationSettingsChange('newComment')}
-                  colorScheme="teal"
+                  colorScheme="primary"
                 />
               </FormControl>
               
@@ -471,7 +471,7 @@ export function Settings() {
                   id="new-reaction-notifications"
                   isChecked={notificationSettings.newReaction}
                   onChange={() => handleNotificationSettingsChange('newReaction')}
-                  colorScheme="teal"
+                  colorScheme="primary"
                 />
               </FormControl>
               
@@ -483,12 +483,12 @@ export function Settings() {
                   id="new-review-notifications"
                   isChecked={notificationSettings.newReview}
                   onChange={() => handleNotificationSettingsChange('newReview')}
-                  colorScheme="teal"
+                  colorScheme="primary"
                 />
               </FormControl>
               
               <Button 
-                colorScheme="teal"
+                colorScheme="primary"
                 onClick={saveNotificationSettings}
                 isLoading={isSavingNotificationSettings}
                 mt={4}
@@ -544,7 +544,7 @@ export function Settings() {
                     </InputRightElement>
                   </InputGroup>
                   <Button
-                    colorScheme="teal"
+                    colorScheme="primary"
                     onClick={handleUpdateEmail}
                     isLoading={isUpdatingEmail}
                   >
@@ -563,7 +563,7 @@ export function Settings() {
                     Por questões de segurança, você receberá um email para alterar sua senha.
                   </Alert>
                   <Button
-                    colorScheme="teal"
+                    colorScheme="primary"
                     onClick={handleResetPassword}
                     width="full"
                   >

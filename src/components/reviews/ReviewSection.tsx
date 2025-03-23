@@ -144,12 +144,12 @@ export function ReviewSection({
             bg="gray.700"
             border="none"
             color="white"
-            _focus={{ ring: 1, ringColor: "teal.500" }}
+            _focus={{ ring: 1, ringColor: "primary.500" }}
             minH="120px"
           />
           <Button
             type="submit"
-            colorScheme="teal"
+            colorScheme="primary"
             isLoading={mutation.isPending}
           >
             Enviar avaliação
@@ -212,7 +212,7 @@ export function ReviewSection({
                               <Avatar
                                 size="sm"
                                 name={review.userEmail || "Usuário"}
-                                bg="teal.500"
+                                bg="primary.500"
                               />
                               <VStack align="start" spacing={0}>
                                 <Text color="white">{review.userEmail}</Text>

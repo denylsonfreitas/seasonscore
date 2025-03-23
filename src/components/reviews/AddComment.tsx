@@ -185,9 +185,9 @@ export function AddComment({
                   Cancelar
                 </Button>
                 <Button
-                  colorScheme="teal"
-                  size="sm"
+                  colorScheme="primary"
                   isLoading={isSubmitting}
+                  size="sm"
                   onClick={handleSubmit}
                   isDisabled={!content.trim()}
                 >

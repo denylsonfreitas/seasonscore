@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Box, Spinner, Center, Text } from "@chakra-ui/react";
+import { Box, Spinner, Center, Text, Flex } from "@chakra-ui/react";
 
 interface InfiniteScrollProps {
   loadMore: () => void;
@@ -47,7 +47,7 @@ export function InfiniteScroll({
       <Box ref={loaderRef} py={4} textAlign="center">
         {isLoading && (
           <Center>
-            <Spinner size="md" color="teal.500" thickness="3px" />
+            <Spinner size="md" color="primary.500" thickness="3px" />
           </Center>
         )}
         {!hasMore && !isLoading && (

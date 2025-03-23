@@ -39,11 +39,12 @@ const TopRatedSeriesLazy = React.lazy(() => import("../pages/TopRatedSeries").th
 const SettingsLazy = React.lazy(() => import("../pages/Settings").then(module => ({ default: module.Settings })));
 const ProfileSettingsLazy = React.lazy(() => import("../pages/ProfileSettings").then(module => ({ default: module.ProfileSettings })));
 const SeriesReviewsLazy = React.lazy(() => import("../pages/SeriesReviews").then(module => ({ default: module.SeriesReviews })));
+const ColorSystemLazy = React.lazy(() => import("../pages/design/ColorSystem").then(module => ({ default: module.ColorSystem })));
 
 // Loading fallback component
 const PageLoader = () => (
   <Center minH="75vh">
-    <Spinner size="xl" color="teal.500" thickness="4px" />
+    <Spinner size="xl" color="primary.500" thickness="4px" />
   </Center>
 );
 
@@ -146,6 +147,14 @@ export const routes = [
           <ProtectedRoute>
             <ProfileSettingsLazy />
           </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/design/colors",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ColorSystemLazy />
+          </Suspense>
         ),
       },
     ],

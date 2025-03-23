@@ -53,7 +53,7 @@ export function RelatedSeries({
         <Heading color="white" size="xl" mb={8}>
           Séries Relacionadas
         </Heading>
-        <Text color="gray.400" textAlign="center">
+        <Text color="primary.400" textAlign="center">
           Não há séries relacionadas disponíveis.
         </Text>
       </Container>
@@ -77,7 +77,7 @@ export function RelatedSeries({
       {filteredSeries.length > 7 && (
         <Button
           variant="ghost"
-          color="teal.400"
+          color="primary.500"
           onClick={() => setShowAllRelated(!showAllRelated)}
           rightIcon={showAllRelated ? <CaretUp /> : <CaretDown />}
           mt={7}

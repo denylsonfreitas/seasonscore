@@ -113,7 +113,7 @@ export function WatchlistButton({ series, size = "md", variant = "ghost" }: Watc
         icon={isInList ? <Bookmark weight="fill" /> : <BookmarkSimple />}
         size={size}
         variant={variant}
-        colorScheme="teal"
+        colorScheme="primary"
         color="white"
         bg="blackAlpha.600"
         _hover={{ bg: "blackAlpha.700" }}

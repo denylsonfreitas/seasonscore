@@ -89,7 +89,7 @@ export function PersonalizedRecommendations() {
           Recomendações para Você
         </Heading>
         <Flex justify="center" py={8}>
-          <Spinner size="xl" color="teal.500" />
+          <Spinner size="xl" color="primary.500" />
         </Flex>
       </Box>
     );

@@ -120,7 +120,7 @@ export function SeasonsTabs({
       {series.number_of_seasons > 3 && (
         <Button
           variant="ghost"
-          color="teal.400"
+          color="primary.400"
           onClick={() => setShowAllSeasons(!showAllSeasons)}
           rightIcon={showAllSeasons ? <CaretUp /> : <CaretDown />}
           alignSelf="center"

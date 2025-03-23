@@ -109,7 +109,7 @@ export function UserReview({
             icon={<ThumbsUp weight={userLiked ? "fill" : "regular"} />}
             size="sm"
             variant="ghost"
-            color={userLiked ? "teal.400" : "gray.400"}
+            color={userLiked ? "reactions.like" : "gray.400"}
             onClick={() => handleReaction("likes")}
           />
           <Text color="gray.400" fontSize="sm">
@@ -123,7 +123,7 @@ export function UserReview({
             icon={<ThumbsDown weight={userDisliked ? "fill" : "regular"} />}
             size="sm"
             variant="ghost"
-            color={userDisliked ? "red.400" : "gray.400"}
+            color={userDisliked ? "reactions.dislike" : "gray.400"}
             onClick={() => handleReaction("dislikes")}
           />
           <Text color="gray.400" fontSize="sm">
@@ -171,7 +171,7 @@ export function UserReview({
           {hasMoreComments && (
             <Button
               variant="ghost"
-              color="teal.400"
+              color="primary.500"
               size="sm"
               width="100%"
               onClick={() => setShowAllComments(!showAllComments)}

@@ -11,6 +11,7 @@ import {
   Spinner,
   useDisclosure,
   useBreakpointValue,
+  Center,
 } from "@chakra-ui/react";
 import { useParams, useSearchParams, Link as RouterLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -95,9 +96,9 @@ export function SeriesReviews() {
 
   if (isLoadingSeries || isLoadingReviews || isLoadingUsers) {
     return (
-      <Flex minH="100vh" align="center" justify="center" bg="gray.900">
-        <Spinner size="xl" color="teal.500" />
-      </Flex>
+      <Center minH="70vh">
+        <Spinner size="xl" color="primary.500" />
+      </Center>
     );
   }
 

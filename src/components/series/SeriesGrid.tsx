@@ -1,4 +1,4 @@
-import { Box, SimpleGrid, Spinner, Flex } from "@chakra-ui/react";
+import { Box, SimpleGrid, Spinner, Flex, Center } from "@chakra-ui/react";
 import { SeriesCard } from "./SeriesCard";
 import { SeriesListItem } from "../../services/tmdb";
 import { InfiniteScroll } from "../common/InfiniteScroll";
@@ -20,9 +20,9 @@ export function SeriesGrid({
 }: SeriesGridProps) {
   if (isLoading && series.length === 0) {
     return (
-      <Flex justify="center" py={8}>
-        <Spinner size="xl" color="teal.500" />
-      </Flex>
+      <Center py={10}>
+        <Spinner size="xl" color="primary.500" />
+      </Center>
     );
   }
 

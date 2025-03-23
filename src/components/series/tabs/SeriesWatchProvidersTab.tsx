@@ -148,13 +148,13 @@ export function SeriesWatchProvidersTab({ series }: SeriesWatchProvidersTabProps
         <Link
           href={watchProviders.link}
           isExternal
-          color="teal.400"
+          color="primary.400"
           textAlign="center"
           mt={4}
         >
           <Button
             rightIcon={<TelevisionSimple weight="bold" />}
-            colorScheme="teal"
+            colorScheme="primary"
             variant="outline"
           >
             Ver todas as opções de streaming

@@ -206,7 +206,7 @@ export function SeriesHeader({
                 {series.overview && series.overview.length > 250 && (
                   <Button
                     variant="link"
-                    color="teal.400"
+                    color="primary.400"
                     onClick={() => setIsExpanded(!isExpanded)}
                     rightIcon={isExpanded ? <CaretUp /> : <CaretDown />}
                     size="sm"
@@ -218,13 +218,13 @@ export function SeriesHeader({
                 {/* Botão para assistir trailer */}
                 <Button
                   leftIcon={<VideoCamera weight="fill" />}
-                  colorScheme="teal"
+                  colorScheme="primary"
                   variant="outline"
                   size="sm"
                   isLoading={isLoadingTrailer}
                   loadingText="Carregando"
                   onClick={handleOpenTrailer}
-                  _hover={{ bg: "teal.900" }}
+                  _hover={{ bg: "primary.900" }}
                   transition="all 0.2s"
                   ml={series.overview && series.overview.length > 250 ? 2 : 0}
                 >
@@ -246,7 +246,7 @@ export function SeriesHeader({
               gap={4}
             >
               <HStack spacing={3} width="auto">
-                <Icon as={PlayCircle} color="teal.400" boxSize={5} weight="fill" />
+                <Icon as={PlayCircle} color="primary.400" boxSize={5} weight="fill" />
                 <VStack spacing={0} align="start">
                   <Text color="gray.400" fontSize="sm">Temporadas</Text>
                   <Text color="white" fontSize="lg" fontWeight="bold">
@@ -260,7 +260,7 @@ export function SeriesHeader({
                       borderColor="gray.600" />
               
               <HStack spacing={3} width="auto">
-                <Icon as={Calendar} color="teal.400" boxSize={5} weight="fill" />
+                <Icon as={Calendar} color="primary.400" boxSize={5} weight="fill" />
                 <VStack spacing={0} align="start">
                   <Text color="gray.400" fontSize="sm">Lançamento</Text>
                   <Text color="white" fontSize="lg" fontWeight="bold">

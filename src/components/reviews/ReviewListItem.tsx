@@ -60,7 +60,7 @@ export function ReviewListItem({ userId, userEmail, rating, comment, onClick }: 
                 <Button
                   variant="ghost"
                   size="sm"
-                  color="teal.400"
+                  color="primary.500"
                   rightIcon={isExpanded ? <CaretUp /> : <CaretDown />}
                   onClick={handleExpandClick}
                   mt={1}

@@ -31,7 +31,7 @@ export function SeriesSection({
   if (isLoading) {
     return (
       <Box textAlign="center" py={8}>
-        <Spinner size="xl" color="teal.500" />
+        <Spinner size="xl" color="primary.500" />
       </Box>
     );
   }
@@ -65,7 +65,7 @@ export function SeriesSection({
             as={RouterLink}
             to={link}
             variant="ghost"
-            color="teal.500"
+            color="primary.500"
             rightIcon={<CaretRight weight="bold" />}
             _hover={{ bg: "gray.800" }}
           >

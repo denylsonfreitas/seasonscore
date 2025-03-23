@@ -134,7 +134,7 @@ export function SeasonRatingModal({
                 />
               </Box>
               <Button
-                colorScheme="teal"
+                colorScheme="primary"
                 onClick={handleSubmit}
                 isLoading={isSubmitting}
                 width="full"
@@ -152,7 +152,7 @@ export function SeasonRatingModal({
                 to="/login"
                 onClick={onClose}
               >
-                <Button colorScheme="teal">
+                <Button colorScheme="primary">
                   Fazer Login
                 </Button>
               </Link>

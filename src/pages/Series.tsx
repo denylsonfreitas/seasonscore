@@ -15,6 +15,7 @@ import {
   Tag,
   HStack,
   CloseButton,
+  Center,
 } from "@chakra-ui/react";
 import { SeriesCard } from "../components/series/SeriesCard";
 import { useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
@@ -158,9 +159,9 @@ export function Series() {
 
   if (isLoading) {
     return (
-      <Flex minH="100vh" align="center" justify="center" bg="gray.900">
-        <Spinner size="xl" color="teal.500" />
-      </Flex>
+      <Center minH="70vh">
+        <Spinner size="xl" color="primary.500" />
+      </Center>
     );
   }
 
@@ -176,7 +177,7 @@ export function Series() {
             <Box mb={6}>
               <HStack spacing={2}>
                 <Text color="white">Filtrando por gênero:</Text>
-                <Tag colorScheme="teal" size="lg">
+                <Tag colorScheme="primary" size="lg">
                   <HStack spacing={2}>
                     <Text>{genreName}</Text>
                     <CloseButton size="sm" onClick={clearGenreFilter} />

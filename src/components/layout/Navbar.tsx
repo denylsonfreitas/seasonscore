@@ -100,26 +100,34 @@ export function Navbar() {
               <Link
                 as={RouterLink}
                 to="/"
-                fontSize="lg"
-                fontWeight="bold"
                 color="white"
-                _hover={{ textDecoration: "none", color: "teal.300" }}
+                _hover={{ textDecoration: "none", color: "primary.300" }}
                 display="flex"
                 alignItems="center"
                 gap={2}
               >
-                <Image src="/icon.svg" alt="SeasonScore Logo" boxSize="24px" />
-                SeasonScore
+                <Text 
+                  fontFamily="logo" 
+                  fontSize="2xl" 
+                  letterSpacing="wide"
+                  fontWeight="bold"
+                  lineHeight="1"
+                >
+                  SeasonScore
+                </Text>
               </Link>
+              <Divider borderColor="gray.600" orientation="vertical" height="20px" display={{ base: "none", md: "flex" }} />
 
               {/* Menu de Navegação */}
-              <HStack spacing={5} display={{ base: "none", md: "flex" }}>
+              <HStack spacing={5} display={{ base: "none", md: "flex" }} pt={1}>
                 <Link
                   as={RouterLink}
                   to="/series"
                   color="gray.300"
-                  _hover={{ color: "brand.200" }}
+                  _hover={{ color: "primary.200" }}
                   fontSize="sm"
+                  fontWeight="bold"
+                  textTransform="uppercase"
                 >
                   Séries
                 </Link>
@@ -127,8 +135,10 @@ export function Navbar() {
                   as={RouterLink}
                   to="/series/popular"
                   color="gray.300"
-                  _hover={{ color: "brand.200" }}
+                  _hover={{ color: "primary.200" }}
                   fontSize="sm"
+                  fontWeight="bold"
+                  textTransform="uppercase"
                 >
                   Populares
                 </Link>
@@ -136,8 +146,10 @@ export function Navbar() {
                   as={RouterLink}
                   to="/series/recent"
                   color="gray.300"
-                  _hover={{ color: "brand.200" }}
+                  _hover={{ color: "primary.200" }}
                   fontSize="sm"
+                  fontWeight="bold"
+                  textTransform="uppercase"
                 >
                   Novidades
                 </Link>
@@ -145,8 +157,10 @@ export function Navbar() {
                   as={RouterLink}
                   to="/series/top10"
                   color="gray.300"
-                  _hover={{ color: "brand.200" }}
+                  _hover={{ color: "primary.200" }}
                   fontSize="sm"
+                  fontWeight="bold"
+                  textTransform="uppercase"
                 >
                   Top 10
                 </Link>
@@ -230,7 +244,7 @@ export function Navbar() {
                           onClick={openLoginPopover}
                           variant="outline" 
                           size="sm" 
-                          colorScheme="teal"
+                          colorScheme="primary"
                         >
                           Entrar
                         </Button>
@@ -277,16 +291,18 @@ export function Navbar() {
           <DrawerCloseButton color="gray.300" />
           <DrawerHeader borderBottomWidth="1px" borderColor="gray.600" pb={4}>
             {currentUser ? (
+              <Link as={RouterLink} to="/profile" _hover={{ textDecoration: "none" }} onClick={() => onClose()}>
               <Flex direction="row" gap={3} align="center">
                 <Avatar
                   size="md"
                   src={currentUser.photoURL || undefined}
                   name={currentUser.displayName || undefined}
                 />
-                <Text fontWeight="medium" color="gray.300">
-                  {currentUser.displayName || currentUser.email}
+                <Text fontWeight="bold" color="gray.300">
+                  {currentUser.username}
                 </Text>
               </Flex>
+              </Link>
             ) : (
               <Text color="gray.300">Menu</Text>
             )}
@@ -298,7 +314,7 @@ export function Navbar() {
                 as={RouterLink}
                 to="/series"
                 color="gray.300"
-                _hover={{ color: "brand.200" }}
+                _hover={{ color: "primary.200" }}
                 onClick={onClose}
                 display="flex"
                 alignItems="center"
@@ -321,7 +337,7 @@ export function Navbar() {
                 as={RouterLink}
                 to="/series/popular"
                 color="gray.300"
-                _hover={{ color: "brand.200" }}
+                _hover={{ color: "primary.200" }}
                 onClick={onClose}
                 display="flex"
                 alignItems="center"
@@ -344,7 +360,7 @@ export function Navbar() {
                 as={RouterLink}
                 to="/series/recent"
                 color="gray.300"
-                _hover={{ color: "brand.200" }}
+                _hover={{ color: "primary.200" }}
                 onClick={onClose}
                 display="flex"
                 alignItems="center"
@@ -367,7 +383,7 @@ export function Navbar() {
                 as={RouterLink}
                 to="/series/top10"
                 color="gray.300"
-                _hover={{ color: "brand.200" }}
+                _hover={{ color: "primary.200" }}
                 onClick={onClose}
                 display="flex"
                 alignItems="center"
@@ -394,8 +410,8 @@ export function Navbar() {
                     as={RouterLink}
                     to="/profile"
                     color="gray.300"
-                    _hover={{ color: "brand.200" }}
-                    onClick={onClose}
+                    _hover={{ color: "primary.200" }}
+                    onClick={() => onClose()}
                     display="flex"
                     alignItems="center"
                     gap={3}
@@ -417,7 +433,7 @@ export function Navbar() {
                     as={RouterLink}
                     to="/settings"
                     color="gray.300"
-                    _hover={{ color: "brand.200" }}
+                    _hover={{ color: "primary.200" }}
                     onClick={onClose}
                     display="flex"
                     alignItems="center"
@@ -425,7 +441,7 @@ export function Navbar() {
                     py={2}
                   >
                     <Box 
-                      bg="teal.500" 
+                      bg="primary.500" 
                       p={2} 
                       borderRadius="md"
                       display="flex"
@@ -443,11 +459,11 @@ export function Navbar() {
                       handleLogout();
                     }}
                     variant="ghost"
-                    color="red.400"
+                    color="gray.300"
                     justifyContent="flex-start"
                     leftIcon={
                       <Box 
-                        bg="red.500" 
+                        bg="gray.700" 
                         p={2} 
                         borderRadius="md"
                         display="flex"
@@ -457,7 +473,7 @@ export function Navbar() {
                         <SignOut weight="fill" size={18} color="white" />
                       </Box>
                     }
-                    _hover={{ bg: "red.900", color: "white" }}
+                    _hover={{ bg: "gray.700", color: "white" }}
                     py={2}
                     pl={0}
                     gap={3}
@@ -473,7 +489,7 @@ export function Navbar() {
                       openSignUpModal();
                     }}
                     variant="solid"
-                    colorScheme="teal"
+                    colorScheme="primary"
                     justifyContent="center"
                     height="44px"
                   >

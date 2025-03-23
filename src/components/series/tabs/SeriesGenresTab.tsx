@@ -68,11 +68,11 @@ export function SeriesGenresTab({ series }: SeriesGenresTabProps) {
               >
                 <CardBody>
                   <VStack spacing={2} align="center">
-                    <Badge colorScheme="teal" fontSize="md" p={2}>
+                    <Badge colorScheme="primary" fontSize="md" p={2}>
                       {genre.name}
                     </Badge>
                     <Divider borderColor="gray.600" />
-                    <Text color="teal.300" fontSize="xs">
+                    <Text color="primary.300" fontSize="xs">
                       Ver todas as séries
                     </Text>
                   </VStack>

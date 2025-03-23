@@ -14,6 +14,7 @@ import {
   Grid,
   GridItem,
   Icon,
+  Center,
 } from "@chakra-ui/react";
 import { useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
 import { getSeriesDetails } from "../services/tmdb";
@@ -117,7 +118,7 @@ export function TopRatedSeries() {
         align="center"
         justify="center"
       >
-        <Spinner size="xl" color="teal.500" />
+        <Spinner size="xl" color="primary.500" />
       </Flex>
     );
   }

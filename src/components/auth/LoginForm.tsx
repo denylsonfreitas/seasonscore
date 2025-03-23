@@ -136,7 +136,7 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
 
         <Button
           type="submit"
-          colorScheme="teal"
+          colorScheme="primary"
           size="md"
           w="100%"
           isLoading={isLoading}
@@ -148,7 +148,7 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
           <Text color="gray.400" fontSize="sm">
             Não tem uma conta?{" "}
             <Link
-              color="teal.300"
+              color="primary.300"
               onClick={onSignUpClick}
               _hover={{ textDecoration: "underline" }}
               cursor="pointer"

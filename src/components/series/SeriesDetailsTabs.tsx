@@ -102,7 +102,7 @@ export function SeriesDetailsTabs({
 
   return (
     <Box width="100%">
-      <Tabs variant="enclosed" colorScheme="teal" size="sm">
+      <Tabs variant="enclosed" colorScheme="primary" size="sm">
         {isMobile && (
           <Flex justify="flex-end" mb={1} px={2}>
             <Box fontSize="xs" color="gray.400" mr={2} alignSelf="center">
@@ -113,7 +113,7 @@ export function SeriesDetailsTabs({
               icon={<CaretLeft />}
               size="sm"
               variant="ghost"
-              colorScheme="teal"
+              colorScheme="primary"
               isDisabled={!canScrollLeft}
               onClick={() => handleScroll('left')}
             />
@@ -122,7 +122,7 @@ export function SeriesDetailsTabs({
               icon={<CaretRight />}
               size="sm"
               variant="ghost"
-              colorScheme="teal"
+              colorScheme="primary"
               isDisabled={!canScrollRight}
               onClick={() => handleScroll('right')}
             />

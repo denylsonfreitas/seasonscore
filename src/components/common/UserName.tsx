@@ -37,7 +37,7 @@ export function UserName({ userId, color = "white", showAt = true }: UserNamePro
   }, [userId]);
 
   if (isLoading) {
-    return <Spinner size="sm" color="teal.500" />;
+    return <Spinner size="sm" color="primary.500" />;
   }
 
   return (
@@ -45,7 +45,7 @@ export function UserName({ userId, color = "white", showAt = true }: UserNamePro
       as={RouterLink}
       to={`/u/${username}`}
       color={color}
-      _hover={{ textDecoration: "underline", color: "teal.300" }}
+      _hover={{ textDecoration: "underline", color: "primary.300" }}
       fontSize={{ base: "sm", md: "md" }}
       fontWeight="medium"
     >

@@ -341,7 +341,7 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
             Cancelar
           </Button>
           <Button
-            colorScheme="teal"
+            colorScheme="primary"
             onClick={handleSubmit}
             isLoading={isLoading}
             isDisabled={!!usernameError || !!emailError}

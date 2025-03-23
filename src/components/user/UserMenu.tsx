@@ -77,7 +77,7 @@ export function UserMenu() {
           onClick={handleSignOut}
           bg="gray.800"
           _hover={{ bg: "gray.700" }}
-          color="red.400"
+          color="primary.700"
           icon={<SignOut weight="bold" />}
         >
           Sair

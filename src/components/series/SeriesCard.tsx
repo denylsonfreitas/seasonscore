@@ -98,7 +98,7 @@ const getBadgeStyle = (position: number) => {
       };
     default:
       return {
-        bg: "teal.500",
+        bg: "primary.500",
         color: "white",
         icon: null,
       };

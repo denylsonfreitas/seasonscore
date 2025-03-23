@@ -213,7 +213,7 @@ export function ReviewEditModal({
                     color="white"
                     borderColor="gray.600"
                     _hover={{ borderColor: "gray.500" }}
-                    _focus={{ borderColor: "teal.400", boxShadow: "none" }}
+                    _focus={{ borderColor: "primary.400", boxShadow: "none" }}
                     maxLength={COMMENT_MAX_LENGTH}
                   />
                   <Text color="gray.400" fontSize="sm" mt={1} textAlign="right">
@@ -231,7 +231,7 @@ export function ReviewEditModal({
                     Excluir
                   </Button>
                   <Button
-                    colorScheme="teal"
+                    colorScheme="primary"
                     onClick={handleUpdateReview}
                     isLoading={isUpdating}
                     flex="1"

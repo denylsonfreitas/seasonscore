@@ -86,7 +86,7 @@ export function FollowButton({ userId }: FollowButtonProps) {
   if (!currentUser) {
     return (
       <Button
-        colorScheme="teal"
+        colorScheme="primary"
         variant="solid"
         onClick={() => navigate("/login")}
         size="sm"
@@ -98,7 +98,7 @@ export function FollowButton({ userId }: FollowButtonProps) {
 
   return (
     <Button
-      colorScheme={following ? "red" : "teal"}
+      colorScheme={following ? "primary" : "primary"}
       variant={following ? "outline" : "solid"}
       onClick={handleFollow}
       isLoading={loading}

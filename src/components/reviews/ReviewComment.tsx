@@ -247,7 +247,7 @@ export function ReviewComment({
                   icon={<Heart weight={userLiked ? "fill" : "regular"} />}
                   size="sm"
                   variant="ghost"
-                  color={userLiked ? "red.400" : "gray.400"}
+                  color={userLiked ? "reactions.like" : "gray.400"}
                   onClick={() => handleReaction("likes")}
                   _hover={{ bg: "gray.500" }}
                 />
@@ -264,7 +264,7 @@ export function ReviewComment({
                   icon={<HeartBreak weight={userDisliked ? "fill" : "regular"} />}
                   size="sm"
                   variant="ghost"
-                  color={userDisliked ? "red.400" : "gray.400"}
+                  color={userDisliked ? "reactions.dislike" : "gray.400"}
                   onClick={() => handleReaction("dislikes")}
                   _hover={{ bg: "gray.500" }}
                 />
@@ -289,7 +289,7 @@ export function ReviewComment({
                   <MenuList bg="gray.800" borderColor="gray.600">
                     <MenuItem
                       bg="gray.800"
-                      color="red.400"
+                      color="primary.700"
                       icon={<Trash size={20} />}
                       onClick={handleDelete}
                       _hover={{ bg: "gray.700" }}

@@ -64,7 +64,7 @@ export function UserListModal({ isOpen, onClose, title, userIds, type }: UserLis
         <ModalBody pb={6}>
           {isLoading ? (
             <Box textAlign="center" py={4}>
-              <Spinner color="teal.500" />
+              <Spinner color="primary.500" />
             </Box>
           ) : users.length > 0 ? (
             <VStack spacing={4} align="stretch">
@@ -79,7 +79,7 @@ export function UserListModal({ isOpen, onClose, title, userIds, type }: UserLis
                   </RouterLink>
                   <Box flex="1">
                     <RouterLink to={`/profile/${user.id}`}>
-                      <Text color="white" fontWeight="bold" _hover={{ color: "teal.300" }}>
+                      <Text color="white" fontWeight="bold" _hover={{ color: "primary.300" }}>
                         {user.displayName || user.email?.split("@")[0]}
                       </Text>
                     </RouterLink>

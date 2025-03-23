@@ -76,7 +76,7 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
       {cast.length > 6 && (
         <Button
           variant="ghost"
-          color="teal.400"
+          color="primary.500"
           onClick={() => setShowAllCast(!showAllCast)}
           rightIcon={showAllCast ? <CaretUp /> : <CaretDown />}
           alignSelf="center"

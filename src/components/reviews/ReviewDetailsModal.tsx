@@ -208,11 +208,6 @@ export function ReviewDetailsModal({
       <ModalContent bg="gray.900">
         <ModalHeader color="white">
           <HStack spacing={4}>
-            <Avatar
-              size="sm"
-              name={review.userEmail}
-              src={userData?.photoURL || undefined}
-            />
             <Box>
               {currentUser?.uid === review.userId 
                 ? <Text>Sua avaliação</Text>
@@ -227,23 +222,23 @@ export function ReviewDetailsModal({
           </HStack>
         </ModalHeader>
         <ModalCloseButton color="white" />
-        <ModalBody pb={6}>
+        <ModalBody>
           <Tabs 
             variant="line" 
-            colorScheme="teal" 
+            colorScheme="primary" 
             onChange={(index) => setActiveTab(index)}
             isFitted
           >
             <TabList borderBottomColor="gray.600">
               <Tab 
                 color="gray.400" 
-                _selected={{ color: "white", borderColor: "teal.400" }}
+                _selected={{ color: "white", borderColor: "primary.500" }}
               >
                 Avaliação
               </Tab>
               <Tab 
                 color="gray.400" 
-                _selected={{ color: "white", borderColor: "teal.400" }}
+                _selected={{ color: "white", borderColor: "primary.500" }}
               >
                 Comentários ({review.comments.length})
               </Tab>
@@ -279,7 +274,7 @@ export function ReviewDetailsModal({
                         mb={2}
                         onClick={handleSeriesClick}
                         cursor="pointer"
-                        _hover={{ color: "teal.400", textDecoration: "underline" }}
+                        _hover={{ color: "primary.500", textDecoration: "underline" }}
                         display="inline-block"
                       >
                         {review.seriesName} • Temporada {review.seasonNumber}
@@ -307,7 +302,7 @@ export function ReviewDetailsModal({
                           icon={<Heart weight={userLiked ? "fill" : "regular"} />}
                           size="md"
                           variant="ghost"
-                          color={userLiked ? "red.400" : "gray.400"}
+                          color={userLiked ? "reactions.like" : "gray.400"}
                           onClick={() => handleReaction("likes")}
                         />
                         <Text color="gray.400" fontSize="sm">
@@ -321,7 +316,7 @@ export function ReviewDetailsModal({
                           icon={<HeartBreak weight={userDisliked ? "fill" : "regular"} />}
                           size="md"
                           variant="ghost"
-                          color={userDisliked ? "red.800" : "gray.400"}
+                          color={userDisliked ? "reactions.dislike" : "gray.400"}
                           onClick={() => handleReaction("dislikes")}
                         />
                         <Text color="gray.400" fontSize="sm">
@@ -379,7 +374,7 @@ export function ReviewDetailsModal({
                       {hasMoreComments && (
                         <Button
                           variant="ghost"
-                          color="teal.400"
+                          color="primary.500"
                           size="sm"
                           width="100%"
                           onClick={() => setShowAllComments(!showAllComments)}

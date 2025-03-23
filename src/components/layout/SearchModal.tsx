@@ -81,14 +81,14 @@ export function SearchModal({
               onChange={(e) => setSearch(e.target.value)}
               bg="gray.700"
               border="none"
-              _focus={{ ring: 1, ringColor: "teal.500" }}
+              _focus={{ ring: 1, ringColor: "primary.500" }}
               autoFocus
             />
           </VStack>
 
           {isLoading ? (
             <Box textAlign="center" py={4}>
-              <Spinner color="teal.500" />
+              <Spinner color="primary.500" />
             </Box>
           ) : results.length > 0 ? (
             <VStack spacing={4} align="stretch" maxH="400px" overflowY="auto">

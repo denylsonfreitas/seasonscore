@@ -93,7 +93,7 @@ export function BackToTopButton() {
         right="24px"
         zIndex={9999}
         bg="gray.800"
-        color="teal.500"
+        color="primary.500"
         _hover={{ bg: "gray.700", color: "white" }}
         boxShadow="xl"
         borderRadius="full"

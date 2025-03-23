@@ -158,7 +158,7 @@ export function TrendingBanner() {
             {!currentUser && (
               <HStack spacing={4} align="center" mt={2}>
                 <Button 
-                  colorScheme="teal" 
+                  colorScheme="primary" 
                   leftIcon={<UserCircle weight="bold" />}
                   onClick={handleSignUpClick}
                   size="md"

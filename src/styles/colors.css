@@ -1,0 +1,92 @@
+:root {
+  /* Cores primárias */
+  --primary-50: #e0f7f0;
+  --primary-100: #b3eadb;
+  --primary-200: #84ddc4;
+  --primary-300: #54cfad;
+  --primary-400: #2ec59b;
+  --primary-500: #04a777; /* Cor principal */
+  --primary-600: #039b6d;
+  --primary-700: #028a60;
+  --primary-800: #017853;
+  --primary-900: #005b3f;
+  
+  /* Cores secundárias */
+  --secondary-50: #f7fafc;
+  --secondary-100: #edf2f7;
+  --secondary-200: #e2e8f0;
+  --secondary-300: #cbd5e0;
+  --secondary-400: #a0aec0;
+  --secondary-500: #718096;
+  --secondary-600: #4a5568;
+  --secondary-700: #2d3748;
+  --secondary-800: #1a202c;
+  --secondary-900: #171923;
+  
+  /* Cores de reações */
+  --reactions-like: #FF101F;
+  --reactions-dislike: #800020;
+  
+  /* Cores de estado */
+  --success: #38A169;
+  --warning: #ECC94B;
+  --error: #E53E3E;
+  --info: #3182CE;
+  
+  /* Cores de fundo e texto */
+  --bg-primary: #1a202c;
+  --bg-secondary: #2d3748;
+  --text-primary: #ffffff;
+  --text-secondary: #cbd5e0;
+}
+
+/* Classes de utilidade para usar as cores */
+.bg-primary {
+  background-color: var(--primary-500);
+}
+
+.bg-secondary {
+  background-color: var(--secondary-500);
+}
+
+.text-primary {
+  color: var(--primary-500);
+}
+
+.text-secondary {
+  color: var(--secondary-500);
+}
+
+/* Mais classes de utilidade para diferentes tons */
+.bg-primary-light {
+  background-color: var(--primary-300);
+}
+
+.bg-primary-dark {
+  background-color: var(--primary-700);
+}
+
+.border-primary {
+  border-color: var(--primary-500);
+}
+
+.border-secondary {
+  border-color: var(--secondary-500);
+}
+
+/* Classes para cores de reações */
+.text-like {
+  color: var(--reactions-like);
+}
+
+.text-dislike {
+  color: var(--reactions-dislike);
+}
+
+.bg-like {
+  background-color: var(--reactions-like);
+}
+
+.bg-dislike {
+  background-color: var(--reactions-dislike);
+} 

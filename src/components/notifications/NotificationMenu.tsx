@@ -191,7 +191,7 @@ export function NotificationMenu() {
             src={notification.senderPhoto || undefined}
             name={notification.senderName || "Usuário"}
             border="2px solid"
-            borderColor="teal.500"
+            borderColor="primary.500"
           />
         );
       case NotificationType.NEW_COMMENT:
@@ -218,7 +218,7 @@ export function NotificationMenu() {
           </Box>
         );
       default:
-        return <BellIcon boxSize={5} color="teal.300" />;
+        return <BellIcon boxSize={5} color="primary.300" />;
     }
   };
 
@@ -316,7 +316,7 @@ export function NotificationMenu() {
                 </Text>
                 {notifications.length > 0 && (
                   <Badge 
-                    colorScheme="teal" 
+                    colorScheme="primary" 
                     borderRadius="full" 
                     px={2} 
                     fontSize="xs"
@@ -372,9 +372,9 @@ export function NotificationMenu() {
                       <Button
                         size="xs"
                         variant="ghost"
-                        colorScheme="teal"
+                        colorScheme="primary"
                         color="white"
-                        _hover={{ bg: "teal.700", color: "white" }}
+                        _hover={{ bg: "primary.700", color: "white" }}
                         onClick={handleMarkAllAsRead}
                         fontWeight="normal"
                       >
@@ -413,10 +413,10 @@ export function NotificationMenu() {
               <Button
                 size="xs"
                 variant={activeFilter === NotificationType.NEW_FOLLOWER ? "solid" : "ghost"}
-                colorScheme="teal"
+                colorScheme="primary"
                 onClick={() => setActiveFilter(NotificationType.NEW_FOLLOWER)}
                 color="white"
-                _hover={{ bg: "teal.700" }}
+                _hover={{ bg: "primary.700" }}
               >
                 Seguidores ({notificationCounts[NotificationType.NEW_FOLLOWER] || 0})
               </Button>
@@ -449,7 +449,7 @@ export function NotificationMenu() {
           {isLoading ? (
             <Box p={8} textAlign="center">
               <VStack spacing={3}>
-                <Spinner color="teal.300" size="md" />
+                <Spinner color="primary.300" size="md" />
                 <Text color="gray.400" fontSize="sm">
                   Atualizando notificações...
                 </Text>
@@ -481,7 +481,7 @@ export function NotificationMenu() {
                 bg={notification.read ? "gray.800" : "gray.700"}
                 _hover={{ bg: "gray.600" }}
                 borderLeft={notification.read ? "none" : "4px solid"}
-                borderLeftColor="teal.400"
+                borderLeftColor="primary.400"
                 px={4}
                 py={3}
                 role="button"
@@ -495,7 +495,7 @@ export function NotificationMenu() {
                     <Checkbox 
                       isChecked={selectedNotifications.includes(notification.id)}
                       onChange={() => toggleNotificationSelection(notification.id)}
-                      colorScheme="teal"
+                      colorScheme="primary"
                       onClick={(e) => e.stopPropagation()}
                       mt={1}
                     />
@@ -517,7 +517,7 @@ export function NotificationMenu() {
                         color={
                           notification.createdAt instanceof Date && 
                           (new Date().getTime() - notification.createdAt.getTime()) < 3600000 * 3 // 3 horas
-                            ? "teal.300" 
+                            ? "primary.300" 
                             : "gray.400"
                         } 
                         fontSize="xs"
@@ -531,7 +531,7 @@ export function NotificationMenu() {
                             w="6px" 
                             h="6px" 
                             borderRadius="full" 
-                            bg="teal.300" 
+                            bg="primary.300" 
                             mr={1} 
                             display="inline-block"
                           />
@@ -541,7 +541,7 @@ export function NotificationMenu() {
                           : "Agora"}
                       </Text>
                       {!isSelectionMode && (
-                        <Text color="teal.300" fontSize="xs" fontWeight="bold">
+                        <Text color="primary.300" fontSize="xs" fontWeight="bold">
                           • Clique para ver
                         </Text>
                       )}
