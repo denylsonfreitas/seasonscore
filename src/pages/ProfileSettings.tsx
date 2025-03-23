@@ -41,6 +41,7 @@ import {
 } from "@phosphor-icons/react";
 import { db, auth } from "../config/firebase";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
+import { UserAvatar } from "../components/common/UserAvatar";
 
 export function ProfileSettings() {
   const { currentUser } = useAuth() as { currentUser: ExtendedUser | null };
@@ -408,10 +409,11 @@ export function ProfileSettings() {
                 />
                 <Box position="relative" width="fit-content" mx="auto">
                   {/* Avatar com placeholder quando foto removida */}
-                  <Avatar
+                  <UserAvatar
                     size="2xl"
-                    src={isRemovingPhoto ? undefined : (tempPhotoURL || currentUser?.photoURL || undefined) as string | undefined}
-                    name={currentUser?.displayName || ""}
+                    photoURL={isRemovingPhoto ? null : (tempPhotoURL || currentUser?.photoURL)}
+                    displayName={currentUser?.displayName || ""}
+                    userId={currentUser?.uid}
                   />
                   <Box
                     position="absolute"

@@ -5,7 +5,6 @@ import {
   VStack,
   useToast,
   HStack,
-  Avatar,
   Text,
 } from "@chakra-ui/react";
 import { useState } from "react";
@@ -13,6 +12,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { addCommentToReview } from "../../services/reviews";
 import { ChatCircle } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
+import { UserAvatar } from "../common/UserAvatar";
 
 interface AddCommentProps {
   reviewId: string;
@@ -127,10 +127,11 @@ export function AddComment({
 
   return (
     <Box bg="gray.700" p={4} borderRadius="md" width="100%">
-      <HStack spacing={3} align="start">
-        <Avatar 
+      <HStack spacing={3} align="start" width="100%">
+        <UserAvatar 
           size="sm" 
-          src={currentUser.photoURL || undefined}
+          userId={currentUser?.uid}
+          photoURL={currentUser?.photoURL}
         />
         <VStack spacing={3} flex={1}>
           {!isExpanded ? (

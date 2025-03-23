@@ -31,7 +31,6 @@ import { doc, updateDoc } from "firebase/firestore";
 import { updateProfile } from "firebase/auth";
 import { db } from "../config/firebase";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
-import { UploadSimple } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { Footer } from "../components/common/Footer";
@@ -52,7 +51,6 @@ import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 // Componentes modularizados para perfil
 import { ProfileHeader } from "../components/profile/ProfileHeader";
 import { ProfileStats } from "../components/profile/ProfileStats";
-import { FavoriteSeries } from "../components/profile/FavoriteSeries";
 import { ReviewsSection } from "../components/profile/ReviewsSection";
 import { WatchlistSection } from "../components/profile/WatchlistSection";
 
@@ -104,6 +102,7 @@ export function Profile() {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [selectedReviewForDetails, setSelectedReviewForDetails] = useState<SeriesReview | null>(null);
   const [isReviewDetailsOpen, setIsReviewDetailsOpen] = useState(false);
+  const [showWatchlist, setShowWatchlist] = useState(false);
 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -357,99 +356,44 @@ export function Profile() {
                 reviewsCount={reviews.length}
                 followersCount={followers.length}
                 followingCount={following.length}
+                watchlistCount={watchlist.length}
                 onShowFollowers={() => setShowFollowers(true)}
                 onShowFollowing={() => setShowFollowing(true)}
-              />
-
-              <FavoriteSeries
-                isOwnProfile={!!isOwnProfile}
-                currentUser={currentUser}
-                profileUser={profileUser}
+                onShowReviews={() => setShowWatchlist(false)}
+                onShowWatchlist={() => setShowWatchlist(true)}
+                isOwnProfile={isOwnProfile}
+                activeSection={showWatchlist ? "watchlist" : "reviews"}
               />
             </VStack>
 
-            {/* Abas de Conteúdo */}
-            <Tabs variant="soft-rounded" colorScheme="primary">
-              <TabList mb={4} overflowX="auto" pb={2}>
-                <Tab
+            {/* Conteúdo principal - alternando entre Avaliações e Watchlist */}
+            <VStack spacing={4} align="stretch">
+              <Flex justify="space-between" align="center">
+                <Text 
+                  fontSize="xl" 
+                  fontWeight="bold" 
                   color="white"
-                  _selected={{ color: "white", bg: "primary.500" }}
-                  fontSize={{ base: "sm", md: "md" }}
-                  px={{ base: 3, md: 4 }}
+                  pb={2}
                 >
-                  Avaliações
-                </Tab>
-                {isOwnProfile && (
-                  <Tab
-                    color="white"
-                    _selected={{ color: "white", bg: "primary.500" }}
-                    fontSize={{ base: "sm", md: "md" }}
-                    px={{ base: 3, md: 4 }}
-                  >
-                    Watchlist
-                  </Tab>
-                )}
-              </TabList>
-
-              <TabPanels>
-                {/* Painel de Avaliações */}
-                <TabPanel p={0}>
-                  <ReviewsSection
-                    reviews={reviews}
-                    isLoading={isLoadingReviews}
-                    onReviewClick={handleReviewClick}
-                  />
-                </TabPanel>
-
-                {/* Painel de Watchlist */}
-                {isOwnProfile && (
-                  <TabPanel p={0}>
-                    <WatchlistSection
-                      watchlist={watchlist}
-                      isLoading={isLoadingWatchlist}
-                      isOwnProfile={!!isOwnProfile}
-                      currentUser={currentUser}
-                    />
-                  </TabPanel>
-                )}
-              </TabPanels>
-            </Tabs>
-
-            {/* Modais */}
-            <Modal isOpen={isOpen} onClose={onClose} size="md">
-              <ModalOverlay />
-              <ModalContent bg="gray.800">
-                <ModalHeader color="white">Editar Perfil</ModalHeader>
-                <Box position="absolute" right={2} top={2}>
-                  <ModalCloseButton color="white" />
-                </Box>
-                <ModalBody pb={6}>
-                  <VStack spacing={6}>
-                    <FormControl>
-                      <FormLabel color="white">Nome</FormLabel>
-                      <Input
-                        value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
-                        placeholder="Seu nome"
-                        bg="gray.700"
-                        color="white"
-                        border="none"
-                      />
-                    </FormControl>
-
-                    <Button
-                      colorScheme="primary"
-                      onClick={handleUpdateProfile}
-                      isLoading={isUpdating}
-                      width="full"
-                    >
-                      Salvar
-                    </Button>
-                  </VStack>
-                </ModalBody>
-              </ModalContent>
-            </Modal>
-
+                  {showWatchlist ? "Watchlist" : "Avaliações"}
+                </Text>
+              </Flex>
+              
+              {showWatchlist && isOwnProfile ? (
+                <WatchlistSection
+                  watchlist={watchlist}
+                  isLoading={isLoadingWatchlist}
+                  isOwnProfile={!!isOwnProfile}
+                  currentUser={currentUser}
+                />
+              ) : (
+                <ReviewsSection
+                  reviews={reviews}
+                  isLoading={isLoadingReviews}
+                  onReviewClick={handleReviewClick}
+                />
+              )}
+            </VStack>
             {selectedReviewForDetails && (
               <ReviewDetailsModal
                 isOpen={isReviewDetailsOpen}

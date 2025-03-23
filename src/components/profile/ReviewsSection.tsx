@@ -6,16 +6,14 @@ import {
   Text,
   Box,
   Image,
-  HStack,
-  Badge,
   SlideFade,
   Wrap,
   WrapItem,
 } from "@chakra-ui/react";
 import { useState, useMemo } from "react";
-import { CaretUp, CaretDown } from "@phosphor-icons/react";
+import { CaretUp, CaretDown, Star } from "@phosphor-icons/react";
 import { SeriesReview } from "../../services/reviews";
-import { ProfileReviewCard } from "./ProfileReviewCard";
+import { formatRating } from "../../utils/format";
 
 interface ReviewsSectionProps {
   reviews: SeriesReview[];
@@ -71,12 +69,6 @@ export function ReviewsSection({
 
   return (
     <VStack spacing={6} align="stretch">
-      <Flex justify="space-between" align="center">
-        <Text color="gray.400" fontSize="xs">
-          {sortedReviews.length} {sortedReviews.length === 1 ? 'avaliação' : 'avaliações'}
-        </Text>
-      </Flex>
-      
       {/* Lista de Avaliações */}
       <VStack spacing={3} align="stretch">
         {sortedReviews
@@ -146,18 +138,23 @@ export function ReviewsSection({
                       </Text>
                       
                       <Text fontWeight="bold" color="primary.400" fontSize="sm">
-                        {(review.seasonReviews.reduce((acc, s) => acc + s.rating, 0) / review.seasonReviews.length).toFixed(1)}
+                        {formatRating(review.seasonReviews.reduce((acc, s) => acc + s.rating, 0) / review.seasonReviews.length)}
                       </Text>
                     </Flex>
                     
-                    <Wrap spacing={1.5} align="left">
+                    <Wrap 
+                      spacing={{ base: 1, md: 1.5 }} 
+                      align="left"
+                      mt={1}
+                    >
                       {review.seasonReviews.map(seasonReview => (
                         <WrapItem 
                           key={seasonReview.seasonNumber}
                           bg="gray.700"
-                          px={2}
+                          px={{ base: 5, md: 2 }}
+                          py={1}
                           borderRadius="sm"
-                          fontSize="xs"
+                          fontSize={{ base: "2xs", md: "xs" }}
                           cursor="pointer"
                           onClick={() => onReviewClick({
                             ...review,
@@ -168,10 +165,12 @@ export function ReviewsSection({
                             bg: "primary.900"
                           }}
                         >
-                          <Text>T{seasonReview.seasonNumber}</Text>
-                          <Text fontWeight="bold" color="primary.300" ml={2}>
-                            {seasonReview.rating.toFixed(1)}
-                          </Text>
+                          <Flex align="center" justify="center">
+                            <Text>T{seasonReview.seasonNumber}</Text>
+                            <Text fontWeight="bold" color="primary.300" ml={{ base: 1, md: 2 }}>
+                              {formatRating(seasonReview.rating)}
+                            </Text>
+                          </Flex>
                         </WrapItem>
                       ))}
                     </Wrap>

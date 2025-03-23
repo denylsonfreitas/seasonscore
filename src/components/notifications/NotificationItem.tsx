@@ -2,7 +2,6 @@ import {
   Box,
   Text,
   HStack,
-  Avatar,
   VStack,
   IconButton,
   useToast,
@@ -13,6 +12,9 @@ import { NotificationType } from "../../types/notification";
 import { deleteNotification } from "../../services/notifications";
 import { useState, useEffect } from "react";
 import { getUserData } from "../../services/users";
+import { useUserData } from "../../hooks/useUserData";
+import { UserAvatar } from "../common/UserAvatar";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface NotificationItemProps {
   notification: {
@@ -84,10 +86,11 @@ export function NotificationItem({
       onClick={handleClick}
     >
       <HStack spacing={4} align="start">
-        <Avatar 
+        <UserAvatar 
           size="sm" 
-          name={displayName}
-          src={userData?.photoURL || undefined}
+          userId={notification.fromUserId}
+          displayName={displayName}
+          photoURL={userData?.photoURL}
         />
         <VStack align="start" flex={1} spacing={1}>
           <Text color="white">

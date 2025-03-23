@@ -45,9 +45,9 @@ export function UserName({ userId, color = "white", showAt = true }: UserNamePro
       as={RouterLink}
       to={`/u/${username}`}
       color={color}
-      _hover={{ textDecoration: "underline", color: "primary.300" }}
+      _hover={{ color: "primary.300" }}
       fontSize={{ base: "sm", md: "md" }}
-      fontWeight="medium"
+      fontWeight="bold"
     >
       <Box as="span" display="inline">
         {showAt && username ? "@" : ""}{displayName}

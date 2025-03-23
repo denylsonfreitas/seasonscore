@@ -3,13 +3,13 @@ import {
   Text,
   HStack,
   IconButton,
-  Avatar,
   Menu,
   MenuButton,
   MenuList,
   MenuItem,
   useToast,
   VStack,
+  Flex,
 } from "@chakra-ui/react";
 import { Heart, HeartBreak, DotsThree, Trash } from "@phosphor-icons/react";
 import { useAuth } from "../../contexts/AuthContext";
@@ -20,6 +20,7 @@ import { getUserData } from "../../services/users";
 import { UserName } from "../common/UserName";
 import { useUserData } from "../../hooks/useUserData";
 import { useQueryClient } from "@tanstack/react-query";
+import { UserAvatar } from "../common/UserAvatar";
 
 interface ReviewCommentProps {
   reviewId: string;
@@ -227,10 +228,11 @@ export function ReviewComment({
       transition="background 0.2s"
     >
       <HStack spacing={3} align="start" width="100%">
-        <Avatar 
-          size="sm" 
-          name={comment.userEmail} 
-          src={userData?.photoURL || undefined}
+        <UserAvatar 
+          size="sm"
+          userId={comment.userId}
+          userEmail={comment.userEmail}
+          photoURL={userData?.photoURL}
         />
         <VStack spacing={2} align="stretch" flex={1}>
           <HStack justify="space-between" width="100%">

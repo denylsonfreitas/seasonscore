@@ -7,9 +7,14 @@ import {
   Flex,
   Spinner,
   useToast,
+  Badge,
+  AspectRatio,
+  Tooltip,
+  Center,
+  SlideFade,
 } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
-import { Bookmark } from "@phosphor-icons/react";
+import { Bookmark, TelevisionSimple, BookmarkSimple } from "@phosphor-icons/react";
 import { removeFromWatchlist } from "../../services/watchlist";
 import { useQueryClient } from "@tanstack/react-query";
 import { ExtendedUser } from "../../types/auth";
@@ -65,71 +70,119 @@ export function WatchlistSection({
 
   if (isLoading) {
     return (
-      <Flex justify="center" py={8}>
-        <Spinner color="primary.500" />
-      </Flex>
+      <Center py={8}>
+        <Spinner color="primary.500" size="lg" />
+      </Center>
     );
   }
 
   if (watchlist.length === 0) {
     return (
-      <Text color="gray.400" fontSize={{ base: "sm", md: "md" }}>
-        Nenhuma série na watchlist.
-      </Text>
+      <Center py={8} flexDirection="column">
+        <BookmarkSimple size={40} weight="light" color="#718096" />
+        <Text color="gray.400" fontSize={{ base: "sm", md: "md" }} mt={3}>
+          Nenhuma série na watchlist.
+        </Text>
+      </Center>
     );
   }
 
   return (
-    <SimpleGrid columns={{ base: 2, sm: 3, lg: 4 }} spacing={{ base: 3, md: 6 }}>
-      {watchlist.map((item) => (
-        <Box
+    <SimpleGrid 
+      columns={{ base: 3, sm: 4, md: 5, lg: 6 }} 
+      spacing={{ base: 3, md: 4 }}
+      pb={4}
+    >
+      {watchlist.map((item, index) => (
+        <SlideFade
           key={item.seriesId}
-          bg="gray.800"
-          p={{ base: 2, md: 4 }}
-          borderRadius="lg"
-          position="relative"
-          _hover={{
-            "& .remove-button": {
-              opacity: 1,
-            },
-          }}
+          in={true}
+          offsetY="20px"
+          transition={{ enter: { duration: 0.3, delay: index * 0.05 } }}
         >
-          {isOwnProfile && (
-            <IconButton
-              aria-label="Remover da watchlist"
-              icon={<Bookmark weight="fill" />}
-              size="sm"
-              variant="solid"
-              colorScheme="red"
-              position="absolute"
-              top={3}
-              right={3}
-              zIndex={2}
-              opacity={0}
-              className="remove-button"
-              transition="opacity 0.2s"
-              onClick={(e) => handleRemoveFromWatchlist(item.seriesId, e)}
-            />
-          )}
-          <RouterLink to={`/series/${item.seriesId}`}>
-            <Image
-              src={`https://image.tmdb.org/t/p/w500${item.seriesData.poster_path}`}
-              alt={item.seriesData.name}
-              width="100%"
-              height="auto"
-              borderRadius="md"
-            />
-            <Text
-              color="white"
-              fontWeight="bold"
-              mt={2}
-              fontSize={{ base: "xs", md: "sm" }}
-              noOfLines={2}
-            >
-              {item.seriesData.name}
-            </Text>
-          </RouterLink>
-        </Box>
+          <Box
+            position="relative"
+            overflow="hidden"
+            borderRadius="md"
+            bg="gray.800"
+            boxShadow="0 4px 8px rgba(0, 0, 0, 0.3)"
+            transition="all 0.25s ease"
+            height="100%"
+            _hover={{
+              transform: "translateY(-4px)",
+              boxShadow: "0 10px 20px rgba(0, 0, 0, 0.4)",
+              "& .poster-overlay": {
+                opacity: 1
+              },
+              "& .poster-image": {
+                transform: "scale(1.05)"
+              },
+              "& .remove-button": {
+                opacity: 1,
+                transform: "translateY(0)"
+              }
+            }}
+          >
+            {isOwnProfile && (
+              <Tooltip label="Remover da watchlist" placement="top">
+                <IconButton
+                  aria-label="Remover da watchlist"
+                  icon={<Bookmark weight="fill" size={16} />}
+                  size="sm"
+                  variant="solid"
+                  colorScheme="red"
+                  position="absolute"
+                  top={1}
+                  right={1}
+                  zIndex={10}
+                  opacity={0}
+                  transform="translateY(-8px)"
+                  className="remove-button"
+                  transition="all 0.3s ease"
+                  onClick={(e) => handleRemoveFromWatchlist(item.seriesId, e)}
+                />
+              </Tooltip>
+            )}
+            
+            <RouterLink to={`/series/${item.seriesId}`}>
+              <Tooltip 
+                label={item.seriesData.name} 
+                placement="top" 
+                hasArrow 
+                openDelay={500}
+              >
+                <AspectRatio ratio={2/3}>
+                  <Image
+                    src={item.seriesData.poster_path 
+                      ? `https://image.tmdb.org/t/p/w342${item.seriesData.poster_path}` 
+                      : "https://dummyimage.com/342x513/333/ffffff.png&text=Sem+Poster"}
+                    alt={item.seriesData.name}
+                    objectFit="cover"
+                    className="poster-image"
+                    transition="transform 0.4s ease"
+                    borderRadius="md"
+                  />
+                </AspectRatio>
+              </Tooltip>
+              
+              {/* Overlay com informações */}
+              <Box
+                className="poster-overlay"
+                position="absolute"
+                bottom={0}
+                left={0}
+                right={0}
+                bg="linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0) 100%)"
+                py={1.5}
+                px={1.5}
+                opacity={0}
+                transition="opacity 0.3s ease"
+              >
+
+              </Box>
+            </RouterLink>
+          </Box>
+        </SlideFade>
       ))}
     </SimpleGrid>
   );

@@ -1,9 +1,9 @@
-import { Box, Heading, VStack, Text, Avatar, HStack, Flex, Grid, Image, Icon, useDisclosure, Button } from "@chakra-ui/react";
+import { Box, Heading, VStack, Text, HStack, Flex, Grid, Image, Icon, useDisclosure, Button } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { getPopularReviews, PopularReview, getSeriesReviews } from "../../services/reviews";
 import { Heart, CaretDown, CaretUp } from "@phosphor-icons/react";
 import { RatingStars } from "../common/RatingStars";
-import { UserName } from "../common/UserName";
+import { UserAvatar } from "../common/UserAvatar";
 import { ReviewDetailsModal } from "./ReviewDetailsModal";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -126,9 +126,11 @@ export function PopularReviews() {
                     _hover={{ transform: "scale(1.05)", transition: "transform 0.2s ease" }}
                   />
                   <VStack align="start" spacing={1} flex="1">
-                    <HStack>
-                      <Avatar size="sm" src={review.userAvatar} name={review.userName} />
-                      <UserName userId={review.userId} />
+                    <HStack spacing={2} align="center">
+                      <UserAvatar size="sm" photoURL={review.userAvatar} displayName={review.userName} />
+                      <Text color="white" fontWeight="medium" fontSize="sm" noOfLines={1}>
+                        {review.userName}
+                      </Text>
                     </HStack>
                     <Text color="white" fontSize="md" fontWeight="bold">
                       {review.seriesName}

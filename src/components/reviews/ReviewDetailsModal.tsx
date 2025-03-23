@@ -13,7 +13,6 @@ import {
   TabPanel,
   HStack,
   VStack,
-  Avatar,
   Text,
   Box,
   IconButton,
@@ -25,6 +24,7 @@ import {
 } from "@chakra-ui/react";
 import { RatingStars } from "../common/RatingStars";
 import { UserName } from "../common/UserName";
+import { UserAvatar } from "../common/UserAvatar";
 import { CaretDown, CaretUp } from "@phosphor-icons/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { toggleReaction, getSeriesReviews } from "../../services/reviews";
@@ -301,10 +301,11 @@ export function ReviewDetailsModal({
                 <HStack align="start" spacing={6}>
                   <VStack align="stretch" spacing={6} flex={1}>
                     <HStack spacing={4}>
-                      <Avatar 
+                      <UserAvatar 
                         size="md" 
-                        name={activeReview.userEmail} 
-                        src={userData?.photoURL || undefined}
+                        userId={activeReview.userId}
+                        userEmail={activeReview.userEmail}
+                        photoURL={userData?.photoURL}
                       />
                       <VStack align="start" spacing={0}>
                         <UserName userId={activeReview.userId} />

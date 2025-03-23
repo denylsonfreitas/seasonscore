@@ -39,6 +39,7 @@ import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { getUserData } from "../../services/users";
 import { NotificationItem } from "./NotificationItem";
+import { UserAvatar } from "../common/UserAvatar";
 
 export function NotificationMenu() {
   const { currentUser } = useAuth();
@@ -186,12 +187,10 @@ export function NotificationMenu() {
     switch (notification.type) {
       case NotificationType.NEW_FOLLOWER:
         return (
-          <Avatar
-            size="sm"
-            src={notification.senderPhoto || undefined}
-            name={notification.senderName || "Usuário"}
-            border="2px solid"
-            borderColor="primary.500"
+          <UserAvatar 
+            size="xs" 
+            userId={notification.senderId}
+            photoURL={notification.senderPhoto}
           />
         );
       case NotificationType.NEW_COMMENT:

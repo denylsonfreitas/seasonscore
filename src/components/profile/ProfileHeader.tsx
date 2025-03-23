@@ -8,12 +8,19 @@ import {
   Input,
   Flex,
   Button,
+  Image,
+  HStack,
+  IconButton,
+  useBreakpointValue,
+  Spinner,
 } from "@chakra-ui/react";
 import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserData } from "../../services/users";
 import { FollowButton } from "../user/FollowButton";
 import { ExtendedUser } from "../../types/auth";
+import { UserAvatar } from "../common/UserAvatar";
+import { Camera } from "@phosphor-icons/react";
 
 interface ProfileHeaderProps {
   isOwnProfile: boolean;
@@ -125,14 +132,15 @@ export function ProfileHeader({
                 boxShadow="0 4px 12px rgba(0,0,0,0.5)"
                 display="inline-block"
               >
-                <Avatar
+                <UserAvatar
                   size={{ base: "xl", md: "2xl" }}
-                  src={
+                  photoURL={
                     isOwnProfile
-                      ? currentUser?.photoURL || undefined
-                      : profileUser?.photoURL || undefined
+                      ? currentUser?.photoURL
+                      : profileUser?.photoURL
                   }
-                  name={userName}
+                  displayName={userName}
+                  userId={isOwnProfile ? currentUser?.uid : profileUser?.id}
                 />
               </Box>
             </Box>

@@ -11,11 +11,14 @@ import {
   Flex,
   Text,
   Box,
+  Button,
+  useDisclosure,
 } from "@chakra-ui/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { UserCircle, Gear, SignOut } from "@phosphor-icons/react";
+import { UserCircle, Gear, SignOut, BookmarksSimple, Bell } from "@phosphor-icons/react";
 import { Link as RouterLink } from "react-router-dom";
+import { UserAvatar } from "../common/UserAvatar";
 
 interface ProfileMenuProps {
   isMobile?: boolean;
@@ -49,9 +52,10 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
       <IconButton
         aria-label="Menu"
         icon={
-          <Avatar
+          <UserAvatar
             size={size}
-            src={currentUser?.photoURL || undefined}
+            userId={currentUser?.uid}
+            photoURL={currentUser?.photoURL}
           />
         }
         variant="unstyled"
@@ -68,9 +72,10 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
         variant="unstyled"
         aria-label="Opções do usuário"
         icon={
-          <Avatar
+          <UserAvatar
             size={size}
-            src={currentUser?.photoURL || undefined}
+            userId={currentUser?.uid}
+            photoURL={currentUser?.photoURL}
           />
         }
       />
