@@ -98,8 +98,13 @@ export function FollowButton({ userId }: FollowButtonProps) {
 
   return (
     <Button
-      colorScheme={following ? "primary" : "primary"}
-      variant={following ? "outline" : "solid"}
+      color={following ? "gray.100" : "gray.100"}
+      bg={following ? "followbutton.unfollow" : "followbutton.follow"}
+      variant={following ? "solid" : "solid"}
+      _hover={{
+        bg: following ? "gray.100" : "gray.100",
+        color: following ? "followbutton.unfollow" : "followbutton.follow",
+      }}
       onClick={handleFollow}
       isLoading={loading}
       size="sm"

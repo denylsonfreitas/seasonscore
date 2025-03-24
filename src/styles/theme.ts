@@ -48,12 +48,17 @@ const colors = {
     800: "#1a202c",
     900: "#171923",
   },
-  // Cores de reações personalizadas
+ 
   reactions: {
     like: "#FF101F",
     dislike: "#800020",
   },
-  // Você pode adicionar mais cores personalizadas aqui
+
+  followbutton: {
+    follow: "#04a777",
+    unfollow: "#FF0000",
+  },
+ 
   success: "#38A169",
   warning: "#ECC94B",
   error: "#E53E3E",
