@@ -11,13 +11,10 @@ import {
   Text,
   Textarea,
   Image,
-  HStack,
   Spinner,
-  Avatar,
   AspectRatio,
   Flex,
   IconButton,
-  CloseButton,
   Menu,
   MenuButton,
   MenuList,
@@ -27,7 +24,7 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { createOrUpdateUser, getUserData, isUsernameAvailable, updateUsername } from "../services/users";
-import { updateProfile, updateEmail, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
+import { updateProfile } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { getSeriesDetails } from "../services/tmdb";
 import { SearchModal } from "../components/layout/SearchModal";
@@ -672,67 +669,6 @@ export function ProfileSettings() {
                   {description.length}/{MAX_DESCRIPTION_LENGTH} caracteres
                 </Text>
               </FormControl>
-
-              <FormControl>
-                <FormLabel color="white">Série Favorita</FormLabel>
-                <VStack align="start" spacing={4}>
-                  {favoriteSeries && (
-                    <HStack
-                      spacing={4}
-                      p={2}
-                      bg="gray.700"
-                      borderRadius="md"
-                      w="full"
-                    >
-                      <Image
-                        src={`https://image.tmdb.org/t/p/w92${favoriteSeries.poster_path}`}
-                        alt={favoriteSeries.name}
-                        width="46px"
-                        height="69px"
-                        borderRadius="md"
-                        objectFit="cover"
-                      />
-                      <Text color="white" flex="1">
-                        {favoriteSeries.name}
-                      </Text>
-                      <IconButton
-                        aria-label="Remover série favorita"
-                        icon={<X weight="bold" />}
-                        size="sm"
-                        colorScheme="red"
-                        onClick={handleRemoveFavoriteSeries}
-                      />
-                    </HStack>
-                  )}
-                  <Button
-                    colorScheme={favoriteSeries === null && currentUser?.favoriteSeries ? "blue" : "primary"}
-                    variant="outline"
-                    onClick={() => {
-                      if (favoriteSeries === null && currentUser?.favoriteSeries) {
-                        // Restaurar a série favorita se estava marcada para remoção
-                        setFavoriteSeries(currentUser.favoriteSeries);
-                        toast({
-                          title: "Remoção cancelada",
-                          description: "A série favorita não será removida",
-                          status: "info",
-                          duration: 3000,
-                          isClosable: true,
-                        });
-                      } else {
-                        // Comportamento normal de abrir a seleção
-                        setIsSearchOpen(true);
-                      }
-                    }}
-                  >
-                    {favoriteSeries === null && currentUser?.favoriteSeries
-                      ? "Cancelar remoção"
-                      : favoriteSeries
-                      ? "Alterar Série Favorita"
-                      : "Escolher Série Favorita"}
-                  </Button>
-                </VStack>
-              </FormControl>
-
               <Button
                 colorScheme="primary"
                 onClick={handleSave}
