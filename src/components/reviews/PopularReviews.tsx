@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { getSeriesDetails } from "../../services/tmdb";
+import { UserName } from "../common/UserName";
 
 export function PopularReviews() {
   const [selectedReview, setSelectedReview] = useState<PopularReview | null>(null);
@@ -128,9 +129,7 @@ export function PopularReviews() {
                   <VStack align="start" spacing={1} flex="1">
                     <HStack spacing={2} align="center">
                       <UserAvatar size="sm" photoURL={review.userAvatar} displayName={review.userName} />
-                      <Text color="white" fontWeight="medium" fontSize="sm" noOfLines={1}>
-                        {review.userName}
-                      </Text>
+                      <UserName userId={review.userId} />
                     </HStack>
                     <Text color="white" fontSize="md" fontWeight="bold">
                       {review.seriesName}
