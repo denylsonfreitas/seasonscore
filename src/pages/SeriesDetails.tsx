@@ -53,14 +53,15 @@ export function SeriesDetails() {
   const { data: reviews = [] } = useQuery({
     queryKey: ["reviews", id],
     queryFn: () => getSeriesReviews(Number(id)),
-    refetchInterval: 3000,
+    refetchInterval: 10000,
     refetchOnWindowFocus: true,
-    staleTime: 0
+    staleTime: 5000
   });
 
   // Buscar avaliação do usuário atual
-  const userReview = reviews.find(
-    (review) => review.userId === currentUser?.uid
+  const userReview = useMemo(() => 
+    reviews.find((review) => review.userId === currentUser?.uid),
+    [reviews, currentUser?.uid]
   );
 
   // Encontra a review atualizada baseada no selectedReview
@@ -78,7 +79,7 @@ export function SeriesDetails() {
       seriesId: id!,
       userId: review.userId,
       userEmail: review.userEmail,
-      seriesName: series.name,
+      seriesName: series.name || "",
       seriesPoster: series.poster_path || "",
       seasonNumber: selectedSeason,
       rating: seasonReview.rating,
@@ -87,7 +88,7 @@ export function SeriesDetails() {
       reactions: seasonReview.reactions || { likes: [], dislikes: [] },
       createdAt: seasonReview.createdAt || new Date()
     };
-  }, [selectedReview, reviews, selectedSeason, id, series]);
+  }, [selectedReview?.id, selectedSeason, id, series?.name, series?.poster_path, reviews]);
 
   // Encontra a review do usuário atual
   const currentUserReview = useMemo(() => {
@@ -101,7 +102,7 @@ export function SeriesDetails() {
       seriesId: id!,
       userId: userReview.userId!,
       userEmail: userReview.userEmail!,
-      seriesName: series.name,
+      seriesName: series.name || "",
       seriesPoster: series.poster_path || "",
       seasonNumber: selectedSeason,
       rating: seasonReview.rating,
@@ -110,7 +111,7 @@ export function SeriesDetails() {
       reactions: seasonReview.reactions || { likes: [], dislikes: [] },
       createdAt: seasonReview.createdAt || new Date()
     };
-  }, [userReview, selectedSeason, id, series]);
+  }, [userReview?.id, selectedSeason, id, series?.name, series?.poster_path]);
 
   // Atualiza o selectedReview quando os reviews forem atualizados
   useEffect(() => {
@@ -121,15 +122,13 @@ export function SeriesDetails() {
         .find(sr => sr.seasonNumber === selectedSeason);
 
       if (updatedReview) {
-        setSelectedReview({
-          ...updatedReview,
-          id: selectedReview.id,
-          userId: selectedReview.userId,
-          userEmail: selectedReview.userEmail
-        });
+        setSelectedReview((prev: typeof selectedReview) => ({
+          ...prev,
+          ...updatedReview
+        }));
       }
     }
-  }, [reviews, selectedReview, selectedSeason]);
+  }, [reviews, selectedReview?.id, selectedSeason]);
 
   const { data: relatedSeries, isLoading: isLoadingRelated } = useQuery({
     queryKey: ["related-series", id],
@@ -177,6 +176,82 @@ export function SeriesDetails() {
       setSeasonToDelete(null);
     }
   };
+
+  // Capturar parâmetros da URL para abrir automaticamente detalhes da avaliação
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const reviewId = searchParams.get('reviewId');
+    const seasonNumberParam = searchParams.get('seasonNumber');
+    
+    if (reviewId && series && !isLoading) {
+      // Adicionar um pequeno atraso para garantir que os dados estejam disponíveis
+      const timer = setTimeout(() => {
+        try {
+          // Buscar avaliações da série
+          queryClient.fetchQuery({
+            queryKey: ["reviews", id],
+            queryFn: () => getSeriesReviews(Number(id)),
+          }).then((reviews) => {
+            // Garantir que temos algo para processar
+            if (!reviews || reviews.length === 0) {
+              console.log("Nenhuma avaliação encontrada para a série");
+              return;
+            }
+            
+            // Encontrar a avaliação específica
+            const review = reviews.find(review => review.id === reviewId);
+            if (!review) {
+              console.log(`Avaliação com ID ${reviewId} não encontrada`);
+              return;
+            }
+            
+            // Selecionar a temporada correta se fornecida
+            const season = seasonNumberParam ? parseInt(seasonNumberParam, 10) : review.seasonReviews[0]?.seasonNumber || 1;
+            
+            // Encontrar a avaliação da temporada específica
+            const seasonReview = review.seasonReviews.find(sr => sr.seasonNumber === season);
+            
+            if (!seasonReview) {
+              console.log(`Temporada ${season} não encontrada na avaliação`);
+              return;
+            }
+            
+            // Atualizar o estado da temporada selecionada
+            setSelectedSeason(season);
+            
+            // Criar objeto para o modal com os dados necessários
+            const reviewForModal = {
+              id: review.id,
+              seriesId: id!,
+              userId: review.userId,
+              userEmail: review.userEmail,
+              seriesName: series.name || "",
+              seriesPoster: series.poster_path || "",
+              seasonNumber: season,
+              rating: seasonReview.rating,
+              comment: seasonReview.comment || "",
+              comments: seasonReview.comments || [],
+              reactions: seasonReview.reactions || { likes: [], dislikes: [] },
+              createdAt: seasonReview.createdAt || new Date()
+            };
+            
+            // Definir a avaliação selecionada e abrir o modal
+            setSelectedReview(reviewForModal);
+            setIsReviewDetailsOpen(true);
+            
+            // Limpar os parâmetros da URL para evitar abrir novamente ao atualizar
+            navigate(`/series/${id}`, { replace: true });
+          }).catch(error => {
+            console.error("Erro ao buscar detalhes da avaliação:", error);
+          });
+        } catch (error) {
+          console.error("Erro ao processar parâmetros de URL:", error);
+        }
+      }, 300); // Pequeno atraso para garantir que os componentes estejam montados
+      
+      return () => clearTimeout(timer);
+    }
+  }, [id, series, isLoading, navigate, queryClient]);
 
   if (isLoading) {
     return (
@@ -317,7 +392,7 @@ export function SeriesDetails() {
           setIsReviewDetailsOpen(false);
           setSelectedReview(null);
         }}
-        review={currentReview || currentUserReview}
+        review={currentReview}
         onReviewUpdated={() => {
           queryClient.invalidateQueries({
             queryKey: ["reviews", id],

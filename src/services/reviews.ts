@@ -24,6 +24,7 @@ import { Comment } from "../types/review";
 import { getUserData } from "./users";
 import { db } from "../config/firebase";
 import { SeasonReview } from "../types/review";
+import { getFollowing } from "./followers";
 
 const reviewsCollection = collection(db, "reviews");
 
@@ -77,61 +78,77 @@ export async function addSeasonReview(
   comment: string
 ) {
   if (!auth.currentUser) throw new Error("Usuário não autenticado");
-  if (!auth.currentUser.email)
-    throw new Error("Email do usuário não encontrado");
+  if (!auth.currentUser.email) throw new Error("Email do usuário não encontrado");
+
+  // Validações
+  if (rating < 0.5 || rating > 5 || (rating * 2) % 1 !== 0) {
+    throw new Error("A nota deve estar entre 0.5 e 5, com incrementos de 0.5");
+  }
+
+  if (comment && comment.length > 280) {
+    throw new Error("O comentário não pode ter mais que 280 caracteres");
+  }
 
   const seasonReview = {
-    seriesId,
     seasonNumber,
     userId: auth.currentUser.uid,
     userEmail: auth.currentUser.email,
     rating,
-    comment,
+    comment: comment || "",
     comments: [],
+    reactions: {
+      likes: [],
+      dislikes: []
+    },
     createdAt: new Date(),
   };
 
-  // Verifica se já existe uma avaliação para esta série do usuário
-  const userReviewQuery = query(
-    reviewsCollection,
-    where("userId", "==", auth.currentUser.uid),
-    where("seriesId", "==", seriesId)
-  );
-
-  const userReviewSnapshot = await getDocs(userReviewQuery);
-
-  if (userReviewSnapshot.empty) {
-    // Cria uma nova avaliação da série
-    const seriesReview = {
-      seriesId,
-      userId: auth.currentUser.uid,
-      userEmail: auth.currentUser.email,
-      seasonReviews: [seasonReview],
-      createdAt: new Date(),
-    };
-
-    await addDoc(reviewsCollection, seriesReview);
-  } else {
-    // Atualiza a avaliação existente
-    const reviewDoc = userReviewSnapshot.docs[0];
-    const existingReview = reviewDoc.data() as SeriesReview;
-
-    // Verifica se já existe uma avaliação para esta temporada
-    const existingSeasonIndex = existingReview.seasonReviews.findIndex(
-      (sr) => sr.seasonNumber === seasonNumber
+  try {
+    // Verifica se já existe uma avaliação para esta série do usuário
+    const userReviewQuery = query(
+      reviewsCollection,
+      where("userId", "==", auth.currentUser.uid),
+      where("seriesId", "==", seriesId)
     );
 
-    if (existingSeasonIndex >= 0) {
-      // Atualiza a avaliação da temporada existente
-      existingReview.seasonReviews[existingSeasonIndex] = seasonReview;
-    } else {
-      // Adiciona nova avaliação de temporada
-      existingReview.seasonReviews.push(seasonReview);
-    }
+    const userReviewSnapshot = await getDocs(userReviewQuery);
 
-    await updateDoc(reviewDoc.ref, {
-      seasonReviews: existingReview.seasonReviews,
-    });
+    if (userReviewSnapshot.empty) {
+      // Cria uma nova avaliação da série
+      const seriesReview = {
+        seriesId,
+        userId: auth.currentUser.uid,
+        userEmail: auth.currentUser.email,
+        seasonReviews: [seasonReview],
+        createdAt: serverTimestamp(),
+      };
+
+      await addDoc(reviewsCollection, seriesReview);
+    } else {
+      // Atualiza a avaliação existente
+      const reviewDoc = userReviewSnapshot.docs[0];
+      const existingReview = reviewDoc.data() as SeriesReview;
+
+      // Verifica se já existe uma avaliação para esta temporada
+      const existingSeasonIndex = existingReview.seasonReviews.findIndex(
+        (sr) => sr.seasonNumber === seasonNumber
+      );
+
+      if (existingSeasonIndex >= 0) {
+        // Atualiza a avaliação da temporada existente
+        existingReview.seasonReviews[existingSeasonIndex] = seasonReview;
+      } else {
+        // Adiciona nova avaliação de temporada
+        existingReview.seasonReviews.push(seasonReview);
+      }
+
+      await updateDoc(reviewDoc.ref, {
+        seasonReviews: existingReview.seasonReviews,
+      });
+    }
+  } catch (error) {
+    console.error("Erro ao salvar avaliação:", error);
+    throw new Error("Não foi possível salvar sua avaliação. Por favor, tente novamente.");
   }
 }
 
@@ -461,43 +478,52 @@ export async function toggleReaction(
 
   if (seasonIndex === -1) throw new Error("Temporada não encontrada");
 
+  // Inicializar reactions se não existir
+  if (!review.seasonReviews[seasonIndex].reactions) {
+    review.seasonReviews[seasonIndex].reactions = {
+      likes: [],
+      dislikes: []
+    };
+  }
+
   // Criar uma cópia da avaliação para atualização
   const updatedReview = {
     ...review,
     seasonReviews: [...review.seasonReviews]
   };
 
-  // Inicializar reactions se não existir
-  if (!updatedReview.seasonReviews[seasonIndex].reactions) {
-    updatedReview.seasonReviews[seasonIndex].reactions = {
-      likes: [],
-      dislikes: []
-    };
-  }
-
   const userId = auth.currentUser.uid;
-  const reactions = updatedReview.seasonReviews[seasonIndex].reactions!;
 
   // Remove a reação oposta se existir
   const oppositeType = reactionType === "likes" ? "dislikes" : "likes";
-  const oppositeIndex = reactions[oppositeType].indexOf(userId);
+  const oppositeIndex = updatedReview.seasonReviews[seasonIndex].reactions![oppositeType].indexOf(userId);
   if (oppositeIndex !== -1) {
-    reactions[oppositeType].splice(oppositeIndex, 1);
+    updatedReview.seasonReviews[seasonIndex].reactions![oppositeType].splice(oppositeIndex, 1);
   }
 
   // Toggle da reação atual
-  const currentIndex = reactions[reactionType].indexOf(userId);
+  const currentIndex = updatedReview.seasonReviews[seasonIndex].reactions![reactionType].indexOf(userId);
   if (currentIndex === -1) {
-    reactions[reactionType].push(userId);
+    updatedReview.seasonReviews[seasonIndex].reactions![reactionType].push(userId);
   } else {
-    reactions[reactionType].splice(currentIndex, 1);
+    updatedReview.seasonReviews[seasonIndex].reactions![reactionType].splice(currentIndex, 1);
   }
 
   try {
     await updateDoc(reviewRef, updatedReview);
 
+    // Se o usuário removeu uma reação existente, remover também a notificação
+    if (currentIndex !== -1 && review.userId !== auth.currentUser.uid) {
+      try {
+        // Importar e usar a função removeReactionNotification
+        const { removeReactionNotification } = await import("../services/notifications");
+        await removeReactionNotification(reviewId, auth.currentUser.uid);
+      } catch (error) {
+        console.error("Erro ao remover notificação de reação:", error);
+      }
+    }
     // Notificar o dono da avaliação sobre a reação (apenas se for uma nova reação)
-    if (currentIndex === -1 && review.userId !== auth.currentUser.uid) {
+    else if (currentIndex === -1 && review.userId !== auth.currentUser.uid) {
       try {
         const seriesDetails = await getSeriesDetails(review.seriesId);
         const userData = await getUserData(auth.currentUser.uid);
@@ -581,8 +607,22 @@ export async function toggleCommentReaction(
   try {
     await updateDoc(reviewRef, updatedReview);
 
+    // Se o usuário removeu uma reação existente, remover também a notificação
+    if (currentIndex !== -1 && comment.userId !== auth.currentUser.uid) {
+      try {
+        // Importar e usar a função removeReactionNotification
+        const { removeReactionNotification } = await import("../services/notifications");
+        
+        // Construir um ID de notificação personalizado para o comentário
+        // Adicionando o commentId para diferenciar das reações da review principal
+        const commentReviewId = `${reviewId}_comment_${commentId}`;
+        await removeReactionNotification(commentReviewId, auth.currentUser.uid);
+      } catch (error) {
+        console.error("Erro ao remover notificação de reação ao comentário:", error);
+      }
+    }
     // Notificar o dono do comentário sobre a reação (apenas se for uma nova reação)
-    if (currentIndex === -1 && comment.userId !== auth.currentUser.uid) {
+    else if (currentIndex === -1 && comment.userId !== auth.currentUser.uid) {
       try {
         const seriesDetails = await getSeriesDetails(review.seriesId);
         const userData = await getUserData(auth.currentUser.uid);
@@ -597,7 +637,8 @@ export async function toggleCommentReaction(
             seriesName: seriesDetails.name,
             seriesPoster: seriesDetails.poster_path || undefined,
             seasonNumber,
-            reviewId,
+            // Usar um reviewId modificado para diferenciar entre reviews e comentários
+            reviewId: `${reviewId}_comment_${commentId}`,
             message: `${userName} reagiu ao seu comentário em ${seriesDetails.name} (Temporada ${seasonNumber}).`
           }
         );
@@ -664,10 +705,53 @@ export async function getPopularReviews(): Promise<PopularReview[]> {
         userAvatar: userData?.photoURL || "",
         createdAt: firstSeasonReview.createdAt instanceof Date 
           ? firstSeasonReview.createdAt 
-          : new Date(firstSeasonReview.createdAt.seconds * 1000),
+          : typeof firstSeasonReview.createdAt === 'object' && 'seconds' in firstSeasonReview.createdAt
+            ? new Date(firstSeasonReview.createdAt.seconds * 1000)
+            : new Date(),
         likes: firstSeasonReview.reactions?.likes?.length || 0,
         dislikes: firstSeasonReview.reactions?.dislikes?.length || 0,
       };
+    })
+  );
+
+  return reviews;
+}
+
+export async function getFollowedUsersReviews(userId: string, seriesId: number): Promise<SeriesReview[]> {
+  // Primeiro, buscar os usuários que o usuário segue
+  const following = await getFollowing(userId);
+  const followedUserIds = following.map((f: { userId: string }) => f.userId);
+
+  // Se não estiver seguindo ninguém, retornar array vazio
+  if (followedUserIds.length === 0) {
+    return [];
+  }
+
+  // Buscar as avaliações dos usuários seguidos para a série específica
+  const reviewsRef = collection(db, "reviews");
+  const q = query(
+    reviewsRef,
+    where("seriesId", "==", seriesId),
+    where("userId", "in", followedUserIds)
+  );
+
+  const querySnapshot = await getDocs(q);
+  const reviews = await Promise.all(
+    querySnapshot.docs.map(async (doc) => {
+      const data = doc.data();
+      const seriesDetails = await getSeriesDetails(data.seriesId);
+
+      return {
+        id: doc.id,
+        userId: data.userId,
+        userEmail: data.userEmail,
+        seriesId: data.seriesId,
+        seasonReviews: data.seasonReviews,
+        series: {
+          name: seriesDetails.name,
+          poster_path: seriesDetails.poster_path,
+        },
+      } as SeriesReview;
     })
   );
 

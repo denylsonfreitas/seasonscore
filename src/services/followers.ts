@@ -101,10 +101,36 @@ export async function unfollowUser(userId: string) {
   }
 
   const followerDoc = querySnapshot.docs[0];
+  const followerData = followerDoc.data();
   
   // Remover o relacionamento de seguidor
   await deleteDoc(followerDoc.ref);
-
+  
+  // Verificar se o follow ocorreu há menos de 1 hora
+  // e remover a notificação correspondente
+  try {
+    const followDate = followerData.createdAt instanceof Timestamp 
+      ? followerData.createdAt.toDate() 
+      : followerData.createdAt;
+      
+    if (followDate) {
+      const now = new Date();
+      const timeDiff = now.getTime() - (followDate?.getTime() || 0);
+      const isRecent = timeDiff < 60 * 60 * 1000; // 1 hora em milissegundos
+      
+      if (isRecent) {
+        // Remover a notificação de novo seguidor para este usuário
+        await deleteNotificationsOfType(
+          userId,
+          NotificationType.NEW_FOLLOWER,
+          auth.currentUser.uid
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Erro ao remover notificação de seguidor:", error);
+    // Continuar a execução mesmo se houver erro ao remover a notificação
+  }
 }
 
 export async function getFollowers(userId: string): Promise<Follower[]> {

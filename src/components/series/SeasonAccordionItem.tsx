@@ -16,11 +16,15 @@ import {
   IconButton,
   Button,
   Link,
+  Spinner,
+  Center,
 } from "@chakra-ui/react";
 import { DotsThree, Eye, PencilSimple, Trash } from "@phosphor-icons/react";
-import { SeriesReview } from "../../services/reviews";
+import { SeriesReview, getFollowedUsersReviews } from "../../services/reviews";
 import { RatingStars } from "../common/RatingStars";
-import { PopularReviewsList } from "../reviews/PopularReviewsList";
+import { ReviewListItem } from "../reviews/ReviewListItem";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface SeasonAccordionItemProps {
   season: number;
@@ -61,6 +65,27 @@ export function SeasonAccordionItem({
   // Obter a avaliação da temporada se existir
   const seasonReview = userReview?.seasonReviews.find(
     (sr) => sr.seasonNumber === season
+  );
+
+  // Buscar avaliações dos usuários seguidos
+  const { data: followedReviews = [], isLoading: isLoadingFollowedReviews } = useQuery({
+    queryKey: ["followedReviews", seriesId, currentUser?.uid],
+    queryFn: () => getFollowedUsersReviews(currentUser?.uid || "", Number(seriesId)),
+    enabled: !!currentUser,
+  });
+
+  // Filtrar avaliações da temporada atual dos usuários seguidos
+  const followedSeasonReviews = followedReviews.flatMap((review) =>
+    review.seasonReviews
+      .filter((sr) => sr.seasonNumber === season)
+      .map((sr) => ({
+        ...sr,
+        id: review.id || "",
+        userId: review.userId,
+        userEmail: review.userEmail,
+        comments: sr.comments || [],
+        createdAt: sr.createdAt || new Date()
+      }))
   );
 
   // Função para renderizar o bloco de avaliação do usuário
@@ -158,6 +183,7 @@ export function SeasonAccordionItem({
               onOpenReviewModal();
             }}
             width="100%"
+            isLoading={isLoadingFollowedReviews}
           >
             Avaliar Temporada {season}
           </Button>
@@ -204,7 +230,7 @@ export function SeasonAccordionItem({
             <Box>
               <HStack justify="space-between" align="center" mb={4}>
                 <Text color="white" fontWeight="bold">
-                  Avaliações Populares
+                  Avaliações de quem você segue
                 </Text>
                 <Button
                   as={Link}
@@ -216,12 +242,31 @@ export function SeasonAccordionItem({
                   Todas as avaliações
                 </Button>
               </HStack>
-              <PopularReviewsList
-                reviews={[]} // Isso será preenchido pelo componente pai
-                currentUserId={currentUser?.uid}
-                season={season}
-                onReviewClick={onReviewClick}
-              />
+              {isLoadingFollowedReviews ? (
+                <Center py={4}>
+                  <Spinner color="primary.500" />
+                </Center>
+              ) : followedSeasonReviews.length > 0 ? (
+                <VStack spacing={4} align="stretch">
+                  {followedSeasonReviews.map((review) => (
+                    <ReviewListItem
+                      key={`${review.id}-${season}`}
+                      userId={review.userId}
+                      userEmail={review.userEmail}
+                      rating={review.rating}
+                      comment={review.comment}
+                      onClick={() => {
+                        onSeasonSelect(season);
+                        onReviewClick(review);
+                      }}
+                    />
+                  ))}
+                </VStack>
+              ) : (
+                <Text color="gray.400" textAlign="center" py={4}>
+                  Nenhuma avaliação de quem você segue ainda.
+                </Text>
+              )}
             </Box>
           )}
         </VStack>

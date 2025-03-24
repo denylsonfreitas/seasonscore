@@ -49,13 +49,6 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
     setIsLoading(true);
     try {
       await login(usernameOrEmail, password);
-      toast({
-        title: "Login bem-sucedido",
-        description: "Bem-vindo(a) de volta!",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
       
       if (onClose) {
         onClose();

@@ -93,13 +93,6 @@ export function AddComment({
       setContent("");
       setIsExpanded(false);
       onCommentAdded?.();
-      toast({
-        title: "Comentário adicionado",
-        description: "Seu comentário foi adicionado com sucesso!",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
     } catch (error) {
       // Reverte a atualização otimista em caso de erro
       queryClient.setQueryData(["reviews", seriesId], previousData);

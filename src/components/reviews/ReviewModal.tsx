@@ -150,8 +150,18 @@ export function ReviewModal({
     if (rating < 0.5 || rating > 5 || (rating * 2) % 1 !== 0) {
       toast({
         title: "Erro",
-        description:
-          "Por favor, selecione uma nota válida (0.5 a 5, apenas incrementos de 0.5)",
+        description: "Por favor, selecione uma nota válida (0.5 a 5, apenas incrementos de 0.5)",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (comment && comment.length > COMMENT_MAX_LENGTH) {
+      toast({
+        title: "Erro",
+        description: `O comentário não pode ter mais que ${COMMENT_MAX_LENGTH} caracteres`,
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -172,12 +182,12 @@ export function ReviewModal({
       });
       onClose();
     } catch (error) {
+      console.error("Erro ao enviar avaliação:", error);
       toast({
         title: "Erro ao enviar avaliação",
-        description:
-          "Ocorreu um erro ao salvar sua avaliação. Tente novamente.",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar sua avaliação. Tente novamente.",
         status: "error",
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
     } finally {

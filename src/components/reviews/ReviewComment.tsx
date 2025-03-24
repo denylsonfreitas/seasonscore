@@ -196,13 +196,7 @@ export function ReviewComment({
       await deleteComment(reviewId, seasonNumber, comment.id);
       // Força uma nova busca dos dados
       await queryClient.refetchQueries({ queryKey: ["reviews", seriesId] });
-      toast({
-        title: "Sucesso",
-        description: "Comentário excluído com sucesso",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
+
     } catch (error) {
       // Reverter a atualização otimista em caso de erro
       if (previousData) {

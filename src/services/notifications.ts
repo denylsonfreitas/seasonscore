@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore";
 import { auth } from "../config/firebase";
 import { getUserData, addToUserWatchedSeries } from "./users";
+import { getSeriesDetails } from "./tmdb";
 
 const db = getFirestore();
 const notificationsCollection = collection(db, "notifications");
@@ -113,20 +114,34 @@ export async function createNotification(
       senderPhoto = senderData?.photoURL;
     }
 
-    // Verificar se já existe uma notificação similar recente (últimas 24 horas)
-    // Apenas se o usuário atual for o destinatário da notificação (para evitar erros de permissão)
+    // Verificar se já existe uma notificação similar recente
     let existingNotificationId = null;
     
-    if (auth.currentUser && userId === auth.currentUser.uid && data.senderId) {
+    if (auth.currentUser && data.senderId) {
       try {
-        const q = query(
-          notificationsCollection,
-          where("userId", "==", userId),
-          where("type", "==", type),
-          where("senderId", "==", data.senderId),
-          orderBy("createdAt", "desc"),
-          limit(1)
-        );
+        let q;
+        
+        if (type === NotificationType.NEW_REACTION && data.reviewId) {
+          // Para reações em avaliações, agrupar por reviewId
+          q = query(
+            notificationsCollection,
+            where("userId", "==", userId),
+            where("type", "==", type),
+            where("reviewId", "==", data.reviewId),
+            orderBy("createdAt", "desc"),
+            limit(1)
+          );
+        } else {
+          // Para outros tipos, verificar por remetente
+          q = query(
+            notificationsCollection,
+            where("userId", "==", userId),
+            where("type", "==", type),
+            where("senderId", "==", data.senderId),
+            orderBy("createdAt", "desc"),
+            limit(1)
+          );
+        }
         
         const querySnapshot = await getDocs(q);
         
@@ -144,13 +159,35 @@ export async function createNotification(
           const isRecent = timeDiff < 24 * 60 * 60 * 1000; // 24 horas em milissegundos
           
           if (isRecent) {
-            // Atualizar a notificação existente em vez de criar uma nova
-            const notificationRef = doc(db, "notifications", notificationDoc.id);
-            await updateDoc(notificationRef, {
-              message: data.message,
-              read: false, // Marcar como não lida novamente
-              createdAt: serverTimestamp(), // Atualizar o timestamp
-            });
+            // Para reações em avaliações, atualizar a mensagem para indicar múltiplas reações
+            if (type === NotificationType.NEW_REACTION && data.reviewId) {
+              let newMessage = data.message;
+              
+              // Se a mensagem já contém "e outros", atualizar o contador
+              if (notificationData.message.includes("e outros")) {
+                const currentCount = notificationData.message.match(/e outros (\d+)/);
+                const count = currentCount ? parseInt(currentCount[1]) + 1 : 2;
+                newMessage = `${senderName} e outros ${count} reagiram à sua avaliação`;
+              } else {
+                newMessage = `${senderName} e outros 1 reagiram à sua avaliação`;
+              }
+              
+              // Atualizar a notificação existente
+              const notificationRef = doc(db, "notifications", notificationDoc.id);
+              await updateDoc(notificationRef, {
+                message: newMessage,
+                read: false, // Marcar como não lida novamente
+                createdAt: serverTimestamp(), // Atualizar o timestamp
+              });
+            } else {
+              // Para outros tipos, apenas atualizar a notificação existente
+              const notificationRef = doc(db, "notifications", notificationDoc.id);
+              await updateDoc(notificationRef, {
+                message: data.message,
+                read: false, // Marcar como não lida novamente
+                createdAt: serverTimestamp(), // Atualizar o timestamp
+              });
+            }
             
             return notificationDoc.id;
           }
@@ -371,11 +408,45 @@ export async function cleanupNotifications(userId: string): Promise<number> {
       ...doc.data()
     } as Notification));
     
-    // Agrupar notificações por tipo e senderId
+    // Agrupar notificações por tipo e contexto
     const notificationGroups: Record<string, Notification[]> = {};
     
     notifications.forEach(notification => {
-      const key = `${notification.type}_${notification.senderId || 'unknown'}`;
+      let key = '';
+      
+      switch (notification.type) {
+        case NotificationType.NEW_REACTION:
+          if (notification.reviewId) {
+            // Agrupar por avaliação
+            key = `reaction_review_${notification.reviewId}`;
+          } else {
+            // Caso não tenha reviewId, usar senderId
+            key = `reaction_sender_${notification.senderId || 'unknown'}`;
+          }
+          break;
+        case NotificationType.NEW_COMMENT:
+          if (notification.seriesId) {
+            // Agrupar por série
+            key = `comment_series_${notification.seriesId}`;
+          } else {
+            // Caso não tenha seriesId, usar senderId
+            key = `comment_sender_${notification.senderId || 'unknown'}`;
+          }
+          break;
+        case NotificationType.NEW_FOLLOWER:
+          key = `follower_${notification.senderId || 'unknown'}`;
+          break;
+        case NotificationType.NEW_EPISODE:
+          key = `episode_${notification.seriesId || 'unknown'}`;
+          break;
+        case NotificationType.NEW_REVIEW:
+          key = `review_${notification.seriesId || 'unknown'}_${notification.senderId || 'unknown'}`;
+          break;
+        default:
+          // Para outros tipos, criar uma chave genérica
+          key = `${String(notification.type)}_${notification.senderId || 'unknown'}`;
+      }
+      
       if (!notificationGroups[key]) {
         notificationGroups[key] = [];
       }
@@ -401,6 +472,27 @@ export async function cleanupNotifications(userId: string): Promise<number> {
           return dateB - dateA;
         });
         
+        // Para notificações de reação, atualizar a primeira para indicar múltiplas reações
+        if (group[0].type === NotificationType.NEW_REACTION && group[0].reviewId) {
+          // Contar quantas notificações diferentes temos neste grupo
+          const uniqueSenders = new Set(group.map(n => n.senderId));
+          
+          if (uniqueSenders.size > 1) {
+            // Atualizar a mensagem para indicar múltiplas reações
+            const notification = group[0];
+            const notificationRef = doc(db, "notifications", notification.id);
+            
+            let newMessage = `${notification.senderName} e outros ${uniqueSenders.size - 1} reagiram à sua avaliação`;
+            
+            updateDoc(notificationRef, {
+              message: newMessage,
+              read: false, // Marcar como não lida novamente
+            }).catch(error => {
+              console.error("Erro ao atualizar mensagem de notificação:", error);
+            });
+          }
+        }
+        
         // Manter a primeira (mais recente) e excluir as demais
         for (let i = 1; i < group.length; i++) {
           deletePromises.push(deleteNotification(group[i].id));
@@ -418,5 +510,208 @@ export async function cleanupNotifications(userId: string): Promise<number> {
   } catch (error) {
     console.error("Erro ao limpar notificações:", error);
     return 0;
+  }
+}
+
+// Função melhorada para obter notificações agrupadas do usuário
+export async function getGroupedNotifications(userId: string): Promise<Notification[]> {
+  try {
+    const q = query(
+      notificationsCollection,
+      where("userId", "==", userId),
+      orderBy("createdAt", "desc"),
+      limit(50)
+    );
+    const querySnapshot = await getDocs(q);
+
+    const notifications = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate(),
+    })) as Notification[];
+
+    // Agrupar notificações por tipo, remetente, e contexto (série, avaliação)
+    const notificationGroups: Record<string, Notification> = {};
+    
+    notifications.forEach(notification => {
+      // Criar uma chave única com base no tipo e contexto da notificação
+      let key = '';
+      
+      switch (notification.type) {
+        case NotificationType.NEW_REACTION:
+          if (notification.reviewId) {
+            // Agrupar por avaliação
+            key = `reaction_review_${notification.reviewId}`;
+          } else {
+            // Caso não tenha reviewId, usar senderId
+            key = `reaction_sender_${notification.senderId || 'unknown'}`;
+          }
+          break;
+        case NotificationType.NEW_COMMENT:
+          if (notification.seriesId) {
+            // Agrupar por série
+            key = `comment_series_${notification.seriesId}`;
+          } else {
+            // Caso não tenha seriesId, usar senderId
+            key = `comment_sender_${notification.senderId || 'unknown'}`;
+          }
+          break;
+        case NotificationType.NEW_FOLLOWER:
+          key = `follower_${notification.senderId || 'unknown'}`;
+          break;
+        case NotificationType.NEW_EPISODE:
+          key = `episode_${notification.seriesId || 'unknown'}`;
+          break;
+        case NotificationType.NEW_REVIEW:
+          key = `review_${notification.seriesId || 'unknown'}_${notification.senderId || 'unknown'}`;
+          break;
+        default:
+          // Para outros tipos, criar uma chave genérica
+          key = `${String(notification.type)}_${notification.senderId || 'unknown'}`;
+      }
+      
+      // Se já temos uma notificação deste grupo, só atualizar se esta for mais recente
+      if (!notificationGroups[key] || 
+          (notification.createdAt > notificationGroups[key].createdAt)) {
+        notificationGroups[key] = notification;
+      }
+    });
+    
+    // Converter o objeto de grupos para um array e ordenar por data de criação
+    return Object.values(notificationGroups).sort((a, b) => {
+      const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+      const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+      return dateB - dateA;
+    });
+  } catch (error) {
+    console.error("Erro ao buscar notificações agrupadas:", error);
+    return [];
+  }
+}
+
+// Remover notificações de reação para uma avaliação específica e um remetente específico
+export async function removeReactionNotification(
+  reviewId: string,
+  senderId: string
+): Promise<void> {
+  try {
+    // Verificar se o usuário atual tem permissão para excluir estas notificações
+    if (!auth.currentUser) {
+      return;
+    }
+    
+    // Verificar se é uma notificação de comentário
+    const isCommentReaction = reviewId.includes('_comment_');
+    
+    let targetUserId: string | null = null;
+    
+    if (isCommentReaction) {
+      // Para reações a comentários, nós salvamos o ID da review em um formato especial
+      // Exemplo: originalReviewId_comment_commentId
+      const originalReviewId = reviewId.split('_comment_')[0];
+      
+      // Buscar a avaliação para obter o dono do comentário
+      const reviewRef = doc(collection(db, "reviews"), originalReviewId);
+      const reviewSnapshot = await getDoc(reviewRef);
+      
+      if (!reviewSnapshot.exists()) {
+        return;
+      }
+      
+      const reviewData = reviewSnapshot.data();
+      // O comentário pertence ao usuário que o criou
+      // Como precisaríamos percorrer todos os comentários para encontrar o específico,
+      // vamos usar a abordagem de buscar diretamente nas notificações
+      
+      // Buscar notificações de reação com o reviewId alterado (que inclui o commentId)
+      const notificationQuery = query(
+        notificationsCollection,
+        where("type", "==", NotificationType.NEW_REACTION),
+        where("reviewId", "==", reviewId),
+        where("senderId", "==", senderId)
+      );
+      
+      const querySnapshot = await getDocs(notificationQuery);
+      
+      if (querySnapshot.empty) {
+        return;
+      }
+      
+      // Deletar todas as notificações encontradas
+      const batch = [];
+      for (const docSnapshot of querySnapshot.docs) {
+        batch.push(deleteDoc(doc(db, "notifications", docSnapshot.id)));
+      }
+      
+      await Promise.all(batch);
+    } else {
+      // Buscar o usuário dono da avaliação
+      const reviewRef = doc(collection(db, "reviews"), reviewId);
+      const reviewSnapshot = await getDoc(reviewRef);
+      
+      if (!reviewSnapshot.exists()) {
+        return;
+      }
+      
+      const reviewData = reviewSnapshot.data();
+      const reviewOwnerId = reviewData.userId;
+      
+      // Se for uma avaliação do usuário atual, não fazer nada
+      if (reviewOwnerId === senderId) {
+        return;
+      }
+      
+      // Buscar notificações de reação para esta avaliação específica e este remetente
+      const notificationQuery = query(
+        notificationsCollection,
+        where("userId", "==", reviewOwnerId),
+        where("type", "==", NotificationType.NEW_REACTION),
+        where("reviewId", "==", reviewId),
+        where("senderId", "==", senderId)
+      );
+      
+      const querySnapshot = await getDocs(notificationQuery);
+      
+      const batch = [];
+      for (const docSnapshot of querySnapshot.docs) {
+        batch.push(deleteDoc(doc(db, "notifications", docSnapshot.id)));
+      }
+      
+      await Promise.all(batch);
+    }
+  } catch (error) {
+    console.error("Erro ao remover notificação de reação:", error);
+  }
+}
+
+export async function getReviewDetails(reviewId: string) {
+  try {
+    const reviewRef = doc(db, "reviews", reviewId);
+    const reviewDoc = await getDoc(reviewRef);
+    
+    if (!reviewDoc.exists()) {
+      return null;
+    }
+
+    const reviewData = reviewDoc.data();
+    const seriesDetails = await getSeriesDetails(reviewData.seriesId);
+    
+    return {
+      id: reviewDoc.id,
+      seriesId: reviewData.seriesId,
+      userId: reviewData.userId,
+      userEmail: reviewData.userEmail,
+      seriesName: seriesDetails.name,
+      seriesPoster: seriesDetails.poster_path || "",
+      seasonNumber: reviewData.seasonReviews[0]?.seasonNumber || 1,
+      rating: reviewData.seasonReviews[0]?.rating || 0,
+      comment: reviewData.seasonReviews[0]?.comment || "",
+      comments: reviewData.seasonReviews[0]?.comments || [],
+      reactions: reviewData.seasonReviews[0]?.reactions || { likes: [], dislikes: [] },
+      createdAt: reviewData.seasonReviews[0]?.createdAt || new Date()
+    };
+  } catch (error) {
+    console.error("Erro ao buscar detalhes da avaliação:", error);
+    return null;
   }
 } 

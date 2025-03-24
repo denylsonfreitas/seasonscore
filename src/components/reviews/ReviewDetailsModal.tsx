@@ -34,6 +34,7 @@ import { useUserData } from "../../hooks/useUserData";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { ReactionButtons } from "./ReactionButtons";
+import { FieldValue } from "firebase/firestore";
 
 interface ReviewDetailsModalProps {
   isOpen: boolean;
@@ -63,7 +64,7 @@ interface ReviewDetailsModalProps {
       likes: string[];
       dislikes: string[];
     };
-    createdAt: Date | { seconds: number };
+    createdAt: Date | { seconds: number } | FieldValue;
   } | null;
   onReviewUpdated: () => void;
 }
@@ -96,8 +97,8 @@ export function ReviewDetailsModal({
     queryKey: ["reviews", review?.seriesId],
     queryFn: () => review?.seriesId ? getSeriesReviews(Number(review.seriesId)) : Promise.resolve([]),
     enabled: isOpen && !!review?.seriesId,
-    refetchInterval: isOpen ? 5000 : false, // Atualizar apenas quando o modal estiver aberto
-    staleTime: 1000 // Um pequeno atraso para evitar atualizações muito frequentes
+    refetchInterval: isOpen ? 15000 : false, // Aumentar o intervalo para 15 segundos
+    staleTime: 10000 // Aumentar o staleTime para 10 segundos
   });
 
   // Encontrar a versão mais atualizada da revisão selecionada
@@ -133,7 +134,26 @@ export function ReviewDetailsModal({
   }, [updatedReviews, review]);
 
   // Usar o review atualizado para os componentes renderizados
-  const activeReview = updatedReview || review;
+  const activeReview = useMemo(() => {
+    if (!updatedReview && !review) return null;
+
+    const currentReview = (updatedReview || review) as NonNullable<typeof review>;
+    
+    return {
+      id: currentReview.id,
+      seriesId: currentReview.seriesId,
+      userId: currentReview.userId,
+      userEmail: currentReview.userEmail,
+      seriesName: currentReview.seriesName || "",
+      seriesPoster: currentReview.seriesPoster || "",
+      seasonNumber: currentReview.seasonNumber,
+      rating: currentReview.rating,
+      comment: currentReview.comment || "",
+      comments: currentReview.comments || [],
+      reactions: currentReview.reactions || { likes: [], dislikes: [] },
+      createdAt: currentReview.createdAt || new Date()
+    };
+  }, [updatedReview, review]);
 
   const handleReaction = async (type: "likes" | "dislikes") => {
     if (!currentUser || !activeReview) {
@@ -150,8 +170,8 @@ export function ReviewDetailsModal({
     const userId = currentUser.uid;
     const isLikeAction = type === "likes";
     const isCurrentlyActive = isLikeAction 
-      ? userLiked 
-      : userDisliked;
+      ? activeReview.reactions?.likes?.includes(userId)
+      : activeReview.reactions?.dislikes?.includes(userId);
     
     // Construir as novas reações
     const newReactions = {
@@ -179,15 +199,6 @@ export function ReviewDetailsModal({
       }
     }
 
-    // Salvamos as reações atuais para atualização local imediata
-    const updatedReactions = { ...newReactions };
-
-    // Alteramos diretamente o objeto review para refletir mudanças imediatamente na interface
-    if (activeReview.reactions) {
-      activeReview.reactions.likes = [...updatedReactions.likes];
-      activeReview.reactions.dislikes = [...updatedReactions.dislikes];
-    }
-
     try {
       // Tentamos atualizar a reação no backend
       await toggleReaction(activeReview.id, activeReview.seasonNumber, type);
@@ -198,7 +209,7 @@ export function ReviewDetailsModal({
       });
       onReviewUpdated();
     } catch (error) {
-      // Em caso de erro, revertemos as mudanças locais
+      // Em caso de erro, mostramos mensagem ao usuário
       toast({
         title: "Erro",
         description: "Não foi possível registrar sua reação",
@@ -206,12 +217,6 @@ export function ReviewDetailsModal({
         duration: 3000,
         isClosable: true,
       });
-      
-      // Revertemos as mudanças no objeto review
-      if (activeReview.reactions) {
-        activeReview.reactions.likes = newReactions.likes.filter(id => id !== userId);
-        activeReview.reactions.dislikes = newReactions.dislikes.filter(id => id !== userId);
-      }
     }
   };
 
@@ -251,10 +256,41 @@ export function ReviewDetailsModal({
     }
   };
 
+  const formatDate = (date: Date | { seconds: number } | FieldValue | undefined) => {
+    if (!date) return "Data não disponível";
+    
+    try {
+      if (date instanceof Date) {
+        return date.toLocaleDateString();
+      }
+      
+      if (typeof date === 'object' && 'seconds' in date) {
+        return new Date(date.seconds * 1000).toLocaleDateString();
+      }
+      
+      // Se for FieldValue, retorna uma data genérica
+      if (typeof date === 'object' && 'isEqual' in date) {
+        return new Date().toLocaleDateString();
+      }
+      
+      return "Data não disponível";
+    } catch (error) {
+      console.error("Erro ao formatar data:", error);
+      return "Data não disponível";
+    }
+  };
+
   if (!activeReview) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl">
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      size="xl"
+      motionPreset="slideInBottom"
+      blockScrollOnMount={false}
+      scrollBehavior="inside"
+    >
       <ModalOverlay />
       <ModalContent bg="gray.900">
         <ModalHeader color="white">
@@ -310,11 +346,7 @@ export function ReviewDetailsModal({
                       <VStack align="start" spacing={0}>
                         <UserName userId={activeReview.userId} />
                         <Text color="gray.400" fontSize="sm">
-                          {new Date(
-                            activeReview.createdAt instanceof Date 
-                              ? activeReview.createdAt 
-                              : activeReview.createdAt.seconds * 1000
-                          ).toLocaleDateString()}
+                          {formatDate(activeReview.createdAt)}
                         </Text>
                       </VStack>
                     </HStack>
@@ -351,8 +383,8 @@ export function ReviewDetailsModal({
                       <ReactionButtons 
                         reviewId={activeReview.id}
                         seasonNumber={activeReview.seasonNumber}
-                        likes={activeReview.reactions.likes}
-                        dislikes={activeReview.reactions.dislikes}
+                        likes={activeReview.reactions?.likes || []}
+                        dislikes={activeReview.reactions?.dislikes || []}
                         onReaction={handleReactionWrapper}
                       />
                     </HStack>

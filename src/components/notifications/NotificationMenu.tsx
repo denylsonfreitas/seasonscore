@@ -21,6 +21,7 @@ import {
   useDisclosure,
   Tooltip,
   Spinner,
+  useToast,
 } from "@chakra-ui/react";
 import { BellIcon, DeleteIcon } from "@chakra-ui/icons";
 import { useAuth } from "../../contexts/AuthContext";
@@ -32,7 +33,9 @@ import {
   getUserNotifications,
   deleteNotification,
   subscribeToNotifications,
-  cleanupNotifications
+  cleanupNotifications,
+  getGroupedNotifications,
+  getReviewDetails,
 } from "../../services/notifications";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -40,6 +43,35 @@ import { useNavigate } from "react-router-dom";
 import { getUserData } from "../../services/users";
 import { NotificationItem } from "./NotificationItem";
 import { UserAvatar } from "../common/UserAvatar";
+import { ReviewDetailsModal } from "../reviews/ReviewDetailsModal";
+
+interface ReviewDetails {
+  id: string;
+  seriesId: string;
+  userId: string;
+  userEmail: string;
+  seriesName: string;
+  seriesPoster: string;
+  seasonNumber: number;
+  rating: number;
+  comment: string;
+  comments: Array<{
+    id: string;
+    userId: string;
+    userEmail: string;
+    content: string;
+    createdAt: Date;
+    reactions: {
+      likes: string[];
+      dislikes: string[];
+    };
+  }>;
+  reactions: {
+    likes: string[];
+    dislikes: string[];
+  };
+  createdAt: Date | { seconds: number };
+}
 
 export function NotificationMenu() {
   const { currentUser } = useAuth();
@@ -50,7 +82,10 @@ export function NotificationMenu() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState<NotificationType | 'all'>('all');
   const navigate = useNavigate();
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isMenuOpen, onOpen: onMenuOpen, onClose: onMenuClose } = useDisclosure();
+  const { isOpen: isModalOpen, onOpen: onModalOpen, onClose: onModalClose } = useDisclosure();
+  const [selectedReview, setSelectedReview] = useState<ReviewDetails | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     if (!currentUser) {
@@ -63,10 +98,59 @@ export function NotificationMenu() {
     const unsubscribe = subscribeToNotifications(
       currentUser.uid,
       (updatedNotifications: Notification[]) => {
-        setNotifications(updatedNotifications);
-        setUnreadCount(
-          updatedNotifications.filter((notification: Notification) => !notification.read).length
-        );
+        // Agrupar as notificações para mostrar apenas as únicas
+        const notificationGroups: Record<string, Notification> = {};
+        
+        updatedNotifications.forEach(notification => {
+          let key = '';
+          
+          switch (notification.type) {
+            case NotificationType.NEW_REACTION:
+              if (notification.reviewId) {
+                key = `reaction_review_${notification.reviewId}`;
+              } else {
+                key = `reaction_sender_${notification.senderId || 'unknown'}`;
+              }
+              break;
+            case NotificationType.NEW_COMMENT:
+              if (notification.seriesId) {
+                key = `comment_series_${notification.seriesId}`;
+              } else {
+                key = `comment_sender_${notification.senderId || 'unknown'}`;
+              }
+              break;
+            case NotificationType.NEW_FOLLOWER:
+              key = `follower_${notification.senderId || 'unknown'}`;
+              break;
+            case NotificationType.NEW_EPISODE:
+              key = `episode_${notification.seriesId || 'unknown'}`;
+              break;
+            case NotificationType.NEW_REVIEW:
+              key = `review_${notification.seriesId || 'unknown'}_${notification.senderId || 'unknown'}`;
+              break;
+            default:
+              key = `${String(notification.type)}_${notification.senderId || 'unknown'}`;
+          }
+          
+          if (!notificationGroups[key] || 
+              (notification.createdAt > notificationGroups[key].createdAt)) {
+            notificationGroups[key] = notification;
+          }
+        });
+        
+        // Obter a lista final de notificações agrupadas
+        const groupedNotifications = Object.values(notificationGroups).sort((a, b) => {
+          const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+          const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+          return dateB - dateA;
+        });
+        
+        setNotifications(groupedNotifications);
+        
+        // Contar apenas as notificações únicas e não lidas
+        const uniqueUnreadCount = groupedNotifications.filter(notification => !notification.read).length;
+        
+        setUnreadCount(uniqueUnreadCount);
       }
     );
 
@@ -83,6 +167,14 @@ export function NotificationMenu() {
     try {
       // Limpar notificações duplicadas
       await cleanupNotifications(currentUser.uid);
+      
+      // Buscar notificações atualizadas após a limpeza
+      const updatedNotifications = await getGroupedNotifications(currentUser.uid);
+      setNotifications(updatedNotifications);
+      
+      // Atualizar contador de não lidas após a limpeza
+      const uniqueUnreadCount = updatedNotifications.filter(notification => !notification.read).length;
+      setUnreadCount(uniqueUnreadCount);
     } catch (error) {
       console.error("Erro ao atualizar notificações:", error);
     } finally {
@@ -92,55 +184,72 @@ export function NotificationMenu() {
 
   // Atualizar notificações quando o menu for aberto
   const handleMenuOpen = async () => {
-    onOpen();
+    onMenuOpen();
     await refreshNotifications();
   };
 
   const handleNotificationClick = async (notification: Notification) => {
-    // Se estiver no modo de seleção, apenas seleciona/deseleciona a notificação
-    if (isSelectionMode) {
-      toggleNotificationSelection(notification.id);
-      return;
-    }
-    
-    // Marcar notificação como lida
-    if (!notification.read) {
+    if (!currentUser) return;
+
+    try {
+      // Marcar como lida
       await markNotificationAsRead(notification.id);
-    }
+      
+      // Atualizar o estado local
+      setNotifications(prev => 
+        prev.map(n => 
+          n.id === notification.id ? { ...n, read: true } : n
+        )
+      );
 
-    // Fechar o menu
-    onClose();
-
-    // Navegar para a página apropriada com base no tipo de notificação
-    switch (notification.type) {
-      case NotificationType.NEW_FOLLOWER:
-        if (notification.senderId) {
-          try {
-            const userData = await getUserData(notification.senderId);
-            if (userData?.username) {
-              navigate(`/u/${userData.username}`);
-            }
-          } catch (error) {
-            console.error("Erro ao buscar dados do usuário:", error);
+      // Recalcular o contador de notificações não lidas
+      const notificationGroups = notifications.reduce((acc, n) => {
+        if (!n.read) {
+          const key = `${n.type}_${n.senderId}_${n.seriesId}_${n.reviewId}`;
+          if (!acc[key]) {
+            acc[key] = n;
           }
         }
-        break;
-      case NotificationType.NEW_COMMENT:
-        if (notification.seriesId) {
-          navigate(`/series/${notification.seriesId}`);
+        return acc;
+      }, {} as Record<string, Notification>);
+
+      setUnreadCount(Object.values(notificationGroups).length);
+
+      // Se for uma notificação de reação ou comentário, abrir o modal de detalhes
+      if (notification.type === NotificationType.NEW_REACTION || 
+          notification.type === NotificationType.NEW_COMMENT) {
+        // Buscar os detalhes da avaliação
+        const reviewDetails = await getReviewDetails(notification.reviewId!);
+        if (reviewDetails) {
+          setSelectedReview(reviewDetails);
+          onModalOpen();
         }
-        break;
-      case NotificationType.NEW_EPISODE:
-        if (notification.seriesId) {
-          navigate(`/series/${notification.seriesId}`);
-        }
-        break;
+      }
+
+      // Fechar o menu de notificações
+      onMenuClose();
+    } catch (error) {
+      console.error("Erro ao processar notificação:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível processar a notificação",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
   };
 
   const handleMarkAllAsRead = async () => {
     if (currentUser) {
       await markAllNotificationsAsRead(currentUser.uid);
+      
+      // Atualizar localmente o estado das notificações
+      const updatedNotifications = notifications.map(n => ({ ...n, read: true }));
+      setNotifications(updatedNotifications);
+      
+      // Atualizar o contador de notificações não lidas para zero
+      setUnreadCount(0);
     }
   };
 
@@ -259,7 +368,7 @@ export function NotificationMenu() {
   }
 
   return (
-    <Menu closeOnSelect={false} isOpen={isOpen} onOpen={handleMenuOpen} onClose={onClose}>
+    <Menu closeOnSelect={false} isOpen={isMenuOpen} onOpen={handleMenuOpen} onClose={onMenuClose}>
       <MenuButton
         as={IconButton}
         aria-label="Notificações"
@@ -320,7 +429,7 @@ export function NotificationMenu() {
                     px={2} 
                     fontSize="xs"
                   >
-                    {notifications.length}
+                    {unreadCount > 0 ? `${unreadCount} não lida${unreadCount > 1 ? 's' : ''}` : notifications.length}
                   </Badge>
                 )}
               </HStack>
@@ -541,7 +650,7 @@ export function NotificationMenu() {
                       </Text>
                       {!isSelectionMode && (
                         <Text color="primary.300" fontSize="xs" fontWeight="bold">
-                          • Clique para ver
+                          Clique para ver
                         </Text>
                       )}
                     </HStack>
@@ -552,6 +661,19 @@ export function NotificationMenu() {
           )}
         </Box>
       </MenuList>
+
+      {/* Modal de Detalhes da Avaliação */}
+      {selectedReview && (
+        <ReviewDetailsModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            onModalClose();
+            setSelectedReview(null);
+          }}
+          review={selectedReview}
+          onReviewUpdated={refreshNotifications}
+        />
+      )}
     </Menu>
   );
 } 
