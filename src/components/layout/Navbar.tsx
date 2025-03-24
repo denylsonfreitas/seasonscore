@@ -165,7 +165,7 @@ export function Navbar() {
                     <ProfileMenu />
                   </HStack>
                   
-                  {/* Menu Mobile */}
+                  {/* Menu Mobile para usuários logados - apenas perfil com menu acionado pelo avatar */}
                   <HStack spacing={3} display={{ base: "flex", md: "none" }}>
                     <QuickAddButton size="26px" />
                     <NotificationMenu />
@@ -179,43 +179,6 @@ export function Navbar() {
                     <Button onClick={openSignUpModal} variant="solid" size="sm">
                       Criar Conta
                     </Button>
-                    <Popover
-                      isOpen={isLoginPopoverOpen}
-                      onClose={closeLoginPopover}
-                      placement="bottom-end"
-                      gutter={4}
-                      closeOnBlur={true}
-                      closeOnEsc={true}
-                      returnFocusOnClose={false}
-                      autoFocus={false}
-                      strategy="fixed"
-                    >
-                      <PopoverTrigger>
-                        <Button 
-                          onClick={openLoginPopover} 
-                          variant="solid" 
-                          size="sm"
-                          leftIcon={<SignIn weight="bold" />}
-                        >
-                          Entrar
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent 
-                        bg="gray.800" 
-                        borderColor="gray.700" 
-                        width="300px"
-                        position="relative"
-                        boxShadow="xl"
-                      >
-                        <PopoverBody p={0}>
-                          <LoginForm onSignUpClick={openSignUpFromLogin} onClose={closeLoginPopover} />
-                        </PopoverBody>
-                      </PopoverContent>
-                    </Popover>
-                  </HStack>
-                  
-                  {/* Botões Mobile */}
-                  <HStack spacing={3} display={{ base: "flex", md: "none" }}>
                     <Popover
                       isOpen={isLoginPopoverOpen}
                       onClose={closeLoginPopover}
@@ -250,6 +213,10 @@ export function Navbar() {
                         </PopoverBody>
                       </PopoverContent>
                     </Popover>
+                  </HStack>
+                  
+                  {/* Menu Mobile para usuários não logados */}
+                  <HStack spacing={2} display={{ base: "flex", md: "none" }}>
                     <IconButton
                       aria-label="Menu"
                       icon={<List weight="bold" size={18} />}
@@ -271,8 +238,8 @@ export function Navbar() {
 
       {/* Modal de Cadastro */}
       <SignUpModal isOpen={isSignUpModalOpen} onClose={closeSignUpModal} />
-
-      {/* Menu Mobile */}
+      
+      {/* Menu Mobile para todos os usuários */}
       <MobileMenu
         isOpen={isOpen}
         onClose={onClose}

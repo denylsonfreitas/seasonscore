@@ -1,18 +1,10 @@
 import {
-  Drawer,
-  DrawerOverlay,
-  DrawerContent,
-  DrawerCloseButton,
-  DrawerHeader,
-  DrawerBody,
-  VStack,
-  Link,
   Box,
-  Avatar,
   Text,
   Flex,
-  Divider,
   Button,
+  Portal,
+  Divider,
 } from "@chakra-ui/react";
 import {
   TelevisionSimple,
@@ -25,6 +17,7 @@ import {
 } from "@phosphor-icons/react";
 import { Link as RouterLink } from "react-router-dom";
 import { ExtendedUser } from "../../types/auth";
+import { useState, useEffect } from "react";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -51,232 +44,327 @@ export function MobileMenu({
   openSignUpModal,
   openLoginPopover,
 }: MobileMenuProps) {
-  return (
-    <Drawer isOpen={isOpen} placement="right" onClose={onClose}>
-      <DrawerOverlay />
-      <DrawerContent bg="gray.800">
-        <DrawerCloseButton color="gray.300" />
-        <DrawerHeader borderBottomWidth="1px" borderColor="gray.600" pb={4}>
-          {currentUser ? (
-            <Link as={RouterLink} to="/profile" _hover={{ textDecoration: "none" }} onClick={() => onClose()}>
-              <Flex direction="row" gap={3} align="center">
-                <Avatar
-                  size="md"
-                  src={currentUser.photoURL || undefined}
-                  name={currentUser.displayName || undefined}
-                />
-                <Text fontWeight="bold" color="gray.300">
-                  {currentUser.username}
-                </Text>
-              </Flex>
-            </Link>
-          ) : (
-            <Text color="gray.300">Menu</Text>
-          )}
-        </DrawerHeader>
+  const [isVisible, setIsVisible] = useState(false);
+  
+  useEffect(() => {
+    if (isOpen) {
+      // Pequeno atraso antes de mostrar para permitir que o DOM seja atualizado
+      setTimeout(() => {
+        setIsVisible(true);
+      }, 10);
+    } else {
+      setIsVisible(false);
+    }
+  }, [isOpen]);
 
-        <DrawerBody bg="gray.800">
-          <VStack spacing={3} align="stretch" pt={2}>
-            <Link
-              as={RouterLink}
-              to="/series"
-              color="gray.300"
-              _hover={{ color: "linkhome.series" }}
-              onClick={onClose}
-              display="flex"
-              alignItems="center"
-              gap={3}
-              py={2}
+  // Estilo CSS para animação dos itens do menu
+  const getItemAnimationStyle = (index: number) => ({
+    opacity: isVisible ? 1 : 0,
+    transform: isVisible ? "translateY(0)" : "translateY(10px)",
+    transition: `all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 0.04 + 0.15}s`,
+  });
+
+  if (!isOpen && !isVisible) return null;
+
+  return (
+    <Portal>
+      {/* Overlay invisível que fecha o menu quando clicado */}
+      <Box
+        position="fixed"
+        top="0"
+        left="0"
+        right="0"
+        bottom="0"
+        zIndex={1200}
+        onClick={onClose}
+        bg="blackAlpha.500"
+        opacity={isVisible ? 1 : 0}
+        transition="opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1)"
+        pointerEvents={isVisible ? "auto" : "none"}
+      />
+      
+      <Box 
+        bg="gray.800" 
+        borderColor="gray.700" 
+        boxShadow="dark-lg" 
+        p={2}
+        borderRadius="md"
+        minWidth="260px"
+        zIndex={1300}
+        position="fixed"
+        top="60px"
+        right="16px"
+        borderWidth="1px"
+        onClick={(e) => e.stopPropagation()} // Evita que cliques no menu fechem ele
+        transform={isVisible ? "translateY(0) scale(1)" : "translateY(-25px) scale(0.92)"}
+        opacity={isVisible ? 1 : 0}
+        transition="transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)"
+        transformOrigin="top right"
+        willChange="transform, opacity"
+      >
+        {/* Cabeçalho - apenas para usuários logados */}
+        {currentUser && (
+          <>
+            <Flex 
+              direction="column" 
+              p={3} 
+              borderBottom="1px solid" 
+              borderColor="gray.700" 
+              mb={2}
+              style={getItemAnimationStyle(0)}
             >
-              <Box 
-                bg="gray.700" 
-                p={2} 
+              <Text 
+                fontWeight="semibold" 
+                color="white" 
+                fontSize="sm"
+              >
+                {currentUser?.displayName || "Usuário"}
+              </Text>
+              <Text 
+                color="gray.400" 
+                fontSize="xs"
+              >
+                {currentUser?.username}
+              </Text>
+            </Flex>
+          </>
+        )}
+
+        {/* Itens de Menu */}
+        <Box style={getItemAnimationStyle(1)}>
+          <RouterLink to="/series">
+            <Flex
+              align="center"
+              py={2.5}
+              px={3}
+              borderRadius="md"
+              _hover={{ bg: "gray.700" }}
+              onClick={onClose}
+            >
+              <Box
+                p={2}
                 borderRadius="md"
+                mr={3}
+                bg="gray.700"
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
               >
                 <TelevisionSimple weight="fill" size={18} color={seriesColor} />
               </Box>
-              Séries
-            </Link>
-            <Link
-              as={RouterLink}
-              to="/series/popular"
-              color="gray.300"
-              _hover={{ color: "linkhome.popular" }}
+              <Text color="gray.100" fontWeight="medium">
+                Séries
+              </Text>
+            </Flex>
+          </RouterLink>
+        </Box>
+
+        <Box style={getItemAnimationStyle(2)}>
+          <RouterLink to="/series/popular">
+            <Flex
+              align="center"
+              py={2.5}
+              px={3}
+              borderRadius="md"
+              _hover={{ bg: "gray.700" }}
               onClick={onClose}
-              display="flex"
-              alignItems="center"
-              gap={3}
-              py={2}
             >
-              <Box 
-                bg="gray.700" 
-                p={2} 
+              <Box
+                p={2}
                 borderRadius="md"
+                mr={3}
+                bg="gray.700"
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
               >
-                <TrendUp weight="fill" size={18} color={popularColor} />
+                <Confetti weight="fill" size={18} color={popularColor} />
               </Box>
-              Populares
-            </Link>
-            <Link
-              as={RouterLink}
-              to="/series/recent"
-              color="gray.300"
-              _hover={{ color: "linkhome.recent" }}
+              <Text color="gray.100" fontWeight="medium">
+                Populares
+              </Text>
+            </Flex>
+          </RouterLink>
+        </Box>
+
+        <Box style={getItemAnimationStyle(3)}>
+          <RouterLink to="/series/recent">
+            <Flex
+              align="center"
+              py={2.5}
+              px={3}
+              borderRadius="md"
+              _hover={{ bg: "gray.700" }}
               onClick={onClose}
-              display="flex"
-              alignItems="center"
-              gap={3}
-              py={2}
             >
-              <Box 
-                bg="gray.700" 
-                p={2} 
+              <Box
+                p={2}
                 borderRadius="md"
+                mr={3}
+                bg="gray.700"
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
               >
-                <Confetti weight="fill" size={18} color={recentColor} />
+                <TrendUp weight="fill" size={18} color={recentColor} />
               </Box>
-              Novidades
-            </Link>
-            <Link
-              as={RouterLink}
-              to="/series/top10"
-              color="gray.300"
-              _hover={{ color: "linkhome.top10" }}
+              <Text color="gray.100" fontWeight="medium">
+                Novidades
+              </Text>
+            </Flex>
+          </RouterLink>
+        </Box>
+
+        <Box style={getItemAnimationStyle(4)}>
+          <RouterLink to="/series/top10">
+            <Flex
+              align="center"
+              py={2.5}
+              px={3}
+              borderRadius="md"
+              _hover={{ bg: "gray.700" }}
               onClick={onClose}
-              display="flex"
-              alignItems="center"
-              gap={3}
-              py={2}
             >
-              <Box 
-                bg="gray.700" 
-                p={2} 
+              <Box
+                p={2}
                 borderRadius="md"
+                mr={3}
+                bg="gray.700"
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
               >
                 <Star weight="fill" size={18} color={top10Color} />
               </Box>
-              Top 10
-            </Link>
+              <Text color="gray.100" fontWeight="medium">
+                Top 10
+              </Text>
+            </Flex>
+          </RouterLink>
+        </Box>
 
-            {currentUser ? (
-              <>
-                <Divider borderColor="gray.600" />
-                <Link
-                  as={RouterLink}
-                  to="/profile"
-                  color="gray.300"
-                  _hover={{ color: "primary.200" }}
-                  onClick={() => onClose()}
-                  display="flex"
-                  alignItems="center"
-                  gap={3}
-                  py={2}
+        <Divider borderColor="gray.700" my={3} style={getItemAnimationStyle(5)} />
+
+        {/* Ações do usuário na parte inferior */}
+        {currentUser ? (
+          <>
+            <Box style={getItemAnimationStyle(6)}>
+              <RouterLink to="/profile">
+                <Flex
+                  align="center"
+                  py={2.5}
+                  px={3}
+                  borderRadius="md"
+                  _hover={{ bg: "gray.700" }}
+                  onClick={onClose}
                 >
-                  <Box 
-                    bg="blue.500" 
-                    p={2} 
+                  <Box
+                    p={2}
                     borderRadius="md"
+                    mr={3}
+                    bg="blue.500"
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
                   >
                     <UserCircle weight="fill" size={18} color="white" />
                   </Box>
-                  Meu Perfil
-                </Link>
-                <Link
-                  as={RouterLink}
-                  to="/settings"
-                  color="gray.300"
-                  _hover={{ color: "primary.200" }}
+                  <Text color="gray.100" fontWeight="medium">
+                    Meu Perfil
+                  </Text>
+                </Flex>
+              </RouterLink>
+            </Box>
+
+            <Box style={getItemAnimationStyle(7)}>
+              <RouterLink to="/settings">
+                <Flex
+                  align="center"
+                  py={2.5}
+                  px={3}
+                  borderRadius="md"
+                  _hover={{ bg: "gray.700" }}
                   onClick={onClose}
-                  display="flex"
-                  alignItems="center"
-                  gap={3}
-                  py={2}
                 >
-                  <Box 
-                    bg="primary.500" 
-                    p={2} 
+                  <Box
+                    p={2}
                     borderRadius="md"
+                    mr={3}
+                    bg="primary.500"
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
                   >
                     <Gear weight="fill" size={18} color="white" />
                   </Box>
-                  Configurações
-                </Link>
-                <Divider borderColor="gray.600" />
-                <Link
-                  onClick={() => {
-                    onClose();
-                    onLogout();
-                  }}
-                  color="gray.300"
-                  _hover={{ color: "primary.200" }}
+                  <Text color="gray.100" fontWeight="medium">
+                    Configurações
+                  </Text>
+                </Flex>
+              </RouterLink>
+            </Box>
+
+            <Box style={getItemAnimationStyle(8)}>
+              <Flex
+                align="center"
+                py={2.5}
+                px={3}
+                borderRadius="md"
+                _hover={{ bg: "red.900" }}
+                onClick={() => {
+                  onClose();
+                  onLogout();
+                }}
+                cursor="pointer"
+              >
+                <Box
+                  p={2}
+                  borderRadius="md"
+                  mr={3}
+                  bg="red.500"
                   display="flex"
                   alignItems="center"
-                  gap={3}
-                  py={2}
+                  justifyContent="center"
                 >
-                  <Box 
-                    bg="red.500" 
-                    p={2} 
-                    borderRadius="md"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <SignOut weight="fill" size={18} color="white" />
-                  </Box>
+                  <SignOut weight="fill" size={18} color="white" />
+                </Box>
+                <Text color="gray.100" fontWeight="medium">
                   Sair da Conta
-                </Link>
-              </>
-            ) : (
-              <VStack align="stretch" spacing={3} mt={2}>
-                <Button
-                  onClick={() => {
-                    onClose();
-                    openSignUpModal();
-                  }}
-                  variant="solid"
-                  colorScheme="primary"
-                  justifyContent="center"
-                  height="44px"
-                >
-                  Criar Conta
-                </Button>
-                <Button
-                  onClick={() => {
-                    onClose();
-                    openLoginPopover();
-                  }}
-                  variant="outline"
-                  colorScheme="blue"
-                  justifyContent="center"
-                  height="44px"
-                  borderColor="blue.600"
-                >
-                  Entrar
-                </Button>
-              </VStack>
-            )}
-          </VStack>
-        </DrawerBody>
-      </DrawerContent>
-    </Drawer>
+                </Text>
+              </Flex>
+            </Box>
+          </>
+        ) : (
+          <Box style={getItemAnimationStyle(6)}>
+            <Flex
+              direction="column"
+              p={3}
+              gap={2}
+            >
+              <Button 
+                colorScheme="primary" 
+                size="md" 
+                onClick={() => {
+                  onClose();
+                  openSignUpModal();
+                }}
+              >
+                Criar conta
+              </Button>
+              <Button 
+                variant="outline" 
+                colorScheme="whiteAlpha" 
+                onClick={() => {
+                  onClose();
+                  openLoginPopover();
+                }}
+              >
+                Entrar
+              </Button>
+            </Flex>
+          </Box>
+        )}
+      </Box>
+    </Portal>
   );
 } 
