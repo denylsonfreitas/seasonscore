@@ -3,7 +3,6 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
-  Avatar,
   Text,
   HStack,
   Divider,
@@ -12,6 +11,7 @@ import {
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { User, Gear, SignOut } from "@phosphor-icons/react";
+import { UserAvatar } from "../common/UserAvatar";
 
 export function UserMenu() {
   const { currentUser, logout } = useAuth();
@@ -30,10 +30,9 @@ export function UserMenu() {
   return (
     <Menu>
       <MenuButton>
-        <Avatar
+        <UserAvatar
           size="sm"
-          src={currentUser?.photoURL || undefined}
-          name={currentUser?.displayName || undefined}
+          userId={currentUser?.uid}
         />
       </MenuButton>
       <MenuList bg="gray.800" borderColor="gray.700">

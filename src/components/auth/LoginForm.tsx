@@ -14,6 +14,7 @@ import {
   Link,
   IconButton,
   HStack,
+  Collapse,
 } from "@chakra-ui/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -29,12 +30,30 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const [showResetForm, setShowResetForm] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
+  const { login, resetPassword } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Verificar se o formulário é válido
+    const form = e.currentTarget;
+    if (!form.checkValidity()) {
+      // Se o formulário não for válido, mostrar mensagem e parar
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos corretamente.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    
     if (!usernameOrEmail || !password) {
       toast({
         title: "Campos obrigatórios",
@@ -81,12 +100,61 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!resetEmail) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Por favor, insira seu email.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      await resetPassword(resetEmail);
+      toast({
+        title: "Email enviado",
+        description: "Verifique sua caixa de entrada para redefinir sua senha.",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      setShowResetForm(false);
+      setResetEmail("");
+    } catch (error: any) {
+      console.error("Erro ao enviar email de redefinição:", error);
+      let errorMessage = "Não foi possível enviar o email de redefinição.";
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = "Email não encontrado.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "Endereço de email inválido.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        title: "Erro",
+        description: errorMessage,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
     <Box as="form" onSubmit={handleSubmit} p={4}>
       <VStack spacing={4} align="stretch">
         <FormControl>
           <Input
             type="text"
+            name="usernameOrEmail"
             value={usernameOrEmail}
             onChange={(e) => setUsernameOrEmail(e.target.value)}
             placeholder="Email ou nome de usuário"
@@ -102,6 +170,7 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
           <InputGroup>
             <Input
               type={showPassword ? "text" : "password"}
+              name="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Senha"
@@ -146,10 +215,52 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
               _hover={{ textDecoration: "underline" }}
               cursor="pointer"
             >
-              Cadastre-se
+              Crie uma conta
             </Link>
           </Text>
+          </Flex>
+          <Flex justify="center">
+          <Link
+            color="primary.300"
+            fontSize="sm"
+            onClick={() => setShowResetForm(!showResetForm)}
+            _hover={{ textDecoration: "underline" }}
+            cursor="pointer"
+          >
+            Esqueci minha senha
+          </Link>
         </Flex>
+
+        <Collapse in={showResetForm} animateOpacity>
+          <Box mt={2} p={3} bg="gray.700" borderRadius="md">
+            <VStack spacing={3} align="stretch">
+              <Text color="white" fontSize="sm" fontWeight="medium">
+                Redefinir senha
+              </Text>
+              <FormControl>
+                <Input
+                  type="email"
+                  name="resetEmail"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  placeholder="Seu email"
+                  bg="gray.600"
+                  border="none"
+                  color="white"
+                  size="sm"
+                />
+              </FormControl>
+              <Button
+                onClick={handleResetPassword}
+                colorScheme="primary"
+                size="sm"
+                isLoading={isResetting}
+              >
+                Enviar link de redefinição
+              </Button>
+            </VStack>
+          </Box>
+        </Collapse>
       </VStack>
     </Box>
   );

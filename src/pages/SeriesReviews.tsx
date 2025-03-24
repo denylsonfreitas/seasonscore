@@ -4,7 +4,6 @@ import {
   Heading,
   VStack,
   HStack,
-  Avatar,
   Text,
   Select,
   Flex,
@@ -28,6 +27,9 @@ import { useUsersData } from "../hooks/useUsersData";
 import { useAuth } from "../contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { ReactionButtons } from "../components/reviews/ReactionButtons";
+import { Footer } from "../components/common/Footer";
+import { UserAvatar } from "../components/common/UserAvatar";
+import { FieldValue } from "firebase/firestore";
 
 export function SeriesReviews() {
   const { id } = useParams<{ id: string }>();
@@ -72,8 +74,12 @@ export function SeriesReviews() {
     if (likesComparison !== 0) return likesComparison;
     
     // Depois por data de criação (mais recentes primeiro)
-    const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt.seconds * 1000);
-    const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt.seconds * 1000);
+    const dateA = a.createdAt instanceof Date 
+      ? a.createdAt 
+      : 'seconds' in a.createdAt ? new Date(a.createdAt.seconds * 1000) : new Date();
+    const dateB = b.createdAt instanceof Date 
+      ? b.createdAt 
+      : 'seconds' in b.createdAt ? new Date(b.createdAt.seconds * 1000) : new Date();
     return dateB.getTime() - dateA.getTime();
   });
 
@@ -230,10 +236,11 @@ export function SeriesReviews() {
                     <VStack align="stretch" spacing={4}>
                       <HStack justify="space-between" align="start">
                         <HStack spacing={4} flex={1}>
-                          <Avatar
+                          <UserAvatar
+                            userId={review.userId}
+                            userEmail={review.userEmail}
+                            photoURL={usersData[review.userId]?.photoURL}
                             size={{ base: "sm", md: "md" }}
-                            name={review.userEmail}
-                            src={usersData[review.userId]?.photoURL || undefined}
                           />
                           <VStack align="start" spacing={2} flex={1}>
                             <UserName userId={review.userId} />
@@ -288,6 +295,7 @@ export function SeriesReviews() {
           </VStack>
         </Container>
       </Box>
+      <Footer />
 
       {selectedReview && (
         <ReviewDetailsModal

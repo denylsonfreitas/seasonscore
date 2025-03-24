@@ -7,7 +7,6 @@ import {
   Textarea,
   useToast,
   HStack,
-  Avatar,
   Divider,
   Accordion,
   AccordionItem,
@@ -24,6 +23,7 @@ import {
   getSeriesReviews,
 } from "../../services/reviews";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { UserAvatar } from "../../components/common/UserAvatar";
 
 interface ReviewSectionProps {
   seriesId: number;
@@ -209,10 +209,10 @@ export function ReviewSection({
                             borderRadius="lg"
                           >
                             <HStack spacing={4} mb={2}>
-                              <Avatar
+                              <UserAvatar
+                                userId={review.userId}
+                                userEmail={review.userEmail || "Usuário"}
                                 size="sm"
-                                name={review.userEmail || "Usuário"}
-                                bg="primary.500"
                               />
                               <VStack align="start" spacing={0}>
                                 <Text color="white">{review.userEmail}</Text>

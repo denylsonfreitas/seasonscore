@@ -1,9 +1,10 @@
-import { Box, HStack, Avatar, VStack, Text, Button } from "@chakra-ui/react";
+import { Box, HStack, VStack, Text, Button } from "@chakra-ui/react";
 import { useUserData } from "../../hooks/useUserData";
 import { UserName } from "../common/UserName";
 import { RatingStars } from "../common/RatingStars";
 import { useState } from "react";
 import { CaretDown, CaretUp } from "@phosphor-icons/react";
+import { UserAvatar } from "../common/UserAvatar";
 
 interface ReviewListItemProps {
   userId: string;
@@ -29,33 +30,24 @@ export function ReviewListItem({ userId, userEmail, rating, comment, onClick }: 
 
   return (
     <Box
-      bg="gray.800"
-      p={4}
+      bg="gray.700"
+      p={2}
       borderRadius="lg"
       cursor="pointer"
       onClick={onClick}
-      _hover={{ bg: "gray.700" }}
+      _hover={{ bg: "gray.600" }}
     >
-      <HStack justify="space-between" align="start">
-        <HStack spacing={3}>
-          <Avatar
-            size="md"
-            name={userEmail}
-            src={userData?.photoURL || undefined}
+      <HStack justify="space-between" align="center" pr={2}>
+        <HStack spacing={3} pl={1}>
+          <UserAvatar
+            userId={userId}
+            userEmail={userEmail}
+            photoURL={userData?.photoURL}
+            size="sm"
           />
           <VStack align="start" spacing={1}>
             <UserName userId={userId} />
             <Box>
-              <Text 
-                color="gray.300" 
-                fontSize="sm" 
-                noOfLines={isExpanded ? undefined : 3}
-                whiteSpace="pre-wrap"
-                wordBreak="break-word"
-              >
-                {displayedComment}
-                {!isExpanded && shouldShowExpandButton && "..."}
-              </Text>
               {shouldShowExpandButton && (
                 <Button
                   variant="ghost"

@@ -8,6 +8,7 @@ import {
   EmailAuthProvider,
   linkWithCredential,
   fetchSignInMethodsForEmail,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { auth } from "../config/firebase";
@@ -27,6 +28,7 @@ interface AuthContextType {
   login: (usernameOrEmail: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   linkWithEmail: (email: string, password: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -56,10 +58,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           const userData = await getUserData(user.uid);
           const extendedUser: ExtendedUser = {
             ...user,
-            coverURL: userData?.coverURL,
-            description: userData?.description,
-            username: userData?.username,
-            favoriteSeries: userData?.favoriteSeries,
+            coverURL: userData?.coverURL || undefined,
+            description: userData?.description || undefined,
+            username: userData?.username || undefined,
+            favoriteSeries: userData?.favoriteSeries || undefined,
           };
           setCurrentUser(extendedUser);
         } catch (error) {
@@ -107,10 +109,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const userData = await getUserData(result.user.uid);
       const extendedUser: ExtendedUser = {
         ...result.user,
-        coverURL: userData?.coverURL,
-        description: userData?.description,
-        username: userData?.username,
-        favoriteSeries: userData?.favoriteSeries,
+        coverURL: userData?.coverURL || undefined,
+        description: userData?.description || undefined,
+        username: userData?.username || undefined,
+        favoriteSeries: userData?.favoriteSeries || undefined,
       };
       setCurrentUser(extendedUser);
     } catch (error: any) {
@@ -186,10 +188,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const updatedUserData = await getUserData(result.user.uid);
       const extendedUser: ExtendedUser = {
         ...result.user,
-        coverURL: updatedUserData?.coverURL,
-        description: updatedUserData?.description,
-        username: updatedUserData?.username,
-        favoriteSeries: updatedUserData?.favoriteSeries,
+        coverURL: updatedUserData?.coverURL || undefined,
+        description: updatedUserData?.description || undefined,
+        username: updatedUserData?.username || undefined,
+        favoriteSeries: updatedUserData?.favoriteSeries || undefined,
       };
       setCurrentUser(extendedUser);
       
@@ -237,12 +239,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
+  async function resetPassword(email: string) {
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (error: any) {
+      console.error("Erro ao enviar email de redefinição:", error);
+      throw error;
+    }
+  }
+
   const value = {
     currentUser,
     signUp,
     login,
     logout,
     linkWithEmail,
+    resetPassword,
   };
 
   return (

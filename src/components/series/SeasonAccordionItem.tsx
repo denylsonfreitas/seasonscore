@@ -8,7 +8,6 @@ import {
   Text,
   Badge,
   VStack,
-  Avatar,
   Menu,
   MenuButton,
   MenuList,
@@ -25,6 +24,7 @@ import { RatingStars } from "../common/RatingStars";
 import { ReviewListItem } from "../reviews/ReviewListItem";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../../contexts/AuthContext";
+import { UserAvatar } from "../common/UserAvatar";
 
 interface SeasonAccordionItemProps {
   season: number;
@@ -95,12 +95,13 @@ export function SeasonAccordionItem({
     
     return (
       <Box bg="gray.700" p={2} borderRadius="lg">
-        <HStack pl={2} justify="space-between" align="center">
+        <HStack pl={1} justify="space-between" align="center">
           <HStack spacing={4}>
-            <Avatar
+            <UserAvatar
+              userId={userReview.userId}
+              userEmail={userReview.userEmail}
+              photoURL={userData?.photoURL}
               size="sm"
-              name={userReview.userEmail}
-              src={userData?.photoURL || undefined}
             />
             <Text color="white" fontWeight="medium">
               Sua avaliação:
@@ -119,8 +120,9 @@ export function SeasonAccordionItem({
               variant="ghost"
               color="gray.400"
               _hover={{ bg: "gray.700" }}
+              
             />
-            <MenuList bg="gray.800" borderColor="gray.600">
+            <MenuList bg="gray.800" borderColor="gray.600" >
               <MenuItem
                 icon={<Eye size={20} />}
                 onClick={() => {
@@ -230,7 +232,7 @@ export function SeasonAccordionItem({
             <Box>
               <HStack justify="space-between" align="center" mb={4}>
                 <Text color="white" fontWeight="bold">
-                  Avaliações de quem você segue
+                  Quem você segue avaliou
                 </Text>
                 <Button
                   as={Link}
