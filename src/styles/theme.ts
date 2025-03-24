@@ -58,6 +58,13 @@ const colors = {
     follow: "#04a777",
     unfollow: "#FF0000",
   },
+
+  linkhome: {
+    series: "#38A169",
+    popular: "#4299E1",
+    recent: "#9F7AEA",
+    top10: "#F6AD55",
+  },
  
   success: "#38A169",
   warning: "#ECC94B",

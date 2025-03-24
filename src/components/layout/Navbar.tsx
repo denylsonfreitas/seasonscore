@@ -4,39 +4,20 @@ import {
   HStack,
   Link,
   Button,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
   IconButton,
   useDisclosure,
-  Drawer,
-  DrawerOverlay,
-  DrawerContent,
-  DrawerCloseButton,
-  DrawerHeader,
-  DrawerBody,
-  VStack,
-  Avatar,
   Text,
   Flex,
   Divider,
-  Image,
   Popover,
   PopoverTrigger,
   PopoverContent,
   PopoverBody,
   PopoverArrow,
+  useToken,
 } from "@chakra-ui/react";
 import {
-  TelevisionSimple,
-  Confetti,
-  TrendUp,
-  SignOut,
   List,
-  Gear,
-  UserCircle,
-  Star,
   SignIn,
 } from "@phosphor-icons/react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
@@ -48,6 +29,7 @@ import { ProfileMenu } from "../user/ProfileMenu";
 import { LoginForm } from "../auth/LoginForm";
 import { SignUpModal } from "../auth/SignUpModal";
 import { useAuthUIStore } from "../../services/uiState";
+import { MobileMenu } from "./MobileMenu";
 
 export function Navbar() {
   const { currentUser, logout } = useAuth() as {
@@ -67,6 +49,12 @@ export function Navbar() {
     closeLoginPopover, 
     openSignUpFromLogin
   } = useAuthUIStore();
+
+  // Adicionar uso do useToken para obter as cores do tema
+  const [seriesColor, popularColor, recentColor, top10Color] = useToken(
+    'colors',
+    ['linkhome.series', 'linkhome.popular', 'linkhome.recent', 'linkhome.top10']
+  );
 
   const handleLogout = async () => {
     try {
@@ -124,7 +112,7 @@ export function Navbar() {
                   as={RouterLink}
                   to="/series"
                   color="gray.300"
-                  _hover={{ color: "primary.200" }}
+                  _hover={{ color: "linkhome.series" }}
                   fontSize="sm"
                   fontWeight="bold"
                   textTransform="uppercase"
@@ -135,7 +123,7 @@ export function Navbar() {
                   as={RouterLink}
                   to="/series/popular"
                   color="gray.300"
-                  _hover={{ color: "primary.200" }}
+                  _hover={{ color: "linkhome.popular" }}
                   fontSize="sm"
                   fontWeight="bold"
                   textTransform="uppercase"
@@ -146,7 +134,7 @@ export function Navbar() {
                   as={RouterLink}
                   to="/series/recent"
                   color="gray.300"
-                  _hover={{ color: "primary.200" }}
+                  _hover={{ color: "linkhome.recent" }}
                   fontSize="sm"
                   fontWeight="bold"
                   textTransform="uppercase"
@@ -157,7 +145,7 @@ export function Navbar() {
                   as={RouterLink}
                   to="/series/top10"
                   color="gray.300"
-                  _hover={{ color: "primary.200" }}
+                  _hover={{ color: "linkhome.top10" }}
                   fontSize="sm"
                   fontWeight="bold"
                   textTransform="uppercase"
@@ -284,236 +272,19 @@ export function Navbar() {
       {/* Modal de Cadastro */}
       <SignUpModal isOpen={isSignUpModalOpen} onClose={closeSignUpModal} />
 
-      {/* Drawer Mobile */}
-      <Drawer isOpen={isOpen} placement="right" onClose={onClose}>
-        <DrawerOverlay />
-        <DrawerContent bg="gray.800">
-          <DrawerCloseButton color="gray.300" />
-          <DrawerHeader borderBottomWidth="1px" borderColor="gray.600" pb={4}>
-            {currentUser ? (
-              <Link as={RouterLink} to="/profile" _hover={{ textDecoration: "none" }} onClick={() => onClose()}>
-              <Flex direction="row" gap={3} align="center">
-                <Avatar
-                  size="md"
-                  src={currentUser.photoURL || undefined}
-                  name={currentUser.displayName || undefined}
-                />
-                <Text fontWeight="bold" color="gray.300">
-                  {currentUser.username}
-                </Text>
-              </Flex>
-              </Link>
-            ) : (
-              <Text color="gray.300">Menu</Text>
-            )}
-          </DrawerHeader>
-
-          <DrawerBody bg="gray.800">
-            <VStack spacing={3} align="stretch" pt={2}>
-              <Link
-                as={RouterLink}
-                to="/series"
-                color="gray.300"
-                _hover={{ color: "primary.200" }}
-                onClick={onClose}
-                display="flex"
-                alignItems="center"
-                gap={3}
-                py={2}
-              >
-                <Box 
-                  bg="gray.700" 
-                  p={2} 
-                  borderRadius="md"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <TelevisionSimple weight="fill" size={18} color="#38B2AC" />
-                </Box>
-                Séries
-              </Link>
-              <Link
-                as={RouterLink}
-                to="/series/popular"
-                color="gray.300"
-                _hover={{ color: "primary.200" }}
-                onClick={onClose}
-                display="flex"
-                alignItems="center"
-                gap={3}
-                py={2}
-              >
-                <Box 
-                  bg="gray.700" 
-                  p={2} 
-                  borderRadius="md"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <TrendUp weight="fill" size={18} color="#4299E1" />
-                </Box>
-                Populares
-              </Link>
-              <Link
-                as={RouterLink}
-                to="/series/recent"
-                color="gray.300"
-                _hover={{ color: "primary.200" }}
-                onClick={onClose}
-                display="flex"
-                alignItems="center"
-                gap={3}
-                py={2}
-              >
-                <Box 
-                  bg="gray.700" 
-                  p={2} 
-                  borderRadius="md"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <Confetti weight="fill" size={18} color="#9F7AEA" />
-                </Box>
-                Novidades
-              </Link>
-              <Link
-                as={RouterLink}
-                to="/series/top10"
-                color="gray.300"
-                _hover={{ color: "primary.200" }}
-                onClick={onClose}
-                display="flex"
-                alignItems="center"
-                gap={3}
-                py={2}
-              >
-                <Box 
-                  bg="gray.700" 
-                  p={2} 
-                  borderRadius="md"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <Star weight="fill" size={18} color="#F6AD55" />
-                </Box>
-                Top 10
-              </Link>
-
-              {currentUser ? (
-                <>
-                  <Divider borderColor="gray.600" />
-                  <Link
-                    as={RouterLink}
-                    to="/profile"
-                    color="gray.300"
-                    _hover={{ color: "primary.200" }}
-                    onClick={() => onClose()}
-                    display="flex"
-                    alignItems="center"
-                    gap={3}
-                    py={2}
-                  >
-                    <Box 
-                      bg="blue.500" 
-                      p={2} 
-                      borderRadius="md"
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                    >
-                      <UserCircle weight="fill" size={18} color="white" />
-                    </Box>
-                    Meu Perfil
-                  </Link>
-                  <Link
-                    as={RouterLink}
-                    to="/settings"
-                    color="gray.300"
-                    _hover={{ color: "primary.200" }}
-                    onClick={onClose}
-                    display="flex"
-                    alignItems="center"
-                    gap={3}
-                    py={2}
-                  >
-                    <Box 
-                      bg="primary.500" 
-                      p={2} 
-                      borderRadius="md"
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                    >
-                      <Gear weight="fill" size={18} color="white" />
-                    </Box>
-                    Configurações
-                  </Link>
-                  <Divider borderColor="gray.600" />
-                  <Button
-                    onClick={() => {
-                      onClose();
-                      handleLogout();
-                    }}
-                    variant="ghost"
-                    color="gray.300"
-                    justifyContent="flex-start"
-                    leftIcon={
-                      <Box 
-                        bg="gray.700" 
-                        p={2} 
-                        borderRadius="md"
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                      >
-                        <SignOut weight="fill" size={18} color="white" />
-                      </Box>
-                    }
-                    _hover={{ bg: "gray.700", color: "white" }}
-                    py={2}
-                    pl={0}
-                    gap={3}
-                  >
-                    Sair da Conta
-                  </Button>
-                </>
-              ) : (
-                <VStack align="stretch" spacing={3} mt={2}>
-                  <Button
-                    onClick={() => {
-                      onClose();
-                      openSignUpModal();
-                    }}
-                    variant="solid"
-                    colorScheme="primary"
-                    justifyContent="center"
-                    height="44px"
-                  >
-                    Criar Conta
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      onClose();
-                      openLoginPopover();
-                    }}
-                    variant="outline"
-                    colorScheme="blue"
-                    justifyContent="center"
-                    height="44px"
-                    borderColor="blue.600"
-                  >
-                    Entrar
-                  </Button>
-                </VStack>
-              )}
-            </VStack>
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer>
+      {/* Menu Mobile */}
+      <MobileMenu
+        isOpen={isOpen}
+        onClose={onClose}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        seriesColor={seriesColor}
+        popularColor={popularColor}
+        recentColor={recentColor}
+        top10Color={top10Color}
+        openSignUpModal={openSignUpModal}
+        openLoginPopover={openLoginPopover}
+      />
     </>
   );
 }

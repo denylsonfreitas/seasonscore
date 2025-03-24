@@ -41,7 +41,7 @@ interface ReviewModalProps {
   posterPath?: string;
 }
 
-const COMMENT_MAX_LENGTH = 280;
+const COMMENT_MAX_LENGTH = 200;
 
 export function ReviewModal({
   isOpen,

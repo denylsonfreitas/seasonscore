@@ -14,7 +14,7 @@ interface ReviewListItemProps {
   onClick: () => void;
 }
 
-const COMMENT_MAX_LENGTH = 280;
+const COMMENT_MAX_LENGTH = 200;
 
 export function ReviewListItem({ userId, userEmail, rating, comment, onClick }: ReviewListItemProps) {
   const { userData } = useUserData(userId);

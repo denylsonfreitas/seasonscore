@@ -70,7 +70,7 @@ export function ProfileSettings() {
   const toast = useToast();
   const navigate = useNavigate();
   const MAX_NAME_LENGTH = 15;
-  const MAX_DESCRIPTION_LENGTH = 150;
+  const MAX_DESCRIPTION_LENGTH = 50;
   const [newUsername, setNewUsername] = useState("");
   const [usernameError, setUsernameError] = useState("");
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);

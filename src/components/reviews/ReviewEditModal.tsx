@@ -42,7 +42,7 @@ interface ReviewEditModalProps {
   initialSeasonNumber?: number;
 }
 
-const COMMENT_MAX_LENGTH = 280;
+const COMMENT_MAX_LENGTH = 200;
 
 export function ReviewEditModal({
   isOpen,

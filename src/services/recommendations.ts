@@ -1,4 +1,4 @@
-import { getSeriesDetails, SeriesListItem } from "./tmdb";
+import { getSeriesDetails, SeriesListItem, getFilteredSeries, getPopularSeries } from "./tmdb";
 import { getSeriesReviews } from "./reviews";
 import { getUserWatchlist } from "./watchlist";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
@@ -199,13 +199,11 @@ async function fetchRecommendedSeries(
     
     try {
       // Buscar séries populares para este gênero do TMDB
-      const { results } = await import('./tmdb').then(module => 
-        module.getFilteredSeries({ 
-          genre: pref.genreId.toString(),
-          minVotes: 100,
-          minRating: 7
-        })
-      );
+      const { results } = await getFilteredSeries({ 
+        genre: pref.genreId.toString(),
+        minVotes: 100,
+        minRating: 7
+      });
       
       
       // Calcular match score baseado na avaliação média
@@ -240,7 +238,7 @@ async function fetchRecommendedSeries(
   // Se não encontrou recomendações suficientes, buscar séries populares gerais
   if (totalFoundSeries < 6) {
     try {
-      const { results } = await import('./tmdb').then(module => module.getPopularSeries());
+      const { results } = await getPopularSeries();
       
       // Adicionar séries populares que o usuário ainda não viu
       for (const series of results) {
