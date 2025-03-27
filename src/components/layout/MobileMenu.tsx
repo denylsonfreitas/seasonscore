@@ -17,7 +17,7 @@ import {
 } from "@phosphor-icons/react";
 import { Link as RouterLink } from "react-router-dom";
 import { ExtendedUser } from "../../types/auth";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -44,25 +44,24 @@ export function MobileMenu({
   openSignUpModal,
   openLoginPopover,
 }: MobileMenuProps) {
+  // Usar estado local para gerenciar a animação em vez do hook completo
   const [isVisible, setIsVisible] = useState(false);
   
-  useEffect(() => {
-    if (isOpen) {
-      // Pequeno atraso antes de mostrar para permitir que o DOM seja atualizado
-      setTimeout(() => {
-        setIsVisible(true);
-      }, 10);
-    } else {
-      setIsVisible(false);
-    }
-  }, [isOpen]);
-
-  // Estilo CSS para animação dos itens do menu
+  // Função para criar estilos de animação para itens de menu
   const getItemAnimationStyle = (index: number) => ({
     opacity: isVisible ? 1 : 0,
     transform: isVisible ? "translateY(0)" : "translateY(10px)",
     transition: `all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 0.04 + 0.15}s`,
   });
+  
+  // Ajustar visibilidade baseado na prop isOpen
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => setIsVisible(true), 10);
+    } else {
+      setIsVisible(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen && !isVisible) return null;
 

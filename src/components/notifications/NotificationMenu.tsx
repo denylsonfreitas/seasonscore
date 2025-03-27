@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Box,
   Button,
@@ -45,6 +45,9 @@ import { getUserData } from "../../services/users";
 import { NotificationItem } from "./NotificationItem";
 import { UserAvatar } from "../common/UserAvatar";
 import { ReviewDetailsModal } from "../reviews/ReviewDetailsModal";
+import { useAnimatedMenu } from "../../hooks/useAnimatedMenu";
+import { RippleEffect } from "../common/RippleEffect";
+import { AnimatedMenu } from "../common/AnimatedMenu";
 
 interface ReviewDetails {
   id: string;
@@ -83,16 +86,22 @@ export function NotificationMenu() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState<NotificationType | 'all'>('all');
   const navigate = useNavigate();
-  const { isOpen: isMenuOpen, onOpen: onMenuOpen, onClose: onMenuClose } = useDisclosure();
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isModalOpen, onOpen: onModalOpen, onClose: onModalClose } = useDisclosure();
   const [selectedReview, setSelectedReview] = useState<ReviewDetails | null>(null);
   const toast = useToast();
   
-  // Novo estado para controlar a visibilidade da animação
-  const [isVisible, setIsVisible] = useState(false);
-
-  // Estado para controlar o efeito de ripple
-  const [isRippling, setIsRippling] = useState(false);
+  // Usar o hook customizado para gerenciar as animações
+  const { 
+    isVisible, 
+    isRippling, 
+    handleOpen, 
+    handleClose, 
+    handleRippleEffect,
+    getItemAnimationStyle,
+    onOpen: menuOpen,
+    onClose: menuClose 
+  } = useAnimatedMenu();
 
   useEffect(() => {
     if (!currentUser) {
@@ -190,23 +199,21 @@ export function NotificationMenu() {
   };
 
   // Atualizar notificações quando o menu for aberto
-  const handleMenuOpen = async () => {
-    onMenuOpen();
-    // Pequeno atraso antes de mostrar para permitir que o DOM seja atualizado
-    setTimeout(() => {
-      setIsVisible(true); // Mostrar com animação
-    }, 10);
-    await refreshNotifications();
-  };
+  const handleMenuOpen = useCallback(async () => {
+    if (!isOpen) {
+      onOpen();
+      handleOpen();
+      await refreshNotifications();
+    }
+  }, [onOpen, handleOpen, refreshNotifications, isOpen]);
   
   // Fechar o menu com animação
-  const handleMenuClose = () => {
-    setIsVisible(false);
-    // Atraso para a animação de fechamento completar
+  const handleMenuClose = useCallback(() => {
+    handleClose();
     setTimeout(() => {
-      onMenuClose();
-    }, 350); // Aumentado para 350ms para permitir que a animação complete
-  };
+      onClose();
+    }, 350);
+  }, [handleClose, onClose]);
 
   const handleNotificationClick = async (notification: Notification) => {
     if (!currentUser) return;
@@ -375,21 +382,6 @@ export function NotificationMenu() {
     return acc;
   }, {} as Record<string, number>);
 
-  // Função para ativar o efeito de ripple
-  const handleRippleEffect = () => {
-    if (!isRippling) {
-      setIsRippling(true);
-      setTimeout(() => setIsRippling(false), 600);
-    }
-  };
-
-  // Estilo CSS para animação dos itens
-  const getItemAnimationStyle = (index: number) => ({
-    opacity: isVisible ? 1 : 0,
-    transform: isVisible ? "translateY(0)" : "translateY(10px)",
-    transition: `opacity 0.3s ease-out ${index * 0.05}s, transform 0.3s ease-out ${index * 0.05}s`,
-  });
-
   // Estilo CSS para animação dos botões de filtro
   const getFilterButtonStyle = (index: number) => ({
     opacity: isVisible ? 1 : 0,
@@ -397,383 +389,361 @@ export function NotificationMenu() {
     transition: `all 0.3s ease-out ${0.1 + index * 0.05}s`,
   });
 
+  // Trigger do menu de notificações
+  const notificationTrigger = useMemo(() => (
+    <IconButton
+      aria-label="Notificações"
+      icon={
+        <>
+          <BellIcon boxSize={6} color="white" />
+          {unreadCount > 0 && (
+            <Badge
+              colorScheme="red"
+              borderRadius="full"
+              position="absolute"
+              top="-2px"
+              right="-2px"
+              fontSize="xs"
+              boxSize={{ base: "16px", md: "18px" }}
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              fontWeight="bold"
+              transform="translate(25%, -25%)"
+              border="2px solid"
+              borderColor="gray.800"
+            >
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </Badge>
+          )}
+          <RippleEffect isRippling={isRippling} />
+        </>
+      }
+      variant="ghost"
+      colorScheme="whiteAlpha"
+      _hover={{ bg: "gray.700" }}
+      _active={{ bg: "whiteAlpha.300" }}
+      size="md"
+      onClick={() => {
+        handleRippleEffect();
+        if (isOpen) {
+          handleMenuClose();
+        } else {
+          handleMenuOpen();
+        }
+      }}
+      position="relative"
+      overflow="hidden"
+    />
+  ), [isOpen, unreadCount, isRippling, handleRippleEffect, handleMenuOpen, handleMenuClose]);
+
   if (!currentUser) {
     return null;
   }
 
   return (
     <>
-      <IconButton
-        aria-label="Notificações"
-        icon={
-          <>
-            <BellIcon boxSize={6} color="white" />
-            {unreadCount > 0 && (
-              <Badge
-                colorScheme="red"
-                borderRadius="full"
-                position="absolute"
-                top="-2px"
-                right="-2px"
-                fontSize="xs"
-                boxSize={{ base: "16px", md: "18px" }}
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                fontWeight="bold"
-                transform="translate(25%, -25%)"
-                border="2px solid"
-                borderColor="gray.800"
-              >
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </Badge>
-            )}
-            <Box
-              position="absolute"
-              top="50%"
-              left="50%"
-              transform="translate(-50%, -50%)"
-              width={isRippling ? "200%" : "0%"}
-              height={isRippling ? "200%" : "0%"}
-              borderRadius="full"
-              bg="whiteAlpha.300"
-              opacity={isRippling ? 1 : 0}
-              transition="all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1)"
-              pointerEvents="none"
-            />
-          </>
-        }
-        variant="ghost"
-        colorScheme="whiteAlpha"
-        _hover={{ bg: "gray.700" }}
-        _active={{ bg: "whiteAlpha.300" }}
-        size="md"
-        onClick={(e) => {
-          handleRippleEffect();
-          isMenuOpen ? handleMenuClose() : handleMenuOpen();
+      <AnimatedMenu
+        trigger={notificationTrigger}
+        isOpen={isOpen}
+        isVisible={isVisible}
+        onOpen={() => menuOpen()}
+        onClose={handleMenuClose}
+        alignWithTrigger={true}
+        alignOnlyOnDesktop={true}
+        responsivePosition={{
+          base: { top: "60px", right: "8px", left: "8px" },
+          md: { } // Vazio para permitir alinhamento com trigger no desktop
         }}
-        position="relative"
-        overflow="hidden"
-      />
-      
-      {/* Versão com animação do menu */}
-      {isMenuOpen && (
-        <Portal>
-          {/* Overlay invisível que fecha o menu quando clicado */}
-          <Box
-            position="fixed"
-            top="0"
-            left="0"
-            right="0"
-            bottom="0"
-            zIndex={1200}
-            onClick={handleMenuClose}
-            bg="blackAlpha.500"
-            opacity={isVisible ? 1 : 0}
-            transition="opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1)"
-            pointerEvents={isVisible ? "auto" : "none"}
-          />
-          
-          <Box 
-            bg="gray.800" 
-            borderColor="gray.700" 
-            boxShadow="dark-lg" 
-            maxH="500px"
-            overflowY="auto"
-            borderRadius="md"
-            minW={{ base: "280px", md: "320px" }}
-            width={{ base: "calc(100vw - 40px)", md: "auto" }}
-            zIndex={1300}
-            position="fixed"
-            top="60px"
-            right="16px"
-            borderWidth="1px"
-            p={0}
-            onClick={(e) => e.stopPropagation()} // Evita que cliques no menu fechem ele
-            transform={isVisible ? "translateY(0) scale(1)" : "translateY(-25px) scale(0.92)"}
-            opacity={isVisible ? 1 : 0}
-            transition="transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)"
-            transformOrigin="top right"
-            willChange="transform, opacity"
-            css={{
-              '&': {
-                overflow: 'hidden',
-                animation: isVisible ? 'notificationAppear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none'
-              },
-              '@keyframes notificationAppear': {
-                '0%': { 
-                  transform: 'translateY(-25px) scale(0.92)', 
-                  opacity: 0 
-                },
-                '100%': { 
-                  transform: 'translateY(0) scale(1)', 
-                  opacity: 1 
-                }
-              }
-            }}
-          >
-            {/* Cabeçalho */}
-            <Box bg="gray.900" borderTopRadius="md" py={3} px={4}>
-              <VStack spacing={3} align="stretch">
-                <Flex justify="space-between" align="center">
-                  <HStack>
-                    <Text fontWeight="bold" color="white" fontSize="md">
-                      Notificações
-                    </Text>
-                    {notifications.length > 0 && (
-                      <Badge 
-                        colorScheme="primary" 
-                        borderRadius="full" 
-                        px={2} 
-                        fontSize="xs"
+        transformOrigin="top right"
+        width={{ base: "calc(100vw - 16px)", md: "320px" }}
+        zIndex={{ overlay: 1200, menu: 1300 }}
+        overlayBg="blackAlpha.500"
+        menuStyles={{
+          bg: "gray.800",
+          borderColor: "gray.700",
+          boxShadow: "dark-lg",
+          p: 0,
+          borderRadius: { base: "md", md: "md" },
+          borderWidth: "1px",
+          maxH: { base: "80vh", md: "500px" },
+          overflowY: "auto"
+        }}
+      >
+        {/* Cabeçalho */}
+        <Box bg="gray.900" borderTopRadius="md" py={3} px={{ base: 3, md: 4 }}>
+          <VStack spacing={{ base: 2, md: 3 }} align="stretch">
+            <Flex justify="space-between" align="center">
+              <HStack>
+                <Text fontWeight="bold" color="white" fontSize={{ base: "sm", md: "md" }}>
+                  Notificações
+                </Text>
+                {notifications.length > 0 && (
+                  <Badge 
+                    colorScheme="primary" 
+                    borderRadius="full" 
+                    px={2} 
+                    fontSize="xs"
+                  >
+                    {unreadCount > 0 ? `${unreadCount} não lida${unreadCount > 1 ? 's' : ''}` : notifications.length}
+                  </Badge>
+                )}
+              </HStack>
+              {notifications.length > 0 && (
+                <HStack spacing={{ base: 0.5, md: 1 }}>
+                  {isSelectionMode ? (
+                    <>
+                      <Tooltip label="Selecionar todas" placement="top">
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          colorScheme="blue"
+                          color="white"
+                          _hover={{ bg: "blue.700", color: "white" }}
+                          onClick={selectAllNotifications}
+                          fontWeight="normal"
+                          px={{ base: 1.5, md: 2 }}
+                        >
+                          {selectedNotifications.length === notifications.length ? "Desmarcar" : "Todas"}
+                        </Button>
+                      </Tooltip>
+                      
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        colorScheme="whiteAlpha"
+                        color="white"
+                        _hover={{ bg: "whiteAlpha.300", color: "white" }}
+                        onClick={toggleSelectionMode}
+                        fontWeight="normal"
+                        px={{ base: 1.5, md: 2 }}
                       >
-                        {unreadCount > 0 ? `${unreadCount} não lida${unreadCount > 1 ? 's' : ''}` : notifications.length}
-                      </Badge>
-                    )}
-                  </HStack>
-                  {notifications.length > 0 && (
-                    <HStack spacing={1}>
-                      {isSelectionMode ? (
-                        <>
-                          <Tooltip label="Selecionar todas" placement="top">
-                            <Button
-                              size="xs"
-                              variant="ghost"
-                              colorScheme="blue"
-                              color="white"
-                              _hover={{ bg: "blue.700", color: "white" }}
-                              onClick={selectAllNotifications}
-                              fontWeight="normal"
-                            >
-                              {selectedNotifications.length === notifications.length ? "Desmarcar" : "Todas"}
-                            </Button>
-                          </Tooltip>
-                          
-                          <Button
-                            size="xs"
-                            variant="ghost"
-                            colorScheme="whiteAlpha"
-                            color="white"
-                            _hover={{ bg: "whiteAlpha.300", color: "white" }}
-                            onClick={toggleSelectionMode}
-                            fontWeight="normal"
-                          >
-                            Cancelar
-                          </Button>
-                          <Tooltip label="Excluir selecionadas" placement="top">
-                            <IconButton
-                              aria-label="Excluir selecionadas"
-                              icon={<DeleteIcon />}
-                              size="xs"
-                              colorScheme="red"
-                              variant="ghost"
-                              _hover={{ bg: "red.700", color: "white" }}
-                              isDisabled={selectedNotifications.length === 0}
-                              onClick={deleteSelectedNotifications}
-                            />
-                          </Tooltip>
-                        </>
-                      ) : (
-                        <>
-                          <Button
-                            size="xs"
-                            variant="ghost"
-                            colorScheme="primary"
-                            color="white"
-                            _hover={{ bg: "primary.700", color: "white" }}
-                            onClick={handleMarkAllAsRead}
-                            fontWeight="normal"
-                          >
-                            Marcar lidas
-                          </Button>
-                          <Button
-                            size="xs"
-                            variant="ghost"
-                            colorScheme="blue"
-                            color="white"
-                            _hover={{ bg: "blue.700", color: "white" }}
-                            onClick={toggleSelectionMode}
-                            fontWeight="normal"
-                          >
-                            Selecionar
-                          </Button>
-                        </>
-                      )}
-                    </HStack>
+                        Cancelar
+                      </Button>
+                      <Tooltip label="Excluir selecionadas" placement="top">
+                        <IconButton
+                          aria-label="Excluir selecionadas"
+                          icon={<DeleteIcon />}
+                          size="xs"
+                          colorScheme="red"
+                          variant="ghost"
+                          _hover={{ bg: "red.700", color: "white" }}
+                          isDisabled={selectedNotifications.length === 0}
+                          onClick={deleteSelectedNotifications}
+                        />
+                      </Tooltip>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        colorScheme="primary"
+                        color="white"
+                        _hover={{ bg: "primary.700", color: "white" }}
+                        onClick={handleMarkAllAsRead}
+                        fontWeight="normal"
+                        px={{ base: 1.5, md: 2 }}
+                        fontSize={{ base: "2xs", md: "xs" }}
+                      >
+                        Marcar lidas
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        colorScheme="blue"
+                        color="white"
+                        _hover={{ bg: "blue.700", color: "white" }}
+                        onClick={toggleSelectionMode}
+                        fontWeight="normal"
+                        px={{ base: 1.5, md: 2 }}
+                        fontSize={{ base: "2xs", md: "xs" }}
+                      >
+                        Selecionar
+                      </Button>
+                    </>
                   )}
-                </Flex>
-
-                {/* Filtros */}
-                <HStack spacing={2} overflowX="auto" pb={2} css={{ scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
-                  <Button
-                    size="xs"
-                    variant={activeFilter === 'all' ? "solid" : "ghost"}
-                    colorScheme="gray"
-                    onClick={() => setActiveFilter('all')}
-                    color="white"
-                    _hover={{ bg: "whiteAlpha.200" }}
-                    bg={activeFilter === 'all' ? "gray.600" : "transparent"}
-                    style={getFilterButtonStyle(0)}
-                  >
-                    Todas ({notifications.length})
-                  </Button>
-                  <Button
-                    size="xs"
-                    variant={activeFilter === NotificationType.NEW_FOLLOWER ? "solid" : "ghost"}
-                    colorScheme="primary"
-                    onClick={() => setActiveFilter(NotificationType.NEW_FOLLOWER)}
-                    color="white"
-                    _hover={{ bg: "primary.700" }}
-                    style={getFilterButtonStyle(1)}
-                  >
-                    Seguidores ({notificationCounts[NotificationType.NEW_FOLLOWER] || 0})
-                  </Button>
-                  <Button
-                    size="xs"
-                    variant={activeFilter === NotificationType.NEW_COMMENT ? "solid" : "ghost"}
-                    colorScheme="blue"
-                    onClick={() => setActiveFilter(NotificationType.NEW_COMMENT)}
-                    color="white"
-                    _hover={{ bg: "blue.700" }}
-                    style={getFilterButtonStyle(2)}
-                  >
-                    Avaliações ({(notificationCounts[NotificationType.NEW_COMMENT] || 0) + (notificationCounts[NotificationType.NEW_REACTION] || 0)})
-                  </Button>
-                  <Button
-                    size="xs"
-                    variant={activeFilter === NotificationType.NEW_EPISODE ? "solid" : "ghost"}
-                    colorScheme="purple"
-                    onClick={() => setActiveFilter(NotificationType.NEW_EPISODE)}
-                    color="white"
-                    _hover={{ bg: "purple.700" }}
-                    style={getFilterButtonStyle(3)}
-                  >
-                    Episódios ({notificationCounts[NotificationType.NEW_EPISODE] || 0})
-                  </Button>
                 </HStack>
+              )}
+            </Flex>
+
+            {/* Filtros */}
+            <HStack 
+              spacing={2} 
+              overflowX="auto" 
+              pb={2} 
+              px={{ base: 1, md: 0 }}
+              css={{ 
+                scrollbarWidth: 'none', 
+                '&::-webkit-scrollbar': { display: 'none' },
+                msOverflowStyle: 'none'
+              }}
+            >
+              <Button
+                size="xs"
+                variant={activeFilter === 'all' ? "solid" : "ghost"}
+                colorScheme="gray"
+                onClick={() => setActiveFilter('all')}
+                color="white"
+                _hover={{ bg: "whiteAlpha.200" }}
+                bg={activeFilter === 'all' ? "gray.600" : "transparent"}
+                style={getFilterButtonStyle(0)}
+              >
+                Todas ({notifications.length})
+              </Button>
+              <Button
+                size="xs"
+                variant={activeFilter === NotificationType.NEW_FOLLOWER ? "solid" : "ghost"}
+                colorScheme="primary"
+                onClick={() => setActiveFilter(NotificationType.NEW_FOLLOWER)}
+                color="white"
+                _hover={{ bg: "primary.700" }}
+                style={getFilterButtonStyle(1)}
+              >
+                Seguidores ({notificationCounts[NotificationType.NEW_FOLLOWER] || 0})
+              </Button>
+              <Button
+                size="xs"
+                variant={activeFilter === NotificationType.NEW_COMMENT ? "solid" : "ghost"}
+                colorScheme="blue"
+                onClick={() => setActiveFilter(NotificationType.NEW_COMMENT)}
+                color="white"
+                _hover={{ bg: "blue.700" }}
+                style={getFilterButtonStyle(2)}
+              >
+                Avaliações ({(notificationCounts[NotificationType.NEW_COMMENT] || 0) + (notificationCounts[NotificationType.NEW_REACTION] || 0)})
+              </Button>
+              <Button
+                size="xs"
+                variant={activeFilter === NotificationType.NEW_EPISODE ? "solid" : "ghost"}
+                colorScheme="purple"
+                onClick={() => setActiveFilter(NotificationType.NEW_EPISODE)}
+                color="white"
+                _hover={{ bg: "purple.700" }}
+                style={getFilterButtonStyle(3)}
+              >
+                Episódios ({notificationCounts[NotificationType.NEW_EPISODE] || 0})
+              </Button>
+            </HStack>
+          </VStack>
+        </Box>
+
+        {/* Lista de notificações */}
+        <Box maxH="400px" overflowY="auto">
+          {isLoading ? (
+            <Box p={8} textAlign="center">
+              <VStack spacing={3} style={getItemAnimationStyle(0)}>
+                <Spinner color="primary.300" size="md" />
+                <Text color="gray.400" fontSize="sm">
+                  Atualizando notificações...
+                </Text>
               </VStack>
             </Box>
-
-            {/* Lista de notificações */}
-            <Box maxH="400px" overflowY="auto">
-              {isLoading ? (
-                <Box p={8} textAlign="center">
-                  <VStack spacing={3} style={{
-                    opacity: isVisible ? 1 : 0,
-                    transform: isVisible ? "translateY(0)" : "translateY(10px)",
-                    transition: "all 0.3s ease-out 0.1s",
-                  }}>
-                    <Spinner color="primary.300" size="md" />
-                    <Text color="gray.400" fontSize="sm">
-                      Atualizando notificações...
-                    </Text>
-                  </VStack>
+          ) : filteredNotifications.length === 0 ? (
+            <Box p={{ base: 6, md: 8 }} textAlign="center">
+              <VStack spacing={3} style={getItemAnimationStyle(0)}>
+                <Box 
+                  p={3} 
+                  borderRadius="full" 
+                  bg="gray.700" 
+                  color="gray.400"
+                >
+                  <BellIcon boxSize={6} />
                 </Box>
-              ) : filteredNotifications.length === 0 ? (
-                <Box p={8} textAlign="center">
-                  <VStack spacing={3} style={{
-                    opacity: isVisible ? 1 : 0,
-                    transform: isVisible ? "translateY(0)" : "translateY(10px)",
-                    transition: "all 0.3s ease-out 0.1s",
-                  }}>
-                    <Box 
-                      p={3} 
-                      borderRadius="full" 
-                      bg="gray.700" 
-                      color="gray.400"
-                    >
-                      <BellIcon boxSize={6} />
-                    </Box>
-                    <Text color="gray.400" fontSize="sm">
-                      {notifications.length === 0 
-                        ? "Você não tem notificações" 
-                        : "Nenhuma notificação nesta categoria"}
-                    </Text>
-                  </VStack>
-                </Box>
-              ) : (
-                filteredNotifications.map((notification, index) => (
-                  <Box
-                    key={notification.id}
-                    onClick={() => handleNotificationClick(notification)}
-                    bg={notification.read ? "gray.800" : "gray.700"}
-                    _hover={{ bg: "gray.600" }}
-                    borderLeft={notification.read ? "none" : "4px solid"}
-                    borderLeftColor="primary.400"
-                    px={4}
-                    py={3}
-                    role="button"
-                    aria-label={`Ver detalhes: ${notification.message}`}
-                    cursor="pointer"
-                    borderBottom="1px solid"
-                    borderBottomColor="gray.700"
-                    style={getItemAnimationStyle(index)}
-                  >
-                    <HStack spacing={3} align="flex-start" width="100%">
-                      {isSelectionMode && (
-                        <Checkbox 
-                          isChecked={selectedNotifications.includes(notification.id)}
-                          onChange={() => toggleNotificationSelection(notification.id)}
-                          colorScheme="primary"
-                          onClick={(e) => e.stopPropagation()}
-                          mt={1}
-                        />
-                      )}
-                      <Box>
-                        {renderNotificationIcon(notification)}
-                      </Box>
-                      <VStack align="flex-start" spacing={1} flex={1}>
-                        <Text 
-                          color="white" 
-                          fontSize="sm" 
-                          fontWeight={notification.read ? "normal" : "bold"}
-                          lineHeight="1.4"
-                        >
-                          {notification.message}
-                        </Text>
-                        <HStack spacing={2} align="center">
-                          <Text 
-                            color={
-                              notification.createdAt instanceof Date && 
-                              (new Date().getTime() - notification.createdAt.getTime()) < 3600000 * 3 // 3 horas
-                                ? "primary.300" 
-                                : "gray.400"
-                            } 
-                            fontSize="xs"
-                            display="flex"
-                            alignItems="center"
-                          >
-                            {notification.createdAt instanceof Date && 
-                             (new Date().getTime() - notification.createdAt.getTime()) < 3600000 * 3 && (
-                              <Box 
-                                as="span" 
-                                w="6px" 
-                                h="6px" 
-                                borderRadius="full" 
-                                bg="primary.300" 
-                                mr={1} 
-                                display="inline-block"
-                              />
-                            )}
-                            {notification.createdAt instanceof Date
-                              ? formatNotificationDate(notification.createdAt)
-                              : "Agora"}
-                          </Text>
-                          {!isSelectionMode && (
-                            <Text color="primary.300" fontSize="xs" fontWeight="bold">
-                              Clique para ver
-                            </Text>
-                          )}
-                        </HStack>
-                      </VStack>
-                    </HStack>
-                  </Box>
-                ))
-              )}
+                <Text color="gray.400" fontSize="sm">
+                  {notifications.length === 0 
+                    ? "Você não tem notificações" 
+                    : "Nenhuma notificação nesta categoria"}
+                </Text>
+              </VStack>
             </Box>
-          </Box>
-        </Portal>
-      )}
+          ) : (
+            filteredNotifications.map((notification, index) => (
+              <Box
+                key={notification.id}
+                onClick={() => handleNotificationClick(notification)}
+                bg={notification.read ? "gray.800" : "gray.700"}
+                _hover={{ bg: "gray.600" }}
+                borderLeft={notification.read ? "none" : "4px solid"}
+                borderLeftColor="primary.400"
+                px={{ base: 3, md: 4 }}
+                py={{ base: 2.5, md: 3 }}
+                role="button"
+                aria-label={`Ver detalhes: ${notification.message}`}
+                cursor="pointer"
+                borderBottom="1px solid"
+                borderBottomColor="gray.700"
+                style={getItemAnimationStyle(index + 1)}
+              >
+                <HStack spacing={3} align="flex-start" width="100%">
+                  {isSelectionMode && (
+                    <Checkbox 
+                      isChecked={selectedNotifications.includes(notification.id)}
+                      onChange={() => toggleNotificationSelection(notification.id)}
+                      colorScheme="primary"
+                      onClick={(e) => e.stopPropagation()}
+                      mt={1}
+                      size={{ base: "sm", md: "md" }}
+                    />
+                  )}
+                  <Box>
+                    {renderNotificationIcon(notification)}
+                  </Box>
+                  <VStack align="flex-start" spacing={{ base: 0.5, md: 1 }} flex={1}>
+                    <Text 
+                      color="white" 
+                      fontSize={{ base: "xs", md: "sm" }}
+                      fontWeight={notification.read ? "normal" : "bold"}
+                      lineHeight="1.4"
+                    >
+                      {notification.message}
+                    </Text>
+                    <HStack spacing={2} align="center">
+                      <Text 
+                        color={
+                          notification.createdAt instanceof Date && 
+                          (new Date().getTime() - notification.createdAt.getTime()) < 3600000 * 3 // 3 horas
+                            ? "primary.300" 
+                            : "gray.400"
+                        } 
+                        fontSize={{ base: "2xs", md: "xs" }}
+                        display="flex"
+                        alignItems="center"
+                      >
+                        {notification.createdAt instanceof Date && 
+                          (new Date().getTime() - notification.createdAt.getTime()) < 3600000 * 3 && (
+                          <Box 
+                            as="span" 
+                            w={{ base: "4px", md: "6px" }}
+                            h={{ base: "4px", md: "6px" }}
+                            borderRadius="full" 
+                            bg="primary.300" 
+                            mr={1} 
+                            display="inline-block"
+                          />
+                        )}
+                        {notification.createdAt instanceof Date
+                          ? formatNotificationDate(notification.createdAt)
+                          : "Agora"}
+                      </Text>
+                      {!isSelectionMode && (
+                        <Text 
+                          color="primary.300" 
+                          fontSize={{ base: "2xs", md: "xs" }}
+                          fontWeight="bold"
+                          display={{ base: "none", md: "block" }}
+                        >
+                          Clique para ver
+                        </Text>
+                      )}
+                    </HStack>
+                  </VStack>
+                </HStack>
+              </Box>
+            ))
+          )}
+        </Box>
+      </AnimatedMenu>
 
       {/* Modal de Detalhes da Avaliação */}
       {selectedReview && (
