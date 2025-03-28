@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { Box, Portal, useBreakpointValue } from "@chakra-ui/react";
 import { useAnimatedMenu } from "../../hooks/useAnimatedMenu";
 
@@ -68,7 +68,7 @@ export function AnimatedMenu({
   transformOrigin = "top right",
 }: AnimatedMenuProps) {
   
-  // Handler para impedir propagação de cliques
+  // Handler para impedir propagação de cliques - memoizado uma única vez
   const stopPropagation = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
   }, []);
@@ -83,8 +83,8 @@ export function AnimatedMenu({
   const [menuPosition, setMenuPosition] = useState(currentPosition);
   const [positionCalculated, setPositionCalculated] = useState(false);
   
-  // Atualizar posição do menu com base no trigger quando solicitado
-  useEffect(() => {
+  // Calcular a posição do menu apenas quando necessário
+  const calculateMenuPosition = useCallback(() => {
     if (alignWithTrigger && triggerRef.current && isOpen && !positionCalculated) {
       // Se for mobile e alignOnlyOnDesktop for true, não alinhar com o trigger
       if (isMobile && alignOnlyOnDesktop) {
@@ -103,13 +103,72 @@ export function AnimatedMenu({
       setPositionCalculated(true);
     }
   }, [alignWithTrigger, isOpen, currentPosition, positionCalculated, isMobile, alignOnlyOnDesktop]);
-
-  // Resetar o estado de cálculo de posição quando o menu fecha
+  
+  // Atualizar posição do menu apenas quando necessário
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      calculateMenuPosition();
+    } else {
       setPositionCalculated(false);
     }
-  }, [isOpen]);
+  }, [isOpen, calculateMenuPosition]);
+  
+  // Memoize overlay para evitar recriações em cada render
+  const overlay = useMemo(() => {
+    if (!showOverlay) return null;
+    
+    return (
+      <Box
+        position="fixed"
+        top="0"
+        left="0"
+        right="0"
+        bottom="0"
+        zIndex={zIndex.overlay}
+        onClick={onClose}
+        bg={overlayBg}
+        pointerEvents={isVisible ? "auto" : "none"}
+        opacity={isVisible && overlayBg !== "transparent" ? 1 : 0}
+        transition={overlayBg !== "transparent" ? "opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1)" : undefined}
+      />
+    );
+  }, [showOverlay, zIndex.overlay, onClose, overlayBg, isVisible]);
+  
+  // Memoize o conteúdo do menu para evitar recriações em cada render
+  const menuContent = useMemo(() => {
+    return (
+      <Box 
+        bg="gray.800" 
+        borderColor="gray.700" 
+        boxShadow="dark-lg" 
+        p={2}
+        borderRadius="md"
+        minWidth={width}
+        zIndex={zIndex.menu}
+        position="fixed"
+        {...menuPosition}
+        borderWidth="1px"
+        onClick={stopPropagation}
+        transform={isVisible ? "translateY(0) scale(1)" : "translateY(-25px) scale(0.92)"}
+        opacity={isVisible ? 1 : 0}
+        transition="transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)"
+        transformOrigin={transformOrigin}
+        willChange="transform, opacity"
+        {...menuStyles}
+      >
+        {children}
+      </Box>
+    );
+  }, [
+    width, 
+    zIndex.menu, 
+    menuPosition, 
+    stopPropagation, 
+    isVisible, 
+    transformOrigin, 
+    menuStyles, 
+    children
+  ]);
 
   return (
     <>
@@ -118,48 +177,11 @@ export function AnimatedMenu({
         {trigger}
       </Box>
 
-      {/* Menu e Overlay */}
+      {/* Menu e Overlay - renderizar apenas quando aberto */}
       {isOpen && (
         <Portal>
-          {/* Overlay invisível que fecha o menu quando clicado */}
-          {showOverlay && (
-            <Box
-              position="fixed"
-              top="0"
-              left="0"
-              right="0"
-              bottom="0"
-              zIndex={zIndex.overlay}
-              onClick={onClose}
-              bg={overlayBg}
-              pointerEvents={isVisible ? "auto" : "none"}
-              opacity={isVisible && overlayBg !== "transparent" ? 1 : 0}
-              transition={overlayBg !== "transparent" ? "opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1)" : undefined}
-            />
-          )}
-          
-          {/* Conteúdo do menu */}
-          <Box 
-            bg="gray.800" 
-            borderColor="gray.700" 
-            boxShadow="dark-lg" 
-            p={2}
-            borderRadius="md"
-            minWidth={width}
-            zIndex={zIndex.menu}
-            position="fixed"
-            {...menuPosition}
-            borderWidth="1px"
-            onClick={stopPropagation}
-            transform={isVisible ? "translateY(0) scale(1)" : "translateY(-25px) scale(0.92)"}
-            opacity={isVisible ? 1 : 0}
-            transition="transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)"
-            transformOrigin={transformOrigin}
-            willChange="transform, opacity"
-            {...menuStyles}
-          >
-            {children}
-          </Box>
+          {overlay}
+          {menuContent}
         </Portal>
       )}
     </>

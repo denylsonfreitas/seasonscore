@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDisclosure } from '@chakra-ui/react';
 
 interface UseAnimatedMenuOptions {
@@ -29,19 +29,44 @@ export function useAnimatedMenu(options: UseAnimatedMenuOptions = {}) {
   const [isVisible, setIsVisible] = useState(false);
   const [isRippling, setIsRippling] = useState(false);
   
+  // Refs para armazenar os timeouts
+  const visibilityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const rippleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
   // Determinar estado atual com base em se é controlado ou não
   const isOpen = isControlled ? controlledOpen : disclosure.isOpen;
+  
+  // Função para criar estilos de animação para itens de menu - memoizar uma vez
+  const getItemAnimationStyle = useCallback((index: number, baseDelay = 0.1) => ({
+    opacity: isVisible ? 1 : 0,
+    transform: isVisible ? "translateY(0)" : "translateY(8px)",
+    transition: `all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 0.05 + baseDelay}s`,
+  }), [isVisible]);
   
   // Efeito para controlar a visibilidade quando o menu abre/fecha em modo não controlado
   useEffect(() => {
     if (!isControlled && disclosure.isOpen) {
+      // Limpar timeout anterior se existir
+      if (visibilityTimeoutRef.current) {
+        clearTimeout(visibilityTimeoutRef.current);
+      }
+      
       // Pequeno atraso para permitir que o DOM seja atualizado
-      setTimeout(() => {
+      visibilityTimeoutRef.current = setTimeout(() => {
         setIsVisible(true);
+        visibilityTimeoutRef.current = null;
       }, initialDelay);
     } else if (!isControlled) {
       setIsVisible(false);
     }
+    
+    // Limpar timeouts ao desmontar
+    return () => {
+      if (visibilityTimeoutRef.current) {
+        clearTimeout(visibilityTimeoutRef.current);
+      }
+    };
   }, [disclosure.isOpen, initialDelay, isControlled]);
   
   // Função para abrir o menu
@@ -55,13 +80,20 @@ export function useAnimatedMenu(options: UseAnimatedMenuOptions = {}) {
   // Função para fechar o menu com animação
   const handleClose = useCallback(() => {
     setIsVisible(false);
+    
+    // Limpar timeout anterior se existir
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+    }
+    
     // Atraso para a animação completar
-    setTimeout(() => {
+    closeTimeoutRef.current = setTimeout(() => {
       if (!isControlled) {
         disclosure.onClose();
       } else if (onControlledClose) {
         onControlledClose();
       }
+      closeTimeoutRef.current = null;
     }, closeDuration);
   }, [isControlled, disclosure, closeDuration, onControlledClose]);
   
@@ -69,16 +101,27 @@ export function useAnimatedMenu(options: UseAnimatedMenuOptions = {}) {
   const handleRippleEffect = useCallback(() => {
     if (!isRippling) {
       setIsRippling(true);
-      setTimeout(() => setIsRippling(false), 600);
+      
+      // Limpar timeout anterior se existir
+      if (rippleTimeoutRef.current) {
+        clearTimeout(rippleTimeoutRef.current);
+      }
+      
+      rippleTimeoutRef.current = setTimeout(() => {
+        setIsRippling(false);
+        rippleTimeoutRef.current = null;
+      }, 600);
     }
   }, [isRippling]);
   
-  // Função para criar estilos de animação para itens de menu
-  const getItemAnimationStyle = useCallback((index: number, baseDelay = 0.1) => ({
-    opacity: isVisible ? 1 : 0,
-    transform: isVisible ? "translateY(0)" : "translateY(8px)",
-    transition: `all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 0.05 + baseDelay}s`,
-  }), [isVisible]);
+  // Limpar todos os timeouts ao desmontar
+  useEffect(() => {
+    return () => {
+      if (visibilityTimeoutRef.current) clearTimeout(visibilityTimeoutRef.current);
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+      if (rippleTimeoutRef.current) clearTimeout(rippleTimeoutRef.current);
+    };
+  }, []);
   
   return {
     isOpen,

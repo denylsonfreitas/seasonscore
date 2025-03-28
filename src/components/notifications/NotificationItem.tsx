@@ -12,9 +12,7 @@ import { NotificationType } from "../../types/notification";
 import { deleteNotification } from "../../services/notifications";
 import { useState, useEffect } from "react";
 import { getUserData } from "../../services/users";
-import { useUserData } from "../../hooks/useUserData";
 import { UserAvatar } from "../common/UserAvatar";
-import { useQueryClient } from "@tanstack/react-query";
 
 interface NotificationItemProps {
   notification: {
@@ -114,4 +112,4 @@ export function NotificationItem({
       </HStack>
     </Box>
   );
-} 
+}

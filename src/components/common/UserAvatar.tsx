@@ -1,5 +1,5 @@
 import { Avatar, Box, AvatarProps } from "@chakra-ui/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { getUserData } from "../../services/users";
 
 interface UserAvatarProps extends Omit<AvatarProps, "src" | "name"> {
@@ -25,29 +25,57 @@ export function UserAvatar({
     displayName?: string;
     email?: string;
   } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch user data usando callback para evitar recriações
+  const fetchUserData = useCallback(async () => {
+    if (!userId) return;
+    
+    setIsLoading(true);
+    try {
+      const data = await getUserData(userId);
+      if (data) {
+        setUserData(data);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar dados do usuário para avatar:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userId]);
 
   // Busca dados do usuário se necessário
   useEffect(() => {
-    if (userId && !photoURL && !displayName) {
-      const fetchUserData = async () => {
-        try {
-          const data = await getUserData(userId);
-          if (data) {
-            setUserData(data);
-          }
-        } catch (error) {
-          console.error("Erro ao buscar dados do usuário para avatar:", error);
-        }
-      };
+    if (userId && !photoURL && !displayName && !isLoading) {
       fetchUserData();
     }
-  }, [userId, photoURL, displayName]);
+  }, [userId, photoURL, displayName, fetchUserData, isLoading]);
 
-  // Determina a foto de perfil
-  const userPhotoURL = photoURL || userData?.photoURL;
-  
-  // Determina o nome para exibição ou geração de iniciais
-  const userName = displayName || userData?.displayName || userEmail || userData?.email?.split("@")[0] || "Usuário";
+  // Memoizar a fonte da imagem e o nome para evitar cálculos repetidos
+  const { userPhotoURL, userName } = useMemo(() => {
+    // Determina a foto de perfil
+    const userPhotoURL = photoURL || userData?.photoURL;
+    
+    // Determina o nome para exibição ou geração de iniciais
+    const userName = displayName || 
+                    userData?.displayName || 
+                    userEmail || 
+                    (userData?.email?.split("@")[0]) || 
+                    "Usuário";
+    
+    return { userPhotoURL, userName };
+  }, [photoURL, userData, displayName, userEmail]);
+
+  // Memoizar as propriedades do Avatar
+  const avatarProps = useMemo(() => {
+    return {
+      src: userPhotoURL || undefined,
+      name: userName,
+      bgGradient: !userPhotoURL ? "linear(to-r, primary.600, primary.400)" : undefined,
+      color: "white",
+      ...props
+    };
+  }, [userPhotoURL, userName, props]);
 
   return (
     <Box
@@ -55,13 +83,7 @@ export function UserAvatar({
       borderRadius="full"
       overflow="hidden"
     >
-      <Avatar
-        src={userPhotoURL || undefined}
-        name={userName}
-        bgGradient={!userPhotoURL ? "linear(to-r, primary.600, primary.400)" : undefined}
-        color="white"
-        {...props}
-      />
+      <Avatar {...avatarProps} />
     </Box>
   );
 } 

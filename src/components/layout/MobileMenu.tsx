@@ -338,21 +338,30 @@ export function MobileMenu({
             <Flex
               direction="column"
               p={3}
-              gap={2}
+              gap={3}
             >
               <Button 
                 colorScheme="primary" 
                 size="md" 
+                borderRadius="md"
+                fontWeight="semibold"
                 onClick={() => {
                   onClose();
                   openSignUpModal();
                 }}
+                _hover={{ bg: "primary.600" }}
+                _active={{ bg: "primary.700" }}
               >
                 Criar conta
               </Button>
               <Button 
                 variant="outline" 
-                colorScheme="whiteAlpha" 
+                colorScheme="whiteAlpha"
+                borderColor="gray.600"
+                color="white"
+                borderRadius="md"
+                _hover={{ bg: "whiteAlpha.100" }}
+                _active={{ bg: "whiteAlpha.200" }}
                 onClick={() => {
                   onClose();
                   openLoginPopover();

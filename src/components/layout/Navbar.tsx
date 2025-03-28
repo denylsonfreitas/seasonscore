@@ -9,11 +9,6 @@ import {
   Text,
   Flex,
   Divider,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  PopoverBody,
-  PopoverArrow,
   useToken,
 } from "@chakra-ui/react";
 import {
@@ -30,6 +25,10 @@ import { LoginForm } from "../auth/LoginForm";
 import { SignUpModal } from "../auth/SignUpModal";
 import { useAuthUIStore } from "../../services/uiState";
 import { MobileMenu } from "./MobileMenu";
+import { useRef } from "react";
+import { AnimatedMenu } from "../common/AnimatedMenu";
+import { useAnimatedMenu } from "../../hooks/useAnimatedMenu";
+import { RippleEffect } from "../common/RippleEffect";
 
 export function Navbar() {
   const { currentUser, logout } = useAuth() as {
@@ -42,13 +41,32 @@ export function Navbar() {
   // Obtém o estado da UI de autenticação do store
   const { 
     isSignUpModalOpen, 
-    isLoginPopoverOpen, 
     openSignUpModal, 
     closeSignUpModal, 
-    openLoginPopover, 
-    closeLoginPopover, 
     openSignUpFromLogin
   } = useAuthUIStore();
+  
+  // Estados e funções para o menu animado de login desktop
+  const { 
+    isOpen: isDesktopLoginOpen, 
+    isVisible: isDesktopLoginVisible, 
+    isRippling: isDesktopRippling,
+    handleOpen: handleDesktopLoginOpen, 
+    handleClose: handleDesktopLoginClose, 
+    handleRippleEffect: handleDesktopRippleEffect,
+    getItemAnimationStyle: getDesktopItemAnimationStyle
+  } = useAnimatedMenu();
+  
+  // Estados e funções para o menu animado de login mobile
+  const { 
+    isOpen: isMobileLoginOpen, 
+    isVisible: isMobileLoginVisible, 
+    isRippling: isMobileRippling,
+    handleOpen: handleMobileLoginOpen, 
+    handleClose: handleMobileLoginClose, 
+    handleRippleEffect: handleMobileRippleEffect,
+    getItemAnimationStyle: getMobileItemAnimationStyle
+  } = useAnimatedMenu();
 
   // Adicionar uso do useToken para obter as cores do tema
   const [seriesColor, popularColor, recentColor, top10Color] = useToken(
@@ -65,6 +83,48 @@ export function Navbar() {
     }
   };
 
+  // Trigger para o login desktop
+  const desktopLoginTrigger = (
+    <Button 
+      onClick={() => {
+        handleDesktopRippleEffect();
+        handleDesktopLoginOpen();
+      }}
+      variant="outline" 
+      size="sm" 
+      colorScheme="primary"
+      position="relative"
+      overflow="hidden"
+    >
+      Entrar
+      <RippleEffect isRippling={isDesktopRippling} />
+    </Button>
+  );
+  
+  // Trigger para o login mobile
+  const mobileLoginTrigger = (
+    <IconButton
+      aria-label="Entrar"
+      icon={
+        <Box position="relative" overflow="hidden" borderRadius="md">
+          <SignIn weight="bold" size={18} />
+          <RippleEffect isRippling={isMobileRippling} />
+        </Box>
+      }
+      variant="ghost"
+      colorScheme="primary"
+      color="primary.300"
+      _hover={{ bg: "gray.700" }}
+      size="sm"
+      onClick={() => {
+        handleMobileRippleEffect();
+        handleMobileLoginOpen();
+      }}
+      position="relative"
+      overflow="hidden"
+    />
+  );
+
   return (
     <>
       <Box
@@ -77,7 +137,7 @@ export function Navbar() {
         zIndex={1000}
         borderBottom="1px solid"
         borderColor="gray.700"
-        height="60px" // Altura fixa para a Navbar
+        height="60px"
         display="flex"
         alignItems="center"
       >
@@ -179,44 +239,84 @@ export function Navbar() {
                     <Button onClick={openSignUpModal} variant="solid" size="sm">
                       Criar Conta
                     </Button>
-                    <Popover
-                      isOpen={isLoginPopoverOpen}
-                      onClose={closeLoginPopover}
-                      placement="bottom"
-                      gutter={4}
-                      closeOnBlur={true}
-                      closeOnEsc={true}
-                      returnFocusOnClose={false}
-                      autoFocus={false}
-                      strategy="fixed"
+                    
+                    <AnimatedMenu
+                      trigger={desktopLoginTrigger}
+                      isOpen={isDesktopLoginOpen}
+                      isVisible={isDesktopLoginVisible}
+                      onOpen={handleDesktopLoginOpen}
+                      onClose={handleDesktopLoginClose}
+                      alignWithTrigger={true}
+                      alignOnlyOnDesktop={true}
+                      responsivePosition={{
+                        base: { top: "60px", right: "16px" },
+                        md: { } // Vazio para permitir alinhamento com trigger no desktop
+                      }}
+                      transformOrigin="top right"
+                      width={{ base: "calc(100vw - 32px)", md: "300px" }}
+                      showOverlay={true}
+                      overlayBg="blackAlpha.500"
+                      zIndex={{ overlay: 1200, menu: 1300 }}
+                      menuStyles={{
+                        bg: "gray.800",
+                        borderColor: "gray.700",
+                        boxShadow: "dark-lg",
+                        p: 0,
+                        borderRadius: { base: "md", md: "md" },
+                        borderWidth: "1px",
+                        maxW: "350px"
+                      }}
                     >
-                      <PopoverTrigger>
-                        <Button 
-                          onClick={openLoginPopover}
-                          variant="outline" 
-                          size="sm" 
-                          colorScheme="primary"
-                        >
-                          Entrar
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent 
-                        bg="gray.800" 
-                        borderColor="gray.700" 
-                        width="300px"
-                        position="relative"
-                        boxShadow="xl"
-                      >
-                        <PopoverArrow bg="gray.800" />
-                        <PopoverBody p={0}>
-                          <LoginForm onSignUpClick={openSignUpFromLogin} onClose={closeLoginPopover} />
-                        </PopoverBody>
-                      </PopoverContent>
-                    </Popover>
+                      <Box style={getDesktopItemAnimationStyle(0)}>
+                        <LoginForm 
+                          onSignUpClick={() => {
+                            handleDesktopLoginClose();
+                            setTimeout(openSignUpFromLogin, 350);
+                          }} 
+                          onClose={handleDesktopLoginClose} 
+                        />
+                      </Box>
+                    </AnimatedMenu>
                   </HStack>
                   
                   {/* Menu Mobile para usuários não logados */}
                   <HStack spacing={2} display={{ base: "flex", md: "none" }}>
+                    <AnimatedMenu
+                      trigger={mobileLoginTrigger}
+                      isOpen={isMobileLoginOpen}
+                      isVisible={isMobileLoginVisible}
+                      onOpen={handleMobileLoginOpen}
+                      onClose={handleMobileLoginClose}
+                      alignWithTrigger={false}
+                      responsivePosition={{
+                        base: { top: "60px", right: "8px", left: "8px" },
+                      }}
+                      transformOrigin="top right"
+                      width={{ base: "calc(100vw - 16px)", md: "300px" }}
+                      showOverlay={true}
+                      overlayBg="blackAlpha.500"
+                      zIndex={{ overlay: 1200, menu: 1300 }}
+                      menuStyles={{
+                        bg: "gray.800",
+                        borderColor: "gray.700",
+                        boxShadow: "dark-lg",
+                        p: 0,
+                        borderRadius: { base: "md", md: "md" },
+                        borderWidth: "1px",
+                        maxW: "350px"
+                      }}
+                    >
+                      <Box style={getMobileItemAnimationStyle(0)}>
+                        <LoginForm 
+                          onSignUpClick={() => {
+                            handleMobileLoginClose();
+                            setTimeout(openSignUpFromLogin, 350);
+                          }} 
+                          onClose={handleMobileLoginClose} 
+                        />
+                      </Box>
+                    </AnimatedMenu>
+                    
                     <IconButton
                       aria-label="Menu"
                       icon={<List weight="bold" size={18} />}
@@ -238,7 +338,7 @@ export function Navbar() {
 
       {/* Modal de Cadastro */}
       <SignUpModal isOpen={isSignUpModalOpen} onClose={closeSignUpModal} />
-      
+
       {/* Menu Mobile para todos os usuários */}
       <MobileMenu
         isOpen={isOpen}
@@ -250,7 +350,7 @@ export function Navbar() {
         recentColor={recentColor}
         top10Color={top10Color}
         openSignUpModal={openSignUpModal}
-        openLoginPopover={openLoginPopover}
+        openLoginPopover={handleMobileLoginOpen}
       />
     </>
   );

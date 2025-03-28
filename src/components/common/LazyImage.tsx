@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Box, Image, ImageProps, Center, VStack, Icon, Text } from "@chakra-ui/react";
 import { TelevisionSimple } from "@phosphor-icons/react";
 
@@ -20,36 +20,50 @@ export function LazyImage({
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const imgRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
+    // Limpar qualquer observador anterior
+    if (observerRef.current && imgRef.current) {
+      observerRef.current.disconnect();
+    }
+    
+    observerRef.current = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
-          observer.disconnect();
+          observerRef.current?.disconnect();
         }
       },
       { threshold }
     );
 
     if (imgRef.current) {
-      observer.observe(imgRef.current);
+      observerRef.current.observe(imgRef.current);
     }
 
     return () => {
-      observer.disconnect();
+      observerRef.current?.disconnect();
     };
   }, [threshold]);
 
-  const handleImageLoad = () => {
+  // Reset states quando o src mudar
+  useEffect(() => {
+    setIsLoaded(false);
+    setHasError(false);
+    // Se já estiver visível, não precisamos resetar isso
+  }, [src]);
+
+  const handleImageLoad = useCallback(() => {
     setIsLoaded(true);
-  };
+  }, []);
 
-  const handleImageError = () => {
+  const handleImageError = useCallback(() => {
     setHasError(true);
-  };
+  }, []);
 
-  const renderFallback = () => (
+  // Memorizar o fallback para evitar recriações
+  const fallbackComponent = useMemo(() => (
     <Center py={20}>
       <VStack spacing={4}>
         <Icon as={TelevisionSimple} boxSize={12} color="gray.500" weight="thin" />
@@ -58,25 +72,32 @@ export function LazyImage({
         </Text>
       </VStack>
     </Center>
-  );
+  ), [fallbackText]);
+
+  // Memorizar o componente de imagem
+  const imageComponent = useMemo(() => {
+    if (!isVisible || hasError) return null;
+    
+    return (
+      <Image
+        src={src}
+        alt={alt}
+        onLoad={handleImageLoad}
+        onError={handleImageError}
+        opacity={isLoaded ? 1 : 0}
+        transition="opacity 0.3s"
+        width="100%"
+        height="100%"
+        objectFit="cover"
+        {...props}
+      />
+    );
+  }, [isVisible, hasError, src, alt, handleImageLoad, handleImageError, isLoaded, props]);
 
   return (
     <Box ref={imgRef} height="100%" width="100%" bg="gray.700">
-      {isVisible && !hasError ? (
-        <Image
-          src={src}
-          alt={alt}
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-          opacity={isLoaded ? 1 : 0}
-          transition="opacity 0.3s"
-          width="100%"
-          height="100%"
-          objectFit="cover"
-          {...props}
-        />
-      ) : null}
-      {(!isVisible || hasError) && renderFallback()}
+      {imageComponent}
+      {(!isVisible || hasError) && fallbackComponent}
     </Box>
   );
 } 
