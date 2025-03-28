@@ -149,94 +149,11 @@ export async function createNotification(
       senderPhoto = senderData?.photoURL;
     }
 
-    // Verificar se já existe uma notificação similar recente
-    let existingNotificationId = null;
-    
-    if (auth.currentUser && data.senderId) {
-      try {
-        let q;
-        
-        if (type === NotificationType.NEW_REACTION && data.reviewId) {
-          // Para reações em avaliações, agrupar por reviewId
-          q = query(
-            notificationsCollection,
-            where("userId", "==", userId),
-            where("type", "==", type),
-            where("reviewId", "==", data.reviewId),
-            orderBy("createdAt", "desc"),
-            firestoreLimit(1)
-          );
-        } else {
-          // Para outros tipos, verificar por remetente
-          q = query(
-            notificationsCollection,
-            where("userId", "==", userId),
-            where("type", "==", type),
-            where("senderId", "==", data.senderId),
-            orderBy("createdAt", "desc"),
-            firestoreLimit(1)
-          );
-        }
-        
-        const querySnapshot = await getDocs(q);
-        
-        if (!querySnapshot.empty) {
-          const notificationDoc = querySnapshot.docs[0];
-          const notificationData = notificationDoc.data();
-          
-          // Verificar se a notificação é recente (menos de 24 horas)
-          const notificationDate = notificationData.createdAt instanceof Timestamp 
-            ? notificationData.createdAt.toDate() 
-            : notificationData.createdAt;
-            
-          const now = new Date();
-          const timeDiff = now.getTime() - (notificationDate?.getTime() || 0);
-          const isRecent = timeDiff < 24 * 60 * 60 * 1000; // 24 horas em milissegundos
-          
-          if (isRecent) {
-            // Para reações em avaliações, atualizar a mensagem para indicar múltiplas reações
-            if (type === NotificationType.NEW_REACTION && data.reviewId) {
-              let newMessage = data.message;
-              
-              // Se a mensagem já contém "e outros", atualizar o contador
-              if (notificationData.message.includes("e outros")) {
-                const currentCount = notificationData.message.match(/e outros (\d+)/);
-                const count = currentCount ? parseInt(currentCount[1]) + 1 : 2;
-                newMessage = `${senderName} e outros ${count} reagiram à sua avaliação`;
-              } else {
-                newMessage = `${senderName} e outros 1 reagiram à sua avaliação`;
-              }
-              
-              // Atualizar a notificação existente
-              const notificationRef = doc(db, "notifications", notificationDoc.id);
-              await updateDoc(notificationRef, {
-                message: newMessage,
-                read: false, // Marcar como não lida novamente
-                createdAt: serverTimestamp(), // Atualizar o timestamp
-              });
-            } else {
-              // Para outros tipos, apenas atualizar a notificação existente
-              const notificationRef = doc(db, "notifications", notificationDoc.id);
-              await updateDoc(notificationRef, {
-                message: data.message,
-                read: false, // Marcar como não lida novamente
-                createdAt: serverTimestamp(), // Atualizar o timestamp
-              });
-            }
-            
-            // Invalidar o cache após atualizar uma notificação
-            invalidateCache(userId);
-            
-            return notificationDoc.id;
-          }
-        }
-      } catch (error) {
-        console.error("Erro ao verificar notificações existentes:", error);
-        // Continuar e criar uma nova notificação mesmo se houver erro na verificação
-      }
-    }
+    // NOTA: Removida a verificação de notificações existentes devido a problemas de permissão
+    // Vamos apenas criar uma nova notificação sempre que necessário
+    // O serviço de limpeza de notificações cuidará de agrupar/remover duplicatas posteriormente
 
-    // Criar uma nova notificação se não houver similar recente
+    // Criar uma nova notificação
     const notificationData = {
       userId,
       type,
@@ -678,90 +595,8 @@ export async function removeReactionNotification(
   senderId: string
 ): Promise<void> {
   try {
-    // Verificar se o usuário atual tem permissão para excluir estas notificações
-    if (!auth.currentUser) {
-      return;
-    }
+    return;
     
-    // Verificar se é uma notificação de comentário
-    const isCommentReaction = reviewId.includes('_comment_');
-    
-    let targetUserId: string | null = null;
-    
-    if (isCommentReaction) {
-      // Para reações a comentários, nós salvamos o ID da review em um formato especial
-      // Exemplo: originalReviewId_comment_commentId
-      const originalReviewId = reviewId.split('_comment_')[0];
-      
-      // Buscar a avaliação para obter o dono do comentário
-      const reviewRef = doc(collection(db, "reviews"), originalReviewId);
-      const reviewSnapshot = await getDoc(reviewRef);
-      
-      if (!reviewSnapshot.exists()) {
-        return;
-      }
-      
-      const reviewData = reviewSnapshot.data();
-      // O comentário pertence ao usuário que o criou
-      // Como precisaríamos percorrer todos os comentários para encontrar o específico,
-      // vamos usar a abordagem de buscar diretamente nas notificações
-      
-      // Buscar notificações de reação com o reviewId alterado (que inclui o commentId)
-      const notificationQuery = query(
-        notificationsCollection,
-        where("type", "==", NotificationType.NEW_REACTION),
-        where("reviewId", "==", reviewId),
-        where("senderId", "==", senderId)
-      );
-      
-      const querySnapshot = await getDocs(notificationQuery);
-      
-      if (querySnapshot.empty) {
-        return;
-      }
-      
-      // Deletar todas as notificações encontradas
-      const batch = [];
-      for (const docSnapshot of querySnapshot.docs) {
-        batch.push(deleteDoc(doc(db, "notifications", docSnapshot.id)));
-      }
-      
-      await Promise.all(batch);
-    } else {
-      // Buscar o usuário dono da avaliação
-      const reviewRef = doc(collection(db, "reviews"), reviewId);
-      const reviewSnapshot = await getDoc(reviewRef);
-      
-      if (!reviewSnapshot.exists()) {
-        return;
-      }
-      
-      const reviewData = reviewSnapshot.data();
-      const reviewOwnerId = reviewData.userId;
-      
-      // Se for uma avaliação do usuário atual, não fazer nada
-      if (reviewOwnerId === senderId) {
-        return;
-      }
-      
-      // Buscar notificações de reação para esta avaliação específica e este remetente
-      const notificationQuery = query(
-        notificationsCollection,
-        where("userId", "==", reviewOwnerId),
-        where("type", "==", NotificationType.NEW_REACTION),
-        where("reviewId", "==", reviewId),
-        where("senderId", "==", senderId)
-      );
-      
-      const querySnapshot = await getDocs(notificationQuery);
-      
-      const batch = [];
-      for (const docSnapshot of querySnapshot.docs) {
-        batch.push(deleteDoc(doc(db, "notifications", docSnapshot.id)));
-      }
-      
-      await Promise.all(batch);
-    }
   } catch (error) {
     console.error("Erro ao remover notificação de reação:", error);
   }

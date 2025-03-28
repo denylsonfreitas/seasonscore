@@ -204,14 +204,13 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
       if (email) {
         checkEmail(email);
       }
-    }, 500);
+    }, 5000);
 
     return () => clearTimeout(debounceTimer);
   }, [email]);
 
   useEffect(() => {
     if (!isOpen) {
-      // Reset form when modal closes
       resetForm();
     }
   }, [isOpen]);
@@ -332,7 +331,7 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
 
         <ModalFooter>
           <Button
-            colorScheme="gray"
+            colorScheme="white"
             mr={3}
             onClick={onClose}
             variant="ghost"

@@ -9,7 +9,19 @@ import { useAuthUIStore } from "./services/uiState";
 
 // Importando o tema personalizado de ./styles/theme.ts
 
-const queryClient = new QueryClient();
+// Configuração otimizada do QueryClient com caches mais inteligentes
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutos de tempo de staleness padrão
+      gcTime: 1000 * 60 * 30, // 30 minutos de tempo de garbage collection padrão
+      refetchOnWindowFocus: false, // Desabilitar refetch automático ao focar a janela
+      retry: 1, // Limitar o número de retentativas para evitar muitas solicitações
+      refetchOnMount: 'always',
+      refetchOnReconnect: true,
+    },
+  },
+});
 
 // Componente para gerenciar eventos globais
 function GlobalEventHandler() {

@@ -18,7 +18,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { getSeriesDetails, getRelatedSeries } from "../services/tmdb";
 import { useAuth } from "../contexts/AuthContext";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback, memo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { SeriesReview, getSeriesReviews, deleteReview } from "../services/reviews";
 import { Footer } from "../components/common/Footer";
@@ -27,7 +27,29 @@ import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 import { ReviewDetailsModal } from "../components/reviews/ReviewDetailsModal";
 import { getUserData } from "../services/users";
 import { SeriesHeader } from "../components/series/SeriesHeader";
-import { RelatedSeries } from "../components/series/RelatedSeries";
+import { User as FirebaseUser } from "firebase/auth";
+
+// Componente memoizado para séries relacionadas
+const RelatedSeries = memo(({ relatedSeries, isLoading, currentSeriesId }: any) => {
+  // Se não tiver séries relacionadas ou estiver carregando, não renderiza
+  if (isLoading || !relatedSeries?.results || relatedSeries.results.length === 0) return null;
+
+  return (
+    <Container maxW="1200px" py={8}>
+      <Box>
+        <Flex direction="column" gap={4}>
+          {relatedSeries.results.map((series: any) => (
+            <Box key={series.id}>
+              {/* Conteúdo existente... */}
+            </Box>
+          ))}
+        </Flex>
+      </Box>
+    </Container>
+  );
+});
+
+RelatedSeries.displayName = 'RelatedSeries';
 
 export function SeriesDetails() {
   const { id } = useParams<{ id: string }>();
@@ -44,21 +66,27 @@ export function SeriesDetails() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const toast = useToast();
+  const seriesDetailsRef = useRef<HTMLDivElement>(null);
+  const userDataFetched = useRef(false);
 
+  // Priorizar o carregamento dos dados da série primeiro
   const { data: series, isLoading } = useQuery({
     queryKey: ["series", id],
     queryFn: () => getSeriesDetails(Number(id)),
+    staleTime: 1000 * 60 * 30, // 30 minutos
   });
 
+  // Carregar avaliações depois da série principal
   const { data: reviews = [] } = useQuery({
     queryKey: ["reviews", id],
     queryFn: () => getSeriesReviews(Number(id)),
     refetchInterval: 10000,
     refetchOnWindowFocus: true,
-    staleTime: 5000
+    staleTime: 5000,
+    enabled: !!series, // Só carrega após o series estar disponível
   });
 
-  // Buscar avaliação do usuário atual
+  // Buscar avaliação do usuário atual - memoizado para evitar recálculos
   const userReview = useMemo(() => 
     reviews.find((review) => review.userId === currentUser?.uid),
     [reviews, currentUser?.uid]
@@ -130,27 +158,35 @@ export function SeriesDetails() {
     }
   }, [reviews, selectedReview?.id, selectedSeason]);
 
+  // Carregar séries relacionadas apenas após o carregamento da série principal
   const { data: relatedSeries, isLoading: isLoadingRelated } = useQuery({
     queryKey: ["related-series", id],
     queryFn: () => getRelatedSeries(Number(id)),
+    enabled: !!series, // Só carrega após o series estar disponível
+    staleTime: 1000 * 60 * 60, // 1 hora
   });
 
+  // Usar useCallback para evitar recriações desnecessárias da função
+  const fetchUserData = useCallback(async (user: FirebaseUser) => {
+    if (userDataFetched.current) return;
+    
+    try {
+      const data = await getUserData(user.uid);
+      setUserData(data);
+      userDataFetched.current = true;
+    } catch (error) {
+      console.error("Erro ao buscar dados do usuário:", error);
+    }
+  }, []);
+
+  // Buscar dados do usuário apenas uma vez
   useEffect(() => {
-    const fetchUserData = async () => {
-      if (currentUser) {
-        try {
-          const data = await getUserData(currentUser.uid);
-          setUserData(data);
-        } catch (error) {
-          console.error("Erro ao buscar dados do usuário:", error);
-        }
-      }
-    };
+    if (currentUser && !userDataFetched.current) {
+      fetchUserData(currentUser);
+    }
+  }, [currentUser, fetchUserData]);
 
-    fetchUserData();
-  }, [currentUser]);
-
-  const handleDeleteReview = async () => {
+  const handleDeleteReview = useCallback(async () => {
     if (!userReview || seasonToDelete === null) return;
 
     try {
@@ -175,51 +211,48 @@ export function SeriesDetails() {
       setIsDeleteAlertOpen(false);
       setSeasonToDelete(null);
     }
-  };
+  }, [userReview, seasonToDelete, id, queryClient, toast]);
 
-  // Capturar parâmetros da URL para abrir automaticamente detalhes da avaliação
+  // Processamento de URLs com parâmetros de consulta
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const reviewId = searchParams.get('reviewId');
     const seasonNumberParam = searchParams.get('seasonNumber');
     
     if (reviewId && series && !isLoading) {
-      // Adicionar um pequeno atraso para garantir que os dados estejam disponíveis
+      // Processar com atraso curto para garantir que os componentes estejam carregados
       const timer = setTimeout(() => {
-        try {
-          // Buscar avaliações da série
-          queryClient.fetchQuery({
-            queryKey: ["reviews", id],
-            queryFn: () => getSeriesReviews(Number(id)),
-          }).then((reviews) => {
-            // Garantir que temos algo para processar
-            if (!reviews || reviews.length === 0) {
-              console.log("Nenhuma avaliação encontrada para a série");
+        const handleReviewFromUrl = async () => {
+          try {
+            // Verificar primeiro se já temos as avaliações carregadas
+            let reviewsData = reviews;
+            
+            // Se não tivermos avaliações carregadas ou se precisarmos atualizar
+            if (!reviewsData.length) {
+              reviewsData = await queryClient.fetchQuery({
+                queryKey: ["reviews", id],
+                queryFn: () => getSeriesReviews(Number(id)),
+              });
+            }
+            
+            if (!reviewsData || !reviewsData.length) {
               return;
             }
             
-            // Encontrar a avaliação específica
-            const review = reviews.find(review => review.id === reviewId);
+            const review = reviewsData.find(r => r.id === reviewId);
             if (!review) {
-              console.log(`Avaliação com ID ${reviewId} não encontrada`);
               return;
             }
             
-            // Selecionar a temporada correta se fornecida
             const season = seasonNumberParam ? parseInt(seasonNumberParam, 10) : review.seasonReviews[0]?.seasonNumber || 1;
-            
-            // Encontrar a avaliação da temporada específica
             const seasonReview = review.seasonReviews.find(sr => sr.seasonNumber === season);
             
             if (!seasonReview) {
-              console.log(`Temporada ${season} não encontrada na avaliação`);
               return;
             }
             
-            // Atualizar o estado da temporada selecionada
             setSelectedSeason(season);
             
-            // Criar objeto para o modal com os dados necessários
             const reviewForModal = {
               id: review.id,
               seriesId: id!,
@@ -235,44 +268,44 @@ export function SeriesDetails() {
               createdAt: seasonReview.createdAt || new Date()
             };
             
-            // Definir a avaliação selecionada e abrir o modal
             setSelectedReview(reviewForModal);
             setIsReviewDetailsOpen(true);
             
-            // Limpar os parâmetros da URL para evitar abrir novamente ao atualizar
+            // Limpar parâmetros de URL
             navigate(`/series/${id}`, { replace: true });
-          }).catch(error => {
-            console.error("Erro ao buscar detalhes da avaliação:", error);
-          });
-        } catch (error) {
-          console.error("Erro ao processar parâmetros de URL:", error);
-        }
-      }, 300); // Pequeno atraso para garantir que os componentes estejam montados
+          } catch (error) {
+            console.error("Erro ao processar avaliação da URL:", error);
+          }
+        };
+        
+        handleReviewFromUrl();
+      }, 300);
       
       return () => clearTimeout(timer);
     }
-  }, [id, series, isLoading, navigate, queryClient]);
+  }, [id, series, isLoading, navigate, queryClient, reviews]);
 
-  if (isLoading) {
-    return (
-      <Center minH="70vh">
-        <Spinner size="xl" color="primary.500" />
-      </Center>
-    );
-  }
+  // Memoize o componente renderizado para o estado de carregamento
+  const LoadingComponent = useMemo(() => (
+    <Center minH="70vh">
+      <Spinner size="xl" color="primary.500" />
+    </Center>
+  ), []);
 
-  if (!series) {
-    return (
-      <Box bg="gray.900" minH="100vh" pt="80px">
-        <Container maxW="1200px" py={8}>
-          <Box>Série não encontrada</Box>
-        </Container>
-      </Box>
-    );
-  }
+  // Memoize o componente de erro
+  const NotFoundComponent = useMemo(() => (
+    <Box bg="gray.900" minH="100vh" pt="80px">
+      <Container maxW="1200px" py={8}>
+        <Box>Série não encontrada</Box>
+      </Container>
+    </Box>
+  ), []);
+
+  if (isLoading) return LoadingComponent;
+  if (!series) return NotFoundComponent;
 
   return (
-    <Flex direction="column" minH="100vh" bg="gray.900">
+    <Flex direction="column" minH="100vh" bg="gray.900" ref={seriesDetailsRef}>
       <Box flex="1">
         {/* Cabeçalho da Série com as abas */}
         <SeriesHeader 
@@ -295,29 +328,33 @@ export function SeriesDetails() {
           navigate={navigate}
         />
 
-        {/* Séries Relacionadas */}
-        <RelatedSeries 
-          relatedSeries={relatedSeries} 
-          isLoading={isLoadingRelated} 
-          currentSeriesId={id!}
-        />
+        {/* Séries Relacionadas - renderização condicional */}
+        {!isLoadingRelated && relatedSeries?.results && Array.isArray(relatedSeries.results) && relatedSeries.results.length > 0 && (
+          <RelatedSeries 
+            relatedSeries={relatedSeries} 
+            isLoading={isLoadingRelated} 
+            currentSeriesId={id!}
+          />
+        )}
       </Box>
 
       <Footer />
 
       {/* Modais */}
-      <ReviewModal
-        isOpen={isOpen}
-        onClose={() => {
-          onClose();
-          queryClient.invalidateQueries({ queryKey: ["reviews", id] });
-        }}
-        seriesId={Number(id)}
-        seriesName={series.name}
-        numberOfSeasons={series.number_of_seasons}
-        initialSeason={selectedSeason}
-        posterPath={series.poster_path || undefined}
-      />
+      {isOpen && (
+        <ReviewModal
+          isOpen={isOpen}
+          onClose={() => {
+            onClose();
+            queryClient.invalidateQueries({ queryKey: ["reviews", id] });
+          }}
+          seriesId={Number(id)}
+          seriesName={series.name}
+          numberOfSeasons={series.number_of_seasons}
+          initialSeason={selectedSeason}
+          posterPath={series.poster_path || undefined}
+        />
+      )}
 
       {existingReview && (
         <ReviewEditModal

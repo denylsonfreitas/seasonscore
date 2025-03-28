@@ -1,39 +1,55 @@
-import { ReactNode, useCallback, useEffect, useRef, useState, useMemo } from "react";
-import { Box, Portal, useBreakpointValue } from "@chakra-ui/react";
-import { useAnimatedMenu } from "../../hooks/useAnimatedMenu";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Box, useBreakpointValue, PositionProps } from "@chakra-ui/react";
+import { createPortal } from "react-dom";
 
-interface Position {
+// Hook para gerenciar estado do menu animado
+export function useAnimatedMenu(options = {}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
+  const handleOpen = useCallback(() => {
+    setIsOpen(true);
+    // Pequeno atraso para permitir animação
+    setTimeout(() => setIsVisible(true), 10);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setIsVisible(false);
+    // Esperar a animação terminar antes de fechar realmente
+    setTimeout(() => setIsOpen(false), 300);
+  }, []);
+
+  return {
+    isOpen,
+    isVisible,
+    handleOpen,
+    handleClose,
+  };
+}
+
+type Position = {
   top?: string;
   right?: string;
   bottom?: string;
   left?: string;
-}
+};
 
 interface AnimatedMenuProps {
-  trigger: ReactNode;
-  children: ReactNode;
+  trigger: React.ReactNode;
+  children: React.ReactNode;
   isOpen: boolean;
+  isVisible?: boolean;
   onOpen: () => void;
   onClose: () => void;
-  isVisible: boolean;
   menuStyles?: Record<string, any>;
   /** Posição fixa do menu (será sobrescrita se alignWithTrigger=true) */
   position?: Position;
   /** Posição responsiva do menu - sobrescreve position */
-  responsivePosition?: {
-    base?: Position;
-    sm?: Position;
-    md?: Position;
-    lg?: Position;
-    xl?: Position;
-  };
+  responsivePosition?: Record<string, Position>;
   /** Width of the menu */
   width?: string | Record<string, string>;
   /** Z-index for the menu and overlay */
-  zIndex?: {
-    overlay?: number;
-    menu?: number;
-  };
+  zIndex?: { overlay: number; menu: number };
   /** Whether to show a backdrop overlay */
   showOverlay?: boolean;
   /** Background color for the overlay */
@@ -68,19 +84,25 @@ export function AnimatedMenu({
   transformOrigin = "top right",
 }: AnimatedMenuProps) {
   
-  // Handler para impedir propagação de cliques - memoizado uma única vez
+  // Handler para impedir propagação de cliques
   const stopPropagation = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
   }, []);
   
-  // Determinar se estamos em uma tela mobile ou desktop
+  // React Hooks para breakpoints - todos no início do componente
   const isMobile = useBreakpointValue({ base: true, md: false });
+  const responsivePositionValue = useBreakpointValue(responsivePosition || {});
+  const responsiveWidthValue = useBreakpointValue(typeof width === 'object' ? width : {});
   
-  // Obter a posição com base no breakpoint atual
-  const currentPosition = useBreakpointValue(responsivePosition || {}) || position;
+  // Variáveis derivadas - não são hooks
+  const currentPosition = responsivePositionValue || position;
+  const widthStyle = typeof width === 'string' ? width : responsiveWidthValue || '260px';
+  const visibilityState = isVisible !== undefined ? isVisible : isOpen;
   
+  // Refs e state
   const triggerRef = useRef<HTMLDivElement>(null);
-  const [menuPosition, setMenuPosition] = useState(currentPosition);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState<Position>(currentPosition);
   const [positionCalculated, setPositionCalculated] = useState(false);
   
   // Calcular a posição do menu apenas quando necessário
@@ -104,85 +126,108 @@ export function AnimatedMenu({
     }
   }, [alignWithTrigger, isOpen, currentPosition, positionCalculated, isMobile, alignOnlyOnDesktop]);
   
+  // Configurando um handler para fechar o menu ao clicar fora
+  useEffect(() => {
+    if (isOpen) {
+      const handleClickOutside = (e: MouseEvent) => {
+        // Se o clique não foi no menu nem no trigger, fechar
+        if (
+          menuRef.current && 
+          !menuRef.current.contains(e.target as Node) && 
+          triggerRef.current && 
+          !triggerRef.current.contains(e.target as Node)
+        ) {
+          onClose();
+        }
+      };
+      
+      // Adicionar handler depois de um pequeno delay
+      const timeoutId = setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+      }, 100);
+      
+      return () => {
+        clearTimeout(timeoutId);
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [isOpen, onClose]);
+  
   // Atualizar posição do menu apenas quando necessário
   useEffect(() => {
     if (isOpen) {
       calculateMenuPosition();
+      
+      // Adicionar observador de redimensionamento apenas quando alinhado ao trigger
+      if (alignWithTrigger) {
+        const handleResize = () => {
+          setPositionCalculated(false);
+          calculateMenuPosition();
+        };
+        
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+      }
     } else {
       setPositionCalculated(false);
     }
-  }, [isOpen, calculateMenuPosition]);
+  }, [isOpen, calculateMenuPosition, alignWithTrigger]);
   
   // Memoize overlay para evitar recriações em cada render
   const overlay = useMemo(() => {
-    if (!showOverlay) return null;
+    if (!showOverlay || !isOpen) return null;
     
-    return (
+    return createPortal(
       <Box
         position="fixed"
         top="0"
         left="0"
         right="0"
         bottom="0"
-        zIndex={zIndex.overlay}
+        zIndex={zIndex?.overlay}
         onClick={onClose}
         bg={overlayBg}
-        pointerEvents={isVisible ? "auto" : "none"}
-        opacity={isVisible && overlayBg !== "transparent" ? 1 : 0}
+        pointerEvents={visibilityState ? "auto" : "none"}
+        opacity={visibilityState && overlayBg !== "transparent" ? 1 : 0}
         transition={overlayBg !== "transparent" ? "opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1)" : undefined}
-      />
+        data-testid="animated-menu-overlay"
+      />,
+      document.body
     );
-  }, [showOverlay, zIndex.overlay, onClose, overlayBg, isVisible]);
+  }, [showOverlay, isOpen, zIndex?.overlay, onClose, overlayBg, visibilityState]);
   
-  // Memoize o conteúdo do menu para evitar recriações em cada render
-  const menuContent = useMemo(() => {
-    return (
-      <Box 
-        bg="gray.800" 
-        borderColor="gray.700" 
-        boxShadow="dark-lg" 
-        p={2}
-        borderRadius="md"
-        minWidth={width}
-        zIndex={zIndex.menu}
-        position="fixed"
-        {...menuPosition}
-        borderWidth="1px"
-        onClick={stopPropagation}
-        transform={isVisible ? "translateY(0) scale(1)" : "translateY(-25px) scale(0.92)"}
-        opacity={isVisible ? 1 : 0}
-        transition="transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)"
-        transformOrigin={transformOrigin}
-        willChange="transform, opacity"
-        {...menuStyles}
-      >
-        {children}
-      </Box>
-    );
-  }, [
-    width, 
-    zIndex.menu, 
-    menuPosition, 
-    stopPropagation, 
-    isVisible, 
-    transformOrigin, 
-    menuStyles, 
-    children
-  ]);
-
   return (
     <>
-      {/* Elemento trigger que aciona o menu */}
-      <Box onClick={onOpen} ref={triggerRef}>
+      {/* O trigger do menu */}
+      <Box ref={triggerRef} display="inline-block" onClick={onOpen}>
         {trigger}
       </Box>
-
-      {/* Menu e Overlay - renderizar apenas quando aberto */}
-      {isOpen && (
-        <Portal>
-          {overlay}
-          {menuContent}
-        </Portal>
+      
+      {/* Overlay - renderizado apenas quando necessário */}
+      {overlay}
+      
+      {/* Menu - renderizado via Portal para evitar problemas de z-index */}
+      {isOpen && createPortal(
+        <Box
+          ref={menuRef}
+          onClick={stopPropagation}
+          position="fixed"
+          {...menuPosition}
+          width={widthStyle}
+          zIndex={zIndex?.menu}
+          transform={visibilityState 
+            ? "translateY(0) scale(1)" 
+            : "translateY(-15px) scale(0.95)"}
+          opacity={visibilityState ? 1 : 0}
+          transition="transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s"
+          transformOrigin={transformOrigin}
+          willChange="transform, opacity"
+          {...menuStyles}
+          data-testid="animated-menu"
+        >
+          {children}
+        </Box>,
+        document.body
       )}
     </>
   );
