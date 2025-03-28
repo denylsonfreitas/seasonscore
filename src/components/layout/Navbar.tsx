@@ -25,10 +25,18 @@ import { LoginForm } from "../auth/LoginForm";
 import { SignUpModal } from "../auth/SignUpModal";
 import { useAuthUIStore } from "../../services/uiState";
 import { MobileMenu } from "./MobileMenu";
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { AnimatedMenu } from "../common/AnimatedMenu";
 import { useAnimatedMenu } from "../../hooks/useAnimatedMenu";
 import { RippleEffect } from "../common/RippleEffect";
+
+// Função global para abrir o popover de login
+// Será inicializada pelas funções do Navbar quando ele for montado
+let globalOpenLoginPopover: (() => void) | null = null;
+
+export function getGlobalLoginPopover() {
+  return globalOpenLoginPopover;
+}
 
 export function Navbar() {
   const { currentUser, logout } = useAuth() as {
@@ -124,6 +132,28 @@ export function Navbar() {
       overflow="hidden"
     />
   );
+
+  // Registrar as funções de abertura do login globalmente
+  useEffect(() => {
+    // Na versão mobile, usamos o handleMobileLoginOpen
+    // Na versão desktop, usamos o handleDesktopLoginOpen
+    // Para detectar qual usar, vamos verificar a largura da janela
+    const isMobile = window.innerWidth < 768;
+    globalOpenLoginPopover = isMobile ? handleMobileLoginOpen : handleDesktopLoginOpen;
+    
+    const handleResize = () => {
+      const isMobile = window.innerWidth < 768;
+      globalOpenLoginPopover = isMobile ? handleMobileLoginOpen : handleDesktopLoginOpen;
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      // Limpar a referência quando o componente for desmontado
+      globalOpenLoginPopover = null;
+    };
+  }, [handleMobileLoginOpen, handleDesktopLoginOpen]);
 
   return (
     <>

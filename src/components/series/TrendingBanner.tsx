@@ -19,7 +19,6 @@ export function TrendingBanner() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { openLoginPopover, openSignUpModal } = useAuthUIStore();
 
   useEffect(() => {
     const fetchTrendingSeries = async () => {
@@ -65,16 +64,6 @@ export function TrendingBanner() {
   if (!trendingSeries.length) return null;
 
   const currentSeries = trendingSeries[currentIndex];
-
-  const handleLoginClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    openLoginPopover();
-  };
-
-  const handleSignUpClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    openSignUpModal();
-  };
 
   return (
     <Box 
@@ -154,30 +143,6 @@ export function TrendingBanner() {
             >
               {currentSeries.overview}
             </Text>
-            
-            {!currentUser && (
-              <HStack spacing={4} align="center" mt={2}>
-                <Button 
-                  colorScheme="primary" 
-                  leftIcon={<UserCircle weight="bold" />}
-                  onClick={handleSignUpClick}
-                  size="md"
-                  px={6}
-                >
-                  Criar Conta
-                </Button>
-                <Button 
-                  variant="outline" 
-                  colorScheme="whiteAlpha"
-                  leftIcon={<SignIn weight="bold" />}
-                  onClick={handleLoginClick}
-                  size="md"
-                  _hover={{ bg: "whiteAlpha.200" }}
-                >
-                  Entrar
-                </Button>
-              </HStack>
-            )}
             
             <HStack spacing={4} align="center" mt={currentUser ? 0 : 2}>
               <IconButton

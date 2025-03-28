@@ -25,6 +25,7 @@ import { ReviewListItem } from "../reviews/ReviewListItem";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../../contexts/AuthContext";
 import { UserAvatar } from "../common/UserAvatar";
+import { getGlobalLoginPopover } from "../layout/Navbar";
 
 interface SeasonAccordionItemProps {
   season: number;
@@ -192,7 +193,15 @@ export function SeasonAccordionItem({
         ) : (
           <Button
             colorScheme="primary"
-            onClick={() => navigate("/login")}
+            onClick={() => {
+              const openLoginPopover = getGlobalLoginPopover();
+              if (openLoginPopover) {
+                openLoginPopover();
+              } else {
+                // Fallback se o popover não estiver disponível
+                console.warn("Login popover não está disponível");
+              }
+            }}
             width="100%"
           >
             Entrar para avaliar
