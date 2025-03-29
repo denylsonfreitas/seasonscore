@@ -39,7 +39,6 @@ export async function getPersonalizedRecommendations(userId: string): Promise<Re
     
     return recommendations;
   } catch (error) {
-    console.error("Erro ao buscar recomendações:", error);
     return [];
   }
 }
@@ -62,7 +61,6 @@ async function getUserReviews(userId: string) {
       const seriesDetails = await getSeriesDetails(Number(reviewData.seriesId));
       
       if (!seriesDetails) {
-        console.error(`Não foi possível obter detalhes da série ${reviewData.seriesId}`);
         continue;
       }
       
@@ -74,7 +72,6 @@ async function getUserReviews(userId: string) {
         seriesDetails
       });
     } catch (error) {
-      console.error(`Erro ao buscar detalhes da série ${reviewData.seriesId}:`, error);
     }
   }
   
@@ -231,7 +228,6 @@ async function fetchRecommendedSeries(
       }
       
     } catch (error) {
-      console.error(`Erro ao buscar séries para o gênero ${pref.genreName}:`, error);
     }
   }
   
@@ -255,7 +251,6 @@ async function fetchRecommendedSeries(
       }
       
     } catch (error) {
-      console.error("Erro ao buscar séries populares gerais:", error);
     }
   }
   

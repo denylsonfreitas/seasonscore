@@ -102,18 +102,19 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
     setIsLoading(true);
 
     try {
-      await signUp(email, password, username);
+      const userData = await signUp(email, password, username);
+      
       toast({
         title: "Conta criada com sucesso!",
-        description: "Bem-vindo ao SeasonScore!",
+        description: `Bem-vindo ao SeasonScore, ${userData?.displayName || username}!`,
         status: "success",
         duration: 3000,
         isClosable: true,
       });
-      onClose();
+      
       resetForm();
+      onClose();
     } catch (error: any) {
-      console.error("Erro ao criar conta:", error);
       let errorMessage = "Não foi possível criar sua conta. Tente novamente.";
       
       if (error.code === 'auth/email-already-in-use') {
@@ -162,7 +163,6 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
         setUsernameError("");
       }
     } catch (error) {
-      console.error("Erro ao verificar username:", error);
     } finally {
       setIsCheckingUsername(false);
     }
@@ -183,7 +183,6 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
         setEmailError("");
       }
     } catch (error) {
-      console.error("Erro ao verificar email:", error);
     } finally {
       setIsCheckingEmail(false);
     }
@@ -204,7 +203,7 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
       if (email) {
         checkEmail(email);
       }
-    }, 5000);
+    }, 500);
 
     return () => clearTimeout(debounceTimer);
   }, [email]);
@@ -219,7 +218,6 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
     <Modal 
       isOpen={isOpen} 
       onClose={() => {
-        resetForm();
         onClose();
       }}
       isCentered

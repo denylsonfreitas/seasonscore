@@ -59,7 +59,6 @@ export function WatchlistSection({
         duration: 2000,
       });
     } catch (error) {
-      console.error("Erro ao remover da watchlist:", error);
       toast({
         title: "Erro ao remover da watchlist",
         status: "error",

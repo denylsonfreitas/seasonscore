@@ -175,7 +175,6 @@ export function SeriesDetails() {
       setUserData(data);
       userDataFetched.current = true;
     } catch (error) {
-      console.error("Erro ao buscar dados do usuário:", error);
     }
   }, []);
 
@@ -274,7 +273,6 @@ export function SeriesDetails() {
             // Limpar parâmetros de URL
             navigate(`/series/${id}`, { replace: true });
           } catch (error) {
-            console.error("Erro ao processar avaliação da URL:", error);
           }
         };
         

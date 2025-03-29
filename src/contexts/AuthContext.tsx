@@ -16,15 +16,17 @@ import {
   createOrUpdateUser, 
   getUserData, 
   getUserByEmail, 
-  getUserByUsernameOrEmail
+  getUserByUsernameOrEmail,
+  UserData
 } from "../services/users";
 import { ExtendedUser } from "../types/auth";
 import { cleanupNotifications } from "../services/notifications";
 import { useToast } from "@chakra-ui/react";
+import { useAuthUIStore } from "../services/uiState";
 
 interface AuthContextType {
   currentUser: ExtendedUser | null;
-  signUp: (email: string, password: string, username: string) => Promise<void>;
+  signUp: (email: string, password: string, username: string) => Promise<UserData | null>;
   login: (usernameOrEmail: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   linkWithEmail: (email: string, password: string) => Promise<void>;
@@ -49,6 +51,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [currentUser, setCurrentUser] = useState<ExtendedUser | null>(null);
   const [loading, setLoading] = useState(true);
   const toast = useToast();
+  const { closeAllAuth } = useAuthUIStore();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -64,9 +67,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
             favoriteSeries: userData?.favoriteSeries || undefined,
           };
           setCurrentUser(extendedUser);
+          
+          // Fechar todos os modais de autenticação quando o usuário estiver logado
+          closeAllAuth();
         } catch (error) {
-          console.error("Erro ao carregar dados do usuário:", error);
           setCurrentUser(user);
+          // Também fechar os modais em caso de erro
+          closeAllAuth();
         }
       } else {
         setCurrentUser(null);
@@ -75,7 +82,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
 
     return unsubscribe;
-  }, []);
+  }, [closeAllAuth]);
 
   async function signUp(email: string, password: string, username: string) {
     try {
@@ -105,18 +112,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }),
       });
 
-      // Buscar dados atualizados
+      // Buscar dados atualizados - mas não atualizar o estado currentUser aqui
+      // Esta alteração evita triggers de reações não intencionais na UI
       const userData = await getUserData(result.user.uid);
-      const extendedUser: ExtendedUser = {
-        ...result.user,
-        coverURL: userData?.coverURL || undefined,
-        description: userData?.description || undefined,
-        username: userData?.username || undefined,
-        favoriteSeries: userData?.favoriteSeries || undefined,
-      };
-      setCurrentUser(extendedUser);
+      
+      // O estado currentUser será atualizado automaticamente pelo listener de autenticação
+      // que foi configurado no useEffect do AuthProvider
+      
+      return userData;
     } catch (error: any) {
-      console.error("Erro ao criar conta:", error);
       
       // Tratar erros específicos
       if (error.code === 'auth/email-already-in-use') {
@@ -198,7 +202,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Limpar notificações duplicadas
       await cleanupNotifications(result.user.uid);
     } catch (error: any) {
-      console.error("Erro no login:", error);
       
       if (error.code === 'auth/wrong-password') {
         throw new Error("Senha incorreta. Tente novamente.");
@@ -224,7 +227,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await linkWithCredential(currentUser, credential);
       await createOrUpdateUser(currentUser);
     } catch (error) {
-      console.error("Erro ao vincular conta:", error);
       throw error;
     }
   }
@@ -234,7 +236,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await firebaseSignOut(auth);
       setCurrentUser(null);
     } catch (error) {
-      console.error("Erro no logout:", error);
       throw error;
     }
   }
@@ -243,7 +244,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       await sendPasswordResetEmail(auth, email);
     } catch (error: any) {
-      console.error("Erro ao enviar email de redefinição:", error);
       throw error;
     }
   }

@@ -17,32 +17,24 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { auth } from "../config/firebase";
-import { getUserData, addToUserWatchedSeries } from "./users";
+import { getUserData } from "./users";
 import { getSeriesDetails } from "./tmdb";
 
+// Configurações
 const db = getFirestore();
 const notificationsCollection = collection(db, "notifications");
+export const DEFAULT_NOTIFICATION_LIMIT = 50;
 
-// Cache para armazenar notificações por usuário
-const notificationsCache = new Map<string, {
-  data: Notification[];
-  timestamp: number;
-}>();
-
-// Tempo máximo de validade do cache em milissegundos (2 minutos)
-const CACHE_EXPIRY = 2 * 60 * 1000;
-
-// Limite padrão para consultas de notificações
-const DEFAULT_NOTIFICATION_LIMIT = 50;
-
+// Enum para tipos de notificações
 export enum NotificationType {
-  NEW_FOLLOWER = "new_follower",
+  NEW_FOLLOWER = "NEW_FOLLOWER",
   NEW_COMMENT = "NEW_COMMENT",
-  NEW_EPISODE = "new_episode",
   NEW_REACTION = "NEW_REACTION",
+  NEW_EPISODE = "NEW_EPISODE",
   NEW_REVIEW = "NEW_REVIEW"
 }
 
+// Interface para notificações
 export interface Notification {
   id: string;
   userId: string;
@@ -59,31 +51,32 @@ export interface Notification {
   message: string;
   read: boolean;
   createdAt: Date | Timestamp;
+  isDeleted?: boolean; // Flag para usuários excluídos
 }
 
-// Função auxiliar para verificar se o cache está válido
+// Sistema de cache
+type NotificationCache = {
+  data: Notification[];
+  timestamp: number;
+};
+
+const cache = new Map<string, NotificationCache>();
+const CACHE_TTL = 2 * 60 * 1000; // 2 minutos
+
 function isCacheValid(userId: string): boolean {
-  const cachedData = notificationsCache.get(userId);
-  if (!cachedData) return false;
-  
-  const now = Date.now();
-  return (now - cachedData.timestamp) < CACHE_EXPIRY;
+  const cached = cache.get(userId);
+  return cached ? (Date.now() - cached.timestamp) < CACHE_TTL : false;
 }
 
-// Função auxiliar para atualizar o cache
-function updateCache(userId: string, notifications: Notification[]): void {
-  notificationsCache.set(userId, {
-    data: notifications,
-    timestamp: Date.now()
-  });
+function updateCache(userId: string, data: Notification[]): void {
+  cache.set(userId, { data, timestamp: Date.now() });
 }
 
-// Função auxiliar para limpar o cache de um usuário específico
 function invalidateCache(userId: string): void {
-  notificationsCache.delete(userId);
+  cache.delete(userId);
 }
 
-// Criar uma nova notificação
+// Criação de notificações
 export async function createNotification(
   userId: string,
   type: NotificationType,
@@ -99,15 +92,15 @@ export async function createNotification(
   }
 ): Promise<string | null> {
   try {
-    // Verificar configurações de notificação do usuário
+    // Verificar se o usuário existe
     const userDoc = await getDoc(doc(db, "users", userId));
     if (!userDoc.exists()) {
-      console.warn(`Usuário ${userId} não encontrado. Notificação não será criada.`);
       return null;
     }
     
+    // Verificar se o usuário permite este tipo de notificação
     const userData = userDoc.data();
-    const notificationSettings = userData.notificationSettings || {
+    const settings = userData.notificationSettings || {
       newEpisode: true,
       newFollower: true,
       newComment: true,
@@ -115,51 +108,41 @@ export async function createNotification(
       newReview: true
     };
     
-    // Verificar se o tipo de notificação está habilitado para este usuário
     let isEnabled = true;
-    
     switch (type) {
-      case NotificationType.NEW_EPISODE:
-        isEnabled = notificationSettings.newEpisode;
-        break;
-      case NotificationType.NEW_FOLLOWER:
-        isEnabled = notificationSettings.newFollower;
-        break;
-      case NotificationType.NEW_COMMENT:
-        isEnabled = notificationSettings.newComment;
-        break;
-      case NotificationType.NEW_REACTION:
-        isEnabled = notificationSettings.newReaction;
-        break;
-      case NotificationType.NEW_REVIEW:
-        isEnabled = notificationSettings.newReview;
-        break;
+      case NotificationType.NEW_EPISODE: isEnabled = settings.newEpisode; break;
+      case NotificationType.NEW_FOLLOWER: isEnabled = settings.newFollower; break;
+      case NotificationType.NEW_COMMENT: isEnabled = settings.newComment; break;
+      case NotificationType.NEW_REACTION: isEnabled = settings.newReaction; break;
+      case NotificationType.NEW_REVIEW: isEnabled = settings.newReview; break;
     }
     
-    // Se o tipo de notificação estiver desabilitado, não criar a notificação
     if (!isEnabled) {
       return null;
     }
     
-    // Se houver um senderId, buscar informações do remetente
-    let senderName, senderPhoto;
+    // Obter dados do remetente
+    let senderName: string | null = null;
+    let senderPhoto: string | null = null;
+    
     if (data.senderId) {
       const senderData = await getUserData(data.senderId);
-      senderName = senderData?.username || senderData?.displayName || senderData?.email;
-      senderPhoto = senderData?.photoURL;
+      if (senderData) {
+        senderName = senderData.username || senderData.displayName || senderData.email;
+        senderPhoto = senderData.photoURL || null;
+      } else {
+        senderName = "Usuário excluído";
+        senderPhoto = "";
+      }
     }
-
-    // NOTA: Removida a verificação de notificações existentes devido a problemas de permissão
-    // Vamos apenas criar uma nova notificação sempre que necessário
-    // O serviço de limpeza de notificações cuidará de agrupar/remover duplicatas posteriormente
-
-    // Criar uma nova notificação
+    
+    // Criar a notificação
     const notificationData = {
       userId,
       type,
       senderId: data.senderId || null,
-      senderName: senderName || null,
-      senderPhoto: senderPhoto || null,
+      senderName,
+      senderPhoto,
       seriesId: data.seriesId || null,
       seriesName: data.seriesName || null,
       seriesPoster: data.seriesPoster || null,
@@ -169,25 +152,130 @@ export async function createNotification(
       message: data.message,
       read: false,
       createdAt: serverTimestamp(),
+      isDeleted: false
     };
 
     const docRef = await addDoc(notificationsCollection, notificationData);
-    
-    // Invalidar o cache após criar uma nova notificação
     invalidateCache(userId);
     
     return docRef.id;
   } catch (error) {
-    console.error("Erro ao criar notificação:", error);
     return null;
   }
 }
 
-// Obter notificações do usuário
-export async function getUserNotifications(userId: string, limit = DEFAULT_NOTIFICATION_LIMIT): Promise<Notification[]> {
-  // Verificar se há um cache válido
-  if (isCacheValid(userId)) {
-    return notificationsCache.get(userId)!.data;
+// Sanitizar notificações
+function sanitizeMessage(message: string, senderName: string, type: NotificationType): string {
+  if (!senderName) return message;
+  
+  let sanitized = message;
+  
+  // Tratamentos específicos por tipo
+  switch (type) {
+    case NotificationType.NEW_FOLLOWER:
+      return sanitized.replace(/^.+(?=começou a seguir você)/i, "Usuário excluído ");
+      
+    case NotificationType.NEW_COMMENT:
+      if (sanitized.includes("comentou na sua avaliação")) {
+        return sanitized.replace(/^.+?(?=comentou)/i, "Usuário excluído ");
+      }
+      break;
+      
+    case NotificationType.NEW_REACTION:
+      if (sanitized.includes("reagiu à sua avaliação")) {
+        return sanitized.replace(/^.+?(?=reagiu)/i, "Usuário excluído ");
+      }
+      break;
+  }
+  
+  // Substituição genérica
+  const escapeRegex = (s: string) => s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  const fullNameRegex = new RegExp(escapeRegex(senderName), 'gi');
+  
+  return sanitized.replace(fullNameRegex, "Usuário excluído");
+}
+
+// Verificar e atualizar notificações de usuários excluídos
+export async function sanitizeNotifications(notifications: Notification[]): Promise<Notification[]> {
+  if (!notifications || notifications.length === 0) return notifications;
+  
+  try {
+    // Identificar remetentes únicos
+    const senderIds = Array.from(new Set(
+      notifications
+        .filter(n => n.senderId && !n.isDeleted)
+        .map(n => n.senderId!)
+    ));
+    
+    if (senderIds.length === 0) return notifications;
+    
+    // Verificar quais ainda existem
+    const senderStatus: Record<string, boolean> = {};
+    
+    await Promise.all(senderIds.map(async (id) => {
+      try {
+        const userData = await getUserData(id);
+        senderStatus[id] = !!userData;
+      } catch (error) {
+        senderStatus[id] = false;
+      }
+    }));
+    
+    // Processar notificações
+    const updates: Promise<void>[] = [];
+    
+    const sanitized = notifications.map(notification => {
+      if (notification.senderId && !senderStatus[notification.senderId]) {
+        // Remetente não existe mais
+        const updated = { ...notification };
+        
+        updated.message = sanitizeMessage(
+          notification.message, 
+          notification.senderName || "",
+          notification.type
+        );
+        
+        updated.senderName = "Usuário excluído";
+        updated.senderPhoto = "";
+        updated.isDeleted = true;
+        
+        // Salvar alterações no Firestore
+        if (!notification.isDeleted) {
+          const ref = doc(db, "notifications", notification.id);
+          updates.push(updateDoc(ref, {
+            senderName: updated.senderName,
+            senderPhoto: updated.senderPhoto,
+            message: updated.message,
+            isDeleted: true
+          }));
+        }
+        
+        return updated;
+      }
+      
+      return notification;
+    });
+    
+    // Aplicar atualizações em segundo plano
+    if (updates.length > 0) {
+      Promise.all(updates).catch(err => {
+      });
+    }
+    
+    return sanitized;
+  } catch (error) {
+    return notifications;
+  }
+}
+
+// Obter notificações
+export async function getUserNotifications(
+  userId: string,
+  limit = DEFAULT_NOTIFICATION_LIMIT,
+  forceRefresh = false
+): Promise<Notification[]> {
+  if (!forceRefresh && isCacheValid(userId)) {
+    return cache.get(userId)!.data;
   }
   
   try {
@@ -199,202 +287,106 @@ export async function getUserNotifications(userId: string, limit = DEFAULT_NOTIF
     );
     
     const querySnapshot = await getDocs(q);
-    const notifications: Notification[] = [];
+    let notifications = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt instanceof Timestamp 
+        ? doc.data().createdAt.toDate() 
+        : doc.data().createdAt
+    } as Notification));
     
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const createdAt = data.createdAt instanceof Timestamp 
-        ? data.createdAt.toDate() 
-        : data.createdAt;
-      
-      notifications.push({
-        id: doc.id,
-        ...data,
-        createdAt,
-      } as Notification);
-    });
+    // Verificar remetentes excluídos
+    notifications = await sanitizeNotifications(notifications);
     
-    // Atualizar o cache
+    // Atualizar cache
     updateCache(userId, notifications);
     
     return notifications;
   } catch (error) {
-    console.error("Erro ao obter notificações:", error);
     return [];
   }
 }
 
-// Marcar notificação como lida
-export async function markNotificationAsRead(notificationId: string): Promise<void> {
+// Implementar as funções restantes
+// Agrupar notificações para evitar duplicatas
+export async function getGroupedNotifications(userId: string): Promise<Notification[]> {
   try {
-    const notificationRef = doc(db, "notifications", notificationId);
-    await updateDoc(notificationRef, {
-      read: true,
-    });
+    // Buscar notificações do usuário
+    const notifications = await getUserNotifications(userId);
     
-    // Buscar o userId para invalidar o cache
-    const notificationDoc = await getDoc(notificationRef);
-    if (notificationDoc.exists()) {
-      const userId = notificationDoc.data().userId;
-      if (userId) {
-        invalidateCache(userId);
+    // Mapear para agrupar notificações similares
+    const groups: Record<string, Notification> = {};
+    
+    notifications.forEach(notification => {
+      // Gerar uma chave de agrupamento
+      let key = '';
+      
+      // Usuários excluídos sempre têm chaves únicas
+      if (notification.isDeleted) {
+        key = `deleted_${notification.id}`;
+      } else {
+        // Gerar chave baseada no tipo
+        switch (notification.type) {
+          case NotificationType.NEW_FOLLOWER:
+            key = `follower_${notification.senderId || 'unknown'}`;
+            break;
+            
+          case NotificationType.NEW_COMMENT:
+            if (notification.reviewId) {
+              key = `comment_review_${notification.reviewId}`;
+            } else {
+              key = `comment_series_${notification.seriesId || 'unknown'}`;
+            }
+            break;
+            
+          case NotificationType.NEW_REACTION:
+            if (notification.reviewId) {
+              key = `reaction_review_${notification.reviewId}`;
+            } else {
+              key = `reaction_sender_${notification.senderId || 'unknown'}`;
+            }
+            break;
+            
+          case NotificationType.NEW_EPISODE:
+            key = `episode_${notification.seriesId || 'unknown'}`;
+            break;
+            
+          case NotificationType.NEW_REVIEW:
+            key = `review_${notification.seriesId || 'unknown'}_${notification.senderId || 'unknown'}`;
+            break;
+            
+          default:
+            key = `${notification.type}_${notification.id}`;
+        }
       }
-    }
-  } catch (error) {
-    console.error("Erro ao marcar notificação como lida:", error);
-    throw error;
-  }
-}
-
-// Marcar todas as notificações como lidas
-export async function markAllNotificationsAsRead(userId: string): Promise<void> {
-  try {
-    const q = query(
-      notificationsCollection,
-      where("userId", "==", userId),
-      where("read", "==", false),
-      firestoreLimit(100) // Limitar para evitar operações em lote muito grandes
-    );
-    
-    const querySnapshot = await getDocs(q);
-    
-    // Atualização em lote para melhor performance
-    const batch = querySnapshot.size > 0 ? writeBatch(db) : null;
-    
-    querySnapshot.forEach((docSnapshot) => {
-      const notificationRef = docSnapshot.ref;
-      batch?.update(notificationRef, { read: true });
+      
+      // Manter apenas a notificação mais recente de cada grupo
+      if (!groups[key] || 
+         (notification.createdAt instanceof Date && 
+          groups[key].createdAt instanceof Date && 
+          notification.createdAt > groups[key].createdAt)) {
+        groups[key] = notification;
+      }
     });
     
-    if (batch) {
-      await batch.commit();
-    }
-    
-    // Invalidar o cache após marcar todas como lidas
-    invalidateCache(userId);
+    // Converter para array e ordenar por data (mais recente primeiro)
+    return Object.values(groups).sort((a, b) => {
+      const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+      const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+      return dateB - dateA;
+    });
   } catch (error) {
-    console.error("Erro ao marcar todas as notificações como lidas:", error);
-    throw error;
+    return [];
   }
 }
 
-// Excluir notificação
-export async function deleteNotification(notificationId: string): Promise<void> {
-  try {
-    // Buscar o userId antes de excluir para invalidar o cache
-    const notificationRef = doc(db, "notifications", notificationId);
-    const notificationDoc = await getDoc(notificationRef);
-    
-    let userId = null;
-    if (notificationDoc.exists()) {
-      userId = notificationDoc.data().userId;
-    }
-    
-    // Excluir a notificação
-    await deleteDoc(notificationRef);
-    
-    // Invalidar o cache se tiver o userId
-    if (userId) {
-      invalidateCache(userId);
-    }
-  } catch (error) {
-    console.error("Erro ao excluir notificação:", error);
-    throw error;
-  }
-}
-
-// Excluir notificações de um tipo específico e de um remetente específico
-export async function deleteNotificationsOfType(
-  userId: string,
-  type: NotificationType,
-  senderId?: string
-): Promise<void> {
-  try {
-    // Verificar se o usuário atual tem permissão para excluir estas notificações
-    if (!auth.currentUser || auth.currentUser.uid !== userId) {
-      return;
-    }
-    
-    let q;
-    
-    if (senderId) {
-      // Buscar notificações do tipo específico e do remetente específico
-      q = query(
-        notificationsCollection,
-        where("userId", "==", userId),
-        where("type", "==", type),
-        where("senderId", "==", senderId)
-      );
-    } else {
-      // Buscar todas as notificações do tipo específico
-      q = query(
-        notificationsCollection,
-        where("userId", "==", userId),
-        where("type", "==", type)
-      );
-    }
-    
-    const querySnapshot = await getDocs(q);
-    
-    const batch = [];
-    for (const docSnapshot of querySnapshot.docs) {
-      batch.push(deleteDoc(doc(db, "notifications", docSnapshot.id)));
-    }
-    
-    await Promise.all(batch);
-  } catch (error) {
-    console.error(`Erro ao excluir notificações do tipo ${type}:`, error);
-    throw error;
-  }
-}
-
-// Configurar listener para notificações em tempo real
-export function subscribeToNotifications(
-  userId: string,
-  callback: (notifications: Notification[]) => void
-) {
-  const q = query(
-    notificationsCollection,
-    where("userId", "==", userId),
-    orderBy("createdAt", "desc"),
-    firestoreLimit(50)
-  );
-
-  return onSnapshot(q, (querySnapshot) => {
-    const notifications = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate(),
-    })) as Notification[];
-    
-    callback(notifications);
-  });
-}
-
-// Contar notificações não lidas
-export async function countUnreadNotifications(userId: string): Promise<number> {
-  try {
-    const q = query(
-      notificationsCollection,
-      where("userId", "==", userId),
-      where("read", "==", false)
-    );
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.size;
-  } catch (error) {
-    console.error("Erro ao contar notificações não lidas:", error);
+// Limpar notificações duplicadas
+export async function cleanupNotifications(userId: string): Promise<number> {
+  if (!auth.currentUser || auth.currentUser.uid !== userId) {
     return 0;
   }
-}
-
-// Limpar notificações duplicadas e antigas
-export async function cleanupNotifications(userId: string): Promise<number> {
+  
   try {
-    // Verificar se o usuário atual tem permissão para limpar estas notificações
-    if (!auth.currentUser || auth.currentUser.uid !== userId) {
-      return 0;
-    }
-    
     // Buscar todas as notificações do usuário
     const q = query(
       notificationsCollection,
@@ -408,213 +400,349 @@ export async function cleanupNotifications(userId: string): Promise<number> {
       ...doc.data()
     } as Notification));
     
-    // Agrupar notificações por tipo e contexto
-    const notificationGroups: Record<string, Notification[]> = {};
+    // Agrupar as notificações
+    const groups: Record<string, Notification[]> = {};
     
-    notifications.forEach(notification => {
-      let key = '';
+    // Função auxiliar para gerar chaves de agrupamento
+    const getGroupKey = (notification: Notification) => {
+      if (notification.isDeleted) {
+        return `deleted_${notification.id}`;
+      }
       
       switch (notification.type) {
+        case NotificationType.NEW_FOLLOWER:
+          return `follower_${notification.senderId || 'unknown'}`;
+          
+        case NotificationType.NEW_COMMENT:
+          if (notification.reviewId) {
+            return `comment_review_${notification.reviewId}`;
+          }
+          return `comment_series_${notification.seriesId || 'unknown'}`;
+          
         case NotificationType.NEW_REACTION:
           if (notification.reviewId) {
-            // Agrupar por avaliação
-            key = `reaction_review_${notification.reviewId}`;
-          } else {
-            // Caso não tenha reviewId, usar senderId
-            key = `reaction_sender_${notification.senderId || 'unknown'}`;
+            return `reaction_review_${notification.reviewId}`;
           }
-          break;
-        case NotificationType.NEW_COMMENT:
-          if (notification.seriesId) {
-            // Agrupar por série
-            key = `comment_series_${notification.seriesId}`;
-          } else {
-            // Caso não tenha seriesId, usar senderId
-            key = `comment_sender_${notification.senderId || 'unknown'}`;
-          }
-          break;
-        case NotificationType.NEW_FOLLOWER:
-          key = `follower_${notification.senderId || 'unknown'}`;
-          break;
+          return `reaction_sender_${notification.senderId || 'unknown'}`;
+          
         case NotificationType.NEW_EPISODE:
-          key = `episode_${notification.seriesId || 'unknown'}`;
-          break;
+          return `episode_${notification.seriesId || 'unknown'}`;
+          
         case NotificationType.NEW_REVIEW:
-          key = `review_${notification.seriesId || 'unknown'}_${notification.senderId || 'unknown'}`;
-          break;
+          return `review_${notification.seriesId || 'unknown'}_${notification.senderId || 'unknown'}`;
+          
         default:
-          // Para outros tipos, criar uma chave genérica
-          key = `${String(notification.type)}_${notification.senderId || 'unknown'}`;
+          return `${notification.type}_${notification.id}`;
+      }
+    };
+    
+    // Agrupá-las
+    notifications.forEach(notification => {
+      const key = getGroupKey(notification);
+      
+      if (!groups[key]) {
+        groups[key] = [];
       }
       
-      if (!notificationGroups[key]) {
-        notificationGroups[key] = [];
-      }
-      notificationGroups[key].push(notification);
+      groups[key].push(notification);
     });
     
-    // Para cada grupo, manter apenas a notificação mais recente
-    const deletePromises: Promise<void>[] = [];
+    // Identificar duplicatas para excluir
+    const toDelete: string[] = [];
     
-    Object.values(notificationGroups).forEach(group => {
-      // Se houver mais de uma notificação no grupo, excluir as mais antigas
-      if (group.length > 1) {
-        // Ordenar por data de criação (mais recente primeiro)
-        group.sort((a, b) => {
-          const dateA = a.createdAt instanceof Timestamp 
-            ? a.createdAt.toDate().getTime() 
-            : a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+    Object.values(groups).forEach(group => {
+      // Se houver apenas 1 ou menos, não há o que limpar
+      if (group.length <= 1) return;
+      
+      // Ordenar por data (mais recente primeiro)
+      group.sort((a, b) => {
+        const dateA = a.createdAt instanceof Timestamp 
+          ? a.createdAt.toDate().getTime() 
+          : a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
           
-          const dateB = b.createdAt instanceof Timestamp 
-            ? b.createdAt.toDate().getTime() 
-            : b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+        const dateB = b.createdAt instanceof Timestamp 
+          ? b.createdAt.toDate().getTime() 
+          : b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
           
-          return dateB - dateA;
-        });
-        
-        // Para notificações de reação, atualizar a primeira para indicar múltiplas reações
-        if (group[0].type === NotificationType.NEW_REACTION && group[0].reviewId) {
-          // Contar quantas notificações diferentes temos neste grupo
-          const uniqueSenders = new Set(group.map(n => n.senderId));
-          
-          if (uniqueSenders.size > 1) {
-            // Atualizar a mensagem para indicar múltiplas reações
-            const notification = group[0];
-            const notificationRef = doc(db, "notifications", notification.id);
-            
-            let newMessage = `${notification.senderName} e outros ${uniqueSenders.size - 1} reagiram à sua avaliação`;
-            
-            updateDoc(notificationRef, {
-              message: newMessage,
-              read: false, // Marcar como não lida novamente
-            }).catch(error => {
-              console.error("Erro ao atualizar mensagem de notificação:", error);
-            });
-          }
-        }
-        
-        // Manter a primeira (mais recente) e excluir as demais
-        for (let i = 1; i < group.length; i++) {
-          deletePromises.push(deleteNotification(group[i].id));
-        }
+        return dateB - dateA;
+      });
+      
+      // Manter a mais recente, marcar as outras para exclusão
+      for (let i = 1; i < group.length; i++) {
+        toDelete.push(group[i].id);
       }
     });
     
-    // Executar todas as exclusões
-    if (deletePromises.length > 0) {
-      await Promise.all(deletePromises);
+    // Executar as exclusões
+    if (toDelete.length > 0) {
+      const batch = writeBatch(db);
+      
+      toDelete.forEach(id => {
+        batch.delete(doc(db, "notifications", id));
+      });
+      
+      await batch.commit();
+      invalidateCache(userId);
+      
     }
     
-    // Retornar o número de notificações removidas
-    return deletePromises.length;
+    return toDelete.length;
   } catch (error) {
-    console.error("Erro ao limpar notificações:", error);
     return 0;
   }
 }
 
-// Função melhorada para obter notificações agrupadas do usuário
-export async function getGroupedNotifications(userId: string): Promise<Notification[]> {
+// Marcar notificação como lida
+export async function markNotificationAsRead(userId: string, notificationId: string): Promise<void> {
   try {
+    const notificationRef = doc(db, "notifications", notificationId);
+    const notificationDoc = await getDoc(notificationRef);
+    
+    if (!notificationDoc.exists()) {
+      return; // Notificação não encontrada, simplesmente retornar
+    }
+    
+    // Verificar permissão
+    const notification = notificationDoc.data() as Notification;
+    if (notification.userId !== userId) {
+      return; // Sem permissão, simplesmente retornar
+    }
+    
+    // Marcar como lida
+    await updateDoc(notificationRef, { read: true });
+    
+    // Invalidar cache
+    invalidateCache(userId);
+    
+    // Remover console.log desnecessário
+  } catch (error) {
+    // Silenciar erro não crítico
+    // Continuar mesmo em caso de erro
+  }
+}
+
+// Marcar todas notificações como lidas
+export async function markAllNotificationsAsRead(userId: string): Promise<void> {
+  if (!auth.currentUser || auth.currentUser.uid !== userId) {
+    return;
+  }
+  
+  try {
+    // Buscar notificações não lidas
+    const q = query(
+      notificationsCollection,
+      where("userId", "==", userId),
+      where("read", "==", false),
+      firestoreLimit(100) // Limitar para não exceder limites do Firestore
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return;
+    }
+    
+    // Atualizar em lote
+    const batch = writeBatch(db);
+    
+    querySnapshot.forEach(doc => {
+      batch.update(doc.ref, { read: true });
+    });
+    
+      await batch.commit();
+    
+    // Invalidar cache
+    invalidateCache(userId);
+    
+  } catch (error) {
+    throw error;
+  }
+}
+
+// Excluir notificação
+export async function deleteNotification(notificationId: string): Promise<boolean> {
+  if (!auth.currentUser) {
+    return false; // Sem usuário autenticado
+  }
+
+  try {
+    // Verificar se a notificação existe antes de tentar excluí-la
+    const notificationRef = doc(db, "notifications", notificationId);
+    const notificationDoc = await getDoc(notificationRef);
+    
+    if (!notificationDoc.exists()) {
+      return false; // Notificação não encontrada
+    }
+    
+    // Verificar permissão
+    const notification = notificationDoc.data() as Notification;
+    
+    // Verificar se o usuário tem permissão para excluir esta notificação
+    // (deve ser o destinatário ou o remetente)
+    if (auth.currentUser.uid !== notification.userId && 
+        auth.currentUser.uid !== notification.senderId) {
+      return false; // Sem permissão
+    }
+    
+    // Excluir a notificação
+    await deleteDoc(notificationRef);
+    
+    // Invalidar cache
+    if (notification.userId) {
+      invalidateCache(notification.userId);
+    }
+    
+    return true;
+  } catch (error) {
+    // Silenciar erro não crítico
+    return false;
+  }
+}
+
+// Excluir notificações por tipo
+export async function deleteNotificationsOfType(
+  userId: string,
+  type: NotificationType,
+  senderId?: string
+): Promise<number> {
+    if (!auth.currentUser || auth.currentUser.uid !== userId) {
+      return 0;
+    }
+    
+  try {
+    // Construir consulta
+    let q;
+    
+    if (senderId) {
+      q = query(
+        notificationsCollection,
+        where("userId", "==", userId),
+        where("type", "==", type),
+        where("senderId", "==", senderId)
+      );
+    } else {
+      q = query(
+        notificationsCollection,
+        where("userId", "==", userId),
+        where("type", "==", type)
+      );
+    }
+    
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return 0;
+    }
+    
+    // Excluir em lote
+    const batch = writeBatch(db);
+    
+    querySnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    
+    await batch.commit();
+    
+    // Invalidar cache
+    invalidateCache(userId);
+    
+    return querySnapshot.size;
+  } catch (error) {
+    // Silenciar erro não crítico
+    return 0;
+  }
+}
+
+// Contar notificações não lidas
+export async function countUnreadNotifications(userId: string): Promise<number> {
+  try {
+    const q = query(
+      notificationsCollection,
+      where("userId", "==", userId),
+      where("read", "==", false)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.size;
+  } catch (error) {
+    // Silenciar erro não crítico
+    return 0;
+  }
+}
+
+// Listener de notificações em tempo real
+export function subscribeToNotifications(
+  userId: string,
+  callback: (notifications: Notification[]) => void
+) {
     const q = query(
       notificationsCollection,
       where("userId", "==", userId),
       orderBy("createdAt", "desc"),
       firestoreLimit(50)
     );
-    const querySnapshot = await getDocs(q);
 
-    const notifications = querySnapshot.docs.map((doc) => ({
+  return onSnapshot(q, async (querySnapshot) => {
+    // Mapear documentos
+    const notifications = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate(),
-    })) as Notification[];
-
-    // Agrupar notificações por tipo, remetente, e contexto (série, avaliação)
-    const notificationGroups: Record<string, Notification> = {};
+      createdAt: doc.data().createdAt?.toDate()
+    } as Notification));
     
-    notifications.forEach(notification => {
-      // Criar uma chave única com base no tipo e contexto da notificação
-      let key = '';
-      
-      switch (notification.type) {
-        case NotificationType.NEW_REACTION:
-          if (notification.reviewId) {
-            // Agrupar por avaliação
-            key = `reaction_review_${notification.reviewId}`;
-          } else {
-            // Caso não tenha reviewId, usar senderId
-            key = `reaction_sender_${notification.senderId || 'unknown'}`;
-          }
-          break;
-        case NotificationType.NEW_COMMENT:
-          if (notification.seriesId) {
-            // Agrupar por série
-            key = `comment_series_${notification.seriesId}`;
-          } else {
-            // Caso não tenha seriesId, usar senderId
-            key = `comment_sender_${notification.senderId || 'unknown'}`;
-          }
-          break;
-        case NotificationType.NEW_FOLLOWER:
-          key = `follower_${notification.senderId || 'unknown'}`;
-          break;
-        case NotificationType.NEW_EPISODE:
-          key = `episode_${notification.seriesId || 'unknown'}`;
-          break;
-        case NotificationType.NEW_REVIEW:
-          key = `review_${notification.seriesId || 'unknown'}_${notification.senderId || 'unknown'}`;
-          break;
-        default:
-          // Para outros tipos, criar uma chave genérica
-          key = `${String(notification.type)}_${notification.senderId || 'unknown'}`;
-      }
-      
-      // Se já temos uma notificação deste grupo, só atualizar se esta for mais recente
-      if (!notificationGroups[key] || 
-          (notification.createdAt > notificationGroups[key].createdAt)) {
-        notificationGroups[key] = notification;
-      }
-    });
+    // Sanitizar e agrupar
+    const sanitized = await sanitizeNotifications(notifications);
     
-    // Converter o objeto de grupos para um array e ordenar por data de criação
-    return Object.values(notificationGroups).sort((a, b) => {
-      const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
-      const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
-      return dateB - dateA;
-    });
-  } catch (error) {
-    console.error("Erro ao buscar notificações agrupadas:", error);
-    return [];
-  }
+    // Atualizar cache
+    updateCache(userId, sanitized);
+    
+    // Executar callback
+    callback(sanitized);
+  });
 }
 
-// Remover notificações de reação para uma avaliação específica e um remetente específico
-export async function removeReactionNotification(
-  reviewId: string,
-  senderId: string
-): Promise<void> {
-  try {
-    return;
-    
-  } catch (error) {
-    console.error("Erro ao remover notificação de reação:", error);
-  }
-}
-
-// Buscar detalhes de uma avaliação
+// Obter detalhes da avaliação
 export async function getReviewDetails(reviewId: string) {
   try {
-    const reviewRef = doc(db, "reviews", reviewId);
-    const reviewDoc = await getDoc(reviewRef);
+    const reviewDoc = await getDoc(doc(db, "reviews", reviewId));
     
     if (!reviewDoc.exists()) {
+      console.warn(`⚠️ Avaliação não encontrada: ${reviewId}`);
       return null;
     }
 
     const reviewData = reviewDoc.data();
+    
+    // Se não houver dados da série, retornar erro
+    if (!reviewData.seriesId) {
+      console.warn(`⚠️ Avaliação sem série associada: ${reviewId}`);
+      return null;
+    }
+    
+    // Buscar detalhes da série
+    try {
     const seriesDetails = await getSeriesDetails(reviewData.seriesId);
     
+      // Verificar se há avaliações de temporada
+      if (!reviewData.seasonReviews || reviewData.seasonReviews.length === 0) {
+        console.warn(`⚠️ Avaliação sem dados de temporada: ${reviewId}`);
+        return {
+          id: reviewDoc.id,
+          seriesId: reviewData.seriesId,
+          userId: reviewData.userId,
+          userEmail: reviewData.userEmail,
+          seriesName: seriesDetails.name,
+          seriesPoster: seriesDetails.poster_path || "",
+          seasonNumber: 1,
+          rating: 0,
+          comment: "",
+          comments: [],
+          reactions: { likes: [], dislikes: [] },
+          createdAt: new Date()
+        };
+      }
+      
+      // Retornar dados completos
     return {
       id: reviewDoc.id,
       seriesId: reviewData.seriesId,
@@ -629,8 +757,183 @@ export async function getReviewDetails(reviewId: string) {
       reactions: reviewData.seasonReviews[0]?.reactions || { likes: [], dislikes: [] },
       createdAt: reviewData.seasonReviews[0]?.createdAt || new Date()
     };
+    } catch (seriesError) {
+      console.error(`❌ Erro ao obter detalhes da série para avaliação ${reviewId}:`, seriesError);
+      
+      // Retornar dados parciais mesmo sem a série
+      return {
+        id: reviewDoc.id,
+        seriesId: reviewData.seriesId,
+        userId: reviewData.userId,
+        userEmail: reviewData.userEmail,
+        seriesName: "Série não encontrada",
+        seriesPoster: "",
+        seasonNumber: reviewData.seasonReviews?.[0]?.seasonNumber || 1,
+        rating: reviewData.seasonReviews?.[0]?.rating || 0,
+        comment: reviewData.seasonReviews?.[0]?.comment || "",
+        comments: reviewData.seasonReviews?.[0]?.comments || [],
+        reactions: reviewData.seasonReviews?.[0]?.reactions || { likes: [], dislikes: [] },
+        createdAt: reviewData.seasonReviews?.[0]?.createdAt || new Date()
+      };
+    }
   } catch (error) {
-    console.error("Erro ao buscar detalhes da avaliação:", error);
+    console.error("❌ Erro ao obter detalhes da avaliação:", error);
     return null;
+  }
+}
+
+// Remover notificações do usuário (para exclusão de conta)
+export async function removeCurrentUserNotifications(userId: string): Promise<number> {
+  if (!userId) return 0;
+  
+  try {
+    const q = query(notificationsCollection, where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return 0;
+    }
+    
+    // Excluir em lote
+    const batch = writeBatch(db);
+    querySnapshot.forEach(doc => batch.delete(doc.ref));
+    
+    await batch.commit();
+    
+    // Invalidar cache
+    invalidateCache(userId);
+    
+    return querySnapshot.size;
+  } catch (error) {
+    console.error(`❌ Erro ao remover notificações: ${error}`);
+    return 0;
+  }
+}
+
+/**
+ * Remove notificações relacionadas a reações em avaliações
+ * @param reviewId ID da avaliação
+ * @param userId ID do usuário que está removendo a reação
+ * @returns Promise<void>
+ */
+export async function removeReactionNotification(
+  reviewId: string,
+  userId: string,
+  commentId?: string
+) {
+  try {
+    if (!auth.currentUser) return false;
+    
+    // Verificar permissões: só pode remover notificações que o usuário atual enviou
+    // ou que foram enviadas para o usuário atual
+    const notificationsRef = collection(db, "notifications");
+    
+    // Construir a query base
+    let query_ = query(
+      notificationsRef,
+      where("type", "==", NotificationType.NEW_REACTION),
+      where("reviewId", "==", reviewId)
+    );
+    
+    // Se comentId for fornecido, adicionar à query
+    if (commentId) {
+      // No caso dos comentários, o reviewId é armazenado como `${reviewId}_${commentId}`
+      const formattedReviewId = `${reviewId}_${commentId}`;
+      query_ = query(
+        notificationsRef,
+        where("type", "==", NotificationType.NEW_REACTION),
+        where("reviewId", "==", formattedReviewId)
+      );
+    }
+    
+    // Executar a consulta
+    const querySnapshot = await getDocs(query_);
+    
+    // Filtrar notificações que podem ser excluídas pelo usuário atual
+    // (apenas as que o usuário atual enviou ou recebeu)
+    const currentUserId = auth.currentUser.uid;
+    const docsToDelete = querySnapshot.docs.filter(doc => {
+      const data = doc.data();
+      return (data.senderId === currentUserId || data.userId === currentUserId);
+    });
+    
+    if (docsToDelete.length === 0) {
+      return true; // Nada para excluir, simplesmente retorna com sucesso
+    }
+    
+    // Excluir as notificações permitidas em um batch
+    const batch = writeBatch(db);
+    docsToDelete.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    
+    // Commit do batch em silêncio (sem logs)
+    await batch.commit();
+    
+    return true;
+  } catch (error) {
+    // Silenciar erro não crítico
+    return false;
+  }
+}
+
+export async function markAllAsReadType(userId: string): Promise<void> {
+  try {
+    const notificationsCollection = collection(db, "notifications");
+    const querySnapshot = await getDocs(
+      query(
+        notificationsCollection,
+        where("userId", "==", userId),
+        where("read", "==", false)
+      )
+    );
+    
+    if (querySnapshot.empty) {
+      return;
+    }
+    
+    // Atualizar em lote
+    const batch = writeBatch(db);
+    
+    querySnapshot.forEach(doc => {
+      batch.update(doc.ref, { read: true });
+    });
+    
+    await batch.commit();
+    
+    // Invalidar cache
+    invalidateCache(userId);
+    
+  } catch (error) {
+    // Silenciar erro não crítico
+    // Continuar mesmo em caso de erro
+  }
+}
+
+export async function markAllAsRead(): Promise<number> {
+  try {
+    if (!auth.currentUser) return 0;
+
+    const notificationsRef = collection(db, "notifications");
+    const query_ = query(
+      notificationsRef,
+      where("userId", "==", auth.currentUser.uid),
+      where("read", "==", false)
+    );
+
+    const querySnapshot = await getDocs(query_);
+    
+    const batch = writeBatch(db);
+    querySnapshot.forEach((doc) => {
+      batch.update(doc.ref, { read: true });
+    });
+    
+    if (querySnapshot.size > 0) {
+      await batch.commit();
+    }
+    
+    return querySnapshot.size;
+  } catch (error) {
+    return 0;
   }
 } 

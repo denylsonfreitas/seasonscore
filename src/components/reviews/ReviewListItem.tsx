@@ -44,9 +44,14 @@ export function ReviewListItem({ userId, userEmail, rating, comment, onClick }: 
             userEmail={userEmail}
             photoURL={userData?.photoURL}
             size="sm"
+            isDeletedExtra={userData?.isDeleted}
           />
           <VStack align="start" spacing={1}>
-            <UserName userId={userId} />
+            {userData?.isDeleted ? (
+              <Text fontSize="sm" fontStyle="italic" color="gray.400">Usuário excluído</Text>
+            ) : (
+              <UserName userId={userId} />
+            )}
             <Box>
               {shouldShowExpandButton && (
                 <Button

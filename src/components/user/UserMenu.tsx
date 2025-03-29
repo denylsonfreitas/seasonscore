@@ -23,7 +23,6 @@ export function UserMenu() {
       await logout();
       navigate("/login");
     } catch (error) {
-      console.error("Erro ao fazer logout:", error);
     }
   };
 

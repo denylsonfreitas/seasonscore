@@ -5,6 +5,7 @@ import {
   Button,
   Portal,
   Divider,
+  useToast,
 } from "@chakra-ui/react";
 import {
   TelevisionSimple,
@@ -18,6 +19,7 @@ import {
 import { Link as RouterLink } from "react-router-dom";
 import { ExtendedUser } from "../../types/auth";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -46,6 +48,8 @@ export function MobileMenu({
 }: MobileMenuProps) {
   // Usar estado local para gerenciar a animação em vez do hook completo
   const [isVisible, setIsVisible] = useState(false);
+  const toast = useToast();
+  const navigate = useNavigate();
   
   // Função para criar estilos de animação para itens de menu
   const getItemAnimationStyle = (index: number) => ({
@@ -248,14 +252,13 @@ export function MobileMenu({
         {currentUser ? (
           <>
             <Box style={getItemAnimationStyle(6)}>
-              <RouterLink to="/profile">
+              <RouterLink to="/profile" onClick={onClose}>
                 <Flex
                   align="center"
                   py={2.5}
                   px={3}
                   borderRadius="md"
                   _hover={{ bg: "gray.700" }}
-                  onClick={onClose}
                 >
                   <Box
                     p={2}

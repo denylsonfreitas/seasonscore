@@ -57,7 +57,6 @@ export function HomeSeriesSection({
               }
             }
           } catch (error) {
-            console.error(`Erro ao buscar avaliações para série ${series.id}:`, error);
           }
         })
       );

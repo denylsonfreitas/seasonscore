@@ -9,6 +9,7 @@ import {
   SlideFade,
   Wrap,
   WrapItem,
+  Center,
 } from "@chakra-ui/react";
 import { useState, useMemo } from "react";
 import { CaretUp, CaretDown, Star } from "@phosphor-icons/react";
@@ -61,9 +62,12 @@ export function ReviewsSection({
 
   if (reviews.length === 0) {
     return (
-      <Text color="gray.400" fontSize={{ base: "sm", md: "md" }}>
-        Nenhuma avaliação ainda.
-      </Text>
+      <Center py={8} flexDirection="column">
+        <Star size={40} weight="light" color="#718096" />
+        <Text color="gray.400" fontSize={{ base: "sm", md: "md" }} mt={3}>
+          Nenhuma avaliação ainda.
+        </Text>
+      </Center>
     );
   }
 

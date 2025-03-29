@@ -121,7 +121,6 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
         onClose();
       }
     } catch (error: any) {
-      console.error("Erro ao fazer login:", error);
       let errorMessage = "Email/nome de usuário ou senha incorretos.";
       
       if (error.code === 'auth/user-not-found' || error.message.includes("Usuário não encontrado")) {
@@ -173,7 +172,6 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
       setShowResetForm(false);
       setResetEmail("");
     } catch (error: any) {
-      console.error("Erro ao enviar email de redefinição:", error);
       let errorMessage = "Não foi possível enviar o email de redefinição.";
       
       if (error.code === 'auth/user-not-found') {

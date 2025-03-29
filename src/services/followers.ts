@@ -66,7 +66,8 @@ export async function followUser(userId: string) {
     // Criar notificação para o usuário que foi seguido
     try {
       const currentUserData = await getUserData(auth.currentUser.uid);
-      const followerName = currentUserData?.displayName || currentUserData?.email || "Alguém";
+      // Usar o mesmo campo que será armazenado como senderName na notificação
+      const followerName = currentUserData?.username || currentUserData?.displayName || currentUserData?.email || "Alguém";
       
       // Criar uma nova notificação
       await createNotification(
@@ -78,10 +79,8 @@ export async function followUser(userId: string) {
         }
       );
     } catch (error) {
-      console.error("Erro ao criar notificação de novo seguidor:", error);
     }
   } catch (error) {
-    console.error("Erro ao seguir usuário:", error);
     throw error;
   }
 }
@@ -89,47 +88,47 @@ export async function followUser(userId: string) {
 export async function unfollowUser(userId: string) {
   if (!auth.currentUser) throw new Error("Usuário não autenticado");
 
-  const q = query(
-    followersCollection,
-    where("userId", "==", userId),
-    where("followerId", "==", auth.currentUser.uid)
-  );
-  const querySnapshot = await getDocs(q);
-
-  if (querySnapshot.empty) {
-    throw new Error("Você não segue este usuário");
-  }
-
-  const followerDoc = querySnapshot.docs[0];
-  const followerData = followerDoc.data();
-  
-  // Remover o relacionamento de seguidor
-  await deleteDoc(followerDoc.ref);
-  
-  // Verificar se o follow ocorreu há menos de 1 hora
-  // e remover a notificação correspondente
   try {
-    const followDate = followerData.createdAt instanceof Timestamp 
-      ? followerData.createdAt.toDate() 
-      : followerData.createdAt;
+    // Buscar a relação de seguidor
+    const q = query(
+      followersCollection,
+      where("userId", "==", userId),
+      where("followerId", "==", auth.currentUser.uid)
+    );
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      throw new Error("Você não segue este usuário");
+    }
+
+    // Processar cada relação encontrada (normalmente deve ser apenas uma)
+    for (const followerDoc of querySnapshot.docs) {
+      const followerData = followerDoc.data();
       
-    if (followDate) {
-      const now = new Date();
-      const timeDiff = now.getTime() - (followDate?.getTime() || 0);
-      const isRecent = timeDiff < 60 * 60 * 1000; // 1 hora em milissegundos
+      // Excluir a relação de seguidor
+      await deleteDoc(followerDoc.ref);
       
-      if (isRecent) {
-        // Remover a notificação de novo seguidor para este usuário
+      // Remover notificações relacionadas
+      try {
+        const followDate = followerData.createdAt instanceof Timestamp 
+          ? followerData.createdAt.toDate() 
+          : followerData.createdAt;
+          
+        // Sempre tentar remover a notificação, independentemente da data
+        // Isso garante que não fiquem notificações órfãs
         await deleteNotificationsOfType(
           userId,
           NotificationType.NEW_FOLLOWER,
           auth.currentUser.uid
         );
+        
+      } catch (error) {
       }
     }
+    
+    return true;
   } catch (error) {
-    console.error("Erro ao remover notificação de seguidor:", error);
-    // Continuar a execução mesmo se houver erro ao remover a notificação
+    throw error;
   }
 }
 

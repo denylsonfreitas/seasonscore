@@ -110,7 +110,6 @@ export function SeriesHeader({
           setTrailerUrl(`https://www.youtube.com/watch?v=${trailer.key}`);
         }
       } catch (error) {
-        console.error("Erro ao buscar trailer:", error);
       } finally {
         setIsLoadingTrailer(false);
       }

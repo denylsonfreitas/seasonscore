@@ -17,7 +17,6 @@ export async function checkNewEpisodesForUser(userId: string): Promise<void> {
       await checkNewEpisodeForSeries(userId, item.seriesId, item.seriesData.name, item.seriesData.poster_path);
     }
   } catch (error) {
-    console.error("Erro ao verificar novos episódios:", error);
   }
 }
 
@@ -82,7 +81,6 @@ export async function checkNewEpisodeForSeries(
       });
     }
   } catch (error) {
-    console.error(`Erro ao verificar novos episódios para série ${seriesId}:`, error);
   }
 }
 
@@ -104,6 +102,5 @@ export async function checkNewEpisodesForAllUsers(): Promise<void> {
       await checkNewEpisodesForUser(userId);
     }
   } catch (error) {
-    console.error("Erro ao verificar novos episódios para todos os usuários:", error);
   }
 } 

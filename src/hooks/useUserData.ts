@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { getUserData } from "../services/users";
+import { getUserData, UserData } from "../services/users";
 
 // Cache para armazenar dados de usuários já carregados
 const userDataCache: Record<string, { 
@@ -10,8 +10,13 @@ const userDataCache: Record<string, {
 // Tempo de expiração do cache (5 minutos)
 const CACHE_EXPIRY_TIME = 5 * 60 * 1000;
 
+// Interface para o userData com a flag isDeleted
+export interface ExtendedUserData extends Partial<UserData> {
+  isDeleted?: boolean;
+}
+
 export function useUserData(userId: string) {
-  const [userData, setUserData] = useState<{ photoURL?: string | null } | null>(null);
+  const [userData, setUserData] = useState<ExtendedUserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const isMounted = useRef(true);
@@ -29,7 +34,10 @@ export function useUserData(userId: string) {
   useEffect(() => {
     const fetchUserData = async () => {
       if (!userId) {
-        setIsLoading(false);
+        if (isMounted.current) {
+          setUserData({ isDeleted: true });
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -50,17 +58,42 @@ export function useUserData(userId: string) {
         setIsLoading(true);
         const data = await getUserData(userId);
         
+        // Se o usuário não foi encontrado, marcar como excluído
+        if (!data) {
+          const deletedUserData: ExtendedUserData = { isDeleted: true };
+          
+          // Atualizar o cache com informação de usuário excluído
+          userDataCache[userId] = {
+            data: deletedUserData,
+            timestamp: Date.now()
+          };
+          
+          if (isMounted.current) {
+            setUserData(deletedUserData);
+          }
+        } else {
+          // Atualizar o cache
+          userDataCache[userId] = {
+            data,
+            timestamp: Date.now()
+          };
+          
+          if (isMounted.current) {
+            setUserData(data);
+          }
+        }
+      } catch (error) {
+        // Em caso de erro, também considerar o usuário como excluído
+        const deletedUserData: ExtendedUserData = { isDeleted: true };
+        
         // Atualizar o cache
         userDataCache[userId] = {
-          data,
+          data: deletedUserData,
           timestamp: Date.now()
         };
         
         if (isMounted.current) {
-          setUserData(data);
-        }
-      } catch (error) {
-        if (isMounted.current) {
+          setUserData(deletedUserData);
           setError(error as Error);
         }
       } finally {

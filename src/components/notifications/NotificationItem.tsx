@@ -1,115 +1,168 @@
+import React, { memo } from 'react';
 import {
   Box,
+  Flex,
   Text,
+  useColorModeValue,
   HStack,
-  VStack,
-  IconButton,
-  useToast,
-} from "@chakra-ui/react";
-import { X } from "@phosphor-icons/react";
-import { useNavigate } from "react-router-dom";
-import { NotificationType } from "../../types/notification";
-import { deleteNotification } from "../../services/notifications";
-import { useState, useEffect } from "react";
-import { getUserData } from "../../services/users";
-import { UserAvatar } from "../common/UserAvatar";
+  Badge,
+  Stack,
+  Checkbox,
+} from '@chakra-ui/react';
+import {
+  FaUser, FaComment, FaVideo, FaStar
+} from 'react-icons/fa';
+import { FaThumbsUp } from 'react-icons/fa';
+import { Notification, NotificationType } from '../../services/notifications';
+import { UserAvatar } from '../common/UserAvatar';
+import { formatNotificationDate } from '../../utils/dateUtils';
 
-interface NotificationItemProps {
-  notification: {
-    id: string;
-    fromUserId: string;
-    fromUserEmail: string;
-    message: string;
-    seriesId: number;
-    createdAt: { seconds: number };
-    type: NotificationType;
-  };
-  onNotificationDeleted?: () => void;
+// Propriedades para o componente NotificationItem
+export interface NotificationItemProps {
+  notification: Notification;
+  onClick: (notification: Notification) => void;
+  index: number;
+  getItemAnimationStyle: (index: number) => any;
+  isSelectionMode?: boolean;
+  isSelected?: boolean;
+  onSelect?: (id: string) => void;
 }
 
-export function NotificationItem({
+export const NotificationItem = memo(({
   notification,
-  onNotificationDeleted,
-}: NotificationItemProps) {
-  const navigate = useNavigate();
-  const toast = useToast();
-  const [userData, setUserData] = useState<{ username?: string | null; displayName?: string | null; photoURL?: string | null } | null>(null);
+  onClick,
+  index,
+  getItemAnimationStyle,
+  isSelectionMode = false,
+  isSelected = false,
+  onSelect
+}: NotificationItemProps) => {
+  // Verificar se o usuário está excluído
+  const isUserDeleted = !notification.senderId || 
+                        !notification.senderName || 
+                        notification.isDeleted || 
+                        notification.senderName === 'Usuário excluído';
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const data = await getUserData(notification.fromUserId);
-        setUserData(data);
-      } catch (error) {
-        console.error("Erro ao buscar dados do usuário:", error);
-      }
-    };
+  // Formatar data de criação
+  const formattedDate = formatNotificationDate(notification.createdAt);
+  
+  // Definir o ícone com base no tipo de notificação
+  const getNotificationIcon = () => {
+    if (isUserDeleted) {
+      return <FaUser />;
+    }
+    
+    switch (notification.type) {
+      case NotificationType.NEW_FOLLOWER:
+        return <FaUser />;
+      case NotificationType.NEW_COMMENT:
+        return <FaComment />;
+      case NotificationType.NEW_REACTION:
+        return <FaThumbsUp />;
+      case NotificationType.NEW_EPISODE:
+        return <FaVideo />;
+      case NotificationType.NEW_REVIEW:
+        return <FaStar />;
+      default:
+        return <FaUser />;
+    }
+  };
+  
+  const bgColor = useColorModeValue(
+    notification.read ? 'gray.700' : 'gray.750',
+    notification.read ? 'gray.750' : 'gray.700'
+  );
+  
+  const hoverBgColor = useColorModeValue('gray.600', 'gray.600');
 
-    fetchUserData();
-  }, [notification.fromUserId]);
-
-  const handleDelete = async () => {
-    try {
-      await deleteNotification(notification.id);
-      onNotificationDeleted?.();
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível excluir a notificação",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+  // Handler para lidar com o clique no checkbox
+  const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onSelect) {
+      onSelect(notification.id);
     }
   };
 
-  const handleClick = () => {
-    navigate(`/series/${notification.seriesId}`);
-  };
-
-  const displayName = userData?.username || userData?.displayName || notification.fromUserEmail;
-
-  const formattedMessage = notification.message.replace(
-    new RegExp(notification.fromUserEmail, 'g'),
-    displayName
-  );
-
+  // Renderizar o componente
   return (
     <Box
-      bg="gray.800"
-      p={4}
-      borderRadius="lg"
+      borderBottomWidth="1px"
+      borderBottomColor="gray.700"
+      transition="all 0.2s"
+      bg={bgColor}
+      _hover={{ bg: hoverBgColor }}
+      opacity="0"
+      transform="translateY(10px)"
+      style={getItemAnimationStyle(index)}
+      onClick={() => onClick(notification)}
       cursor="pointer"
-      _hover={{ bg: "gray.700" }}
-      onClick={handleClick}
     >
-      <HStack spacing={4} align="start">
-        <UserAvatar 
-          size="sm" 
-          userId={notification.fromUserId}
-          displayName={displayName}
-          photoURL={userData?.photoURL}
-        />
-        <VStack align="start" flex={1} spacing={1}>
-          <Text color="white">
-            {formattedMessage}
-          </Text>
-          <Text color="gray.400" fontSize="sm">
-            {new Date(notification.createdAt.seconds * 1000).toLocaleDateString()}
-          </Text>
-        </VStack>
-        <IconButton
-          icon={<X size={20} />}
-          aria-label="Excluir notificação"
-          variant="ghost"
-          color="gray.400"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDelete();
-          }}
-        />
-      </HStack>
+      <Flex p={3} alignItems="center">
+        {isSelectionMode && (
+          <Box mr={2} onClick={handleCheckboxClick}>
+            <Checkbox 
+              isChecked={isSelected}
+              colorScheme="primary"
+              size="md"
+            />
+          </Box>
+        )}
+        
+        <Box mr={3}>
+          {notification.senderId ? (
+            <UserAvatar
+              userId={notification.senderId}
+              photoURL={isUserDeleted ? null : notification.senderPhoto}
+              size="sm"
+              isDeleted={isUserDeleted}
+              name={notification.senderName}
+            />
+          ) : (
+            <Box
+              borderRadius="full"
+              bg="gray.600"
+              p={2}
+              fontSize="sm"
+              color="white"
+            >
+              {getNotificationIcon()}
+            </Box>
+          )}
+        </Box>
+
+        <Stack flex="1" spacing={0.5}>
+          <HStack>
+            <Text 
+              fontSize="sm" 
+              fontWeight={notification.read ? "normal" : "bold"}
+              color={notification.read ? "gray.300" : "white"}
+              noOfLines={2}
+            >
+              {notification.message}
+            </Text>
+          </HStack>
+          
+          <HStack spacing={2}>
+            <Text fontSize="xs" color="gray.400">
+              {formattedDate}
+            </Text>
+            
+            {!notification.read && (
+              <Badge 
+                colorScheme="primary" 
+                variant="solid" 
+                fontSize="9px"
+                borderRadius="full"
+                px={1.5}
+              >
+                Novo
+              </Badge>
+            )}
+          </HStack>
+        </Stack>
+      </Flex>
     </Box>
   );
-}
+});
+
+NotificationItem.displayName = 'NotificationItem';

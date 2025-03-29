@@ -1,8 +1,10 @@
 import { Navigate } from "react-router-dom";
-import React, { Suspense, useEffect } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { Layout } from "../components/layout/Layout";
 import { useAuth } from "../contexts/AuthContext";
 import { Box, Spinner, Center } from "@chakra-ui/react";
+import { useNavigate } from "react-router-dom";
+import { getUserData } from "../services/users";
 
 // Loading fallback component
 const PageLoader = () => (
@@ -44,12 +46,47 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
 
 function ProfileRedirect() {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
 
-  if (!currentUser?.username) {
-    return <Navigate to="/settings" />;
-  }
-
-  return <Navigate to={`/u/${currentUser.username}`} />;
+  useEffect(() => {
+    // Se o usuário não estiver logado, redirecionar para a home
+    if (!currentUser) {
+      navigate("/");
+      return;
+    }
+    
+    // Se tivermos o username no objeto currentUser, usar ele diretamente
+    if (currentUser.username) {
+      navigate(`/u/${currentUser.username}`);
+      return;
+    }
+    
+    // Criar uma variável local que o TypeScript reconhece como não-nula
+    const userId = currentUser.uid;
+    
+    // Se o currentUser existir mas o username não estiver disponível ainda
+    // (isso pode ocorrer logo após o login enquanto os dados estão sincronizando)
+    // buscar os dados do usuário diretamente do Firestore
+    async function fetchUserData() {
+      try {
+        const userData = await getUserData(userId);
+        if (userData?.username) {
+          navigate(`/u/${userData.username}`);
+        } else {
+          // Apenas em último caso, redirecionar para settings
+          navigate("/settings");
+        }
+      } catch (error) {
+        // Em caso de erro, redirecionar para settings
+        navigate("/settings");
+      }
+    }
+    
+    fetchUserData();
+  }, [currentUser, navigate]);
+  
+  // Exibir um loader enquanto os redirecionamentos estão em andamento
+  return <PageLoader />;
 }
 
 // Lazy loading com chunks nomeados para debugging mais fácil

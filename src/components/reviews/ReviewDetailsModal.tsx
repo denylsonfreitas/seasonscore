@@ -275,7 +275,6 @@ export function ReviewDetailsModal({
       
       return "Data não disponível";
     } catch (error) {
-      console.error("Erro ao formatar data:", error);
       return "Data não disponível";
     }
   };

@@ -120,7 +120,7 @@ export function UserListModal({ isOpen, onClose, title, userIds, type }: UserLis
                         size="md"
                         userId={user.id}
                         photoURL={user.photoURL}
-                        displayName={user.displayName || user.email?.split("@")[0]}
+                        name={user.displayName || user.email?.split("@")[0]}
                       />
                     </RouterLink>
                     <Box flex="1">

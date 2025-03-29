@@ -87,7 +87,6 @@ export function Navbar() {
       await logout();
       navigate("/");
     } catch (error) {
-      console.error("Erro ao fazer logout:", error);
     }
   };
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { getUserData } from "../services/users";
+import { ExtendedUserData } from "./useUserData";
 
 // Cache para armazenar dados de usuários já carregados
 const userDataCache: Record<string, { 
@@ -20,7 +21,7 @@ const isCacheValid = (userId: string): boolean => {
 };
 
 export function useUsersData(userIds: string[]) {
-  const [usersData, setUsersData] = useState<Record<string, any>>({});
+  const [usersData, setUsersData] = useState<Record<string, ExtendedUserData>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const isMounted = useRef(true);
@@ -52,7 +53,7 @@ export function useUsersData(userIds: string[]) {
       
       try {
         const uniqueUserIds = [...new Set(userIds)];
-        const result: Record<string, any> = {};
+        const result: Record<string, ExtendedUserData> = {};
         const userIdsToFetch: string[] = [];
         
         // Primeiro, verifique o cache para cada ID
@@ -78,13 +79,26 @@ export function useUsersData(userIds: string[]) {
             // Atualizar o cache e resultado para cada usuário
             batch.forEach((userId, index) => {
               const userData = results[index];
-              result[userId] = userData;
               
-              // Atualizar o cache
-              userDataCache[userId] = {
-                data: userData,
-                timestamp: Date.now()
-              };
+              // Se o usuário não for encontrado, marcar como excluído
+              if (!userData) {
+                const deletedUserData: ExtendedUserData = { isDeleted: true };
+                result[userId] = deletedUserData;
+                
+                // Atualizar o cache
+                userDataCache[userId] = {
+                  data: deletedUserData,
+                  timestamp: Date.now()
+                };
+              } else {
+                result[userId] = userData;
+                
+                // Atualizar o cache
+                userDataCache[userId] = {
+                  data: userData,
+                  timestamp: Date.now()
+                };
+              }
             });
           }
         }
@@ -94,7 +108,6 @@ export function useUsersData(userIds: string[]) {
           setError(null);
         }
       } catch (error) {
-        console.error("Erro ao buscar dados de usuários:", error);
         if (isMounted.current) {
           setError(error as Error);
         }

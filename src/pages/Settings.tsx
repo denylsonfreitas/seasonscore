@@ -37,6 +37,7 @@ import {
   sendEmailVerification,
   verifyBeforeUpdateEmail,
   sendPasswordResetEmail,
+  User,
 } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { ExtendedUser } from "../types/auth";
@@ -114,7 +115,6 @@ export function Settings() {
       // Limpar campo de senha
       setEmailCurrentPassword("");
     } catch (error) {
-      console.error("Erro ao atualizar email:", error);
       toast({
         title: "Erro ao atualizar email",
         description: "Verifique sua senha e tente novamente.",
@@ -161,7 +161,6 @@ export function Settings() {
       setNewPassword("");
       setConfirmPassword("");
     } catch (error) {
-      console.error("Erro ao atualizar senha:", error);
       toast({
         title: "Erro ao atualizar senha",
         description: "Verifique sua senha atual e tente novamente.",
@@ -175,50 +174,67 @@ export function Settings() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!auth.currentUser) {
-      toast({
-        title: "Erro",
-        description: "Usuário não encontrado.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
     setIsDeletingAccount(true);
     try {
       if (!deleteAccountPassword) {
         throw new Error("Por favor, insira sua senha para confirmar a exclusão da conta.");
       }
+      
+      if (!currentUser || !currentUser.email || !auth.currentUser) {
+        throw new Error("Usuário não autenticado. Por favor, faça login novamente.");
+      }
+      
+      // Exibir aviso inicial ao usuário
+      toast({
+        title: "Processando exclusão",
+        description: "Estamos excluindo seus dados, isso pode levar alguns instantes...",
+        status: "info",
+        duration: 5000,
+        isClosable: true,
+      });
+      
+      // Autenticar novamente o usuário para verificar a senha
       const credential = EmailAuthProvider.credential(
-        auth.currentUser.email!,
+        currentUser.email,
         deleteAccountPassword
       );
-      await reauthenticateWithCredential(auth.currentUser, credential);
+      await reauthenticateWithCredential(auth.currentUser!, credential);
 
       // Primeiro excluir os dados do usuário do banco de dados
-      await deleteUserData(auth.currentUser.uid);
+      const deleteResult = await deleteUserData(currentUser.uid);
+      
+      // Mensagem de aviso se algumas operações não puderam ser concluídas devido a permissões
+      if (deleteResult.details?.permissionIssues?.length > 0) {
+        console.warn("Algumas operações de exclusão foram ignoradas devido a restrições de permissão:", 
+          deleteResult.details.permissionIssues);
+      }
 
       // Depois excluir a conta de autenticação
-      await deleteUser(auth.currentUser);
+      await deleteUser(auth.currentUser!);
 
       toast({
         title: "Conta excluída",
-        description: "Sua conta foi excluída permanentemente.",
-        status: "info",
-        duration: 3000,
+        description: "Sua conta foi excluída e seus dados foram removidos do sistema.",
+        status: "success",
+        duration: 5000,
         isClosable: true,
       });
 
-      navigate("/");
+      // Adicionar um pequeno atraso antes de navegar para permitir que as operações de rede terminem
+      setTimeout(() => {
+        try {
+          logout()
+            .then(() => {
+              navigate("/");
+            })
+            .catch((error) => {
+              navigate("/");
+            });
+        } catch (error) {
+          navigate("/");
+        }
+      }, 1500);
     } catch (error: any) {
-      console.error("Erro detalhado ao excluir conta:", {
-        error,
-        message: error.message,
-        code: error.code,
-        details: error.details
-      });
 
       let errorMessage = "Verifique sua senha e tente novamente.";
       
@@ -228,6 +244,9 @@ export function Settings() {
         errorMessage = "Por motivos de segurança, faça login novamente antes de excluir sua conta.";
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = "Muitas tentativas. Por favor, aguarde alguns minutos e tente novamente.";
+      } else {
+        // Se for um erro durante a exclusão dos dados e não autenticação
+        errorMessage = "Ocorreu um erro ao excluir sua conta. Por favor, tente novamente mais tarde.";
       }
 
       toast({
@@ -262,7 +281,6 @@ export function Settings() {
         isClosable: true,
       });
     } catch (error) {
-      console.error("Erro ao enviar email de redefinição:", error);
       toast({
         title: "Erro ao enviar email",
         description: "Não foi possível enviar o email de redefinição de senha.",
@@ -344,7 +362,6 @@ export function Settings() {
           setUsernameError("");
         }
       } catch (error) {
-        console.error("Erro ao verificar username:", error);
       } finally {
         setIsCheckingUsername(false);
       }
@@ -372,7 +389,6 @@ export function Settings() {
           setNotificationSettings(userDoc.data().notificationSettings);
         }
       } catch (error) {
-        console.error("Erro ao carregar configurações de notificação:", error);
       }
     };
     
@@ -402,7 +418,6 @@ export function Settings() {
         isClosable: true,
       });
     } catch (error) {
-      console.error("Erro ao salvar configurações de notificação:", error);
       toast({
         title: "Erro",
         description: "Não foi possível salvar suas preferências.",

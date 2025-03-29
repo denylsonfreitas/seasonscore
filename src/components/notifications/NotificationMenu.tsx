@@ -1,809 +1,591 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
-  Button,
-  Flex,
   IconButton,
+  Badge,
+  Text,
+  VStack,
+  HStack,
+  Spinner,
+  useDisclosure,
+  Flex,
+  Button,
+  Tooltip,
+  useToast,
+  Divider,
   Menu,
   MenuButton,
   MenuList,
   MenuItem,
-  Text,
-  Badge,
-  Avatar,
-  Divider,
   MenuDivider,
-  useColorModeValue,
-  VStack,
-  HStack,
-  Image,
   Checkbox,
-  useDisclosure,
-  Tooltip,
-  Spinner,
-  useToast,
-  Portal,
-} from "@chakra-ui/react";
-import { BellIcon, DeleteIcon } from "@chakra-ui/icons";
-import { useAuth } from "../../contexts/AuthContext";
+} from '@chakra-ui/react';
+import { BellIcon, CheckIcon, CloseIcon, DeleteIcon } from '@chakra-ui/icons';
+import { FaUser, FaComment, FaVideo, FaStar, FaThumbsUp } from 'react-icons/fa';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   Notification,
   NotificationType,
-  markAllNotificationsAsRead,
-  markNotificationAsRead,
   getUserNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
   deleteNotification,
-  subscribeToNotifications,
   cleanupNotifications,
   getGroupedNotifications,
+  subscribeToNotifications,
   getReviewDetails,
-} from "../../services/notifications";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { useNavigate } from "react-router-dom";
-import { getUserData } from "../../services/users";
-import { NotificationItem } from "./NotificationItem";
-import { UserAvatar } from "../common/UserAvatar";
-import { ReviewDetailsModal } from "../reviews/ReviewDetailsModal";
-import { useAnimatedMenu } from "../../hooks/useAnimatedMenu";
-import { RippleEffect } from "../common/RippleEffect";
-import { AnimatedMenu } from "../common/AnimatedMenu";
+  DEFAULT_NOTIFICATION_LIMIT
+} from '../../services/notifications';
+import { NotificationItem } from './NotificationItem';
+import { useNavigate } from 'react-router-dom';
+import { formatNotificationDate } from '../../utils/dateUtils';
 
-interface ReviewDetails {
-  id: string;
-  seriesId: string;
-  userId: string;
-  userEmail: string;
-  seriesName: string;
-  seriesPoster: string;
-  seasonNumber: number;
-  rating: number;
-  comment: string;
-  comments: Array<{
-    id: string;
-    userId: string;
-    userEmail: string;
-    content: string;
-    createdAt: Date;
-    reactions: {
-      likes: string[];
-      dislikes: string[];
-    };
-  }>;
-  reactions: {
-    likes: string[];
-    dislikes: string[];
-  };
-  createdAt: Date | { seconds: number };
-}
-
+// Componente principal do menu de notificações
 export function NotificationMenu() {
   const { currentUser } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<NotificationType | 'all'>('all');
+  const toast = useToast();
   const navigate = useNavigate();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const { isOpen: isModalOpen, onOpen: onModalOpen, onClose: onModalClose } = useDisclosure();
-  const [selectedReview, setSelectedReview] = useState<ReviewDetails | null>(null);
-  const toast = useToast();
   
-  // Usar o hook customizado para gerenciar as animações
-  const { 
-    isVisible, 
-    isRippling, 
-    handleOpen, 
-    handleClose, 
-    handleRippleEffect,
-    getItemAnimationStyle,
-    onOpen: menuOpen,
-    onClose: menuClose 
-  } = useAnimatedMenu();
-
-  useEffect(() => {
-    if (!currentUser) {
-      setNotifications([]);
-      setUnreadCount(0);
-      return;
-    }
-
-    // Inscrever-se para receber notificações em tempo real
-    const unsubscribe = subscribeToNotifications(
-      currentUser.uid,
-      (updatedNotifications: Notification[]) => {
-        // Agrupar as notificações para mostrar apenas as únicas
-        const notificationGroups: Record<string, Notification> = {};
-        
-        updatedNotifications.forEach(notification => {
-          let key = '';
-          
-          switch (notification.type) {
-            case NotificationType.NEW_REACTION:
-              if (notification.reviewId) {
-                key = `reaction_review_${notification.reviewId}`;
-              } else {
-                key = `reaction_sender_${notification.senderId || 'unknown'}`;
-              }
-              break;
-            case NotificationType.NEW_COMMENT:
-              if (notification.seriesId) {
-                key = `comment_series_${notification.seriesId}`;
-              } else {
-                key = `comment_sender_${notification.senderId || 'unknown'}`;
-              }
-              break;
-            case NotificationType.NEW_FOLLOWER:
-              key = `follower_${notification.senderId || 'unknown'}`;
-              break;
-            case NotificationType.NEW_EPISODE:
-              key = `episode_${notification.seriesId || 'unknown'}`;
-              break;
-            case NotificationType.NEW_REVIEW:
-              key = `review_${notification.seriesId || 'unknown'}_${notification.senderId || 'unknown'}`;
-              break;
-            default:
-              key = `${String(notification.type)}_${notification.senderId || 'unknown'}`;
-          }
-          
-          if (!notificationGroups[key] || 
-              (notification.createdAt > notificationGroups[key].createdAt)) {
-            notificationGroups[key] = notification;
-          }
-        });
-        
-        // Obter a lista final de notificações agrupadas
-        const groupedNotifications = Object.values(notificationGroups).sort((a, b) => {
-          const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
-          const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
-          return dateB - dateA;
-        });
-        
-        setNotifications(groupedNotifications);
-        
-        // Contar apenas as notificações únicas e não lidas
-        const uniqueUnreadCount = groupedNotifications.filter(notification => !notification.read).length;
-        
-        setUnreadCount(uniqueUnreadCount);
-      }
-    );
-
-    return () => {
-      unsubscribe();
-    };
-  }, [currentUser]);
-
-  // Função para limpar notificações duplicadas e atualizar a lista
-  const refreshNotifications = async () => {
+  // Estados para as notificações
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<'all' | NotificationType>('all');
+  
+  // Efeito visual para indicar notificações novas
+  const [isRippling, setIsRippling] = useState(false);
+  
+  // Função para carregar notificações
+  const loadNotifications = useCallback(async () => {
     if (!currentUser) return;
     
     setIsLoading(true);
     try {
-      // Limpar notificações duplicadas
+      // Passo 1: Limpar notificações duplicadas
       await cleanupNotifications(currentUser.uid);
       
-      // Buscar notificações atualizadas após a limpeza
-      const updatedNotifications = await getGroupedNotifications(currentUser.uid);
-      setNotifications(updatedNotifications);
+      // Passo 2: Buscar notificações agrupadas
+      const groupedNotifications = await getGroupedNotifications(currentUser.uid);
       
-      // Atualizar contador de não lidas após a limpeza
-      const uniqueUnreadCount = updatedNotifications.filter(notification => !notification.read).length;
-      setUnreadCount(uniqueUnreadCount);
+      // Passo 3: Atualizar o estado
+      setNotifications(groupedNotifications);
+      
+      // Passo 4: Atualizar contador de não lidas
+      setUnreadCount(groupedNotifications.filter(n => !n.read).length);
     } catch (error) {
-      console.error("Erro ao atualizar notificações:", error);
     } finally {
       setIsLoading(false);
     }
+  }, [currentUser]);
+  
+  // Efeito para carregar notificações quando o componente montar
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    // Carregar inicialmente
+    loadNotifications();
+    
+    // Configurar o listener para atualizações em tempo real
+    const unsubscribe = subscribeToNotifications(currentUser.uid, (updatedNotifications) => {
+      setNotifications(updatedNotifications);
+      setUnreadCount(updatedNotifications.filter(n => !n.read).length);
+      
+      // Adicionar efeito visual se houver novas notificações
+      if (updatedNotifications.length > notifications.length) {
+        handleRippleEffect();
+      }
+    });
+    
+    // Limpar o listener quando o componente desmontar
+    return () => unsubscribe();
+  }, [currentUser, loadNotifications]);
+  
+  // Efeito para recarregar notificações quando o menu for aberto
+  useEffect(() => {
+    if (isOpen && currentUser) {
+      loadNotifications();
+    }
+  }, [isOpen, currentUser, loadNotifications]);
+
+  // Efeito de ripple para o ícone de notificação
+  const handleRippleEffect = () => {
+    setIsRippling(true);
+    setTimeout(() => {
+      setIsRippling(false);
+    }, 1000);
   };
 
-  // Atualizar notificações quando o menu for aberto
-  const handleMenuOpen = useCallback(async () => {
-    if (!isOpen) {
-      onOpen();
-      handleOpen();
-      await refreshNotifications();
-    }
-  }, [onOpen, handleOpen, refreshNotifications, isOpen]);
-  
-  // Fechar o menu com animação
-  const handleMenuClose = useCallback(() => {
-    handleClose();
-    setTimeout(() => {
-      onClose();
-    }, 350);
-  }, [handleClose, onClose]);
-
+  // Função para lidar com clique em uma notificação
   const handleNotificationClick = async (notification: Notification) => {
-    if (!currentUser) return;
-
     try {
-      // Marcar como lida
-      await markNotificationAsRead(notification.id);
+      // Não processar o clique se estiver no modo de seleção
+      if (isSelectionMode) return;
       
-      // Atualizar o estado local
+      // Marcar como lida
+      await markNotificationAsRead(currentUser?.uid || "", notification.id);
+      
+      // Atualizar estado local
       setNotifications(prev => 
-        prev.map(n => 
-          n.id === notification.id ? { ...n, read: true } : n
-        )
+        prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
       );
-
-      // Recalcular o contador de notificações não lidas
-      const notificationGroups = notifications.reduce((acc, n) => {
-        if (!n.read) {
-          const key = `${n.type}_${n.senderId}_${n.seriesId}_${n.reviewId}`;
-          if (!acc[key]) {
-            acc[key] = n;
+      
+      // Atualizar contador de não lidas
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      
+      // Navegar conforme o tipo da notificação
+      switch (notification.type) {
+        case NotificationType.NEW_FOLLOWER:
+          if (notification.senderId && !notification.isDeleted) {
+            navigate(`/u/${notification.senderName}`);
           }
-        }
-        return acc;
-      }, {} as Record<string, Notification>);
-
-      setUnreadCount(Object.values(notificationGroups).length);
-
-      // Se for uma notificação de reação ou comentário, abrir o modal de detalhes
-      if (notification.type === NotificationType.NEW_REACTION || 
-          notification.type === NotificationType.NEW_COMMENT) {
-        // Buscar os detalhes da avaliação
-        const reviewDetails = await getReviewDetails(notification.reviewId!);
-        if (reviewDetails) {
-          setSelectedReview(reviewDetails);
-          onModalOpen();
-        }
+          break;
+          
+        case NotificationType.NEW_COMMENT:
+        case NotificationType.NEW_REACTION:
+          if (notification.reviewId) {
+            navigate(`/series/${notification.seriesId}`);
+          }
+          break;
+          
+        case NotificationType.NEW_EPISODE:
+          if (notification.seriesId) {
+            navigate(`/series/${notification.seriesId}`);
+          }
+          break;
+          
+        case NotificationType.NEW_REVIEW:
+          if (notification.seriesId) {
+            navigate(`/series/${notification.seriesId}/reviews`);
+          }
+          break;
+          
+        default:
+          // Fechar o menu para tipos desconhecidos
+          onClose();
       }
-
-      // Fechar o menu de notificações
-      handleMenuClose();
     } catch (error) {
-      console.error("Erro ao processar notificação:", error);
       toast({
-        title: "Erro",
-        description: "Não foi possível processar a notificação",
-        status: "error",
+        title: 'Erro',
+        description: 'Não foi possível processar a notificação',
+        status: 'error',
         duration: 3000,
         isClosable: true,
       });
     }
   };
 
+  // Marcar todas as notificações como lidas
   const handleMarkAllAsRead = async () => {
-    if (currentUser) {
+    if (!currentUser) return;
+    
+    try {
       await markAllNotificationsAsRead(currentUser.uid);
       
-      // Atualizar localmente o estado das notificações
-      const updatedNotifications = notifications.map(n => ({ ...n, read: true }));
-      setNotifications(updatedNotifications);
-      
-      // Atualizar o contador de notificações não lidas para zero
+      // Atualizar o estado local
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
+      
+      toast({
+        title: 'Notificações marcadas como lidas',
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
     }
   };
-
+  
+  // Gerenciamento de seleção múltipla de notificações
   const toggleSelectionMode = () => {
     setIsSelectionMode(!isSelectionMode);
     setSelectedNotifications([]);
   };
 
   const toggleNotificationSelection = (notificationId: string) => {
-    if (selectedNotifications.includes(notificationId)) {
-      setSelectedNotifications(selectedNotifications.filter(id => id !== notificationId));
-    } else {
-      setSelectedNotifications([...selectedNotifications, notificationId]);
-    }
+    setSelectedNotifications(prev => {
+      if (prev.includes(notificationId)) {
+        return prev.filter(id => id !== notificationId);
+      } else {
+        return [...prev, notificationId];
+      }
+    });
   };
 
   const selectAllNotifications = () => {
-    if (selectedNotifications.length === notifications.length) {
+    if (selectedNotifications.length === filteredNotifications.length) {
       setSelectedNotifications([]);
     } else {
-      setSelectedNotifications(notifications.map(n => n.id));
+      setSelectedNotifications(filteredNotifications.map(n => n.id));
     }
   };
 
+  // Excluir notificações selecionadas
   const deleteSelectedNotifications = async () => {
     if (selectedNotifications.length === 0) return;
     
     try {
+      setIsLoading(true);
+      
+      // Em vez de usar Promise.all, vamos excluir sequencialmente para evitar problemas
+      const successfullyDeleted: string[] = [];
+      
       for (const notificationId of selectedNotifications) {
-        await deleteNotification(notificationId);
+        try {
+          const success = await deleteNotification(notificationId);
+          if (success) {
+            successfullyDeleted.push(notificationId);
+          }
+        } catch (err) {
+          // Ignorar erros individuais e continuar com as próximas
+        }
       }
       
-      // Atualizar a lista de notificações
-      setNotifications(notifications.filter(n => !selectedNotifications.includes(n.id)));
-      setSelectedNotifications([]);
-      setIsSelectionMode(false);
-      
-      toast({
-        title: "Sucesso",
-        description: "Notificações excluídas com sucesso",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
+      // Atualizar o estado local apenas com as notificações excluídas com sucesso
+      if (successfullyDeleted.length > 0) {
+        setNotifications(prev => prev.filter(n => !successfullyDeleted.includes(n.id)));
+        
+        // Recalcular o contador de não lidas
+        setUnreadCount(prev => 
+          prev - successfullyDeleted.filter(id => 
+            notifications.find(n => n.id === id && !n.read)
+          ).length
+        );
+        
+        // Limpar a seleção e sair do modo de seleção
+        setSelectedNotifications([]);
+        setIsSelectionMode(false);
+        
+        toast({
+          title: `${successfullyDeleted.length} notificações excluídas`,
+          status: 'success',
+          duration: 2000,
+          isClosable: true,
+        });
+      } else {
+        toast({
+          title: 'Não foi possível excluir notificações',
+          description: 'Verifique suas permissões ou tente novamente mais tarde',
+          status: 'warning',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
     } catch (error) {
-      console.error("Erro ao excluir notificações:", error);
       toast({
-        title: "Erro",
-        description: "Não foi possível excluir as notificações",
-        status: "error",
+        title: 'Erro ao excluir notificações',
+        description: 'Ocorreu um problema ao processar sua solicitação',
+        status: 'error',
         duration: 3000,
         isClosable: true,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Filtrar notificações baseado no tipo selecionado
-  const filteredNotifications = useMemo(() => notifications.filter(notification => 
-    activeFilter === 'all' || 
-    (activeFilter === NotificationType.NEW_COMMENT && 
-      (notification.type === NotificationType.NEW_COMMENT || notification.type === NotificationType.NEW_REACTION)) ||
-    notification.type === activeFilter
-  ), [notifications, activeFilter]);
-
-  // Contar notificações por tipo - calcular apenas quando as notificações mudarem
-  const notificationCounts = useMemo(() => notifications.reduce((acc, notification) => {
+  const filteredNotifications = useMemo(() => 
+    notifications.filter(notification => 
+      activeFilter === 'all' || notification.type === activeFilter
+    ), 
+    [notifications, activeFilter]
+  );
+  
+  // Contar notificações por tipo
+  const notificationCounts = useMemo(() => 
+    notifications.reduce((acc, notification) => {
     acc[notification.type] = (acc[notification.type] || 0) + 1;
     return acc;
-  }, {} as Record<string, number>), [notifications]);
-
-  // Estilo CSS para animação dos botões de filtro - memoizado uma única vez
-  const getFilterButtonStyle = useCallback((index: number) => ({
-    opacity: isVisible ? 1 : 0,
-    transform: isVisible ? "translateY(0)" : "translateY(8px)",
+    }, {} as Record<string, number>), 
+    [notifications]
+  );
+  
+  // Efeito de animação para itens da lista
+  const getItemAnimationStyle = useCallback((index: number) => ({
+    opacity: 1,
+    transform: 'translateY(0)',
     transition: `all 0.3s ease-out ${0.1 + index * 0.05}s`,
-  }), [isVisible]);
-
-  // Renderizar ícone de notificação com base no tipo - memoizado
-  const renderNotificationIcon = useCallback((notification: Notification) => {
-    const defaultIcon = <Box w="36px" h="36px" bg="blue.500" borderRadius="full" display="flex" alignItems="center" justifyContent="center">
-      <BellIcon color="white" boxSize={4} />
-    </Box>;
-    
-    switch (notification.type) {
-      case NotificationType.NEW_FOLLOWER:
-        return <UserAvatar 
-          userId={notification.senderId || ""} 
-          size="sm" 
-          photoURL={notification.senderPhoto || ""}
-        />;
-      default:
-        return defaultIcon;
-    }
-  }, []);
-
-  // Formatar data da notificação - memoizado
-  const formatNotificationDate = useCallback((date: Date) => {
-    const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 1) {
-      return "Agora";
-    } else if (diffInMinutes < 60) {
-      return `${diffInMinutes} min atrás`;
-    } else if (diffInMinutes < 1440) {
-      const hours = Math.floor(diffInMinutes / 60);
-      return `${hours} h atrás`;
-    } else {
-      return format(date, "dd MMM", { locale: ptBR });
-    }
-  }, []);
-
-  // Trigger do menu de notificações - memoizado para evitar renders desnecessários
-  const notificationTrigger = useMemo(() => (
-    <IconButton
-      aria-label="Notificações"
-      icon={
-        <Box position="relative" width="100%" height="100%" display="flex" alignItems="center" justifyContent="center">
-          <BellIcon boxSize={6} color="white" />
-          {unreadCount > 0 && (
-            <Badge
-              colorScheme="red"
-              borderRadius="full"
-              position="absolute"
-              top="-2px"
-              right="-2px"
-              fontSize="10px"
-              minW="18px"
-              height="18px"
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              fontWeight="bold"
-              border="2px solid"
-              borderColor="gray.800"
-              zIndex={10}
-              p={0}
-            >
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </Badge>
-          )}
-          <RippleEffect isRippling={isRippling} />
-        </Box>
-      }
-      variant="ghost"
-      colorScheme="whiteAlpha"
-      _hover={{ bg: "gray.700" }}
-      _active={{ bg: "whiteAlpha.300" }}
-      size="md"
-      onClick={() => {
-        handleRippleEffect();
-        if (isOpen) {
-          handleMenuClose();
-        } else {
-          handleMenuOpen();
-        }
-      }}
-      position="relative"
-    />
-  ), [isOpen, unreadCount, isRippling, handleRippleEffect, handleMenuOpen, handleMenuClose]);
-
-  // Cabeçalho memoizado
-  const headerContent = useMemo(() => (
-    <Box bg="gray.900" borderTopRadius="md" py={3} px={{ base: 3, md: 4 }}>
-      <VStack spacing={{ base: 2, md: 3 }} align="stretch">
-        <Flex justify="space-between" align="center">
-          <HStack>
-            <Text fontWeight="bold" color="white" fontSize={{ base: "sm", md: "md" }}>
-              Notificações
-            </Text>
-            {notifications.length > 0 && (
-              <Badge 
-                colorScheme="primary" 
-                borderRadius="full" 
-                px={2} 
-                fontSize="xs"
+  }), []);
+  
+  // Renderizar o menu completo
+  const renderNotificationMenu = () => (
+    <Menu isOpen={isOpen} onClose={onClose}>
+      <MenuButton
+        as={IconButton}
+        aria-label="Notificações"
+        icon={
+          <Box position="relative">
+            <BellIcon boxSize={6} color="white" />
+            {unreadCount > 0 && (
+              <Badge
+                colorScheme="red"
+                borderRadius="full"
+                position="absolute"
+                top="-2px"
+                right="-2px"
+                fontSize="10px"
+                minW="18px"
+                height="18px"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                fontWeight="bold"
+                border="2px solid"
+                borderColor="gray.800"
               >
-                {unreadCount > 0 ? `${unreadCount} não lida${unreadCount > 1 ? 's' : ''}` : notifications.length}
+                {unreadCount > 9 ? "9+" : unreadCount}
               </Badge>
             )}
-          </HStack>
-          {notifications.length > 0 && (
-            <HStack spacing={{ base: 0.5, md: 1 }}>
-              {isSelectionMode ? (
-                <>
-                  <Tooltip label="Selecionar todas" placement="top">
+            {isRippling && (
+              <Box
+                position="absolute"
+                top="-4px"
+                right="-4px"
+                bottom="-4px"
+                left="-4px"
+                borderRadius="full"
+                border="2px solid"
+                borderColor="primary.500"
+                opacity={0}
+                animation="ripple 1s ease-out"
+                sx={{
+                  '@keyframes ripple': {
+                    '0%': { transform: 'scale(0.8)', opacity: 1 },
+                    '100%': { transform: 'scale(1.2)', opacity: 0 },
+                  },
+                }}
+              />
+            )}
+          </Box>
+        }
+        variant="ghost"
+        onClick={onOpen}
+        _hover={{ bg: "gray.700" }}
+      />
+      
+      <MenuList
+        bg="gray.800"
+        borderColor="gray.700"
+        boxShadow="dark-lg"
+        maxH="80vh"
+        overflowY="auto"
+        minW={{ base: "calc(100vw - 16px)", md: "380px" }}
+        maxW={{ base: "calc(100vw - 16px)", md: "380px" }}
+        zIndex={1300}
+      >
+        {/* Cabeçalho do menu */}
+        <Box p={3} bg="gray.900">
+          <Flex justify="space-between" align="center" mb={2}>
+            <Text fontWeight="bold" color="white">
+              Notificações
+            </Text>
+            <HStack spacing={1}>
+              {notifications.length > 0 && (
+                isSelectionMode ? (
+                  <HStack spacing={1}>
                     <Button
                       size="xs"
                       variant="ghost"
-                      colorScheme="blue"
                       color="white"
-                      _hover={{ bg: "blue.700", color: "white" }}
                       onClick={selectAllNotifications}
-                      fontWeight="normal"
-                      px={{ base: 1.5, md: 2 }}
                     >
-                      {selectedNotifications.length === notifications.length ? "Desmarcar" : "Todas"}
+                      {selectedNotifications.length === filteredNotifications.length ? "Nenhum" : "Todos"}
                     </Button>
-                  </Tooltip>
-                  
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    colorScheme="whiteAlpha"
-                    color="white"
-                    _hover={{ bg: "whiteAlpha.300", color: "white" }}
-                    onClick={toggleSelectionMode}
-                    fontWeight="normal"
-                    px={{ base: 1.5, md: 2 }}
-                  >
-                    Cancelar
-                  </Button>
-                  <Tooltip label="Excluir selecionadas" placement="top">
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      colorScheme="red"
+                      onClick={toggleSelectionMode}
+                    >
+                      Cancelar
+                    </Button>
                     <IconButton
                       aria-label="Excluir selecionadas"
                       icon={<DeleteIcon />}
                       size="xs"
                       colorScheme="red"
                       variant="ghost"
-                      _hover={{ bg: "red.700", color: "white" }}
                       isDisabled={selectedNotifications.length === 0}
                       onClick={deleteSelectedNotifications}
                     />
-                  </Tooltip>
-                </>
-              ) : (
-                <>
+                  </HStack>
+                ) : (
+                  <HStack spacing={1}>
+                    {unreadCount > 0 && (
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        color="white"
+                        onClick={handleMarkAllAsRead}
+                        leftIcon={<CheckIcon />}
+                      >
+                        Marcar lidas
+                      </Button>
+                    )}
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      color="white"
+                      onClick={toggleSelectionMode}
+                    >
+                      Selecionar
+                    </Button>
+                  </HStack>
+                )
+              )}
+            </HStack>
+          </Flex>
+
+          {/* Filtros de tipo */}
+          {notifications.length > 0 && (
+            <HStack spacing={2} overflowX="auto" pb={1}>
+              <Tooltip label="Todas as notificações" placement="top">
+                <Button
+                  size="xs"
+                  variant={activeFilter === 'all' ? "solid" : "ghost"}
+                  colorScheme="primary"
+                  onClick={() => setActiveFilter('all')}
+                >
+                  <BellIcon mr={1} />
+                  {notifications.length}
+                </Button>
+              </Tooltip>
+              
+              {notificationCounts[NotificationType.NEW_FOLLOWER] > 0 && (
+                <Tooltip label="Novos seguidores" placement="top">
                   <Button
                     size="xs"
-                    variant="ghost"
-                    colorScheme="primary"
-                    color="white"
-                    _hover={{ bg: "primary.700", color: "white" }}
-                    onClick={handleMarkAllAsRead}
-                    fontWeight="normal"
-                    px={{ base: 1.5, md: 2 }}
-                    fontSize={{ base: "2xs", md: "xs" }}
-                  >
-                    Marcar lidas
-                  </Button>
-                  <Button
-                    size="xs"
-                    variant="ghost"
+                    variant={activeFilter === NotificationType.NEW_FOLLOWER ? "solid" : "ghost"}
                     colorScheme="blue"
-                    color="white"
-                    _hover={{ bg: "blue.700", color: "white" }}
-                    onClick={toggleSelectionMode}
-                    fontWeight="normal"
-                    px={{ base: 1.5, md: 2 }}
-                    fontSize={{ base: "2xs", md: "xs" }}
+                    onClick={() => setActiveFilter(NotificationType.NEW_FOLLOWER)}
                   >
-                    Selecionar
+                    <FaUser style={{ marginRight: '4px' }} />
+                    {notificationCounts[NotificationType.NEW_FOLLOWER]}
                   </Button>
-                </>
+                </Tooltip>
+              )}
+              
+              {notificationCounts[NotificationType.NEW_COMMENT] > 0 && (
+                <Tooltip label="Comentários" placement="top">
+                  <Button
+                    size="xs"
+                    variant={activeFilter === NotificationType.NEW_COMMENT ? "solid" : "ghost"}
+                    colorScheme="green"
+                    onClick={() => setActiveFilter(NotificationType.NEW_COMMENT)}
+                  >
+                    <FaComment style={{ marginRight: '4px' }} />
+                    {notificationCounts[NotificationType.NEW_COMMENT]}
+                  </Button>
+                </Tooltip>
+              )}
+              
+              {notificationCounts[NotificationType.NEW_REACTION] > 0 && (
+                <Tooltip label="Reações" placement="top">
+                  <Button
+                    size="xs"
+                    variant={activeFilter === NotificationType.NEW_REACTION ? "solid" : "ghost"}
+                    colorScheme="orange"
+                    onClick={() => setActiveFilter(NotificationType.NEW_REACTION)}
+                  >
+                    <FaThumbsUp style={{ marginRight: '4px' }} />
+                    {notificationCounts[NotificationType.NEW_REACTION]}
+                  </Button>
+                </Tooltip>
+              )}
+              
+              {notificationCounts[NotificationType.NEW_REVIEW] > 0 && (
+                <Tooltip label="Avaliações" placement="top">
+                  <Button
+                    size="xs"
+                    variant={activeFilter === NotificationType.NEW_REVIEW ? "solid" : "ghost"}
+                    colorScheme="yellow"
+                    onClick={() => setActiveFilter(NotificationType.NEW_REVIEW)}
+                  >
+                    <FaStar style={{ marginRight: '4px' }} />
+                    {notificationCounts[NotificationType.NEW_REVIEW]}
+                  </Button>
+                </Tooltip>
+              )}
+              
+              {notificationCounts[NotificationType.NEW_EPISODE] > 0 && (
+                <Tooltip label="Novos episódios" placement="top">
+                  <Button
+                    size="xs"
+                    variant={activeFilter === NotificationType.NEW_EPISODE ? "solid" : "ghost"}
+                    colorScheme="purple"
+                    onClick={() => setActiveFilter(NotificationType.NEW_EPISODE)}
+                  >
+                    <FaVideo style={{ marginRight: '4px' }} />
+                    {notificationCounts[NotificationType.NEW_EPISODE]}
+                  </Button>
+                </Tooltip>
               )}
             </HStack>
           )}
-        </Flex>
-
-        {/* Filtros */}
-        <HStack 
-          spacing={2} 
-          overflowX="auto" 
-          pb={2} 
-          px={{ base: 1, md: 0 }}
-          css={{ 
-            scrollbarWidth: 'none', 
-            '&::-webkit-scrollbar': { display: 'none' },
-            msOverflowStyle: 'none'
-          }}
-        >
-          <Button
-            size="xs"
-            variant={activeFilter === 'all' ? "solid" : "ghost"}
-            colorScheme="gray"
-            onClick={() => setActiveFilter('all')}
-            color="white"
-            _hover={{ bg: "whiteAlpha.200" }}
-            bg={activeFilter === 'all' ? "gray.600" : "transparent"}
-            style={getFilterButtonStyle(0)}
-          >
-            Todas ({notifications.length})
-          </Button>
-          <Button
-            size="xs"
-            variant={activeFilter === NotificationType.NEW_FOLLOWER ? "solid" : "ghost"}
-            colorScheme="primary"
-            onClick={() => setActiveFilter(NotificationType.NEW_FOLLOWER)}
-            color="white"
-            _hover={{ bg: "primary.700" }}
-            style={getFilterButtonStyle(1)}
-          >
-            Seguidores ({notificationCounts[NotificationType.NEW_FOLLOWER] || 0})
-          </Button>
-          <Button
-            size="xs"
-            variant={activeFilter === NotificationType.NEW_COMMENT ? "solid" : "ghost"}
-            colorScheme="blue"
-            onClick={() => setActiveFilter(NotificationType.NEW_COMMENT)}
-            color="white"
-            _hover={{ bg: "blue.700" }}
-            style={getFilterButtonStyle(2)}
-          >
-            Avaliações ({(notificationCounts[NotificationType.NEW_COMMENT] || 0) + (notificationCounts[NotificationType.NEW_REACTION] || 0)})
-          </Button>
-          <Button
-            size="xs"
-            variant={activeFilter === NotificationType.NEW_EPISODE ? "solid" : "ghost"}
-            colorScheme="purple"
-            onClick={() => setActiveFilter(NotificationType.NEW_EPISODE)}
-            color="white"
-            _hover={{ bg: "purple.700" }}
-            style={getFilterButtonStyle(3)}
-          >
-            Episódios ({notificationCounts[NotificationType.NEW_EPISODE] || 0})
-          </Button>
-        </HStack>
-      </VStack>
-    </Box>
-  ), [
-    notifications, 
-    unreadCount, 
-    isSelectionMode, 
-    selectedNotifications, 
-    selectAllNotifications,
-    toggleSelectionMode, 
-    deleteSelectedNotifications, 
-    handleMarkAllAsRead,
-    activeFilter, 
-    getFilterButtonStyle, 
-    notificationCounts
-  ]);
-
-  // Estado de carregamento memoizado
-  const loadingContent = useMemo(() => {
-    if (!isLoading) return null;
-    
-    return (
-      <Box p={8} textAlign="center">
-        <VStack spacing={3} style={getItemAnimationStyle(0)}>
-          <Spinner color="primary.300" size="md" />
-          <Text color="gray.400" fontSize="sm">
-            Atualizando notificações...
-          </Text>
-        </VStack>
-      </Box>
-    );
-  }, [isLoading, getItemAnimationStyle]);
-
-  // Estado vazio memoizado
-  const emptyContent = useMemo(() => {
-    if (filteredNotifications.length > 0 || isLoading) return null;
-    
-    return (
-      <Box p={{ base: 6, md: 8 }} textAlign="center">
-        <VStack spacing={3} style={getItemAnimationStyle(0)}>
-          <Box 
-            p={3} 
-            borderRadius="full" 
-            bg="gray.700" 
-            color="gray.400"
-          >
-            <BellIcon boxSize={6} />
-          </Box>
-          <Text color="gray.400" fontSize="sm">
-            {notifications.length === 0 
-              ? "Você não tem notificações" 
-              : "Nenhuma notificação nesta categoria"}
-          </Text>
-        </VStack>
-      </Box>
-    );
-  }, [filteredNotifications.length, isLoading, getItemAnimationStyle, notifications.length]);
-
-  // Renderizar item de notificação - função separada para facilitar a leitura
-  const renderNotificationItem = useCallback((notification: Notification, index: number) => (
-    <Box
-      key={notification.id}
-      onClick={() => handleNotificationClick(notification)}
-      bg={notification.read ? "gray.800" : "gray.700"}
-      _hover={{ bg: "gray.600" }}
-      borderLeft={notification.read ? "none" : "4px solid"}
-      borderLeftColor="primary.400"
-      px={{ base: 3, md: 4 }}
-      py={{ base: 2.5, md: 3 }}
-      role="button"
-      aria-label={`Ver detalhes: ${notification.message}`}
-      cursor="pointer"
-      borderBottom="1px solid"
-      borderBottomColor="gray.700"
-      style={getItemAnimationStyle(index + 1)}
-    >
-      <HStack spacing={3} align="flex-start" width="100%">
-        {isSelectionMode && (
-          <Checkbox 
-            isChecked={selectedNotifications.includes(notification.id)}
-            onChange={() => toggleNotificationSelection(notification.id)}
-            colorScheme="primary"
-            onClick={(e) => e.stopPropagation()}
-            mt={1}
-            size={{ base: "sm", md: "md" }}
-          />
-        )}
-        <Box>
-          {renderNotificationIcon(notification)}
         </Box>
-        <VStack align="flex-start" spacing={{ base: 0.5, md: 1 }} flex={1}>
-          <Text 
-            color="white" 
-            fontSize={{ base: "xs", md: "sm" }}
-            fontWeight={notification.read ? "normal" : "bold"}
-            lineHeight="1.4"
-          >
-            {notification.message}
-          </Text>
-          <HStack spacing={2} align="center">
-            <Text 
-              color={
-                notification.createdAt instanceof Date && 
-                (new Date().getTime() - notification.createdAt.getTime()) < 3600000 * 3 // 3 horas
-                  ? "primary.300" 
-                  : "gray.400"
-              } 
-              fontSize={{ base: "2xs", md: "xs" }}
-              display="flex"
-              alignItems="center"
-            >
-              {notification.createdAt instanceof Date && 
-                (new Date().getTime() - notification.createdAt.getTime()) < 3600000 * 3 && (
-                <Box 
-                  as="span" 
-                  w={{ base: "4px", md: "6px" }}
-                  h={{ base: "4px", md: "6px" }}
-                  borderRadius="full" 
-                  bg="primary.300" 
-                  mr={1} 
-                  display="inline-block"
-                />
-              )}
-              {notification.createdAt instanceof Date
-                ? formatNotificationDate(notification.createdAt)
-                : "Agora"}
-            </Text>
-            {!isSelectionMode && (
-              <Text 
-                color="primary.300" 
-                fontSize={{ base: "2xs", md: "xs" }}
-                fontWeight="bold"
-                display={{ base: "none", md: "block" }}
-              >
-                Clique para ver
-              </Text>
-            )}
-          </HStack>
-        </VStack>
-      </HStack>
-    </Box>
-  ), [
-    handleNotificationClick, 
-    isSelectionMode, 
-    selectedNotifications, 
-    toggleNotificationSelection, 
-    renderNotificationIcon, 
-    formatNotificationDate, 
-    getItemAnimationStyle
-  ]);
-
-  if (!currentUser) {
-    return null;
-  }
-
-  return (
-    <>
-      <AnimatedMenu
-        trigger={notificationTrigger}
-        isOpen={isOpen}
-        isVisible={isVisible}
-        onOpen={() => menuOpen()}
-        onClose={handleMenuClose}
-        alignWithTrigger={true}
-        alignOnlyOnDesktop={true}
-        responsivePosition={{
-          base: { top: "60px", right: "8px", left: "8px" },
-          md: { } // Vazio para permitir alinhamento com trigger no desktop
-        }}
-        transformOrigin="top right"
-        width={{ base: "calc(100vw - 16px)", md: "320px" }}
-        zIndex={{ overlay: 1200, menu: 1300 }}
-        overlayBg="blackAlpha.500"
-        menuStyles={{
-          bg: "gray.800",
-          borderColor: "gray.700",
-          boxShadow: "dark-lg",
-          p: 0,
-          borderRadius: { base: "md", md: "md" },
-          borderWidth: "1px",
-          maxH: { base: "80vh", md: "500px" },
-          overflowY: "auto"
-        }}
-      >
-        {/* Cabeçalho */}
-        {headerContent}
-
+        
+        <Divider borderColor="gray.700" />
+        
         {/* Lista de notificações */}
-        <Box maxH="400px" overflowY="auto">
-          {isLoading && loadingContent}
-          {!isLoading && filteredNotifications.length === 0 && emptyContent}
+        <Box maxH="60vh" overflowY="auto">
+          {isLoading && (
+            <Box p={8} textAlign="center">
+              <VStack spacing={3}>
+                <Spinner color="primary.300" size="md" />
+                <Text color="gray.400" fontSize="sm">
+                  Atualizando notificações...
+                </Text>
+              </VStack>
+            </Box>
+          )}
+          
+          {!isLoading && filteredNotifications.length === 0 && (
+            <Box p={8} textAlign="center">
+              <VStack spacing={3}>
+                <Box p={3} borderRadius="full" bg="gray.700">
+                  <BellIcon color="gray.400" boxSize={6} />
+                </Box>
+                <Text color="gray.400" fontSize="sm">
+                  {notifications.length === 0 
+                    ? "Você não tem notificações" 
+                    : "Nenhuma notificação nesta categoria"}
+                </Text>
+              </VStack>
+            </Box>
+          )}
+          
           {!isLoading && filteredNotifications.length > 0 && 
-            filteredNotifications.map((notification, index) => 
-              renderNotificationItem(notification, index)
-            )
+            filteredNotifications.map((notification, index) => (
+              <NotificationItem
+                key={notification.id}
+                notification={notification}
+                isSelected={selectedNotifications.includes(notification.id)}
+                onSelect={toggleNotificationSelection}
+                onClick={handleNotificationClick}
+                isSelectionMode={isSelectionMode}
+                index={index}
+                getItemAnimationStyle={getItemAnimationStyle}
+              />
+            ))
           }
         </Box>
-      </AnimatedMenu>
-
-      {/* Modal de Detalhes da Avaliação */}
-      {selectedReview && (
-        <ReviewDetailsModal
-          isOpen={isModalOpen}
-          onClose={() => {
-            onModalClose();
-            setSelectedReview(null);
-          }}
-          review={selectedReview}
-          onReviewUpdated={refreshNotifications}
-        />
-      )}
-    </>
+      </MenuList>
+    </Menu>
   );
+  
+  // Não renderizar se não houver usuário
+if (!currentUser) {
+  return null;
+}
+
+  return renderNotificationMenu();
 } 

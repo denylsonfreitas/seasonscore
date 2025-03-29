@@ -1,7 +1,7 @@
 import { doc, setDoc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { User } from "firebase/auth";
-import { collection, query, where, getDocs, writeBatch } from "firebase/firestore";
+import { collection, query, where, getDocs, writeBatch, DocumentReference, DocumentData } from "firebase/firestore";
 import { getFirestore } from "firebase/firestore";
 import {
   serverTimestamp,
@@ -11,6 +11,12 @@ import {
   endAt,
   FieldPath,
 } from "firebase/firestore";
+import { 
+  createNotification, 
+  NotificationType, 
+  deleteNotificationsOfType,
+  removeCurrentUserNotifications
+} from "./notifications";
 
 export interface UserData {
   id: string;
@@ -52,7 +58,6 @@ export async function isUsernameAvailable(username: string): Promise<boolean> {
     const querySnapshot = await getDocs(q);
     return querySnapshot.empty;
   } catch (error) {
-    console.error("Erro ao verificar disponibilidade do username:", error);
     // Em caso de erro, retornamos false para evitar criar usernames duplicados
     return false;
   }
@@ -69,7 +74,6 @@ export async function isEmailAvailable(email: string): Promise<boolean> {
     const querySnapshot = await getDocs(q);
     return querySnapshot.empty;
   } catch (error) {
-    console.error("Erro ao verificar disponibilidade do email:", error);
     // Em caso de erro, retornamos false para evitar criar emails duplicados
     return false;
   }
@@ -83,7 +87,6 @@ export async function updateUsername(userId: string, newUsername: string): Promi
       updatedAt: new Date()
     });
   } catch (error) {
-    console.error("Erro ao atualizar username:", error);
     throw error;
   }
 }
@@ -125,7 +128,6 @@ export async function getUserByEmail(email: string): Promise<UserData | null> {
     
     return null;
   } catch (error) {
-    console.error("Erro ao buscar usuário pelo email:", error);
     return null;
   }
 }
@@ -158,7 +160,6 @@ export async function createOrUpdateUser(user: User, additionalData?: Partial<Us
     // Se encontrou um usuário com o mesmo email mas ID diferente, temos um conflito
     // Isso pode acontecer quando o usuário faz login com diferentes métodos (Google vs email/senha)
     if (existingUserWithEmail && existingUserWithEmail.id !== user.uid) {
-      console.warn("Usuário com mesmo email já existe com ID diferente:", existingUserWithEmail.id);
       
       // Preservar dados importantes do usuário existente
       if (!additionalData) {
@@ -276,7 +277,6 @@ export async function createOrUpdateUser(user: User, additionalData?: Partial<Us
     
     return userData;
   } catch (error) {
-    console.error("Erro ao atualizar dados do usuário:", error);
     throw error;
   }
 }
@@ -289,7 +289,6 @@ export async function getUserData(userId: string): Promise<UserData | null> {
     }
     return null;
   } catch (error) {
-    console.error("Erro ao buscar dados do usuário:", error);
     return null;
   }
 }
@@ -306,7 +305,6 @@ export async function getUserByUsername(username: string): Promise<UserData | nu
     }
     return null;
   } catch (error) {
-    console.error("Erro ao buscar usuário pelo username:", error);
     return null;
   }
 }
@@ -329,7 +327,6 @@ export async function getUserByUsernameOrEmail(usernameOrEmail: string): Promise
       return await getUserByUsername(normalizedInput);
     }
   } catch (error) {
-    console.error("Erro ao buscar usuário por username ou email:", error);
     return null;
   }
 }
@@ -338,24 +335,51 @@ export async function deleteUserData(userId: string) {
   try {
     const db = getFirestore();
     
+    // Rastrear operações bem-sucedidas e falhas
+    const results = {
+      success: [] as string[],
+      failures: [] as string[],
+      permissionIssues: [] as string[]
+    };
+    
     // Função auxiliar para executar uma operação com tratamento de erro
     const safeOperation = async (operation: () => Promise<void>, name: string) => {
       try {
         await operation();
+        results.success.push(name);
         return true;
       } catch (error: any) {
-        console.error(`❌ Erro na operação "${name}":`, error);
+        // Verificar se é um erro de permissão
+        if (error.code === 'permission-denied' || error.message?.includes('Missing or insufficient permissions')) {
+          results.permissionIssues.push(name);
+          // Retornar true para indicar que o processo deve continuar
+          return true;
+        }
+        
+        // Verificar se é um erro de rede ou bloqueio por extensão
+        if (
+          error.name === 'AbortError' || 
+          error.message?.includes('ERR_BLOCKED_BY_CLIENT') ||
+          error.message?.includes('network error') ||
+          error.code === 'failed-precondition' ||
+          error.code === 'unavailable'
+        ) {
+          results.permissionIssues.push(`${name} (erro de rede)`);
+          // Retornar true para continuar o processo
+          return true;
+        }
+        results.failures.push(name);
         return false;
       }
     };
 
-    // Excluir dados do usuário
+    // 1. Excluir dados do usuário
     await safeOperation(async () => {
       const userRef = doc(db, "users", userId);
       await deleteDoc(userRef);
     }, "excluir perfil do usuário");
 
-    // Excluir reviews do usuário
+    // 2. Excluir reviews do usuário
     await safeOperation(async () => {
       const reviewsSnapshot = await getDocs(query(collection(db, "reviews"), where("userId", "==", userId)));
       const batch = writeBatch(db);
@@ -367,7 +391,88 @@ export async function deleteUserData(userId: string) {
       }
     }, "excluir reviews");
 
-    // Excluir itens da watchlist
+    // 3. Excluir comentários do usuário em reviews de outros usuários
+    await safeOperation(async () => {
+      // Precisamos primeiro encontrar todos os reviews que contêm comentários deste usuário
+      const reviewsSnapshot = await getDocs(collection(db, "reviews"));
+      
+      let updateOperations = [];
+      
+      for (const reviewDoc of reviewsSnapshot.docs) {
+        const review = reviewDoc.data();
+        let reviewUpdated = false;
+        
+        // Verificar cada season review
+        if (review.seasonReviews && Array.isArray(review.seasonReviews)) {
+          for (let i = 0; i < review.seasonReviews.length; i++) {
+            const seasonReview = review.seasonReviews[i];
+            
+            // MODIFICAÇÃO 1: Verificar se há comentários e remover completamente os do usuário
+            if (seasonReview.comments && Array.isArray(seasonReview.comments)) {
+              // Encontrar e remover comentários do usuário
+              const initialCommentsCount = seasonReview.comments.length;
+              seasonReview.comments = seasonReview.comments.filter((comment: any) => comment.userId !== userId);
+              
+              if (initialCommentsCount !== seasonReview.comments.length) {
+                reviewUpdated = true;
+              }
+            }
+            
+            // MODIFICAÇÃO 2: Verificar reações e remover completamente as do usuário
+            if (seasonReview.reactions) {
+              // Remover o usuário das listas de likes/dislikes
+              if (Array.isArray(seasonReview.reactions.likes) && seasonReview.reactions.likes.includes(userId)) {
+                seasonReview.reactions.likes = seasonReview.reactions.likes.filter((id: string) => id !== userId);
+                reviewUpdated = true;
+              }
+              
+              if (Array.isArray(seasonReview.reactions.dislikes) && seasonReview.reactions.dislikes.includes(userId)) {
+                seasonReview.reactions.dislikes = seasonReview.reactions.dislikes.filter((id: string) => id !== userId);
+                reviewUpdated = true;
+              }
+            }
+
+            // MODIFICAÇÃO 3: Remover reações a comentários
+            if (seasonReview.comments && Array.isArray(seasonReview.comments)) {
+              for (let j = 0; j < seasonReview.comments.length; j++) {
+                const comment = seasonReview.comments[j];
+                if (comment.reactions) {
+                  let reactionUpdated = false;
+
+                  // Remover likes do usuário em comentários
+                  if (Array.isArray(comment.reactions.likes) && comment.reactions.likes.includes(userId)) {
+                    comment.reactions.likes = comment.reactions.likes.filter((id: string) => id !== userId);
+                    reactionUpdated = true;
+                  }
+
+                  // Remover dislikes do usuário em comentários
+                  if (Array.isArray(comment.reactions.dislikes) && comment.reactions.dislikes.includes(userId)) {
+                    comment.reactions.dislikes = comment.reactions.dislikes.filter((id: string) => id !== userId);
+                    reactionUpdated = true;
+                  }
+
+                  if (reactionUpdated) {
+                    reviewUpdated = true;
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        // Se alguma alteração foi feita, atualize o documento
+        if (reviewUpdated) {
+          updateOperations.push(updateDoc(reviewDoc.ref, { seasonReviews: review.seasonReviews }));
+        }
+      }
+      
+      // Aplicar todas as atualizações
+      if (updateOperations.length > 0) {
+        await Promise.all(updateOperations);
+      }
+    }, "remover comentários e reações em reviews de outros usuários");
+
+    // 4. Excluir itens da watchlist
     await safeOperation(async () => {
       const watchlistSnapshot = await getDocs(query(collection(db, "watchlist"), where("userId", "==", userId)));
       const batch = writeBatch(db);
@@ -379,106 +484,49 @@ export async function deleteUserData(userId: string) {
       }
     }, "excluir watchlist");
 
-    // Excluir notificações
+    // 5. Excluir notificações recebidas pelo usuário
     await safeOperation(async () => {
-      const notificationsSnapshot = await getDocs(query(collection(db, "notifications"), where("userId", "==", userId)));
-      const batch = writeBatch(db);
-      notificationsSnapshot.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
-      if (!notificationsSnapshot.empty) {
-        await batch.commit();
-      }
-    }, "excluir notificações");
+      // Usar a nova função que lida apenas com notificações do próprio usuário
+      await removeCurrentUserNotifications(userId);
+    }, "excluir notificações recebidas");
 
-    // Excluir lastNotifiedEpisodes
+    // 7. Excluir relações de seguidores - quando o usuário é quem está seguindo outros
     await safeOperation(async () => {
-      
-      try {
-        // Buscar o usuário para verificar se temos a lista de séries acompanhadas
-        const userRef = doc(db, "users", userId);
-        const userDoc = await getDoc(userRef);
-        
-        if (!userDoc.exists()) {
-          return;
-        }
-        
-        const userData = userDoc.data();
-        const watchedSeriesIds = userData.watchedSeriesIds || [];
-        
-        // Se temos a lista de séries, vamos tentar excluir especificamente esses documentos
-        let seriesIdsToTry: number[] = [];
-        
-        if (watchedSeriesIds.length > 0) {
-          seriesIdsToTry = watchedSeriesIds;
-        } else {
-          // Se não temos a lista, tentamos alguns IDs comuns (1-30) como fallback
-          seriesIdsToTry = Array.from({ length: 30 }, (_, i) => i + 1);
-        }
-        
-        let successCount = 0;
-        let errorCount = 0;
-        
-        // Processar exclusão para cada série
-        for (const seriesId of seriesIdsToTry) {
-          const docId = `${userId}_${seriesId}`;
-          try {
-            const docRef = doc(db, "lastNotifiedEpisodes", docId);
-            await deleteDoc(docRef);
-            successCount++;
-          } catch (error: any) {
-            // Se o erro for "not-found", isso é normal e esperado
-            if (error.code === 'not-found') {
-              // Não contabilizamos como erro, apenas continuamos
-            } else {
-              console.error(`❌ Erro ao excluir documento ${docId}:`, error);
-              errorCount++;
-            }
-          }
-        }
-        
-        // Adicionar mensagem sobre o resultado
-        if (successCount > 0) {
-        } else {
-        }
-      } catch (error) {
-        throw error;
-      }
-    }, "excluir registros de episódios");
-
-    // Excluir relações de seguidores
-    await safeOperation(async () => {
-      // Buscar onde o usuário é seguidor
       const followingSnapshot = await getDocs(query(
         collection(db, "followers"),
         where("followerId", "==", userId)
       ));
       
-      // Buscar onde o usuário é seguido
-      const followersSnapshot = await getDocs(query(
-        collection(db, "followers"),
-        where("followingId", "==", userId)
-      ));
-      
-      const totalDocs = followingSnapshot.size + followersSnapshot.size;
-      
       const batch = writeBatch(db);
       followingSnapshot.forEach((doc) => batch.delete(doc.ref));
-      followersSnapshot.forEach((doc) => batch.delete(doc.ref));
       
-      if (totalDocs > 0) {
+      if (followingSnapshot.size > 0) {
         await batch.commit();
       }
-    }, "excluir relações de seguidores");
+    }, "excluir relações onde o usuário segue outros");
+    
+    // 8. Excluir relações de seguidores - quando o usuário é quem está sendo seguido
+    await safeOperation(async () => {
+      const followersSnapshot = await getDocs(query(
+        collection(db, "followers"),
+        where("userId", "==", userId)
+      ));
+      
+      const batch = writeBatch(db);
+      followersSnapshot.forEach((doc) => batch.delete(doc.ref));
+      
+      if (followersSnapshot.size > 0) {
+        await batch.commit();
+      }
+    }, "excluir relações onde o usuário é seguido");
 
-    return true;
+    // Retornar resultados das operações
+    return {
+      userId,
+      success: results.success.length > 0,
+      details: results
+    };
   } catch (error: any) {
-    console.error("❌ Erro fatal ao excluir dados do usuário:", {
-      error,
-      message: error.message,
-      code: error.code,
-      details: error.details
-    });
     throw error;
   }
 }
@@ -524,7 +572,6 @@ export async function updateUserNotificationSettings(
     });
     
   } catch (error) {
-    console.error("Erro ao atualizar configurações de notificação:", error);
     throw error;
   }
 }
@@ -536,7 +583,6 @@ export async function addToUserWatchedSeries(userId: string, seriesId: number): 
     const userDoc = await getDoc(userRef);
     
     if (!userDoc.exists()) {
-      console.warn(`Usuário ${userId} não encontrado`);
       return;
     }
     
@@ -554,6 +600,5 @@ export async function addToUserWatchedSeries(userId: string, seriesId: number): 
       
     }
   } catch (error) {
-    console.error(`❌ Erro ao adicionar série à lista do usuário:`, error);
   }
 } 

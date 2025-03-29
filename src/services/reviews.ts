@@ -16,6 +16,7 @@ import {
   arrayUnion,
   arrayRemove,
   limit,
+  writeBatch,
 } from "firebase/firestore";
 import { auth } from "../config/firebase";
 import { getSeriesDetails } from "./tmdb";
@@ -147,8 +148,6 @@ export async function addSeasonReview(
       });
     }
   } catch (error) {
-    console.error("Erro ao salvar avaliação:", error);
-    throw new Error("Não foi possível salvar sua avaliação. Por favor, tente novamente.");
   }
 }
 
@@ -246,7 +245,6 @@ export async function updateReview(
         }
       );
     } catch (error) {
-      console.error("Erro ao criar notificação de comentário:", error);
     }
   }
 }
@@ -259,19 +257,74 @@ export async function deleteReview(reviewId: string, seasonNumber: number) {
 
   const review = reviewDoc.data() as SeriesReview;
 
-  // Remove a avaliação da temporada específica
-  review.seasonReviews = review.seasonReviews.filter(
-    (sr) => sr.seasonNumber !== seasonNumber
-  );
+  // Verificar se o usuário tem permissão para excluir a avaliação
+  if (review.userId !== auth.currentUser.uid) {
+    throw new Error("Você não tem permissão para excluir esta avaliação");
+  }
 
-  if (review.seasonReviews.length === 0) {
-    // Se não houver mais avaliações, remove o documento inteiro
-    await deleteDoc(reviewDoc.ref);
-  } else {
-    // Caso contrário, atualiza o documento com as avaliações restantes
-    await updateDoc(reviewDoc.ref, {
-      seasonReviews: review.seasonReviews,
-    });
+  try {
+    // Remove a avaliação da temporada específica
+    review.seasonReviews = review.seasonReviews.filter(
+      (sr) => sr.seasonNumber !== seasonNumber
+    );
+
+    if (review.seasonReviews.length === 0) {
+      // Se não houver mais avaliações, remove o documento inteiro
+      await deleteDoc(reviewDoc.ref);
+    } else {
+      // Caso contrário, atualiza o documento com as avaliações restantes
+      await updateDoc(reviewDoc.ref, {
+        seasonReviews: review.seasonReviews,
+      });
+    }
+
+    // Excluir todas as notificações relacionadas a esta avaliação
+    try {
+      const notificationsCollection = collection(db, "notifications");
+      
+      // Primeiro, obter notificações onde o usuário atual é o destinatário
+      const userNotificationsQuery = query(
+        notificationsCollection,
+        where("reviewId", "==", reviewId),
+        where("seasonNumber", "==", seasonNumber),
+        where("userId", "==", auth.currentUser.uid)
+      );
+      
+      // Depois, obter notificações onde o usuário atual é o remetente
+      const sentNotificationsQuery = query(
+        notificationsCollection,
+        where("reviewId", "==", reviewId),
+        where("seasonNumber", "==", seasonNumber),
+        where("senderId", "==", auth.currentUser.uid)
+      );
+      
+      // Obter os resultados de ambas as consultas
+      const [userNotificationsSnapshot, sentNotificationsSnapshot] = await Promise.all([
+        getDocs(userNotificationsQuery),
+        getDocs(sentNotificationsQuery)
+      ]);
+      
+      // Excluir notificações em silêncio, sem logs de erro ou contagem
+      const batch = writeBatch(db);
+      
+      // Adicionar todos os documentos ao batch para exclusão
+      userNotificationsSnapshot.docs.forEach(docSnapshot => 
+        batch.delete(docSnapshot.ref)
+      );
+      
+      sentNotificationsSnapshot.docs.forEach(docSnapshot => 
+        batch.delete(docSnapshot.ref)
+      );
+      
+      if (userNotificationsSnapshot.docs.length > 0 || sentNotificationsSnapshot.docs.length > 0) {
+        await batch.commit();
+      }
+    } catch (error) {
+
+    }
+    
+    return true;
+  } catch (error) {
   }
 }
 
@@ -413,14 +466,11 @@ export async function addCommentToReview(
           }
         );
       } catch (error) {
-        console.error("Erro ao criar notificação de comentário:", error);
       }
     }
 
     return newComment;
   } catch (error) {
-    console.error("Erro ao adicionar comentário:", error);
-    throw new Error("Não foi possível adicionar o comentário. Por favor, tente novamente.");
   }
 }
 
@@ -431,7 +481,9 @@ export async function deleteComment(
 ) {
   if (!auth.currentUser) throw new Error("Usuário não autenticado");
 
-  const reviewDoc = await getDoc(doc(reviewsCollection, reviewId));
+  const reviewRef = doc(reviewsCollection, reviewId);
+  const reviewDoc = await getDoc(reviewRef);
+
   if (!reviewDoc.exists()) throw new Error("Avaliação não encontrada");
 
   const review = reviewDoc.data() as SeriesReview;
@@ -441,22 +493,108 @@ export async function deleteComment(
 
   if (seasonIndex === -1) throw new Error("Temporada não encontrada");
 
-  const comments = review.seasonReviews[seasonIndex].comments;
-  if (!comments) throw new Error("Não há comentários nesta avaliação");
+  // Criar uma cópia da avaliação para atualização
+  const updatedReview = {
+    ...review,
+    seasonReviews: [...review.seasonReviews]
+  };
 
-  const commentIndex = comments.findIndex((c) => c.id === commentId);
-  if (commentIndex === -1) throw new Error("Comentário não encontrado");
+  // Buscar o comentário a ser excluído
+  const commentIndex = updatedReview.seasonReviews[seasonIndex].comments?.findIndex(
+    (c) => c.id === commentId
+  );
 
-  const comment = comments[commentIndex];
-  if (comment.userId !== auth.currentUser.uid) {
+  if (commentIndex === undefined || commentIndex === -1) {
+    throw new Error("Comentário não encontrado");
+  }
+    
+  // Armazenar o comentário antes de excluí-lo
+  const comment = updatedReview.seasonReviews[seasonIndex].comments![commentIndex];
+
+  // Verificar permissão (somente o proprietário do comentário ou da avaliação pode excluir)
+  if (comment.userId !== auth.currentUser.uid && review.userId !== auth.currentUser.uid) {
     throw new Error("Você não tem permissão para excluir este comentário");
   }
+    
+  // Remover o comentário do array
+  updatedReview.seasonReviews[seasonIndex].comments!.splice(commentIndex, 1);
 
-  comments.splice(commentIndex, 1);
+  try {
+    // Atualizar o documento no Firestore
+    await updateDoc(reviewRef, updatedReview);
+    
+    // IMPORTANTE: Vamos remover APENAS as notificações que o USUÁRIO ATUAL recebeu
+    // relacionadas a este comentário
+    // Isso evita erros de permissão ao tentar excluir notificações de outros usuários
+    try {
+      const currentUserId = auth.currentUser.uid;
+      
+      // 1. Se o usuário atual é o dono da avaliação, remova notificações que ele recebeu sobre este comentário
+      if (review.userId === currentUserId) {
+        // Buscar notificações recebidas pelo usuário atual relacionadas a este comentário
+        const notificationsQuery = query(
+          collection(db, "notifications"), 
+          where("userId", "==", currentUserId),  // Apenas notificações recebidas pelo usuário atual
+          where("type", "==", NotificationType.NEW_COMMENT),
+          where("reviewId", "==", reviewId)
+        );
+        
+        const notificationsSnapshot = await getDocs(notificationsQuery);
+        
+        if (!notificationsSnapshot.empty) {
+          const batch = writeBatch(db);
+          
+          // Filtrar apenas as notificações relacionadas a este comentário específico
+          notificationsSnapshot.forEach(doc => {
+            const notificationData = doc.data();
+            
+            if (notificationData.message.includes(commentId) || 
+                (notificationData.senderId === comment.userId && 
+                notificationData.message.includes("comentou"))) {
+              batch.delete(doc.ref);
+            }
+          });
+          
+          // Commit silencioso sem mensagens de log
+          await batch.commit();
+        }
+      }
+      
+      // 2. Se o usuário atual é o autor do comentário, remova notificações de reação que ele recebeu
+      // sobre este comentário (se houver)
+      const reactionNotificationsQuery = query(
+        collection(db, "notifications"), 
+        where("userId", "==", currentUserId),  // Apenas notificações recebidas pelo usuário atual
+        where("type", "==", NotificationType.NEW_REACTION),
+        where("reviewId", "==", reviewId)
+      );
+      
+      const reactionSnapshot = await getDocs(reactionNotificationsQuery);
+      
+      if (!reactionSnapshot.empty) {
+        const batch = writeBatch(db);
+        
+        reactionSnapshot.forEach(doc => {
+          const notificationData = doc.data();
+          
+          // Verificar se a notificação está relacionada a uma reação neste comentário
+          if (notificationData.message.includes("comentário") && 
+              (notificationData.message.includes(commentId) || 
+              notificationData.reviewId.includes(commentId))) {
+            batch.delete(doc.ref);
+          }
+        });
+        
+        await batch.commit();
+      }
+      
+    } catch (error) {
+    }
 
-  await updateDoc(reviewDoc.ref, {
-    seasonReviews: review.seasonReviews,
-  });
+    return comment;
+  } catch (error) {
+    throw error;
+  }
 }
 
 export async function toggleReaction(
@@ -478,52 +616,75 @@ export async function toggleReaction(
 
   if (seasonIndex === -1) throw new Error("Temporada não encontrada");
 
-  // Inicializar reactions se não existir
-  if (!review.seasonReviews[seasonIndex].reactions) {
-    review.seasonReviews[seasonIndex].reactions = {
-      likes: [],
-      dislikes: []
-    };
-  }
-
   // Criar uma cópia da avaliação para atualização
   const updatedReview = {
     ...review,
     seasonReviews: [...review.seasonReviews]
   };
 
+  // Inicializar reactions se necessário
+  if (!updatedReview.seasonReviews[seasonIndex].reactions) {
+    updatedReview.seasonReviews[seasonIndex].reactions = { likes: [], dislikes: [] };
+  }
+
   const userId = auth.currentUser.uid;
+  const reactions = updatedReview.seasonReviews[seasonIndex].reactions!;
 
   // Remove a reação oposta se existir
   const oppositeType = reactionType === "likes" ? "dislikes" : "likes";
-  const oppositeIndex = updatedReview.seasonReviews[seasonIndex].reactions![oppositeType].indexOf(userId);
+  const oppositeIndex = reactions[oppositeType].indexOf(userId);
   if (oppositeIndex !== -1) {
-    updatedReview.seasonReviews[seasonIndex].reactions![oppositeType].splice(oppositeIndex, 1);
+    reactions[oppositeType].splice(oppositeIndex, 1);
   }
 
   // Toggle da reação atual
-  const currentIndex = updatedReview.seasonReviews[seasonIndex].reactions![reactionType].indexOf(userId);
-  if (currentIndex === -1) {
-    updatedReview.seasonReviews[seasonIndex].reactions![reactionType].push(userId);
+  const currentIndex = reactions[reactionType].indexOf(userId);
+  
+  // Verificar se está adicionando ou removendo a reação
+  const isRemoving = currentIndex !== -1;
+  
+  if (isRemoving) {
+    // Remover a reação
+    reactions[reactionType].splice(currentIndex, 1);
   } else {
-    updatedReview.seasonReviews[seasonIndex].reactions![reactionType].splice(currentIndex, 1);
+    // Adicionar a reação
+    reactions[reactionType].push(userId);
   }
 
   try {
     await updateDoc(reviewRef, updatedReview);
 
-    // Se o usuário removeu uma reação existente, remover também a notificação
-    if (currentIndex !== -1 && review.userId !== auth.currentUser.uid) {
+    // Se o usuário removeu uma reação existente, remover também a notificação que ELE enviou ao dono da review
+    if (isRemoving && review.userId !== auth.currentUser.uid) {
+      // Usamos um bloco silencioso sem mensagens de erro para evitar logs desnecessários
       try {
-        // Importar e usar a função removeReactionNotification
-        const { removeReactionNotification } = await import("../services/notifications");
-        await removeReactionNotification(reviewId, auth.currentUser.uid);
+        // Buscar e excluir apenas as notificações enviadas pelo usuário atual para o dono da review
+        const notificationsQuery = query(
+          collection(db, "notifications"),
+          where("type", "==", NotificationType.NEW_REACTION),
+          where("senderId", "==", auth.currentUser.uid),
+          where("userId", "==", review.userId), // Importante: apenas notificações enviadas para o dono da review
+          where("reviewId", "==", reviewId)
+        );
+        
+        const querySnapshot = await getDocs(notificationsQuery);
+        
+        if (!querySnapshot.empty) {
+          const batch = writeBatch(db);
+          
+          querySnapshot.forEach(doc => {
+            const data = doc.data();
+            if (!data.message.includes("comentário")) {
+              batch.delete(doc.ref);
+            }
+          });
+          
+          await batch.commit();
+        }
       } catch (error) {
-        console.error("Erro ao remover notificação de reação:", error);
       }
     }
-    // Notificar o dono da avaliação sobre a reação (apenas se for uma nova reação)
-    else if (currentIndex === -1 && review.userId !== auth.currentUser.uid) {
+    else if (!isRemoving && review.userId !== auth.currentUser.uid) {
       try {
         const seriesDetails = await getSeriesDetails(review.seriesId);
         const userData = await getUserData(auth.currentUser.uid);
@@ -539,18 +700,23 @@ export async function toggleReaction(
             seriesPoster: seriesDetails.poster_path || undefined,
             seasonNumber,
             reviewId,
-            message: `${userName} reagiu à sua avaliação de ${seriesDetails.name} (Temporada ${seasonNumber}).`
+            message: `${userName} reagiu à sua avaliação de ${seriesDetails.name} (Temporada ${seasonNumber}) com um ${reactionType === "likes" ? "like" : "dislike"}.`
           }
         );
       } catch (error) {
-        console.error("Erro ao criar notificação de reação:", error);
       }
     }
 
-    return updatedReview.seasonReviews[seasonIndex];
+    return {
+      likes: reactions.likes.length,
+      dislikes: reactions.dislikes.length,
+      userReaction: reactions.likes.includes(userId) 
+        ? "likes" 
+        : reactions.dislikes.includes(userId) 
+          ? "dislikes" 
+          : null
+    };
   } catch (error) {
-    console.error("Erro ao atualizar reação:", error);
-    throw new Error("Não foi possível atualizar a reação. Por favor, tente novamente.");
   }
 }
 
@@ -598,31 +764,48 @@ export async function toggleCommentReaction(
 
   // Toggle da reação atual
   const currentIndex = comment.reactions[reactionType].indexOf(userId);
-  if (currentIndex === -1) {
-    comment.reactions[reactionType].push(userId);
-  } else {
+  
+  // Verificar se está adicionando ou removendo a reação
+  const isRemoving = currentIndex !== -1;
+  
+  if (isRemoving) {
+    // Remover a reação
     comment.reactions[reactionType].splice(currentIndex, 1);
+  } else {
+    // Adicionar a reação
+    comment.reactions[reactionType].push(userId);
   }
 
   try {
     await updateDoc(reviewRef, updatedReview);
 
-    // Se o usuário removeu uma reação existente, remover também a notificação
-    if (currentIndex !== -1 && comment.userId !== auth.currentUser.uid) {
+    // Se o usuário removeu uma reação existente, remover apenas as notificações que ele enviou
+    if (isRemoving && comment.userId !== auth.currentUser.uid) {
       try {
-        // Importar e usar a função removeReactionNotification
-        const { removeReactionNotification } = await import("../services/notifications");
+        // Buscar e excluir apenas as notificações enviadas pelo usuário atual para o dono do comentário
+        const notificationsQuery = query(
+          collection(db, "notifications"),
+          where("type", "==", NotificationType.NEW_REACTION),
+          where("senderId", "==", auth.currentUser.uid),
+          where("userId", "==", comment.userId), // Apenas as notificações enviadas para o dono do comentário
+          where("reviewId", "==", `${reviewId}_comment_${commentId}`) // Usar o formato específico para comentários
+        );
         
-        // Construir um ID de notificação personalizado para o comentário
-        // Adicionando o commentId para diferenciar das reações da review principal
-        const commentReviewId = `${reviewId}_comment_${commentId}`;
-        await removeReactionNotification(commentReviewId, auth.currentUser.uid);
+        const querySnapshot = await getDocs(notificationsQuery);
+        
+        if (!querySnapshot.empty) {
+          const batch = writeBatch(db);
+          
+          querySnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+          });
+          
+          await batch.commit();
+        }
       } catch (error) {
-        console.error("Erro ao remover notificação de reação ao comentário:", error);
       }
     }
-    // Notificar o dono do comentário sobre a reação (apenas se for uma nova reação)
-    else if (currentIndex === -1 && comment.userId !== auth.currentUser.uid) {
+    else if (!isRemoving && comment.userId !== auth.currentUser.uid) {
       try {
         const seriesDetails = await getSeriesDetails(review.seriesId);
         const userData = await getUserData(auth.currentUser.uid);
@@ -637,20 +820,16 @@ export async function toggleCommentReaction(
             seriesName: seriesDetails.name,
             seriesPoster: seriesDetails.poster_path || undefined,
             seasonNumber,
-            // Usar um reviewId modificado para diferenciar entre reviews e comentários
             reviewId: `${reviewId}_comment_${commentId}`,
-            message: `${userName} reagiu ao seu comentário em ${seriesDetails.name} (Temporada ${seasonNumber}).`
+            message: `${userName} reagiu ao seu comentário em ${seriesDetails.name} (Temporada ${seasonNumber}) com um ${reactionType === "likes" ? "like" : "dislike"}.`
           }
         );
       } catch (error) {
-        console.error("Erro ao criar notificação de reação:", error);
       }
     }
 
     return comment;
   } catch (error) {
-    console.error("Erro ao atualizar reação:", error);
-    throw new Error("Não foi possível atualizar a reação. Por favor, tente novamente.");
   }
 }
 

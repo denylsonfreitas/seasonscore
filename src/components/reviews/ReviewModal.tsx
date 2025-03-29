@@ -80,7 +80,6 @@ export function ReviewModal({
           const details = await getSeriesDetails(seriesId);
           setSeriesDetails(details);
         } catch (error) {
-          console.error("Erro ao buscar detalhes da série:", error);
           toast({
             title: "Erro",
             description: "Não foi possível carregar os detalhes da série",
@@ -122,7 +121,6 @@ export function ReviewModal({
           }
         }
       } catch (error) {
-        console.error("Erro ao carregar avaliações:", error);
       }
     }
     loadUserReviews();
@@ -182,7 +180,6 @@ export function ReviewModal({
       });
       onClose();
     } catch (error) {
-      console.error("Erro ao enviar avaliação:", error);
       toast({
         title: "Erro ao enviar avaliação",
         description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar sua avaliação. Tente novamente.",

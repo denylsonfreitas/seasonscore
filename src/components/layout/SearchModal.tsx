@@ -47,7 +47,6 @@ export function SearchModal({
       const data = await searchSeries(query);
       setResults(data.results);
     } catch (error) {
-      console.error("Erro ao buscar séries:", error);
     } finally {
       setIsLoading(false);
     }

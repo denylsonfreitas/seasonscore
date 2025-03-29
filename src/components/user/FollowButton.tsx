@@ -24,7 +24,6 @@ export function FollowButton({ userId }: FollowButtonProps) {
           const status = await isFollowing(userId);
           setFollowing(status);
         } catch (error) {
-          console.error("Erro ao verificar status de seguidor:", error);
         } finally {
           setLoading(false);
         }

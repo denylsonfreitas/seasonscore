@@ -46,7 +46,6 @@ export function WatchlistButton({ series, size = "md", variant = "ghost" }: Watc
       const status = await isInWatchlist(currentUser.uid, series.id);
       setIsInList(status);
     } catch (error) {
-      console.error("Erro ao verificar status da watchlist:", error);
     }
   }
 

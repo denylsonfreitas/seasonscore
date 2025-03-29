@@ -87,7 +87,6 @@ export function ReviewEditModal({
       onReviewUpdated();
       onClose();
     } catch (error) {
-      console.error("Erro ao atualizar avaliação:", error);
       toast({
         title: "Erro ao atualizar",
         description: "Ocorreu um erro ao atualizar sua avaliação.",
@@ -116,7 +115,6 @@ export function ReviewEditModal({
       onReviewUpdated();
       onClose();
     } catch (error) {
-      console.error("Erro ao excluir avaliação:", error);
       toast({
         title: "Erro ao excluir",
         description: "Ocorreu um erro ao excluir sua avaliação.",

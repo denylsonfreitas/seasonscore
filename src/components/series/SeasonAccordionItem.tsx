@@ -198,8 +198,6 @@ export function SeasonAccordionItem({
               if (openLoginPopover) {
                 openLoginPopover();
               } else {
-                // Fallback se o popover não estiver disponível
-                console.warn("Login popover não está disponível");
               }
             }}
             width="100%"

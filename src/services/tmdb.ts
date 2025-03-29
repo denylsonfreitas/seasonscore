@@ -303,7 +303,6 @@ export async function getLatestEpisode(seriesId: number): Promise<Episode | null
     // Retornar o episódio mais recente
     return sortedEpisodes[0];
   } catch (error) {
-    console.error("Erro ao buscar último episódio:", error);
     return null;
   }
 }
@@ -343,7 +342,6 @@ export async function getSeriesVideos(seriesId: number): Promise<Video[]> {
     const response = await api.get(`/tv/${seriesId}/videos`);
     return response.data.results;
   } catch (error) {
-    console.error("Erro ao buscar vídeos:", error);
     return [];
   }
 }

@@ -96,7 +96,6 @@ export function ProfileSettings() {
           setNewUsername(userData.username || "");
         }
       } catch (error) {
-        console.error("Erro ao carregar dados do usuário:", error);
       } finally {
         setIsLoading(false);
       }
@@ -125,7 +124,6 @@ export function ProfileSettings() {
         isClosable: true,
       });
     } catch (error) {
-      console.error("Erro ao carregar foto:", error);
       toast({
         title: "Erro ao carregar foto",
         description: "Ocorreu um erro ao carregar sua foto. Tente novamente.",
@@ -158,7 +156,6 @@ export function ProfileSettings() {
         isClosable: true,
       });
     } catch (error) {
-      console.error("Erro ao carregar capa:", error);
       toast({
         title: "Erro ao carregar capa",
         description:
@@ -192,7 +189,6 @@ export function ProfileSettings() {
           setUsernameError("");
         }
       } catch (error) {
-        console.error("Erro ao verificar username:", error);
       } finally {
         setIsCheckingUsername(false);
       }
@@ -282,7 +278,6 @@ export function ProfileSettings() {
           });
           
         } catch (err) {
-          console.error('Error removing photo:', err);
         }
       } else {
         // Atualização normal quando não está removendo a foto
@@ -305,7 +300,6 @@ export function ProfileSettings() {
       window.location.reload();
 
     } catch (error) {
-      console.error("Erro ao atualizar perfil:", error);
 
       // Mostrar mensagem de erro mais detalhada
       const errorMessage =
@@ -338,7 +332,6 @@ export function ProfileSettings() {
       });
       setIsSearchOpen(false);
     } catch (error) {
-      console.error("Erro ao buscar detalhes da série:", error);
     }
   };
 
@@ -409,7 +402,7 @@ export function ProfileSettings() {
                   <UserAvatar
                     size="2xl"
                     photoURL={isRemovingPhoto ? null : (tempPhotoURL || currentUser?.photoURL)}
-                    displayName={currentUser?.displayName || ""}
+                    name={currentUser?.displayName || ""}
                     userId={currentUser?.uid}
                   />
                   <Box

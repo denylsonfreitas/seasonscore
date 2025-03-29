@@ -203,7 +203,6 @@ export function Profile() {
 
       onClose();
     } catch (error) {
-      console.error("Erro ao atualizar perfil:", error);
       toast({
         title: "Erro ao atualizar perfil",
         description: "Ocorreu um erro ao atualizar seu nome. Tente novamente.",
@@ -237,7 +236,6 @@ export function Profile() {
         isClosable: true,
       });
     } catch (error) {
-      console.error("Erro ao atualizar foto:", error);
       toast({
         title: "Erro ao atualizar foto",
         description: "Ocorreu um erro ao atualizar sua foto. Tente novamente.",
@@ -270,7 +268,6 @@ export function Profile() {
         isClosable: true,
       });
     } catch (error) {
-      console.error("Erro ao atualizar capa:", error);
       toast({
         title: "Erro ao atualizar capa",
         description:

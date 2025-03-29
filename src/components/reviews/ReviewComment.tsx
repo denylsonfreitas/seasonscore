@@ -227,11 +227,16 @@ export function ReviewComment({
           userId={comment.userId}
           userEmail={comment.userEmail}
           photoURL={userData?.photoURL}
+          isDeletedExtra={userData?.isDeleted}
         />
         <VStack spacing={2} align="stretch" flex={1}>
           <HStack justify="space-between" width="100%">
             <VStack spacing={0} align="start">
-              <UserName userId={comment.userId} />
+              {userData?.isDeleted ? (
+                <Text fontSize="sm" fontStyle="italic" color="gray.400">Usuário excluído</Text>
+              ) : (
+                <UserName userId={comment.userId} />
+              )}
               <Text color="gray.400" fontSize="xs">
                 {formatDate(comment.createdAt)}
               </Text>

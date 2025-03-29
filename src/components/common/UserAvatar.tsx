@@ -1,89 +1,86 @@
-import { Avatar, Box, AvatarProps } from "@chakra-ui/react";
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { getUserData } from "../../services/users";
+import React from 'react';
+import { Avatar, AvatarBadge, AvatarProps, Box, useColorModeValue } from '@chakra-ui/react';
+import { FaUser } from 'react-icons/fa';
 
-interface UserAvatarProps extends Omit<AvatarProps, "src" | "name"> {
+interface UserAvatarProps extends Omit<AvatarProps, 'src' | 'name' | 'icon'> {
   userId?: string;
-  userEmail?: string;
   photoURL?: string | null;
-  displayName?: string;
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  isOnline?: boolean;
+  showStatus?: boolean;
+  isDeleted?: boolean;
+  isDeletedExtra?: boolean;
+  name?: string;
+  onClick?: () => void;
+  userEmail?: string;
 }
 
-/**
- * Componente padronizado para Avatar de usuários
- * Aceita todas as props do Avatar do Chakra UI, exceto src e name que são gerenciados internamente
- */
-export function UserAvatar({ 
-  userId, 
-  userEmail, 
+export const UserAvatar: React.FC<UserAvatarProps> = ({
+  userId,
   photoURL,
-  displayName, 
-  ...props 
-}: UserAvatarProps) {
-  const [userData, setUserData] = useState<{
-    photoURL?: string | null;
-    displayName?: string;
-    email?: string;
-  } | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Fetch user data usando callback para evitar recriações
-  const fetchUserData = useCallback(async () => {
-    if (!userId) return;
-    
-    setIsLoading(true);
-    try {
-      const data = await getUserData(userId);
-      if (data) {
-        setUserData(data);
-      }
-    } catch (error) {
-      console.error("Erro ao buscar dados do usuário para avatar:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId]);
-
-  // Busca dados do usuário se necessário
-  useEffect(() => {
-    if (userId && !photoURL && !displayName && !isLoading) {
-      fetchUserData();
-    }
-  }, [userId, photoURL, displayName, fetchUserData, isLoading]);
-
-  // Memoizar a fonte da imagem e o nome para evitar cálculos repetidos
-  const { userPhotoURL, userName } = useMemo(() => {
-    // Determina a foto de perfil
-    const userPhotoURL = photoURL || userData?.photoURL;
-    
-    // Determina o nome para exibição ou geração de iniciais
-    const userName = displayName || 
-                    userData?.displayName || 
-                    userEmail || 
-                    (userData?.email?.split("@")[0]) || 
-                    "Usuário";
-    
-    return { userPhotoURL, userName };
-  }, [photoURL, userData, displayName, userEmail]);
-
-  // Memoizar as propriedades do Avatar
-  const avatarProps = useMemo(() => {
-    return {
-      src: userPhotoURL || undefined,
-      name: userName,
-      bgGradient: !userPhotoURL ? "linear(to-r, primary.600, primary.400)" : undefined,
-      color: "white",
-      ...props
-    };
-  }, [userPhotoURL, userName, props]);
-
-  return (
+  size = 'md',
+  isOnline,
+  showStatus = false,
+  isDeleted = false,
+  isDeletedExtra = false,
+  name,
+  onClick,
+  userEmail,
+  ...props
+}) => {
+  // Extrair propriedade displayName das props extras
+  const { displayName, ...filteredProps } = props as { 
+    displayName?: string
+  } & AvatarProps;
+  
+  // Determinar se o usuário foi excluído
+  const userIsDeleted = isDeleted || 
+                       !userId || 
+                       isDeletedExtra || 
+                       !photoURL || 
+                       (name && name.toLowerCase().includes('excluído'));
+  
+  // Cores para o fallback
+  const bg = useColorModeValue('gray.300', 'gray.600');
+  const iconColor = useColorModeValue('gray.600', 'gray.300');
+  
+  // Definir o fallback para usuários excluídos
+  const FallbackAvatar = () => (
     <Box
-      position="relative"
+      width="100%"
+      height="100%"
       borderRadius="full"
-      overflow="hidden"
+      bg={bg}
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
     >
-      <Avatar {...avatarProps} />
+      <FaUser color={iconColor} size={size === 'xs' ? '10px' : size === 'sm' ? '14px' : '18px'} />
     </Box>
   );
-} 
+  
+  return (
+    <Avatar
+      size={size}
+      src={userIsDeleted ? undefined : photoURL || undefined}
+      name={userIsDeleted ? "Usuário excluído" : name || (userEmail ? userEmail.split('@')[0] : 'Usuário')}
+      bg={bg}
+      icon={userIsDeleted ? <FaUser /> : undefined}
+      cursor={onClick ? 'pointer' : 'default'}
+      onClick={onClick}
+      borderWidth={userIsDeleted ? '1px' : 0}
+      borderColor="gray.500"
+      opacity={userIsDeleted ? 0.7 : 1}
+      {...filteredProps}
+    >
+      {showStatus && (
+        <AvatarBadge
+          boxSize="1em"
+          bg={isOnline ? 'green.400' : 'gray.400'}
+          borderWidth="2px"
+          borderColor={useColorModeValue('white', 'gray.800')}
+        />
+      )}
+    </Avatar>
+  );
+}; 

@@ -49,13 +49,35 @@ export async function addToWatchlist(
   try {
     await checkNewEpisodeForSeries(userId, series.id, series.name, series.poster_path);
   } catch (error) {
-    console.error("Erro ao verificar novos episódios ao adicionar à watchlist:", error);
   }
 }
 
 export async function removeFromWatchlist(userId: string, seriesId: number): Promise<void> {
-  const watchlistRef = doc(db, "watchlist", `${userId}_${seriesId}`);
-  await deleteDoc(watchlistRef);
+  try {
+    // Criar a referência ao documento usando o formato de ID composto
+    const docId = `${userId}_${seriesId}`;
+    const watchlistRef = doc(db, "watchlist", docId);
+    
+    // Verificar se o documento existe antes de excluir
+    const docSnap = await getDoc(watchlistRef);
+    if (!docSnap.exists()) {
+      return;
+    }
+    
+    // Verificar se os dados do documento correspondem ao usuário correto
+    const data = docSnap.data();
+    if (data.userId !== userId) {
+      throw new Error("Você não tem permissão para remover este item da watchlist");
+    }
+    
+    // Excluir o documento
+    await deleteDoc(watchlistRef);
+    
+    // Aqui poderíamos adicionar lógica adicional se necessário
+    // Por exemplo, remover também notificações relacionadas a esta série
+  } catch (error) {
+    throw error;
+  }
 }
 
 export async function isInWatchlist(userId: string, seriesId: number): Promise<boolean> {
@@ -83,7 +105,6 @@ export async function getUserWatchlist(userId: string) {
     
     return watchlistItems;
   } catch (error) {
-    console.error("Erro ao buscar watchlist:", error);
     return [];
   }
 } 
