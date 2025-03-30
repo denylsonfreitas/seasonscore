@@ -26,6 +26,7 @@ import { getUserData } from "./users";
 import { db } from "../config/firebase";
 import { SeasonReview } from "../types/review";
 import { getFollowing } from "./followers";
+import { isInWatchlist } from "./watchlist";
 
 const reviewsCollection = collection(db, "reviews");
 
@@ -113,6 +114,8 @@ export async function addSeasonReview(
     );
 
     const userReviewSnapshot = await getDocs(userReviewQuery);
+    let isNewReview = false;
+    let reviewDocRef;
 
     if (userReviewSnapshot.empty) {
       // Cria uma nova avaliação da série
@@ -124,10 +127,12 @@ export async function addSeasonReview(
         createdAt: serverTimestamp(),
       };
 
-      await addDoc(reviewsCollection, seriesReview);
+      reviewDocRef = await addDoc(reviewsCollection, seriesReview);
+      isNewReview = true;
     } else {
       // Atualiza a avaliação existente
       const reviewDoc = userReviewSnapshot.docs[0];
+      reviewDocRef = reviewDoc.ref;
       const existingReview = reviewDoc.data() as SeriesReview;
 
       // Verifica se já existe uma avaliação para esta temporada
@@ -141,11 +146,57 @@ export async function addSeasonReview(
       } else {
         // Adiciona nova avaliação de temporada
         existingReview.seasonReviews.push(seasonReview);
+        isNewReview = true;
       }
 
       await updateDoc(reviewDoc.ref, {
         seasonReviews: existingReview.seasonReviews,
       });
+    }
+
+    // Se é uma nova avaliação, notificar os seguidores
+    if (isNewReview) {
+      try {
+        // Obter detalhes da série
+        const seriesDetails = await getSeriesDetails(seriesId);
+        
+        // Obter dados do usuário
+        const userData = await getUserData(auth.currentUser.uid);
+        const userName = userData?.username || userData?.displayName || auth.currentUser.email;
+        
+        // Obter lista de seguidores
+        const followers = await getFollowing(auth.currentUser.uid);
+        
+        // Para cada seguidor, verificar se tem a série na watchlist e enviar notificação se tiver
+        for (const follower of followers) {
+          try {
+            // Verificar se o seguidor tem a série na watchlist
+            const hasInWatchlist = await isInWatchlist(follower.userId, seriesId);
+            
+            // Só enviar notificação se o usuário tiver a série na watchlist
+            if (hasInWatchlist) {
+              await createNotification(
+                follower.userId, // ID do seguidor que receberá a notificação
+                NotificationType.NEW_REVIEW,
+                {
+                  senderId: auth.currentUser.uid,
+                  seriesId: seriesId,
+                  seriesName: seriesDetails.name,
+                  seriesPoster: seriesDetails.poster_path || undefined,
+                  seasonNumber: seasonNumber,
+                  reviewId: reviewDocRef.id,
+                  message: `${userName} avaliou ${seriesDetails.name} (Temporada ${seasonNumber}).`
+                }
+              );
+            }
+          } catch (watchlistError) {
+            // Silenciar erros individuais de verificação de watchlist 
+            // para não interromper o processamento de outros seguidores
+          }
+        }
+      } catch (error) {
+        // Silenciar erros de notificação para não interromper o fluxo principal
+      }
     }
   } catch (error) {
   }

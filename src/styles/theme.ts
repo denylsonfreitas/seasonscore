@@ -65,7 +65,15 @@ const colors = {
     recent: "#9F7AEA",
     top10: "#F6AD55",
   },
- 
+
+  notifications: {
+    newfollower: "#2B6CB0",
+    newcomment: "#2F855A",
+    newlike: "#C05621",
+    newepisode: "#2F855A",
+    newreview: "#F6AD55",
+  },
+
   success: "#38A169",
   warning: "#ECC94B",
   error: "#E53E3E",

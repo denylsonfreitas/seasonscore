@@ -11,10 +11,7 @@ import {
   Divider,
   useToken,
 } from "@chakra-ui/react";
-import {
-  List,
-  SignIn,
-} from "@phosphor-icons/react";
+import { List, SignIn } from "@phosphor-icons/react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { ExtendedUser } from "../../types/auth";
@@ -30,8 +27,6 @@ import { AnimatedMenu } from "../common/AnimatedMenu";
 import { useAnimatedMenu } from "../../hooks/useAnimatedMenu";
 import { RippleEffect } from "../common/RippleEffect";
 
-// Função global para abrir o popover de login
-// Será inicializada pelas funções do Navbar quando ele for montado
 let globalOpenLoginPopover: (() => void) | null = null;
 
 export function getGlobalLoginPopover() {
@@ -45,60 +40,59 @@ export function Navbar() {
   };
   const navigate = useNavigate();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  
+
   // Obtém o estado da UI de autenticação do store
-  const { 
-    isSignUpModalOpen, 
-    openSignUpModal, 
-    closeSignUpModal, 
-    openSignUpFromLogin
+  const {
+    isSignUpModalOpen,
+    openSignUpModal,
+    closeSignUpModal,
+    openSignUpFromLogin,
   } = useAuthUIStore();
-  
+
   // Estados e funções para o menu animado de login desktop
-  const { 
-    isOpen: isDesktopLoginOpen, 
-    isVisible: isDesktopLoginVisible, 
+  const {
+    isOpen: isDesktopLoginOpen,
+    isVisible: isDesktopLoginVisible,
     isRippling: isDesktopRippling,
-    handleOpen: handleDesktopLoginOpen, 
-    handleClose: handleDesktopLoginClose, 
+    handleOpen: handleDesktopLoginOpen,
+    handleClose: handleDesktopLoginClose,
     handleRippleEffect: handleDesktopRippleEffect,
-    getItemAnimationStyle: getDesktopItemAnimationStyle
+    getItemAnimationStyle: getDesktopItemAnimationStyle,
   } = useAnimatedMenu();
-  
+
   // Estados e funções para o menu animado de login mobile
-  const { 
-    isOpen: isMobileLoginOpen, 
-    isVisible: isMobileLoginVisible, 
+  const {
+    isOpen: isMobileLoginOpen,
+    isVisible: isMobileLoginVisible,
     isRippling: isMobileRippling,
-    handleOpen: handleMobileLoginOpen, 
-    handleClose: handleMobileLoginClose, 
+    handleOpen: handleMobileLoginOpen,
+    handleClose: handleMobileLoginClose,
     handleRippleEffect: handleMobileRippleEffect,
-    getItemAnimationStyle: getMobileItemAnimationStyle
+    getItemAnimationStyle: getMobileItemAnimationStyle,
   } = useAnimatedMenu();
 
   // Adicionar uso do useToken para obter as cores do tema
   const [seriesColor, popularColor, recentColor, top10Color] = useToken(
-    'colors',
-    ['linkhome.series', 'linkhome.popular', 'linkhome.recent', 'linkhome.top10']
+    "colors",
+    ["linkhome.series", "linkhome.popular", "linkhome.recent", "linkhome.top10"]
   );
 
   const handleLogout = async () => {
     try {
       await logout();
       navigate("/");
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   // Trigger para o login desktop
   const desktopLoginTrigger = (
-    <Button 
+    <Button
       onClick={() => {
         handleDesktopRippleEffect();
         handleDesktopLoginOpen();
       }}
-      variant="outline" 
-      size="sm" 
+      variant="outline"
+      size="sm"
       colorScheme="primary"
       position="relative"
       overflow="hidden"
@@ -107,7 +101,7 @@ export function Navbar() {
       <RippleEffect isRippling={isDesktopRippling} />
     </Button>
   );
-  
+
   // Trigger para o login mobile
   const mobileLoginTrigger = (
     <IconButton
@@ -132,24 +126,23 @@ export function Navbar() {
     />
   );
 
-  // Registrar as funções de abertura do login globalmente
   useEffect(() => {
-    // Na versão mobile, usamos o handleMobileLoginOpen
-    // Na versão desktop, usamos o handleDesktopLoginOpen
-    // Para detectar qual usar, vamos verificar a largura da janela
     const isMobile = window.innerWidth < 768;
-    globalOpenLoginPopover = isMobile ? handleMobileLoginOpen : handleDesktopLoginOpen;
-    
+    globalOpenLoginPopover = isMobile
+      ? handleMobileLoginOpen
+      : handleDesktopLoginOpen;
+
     const handleResize = () => {
       const isMobile = window.innerWidth < 768;
-      globalOpenLoginPopover = isMobile ? handleMobileLoginOpen : handleDesktopLoginOpen;
+      globalOpenLoginPopover = isMobile
+        ? handleMobileLoginOpen
+        : handleDesktopLoginOpen;
     };
-    
-    window.addEventListener('resize', handleResize);
-    
+
+    window.addEventListener("resize", handleResize);
+
     return () => {
-      window.removeEventListener('resize', handleResize);
-      // Limpar a referência quando o componente for desmontado
+      window.removeEventListener("resize", handleResize);
       globalOpenLoginPopover = null;
     };
   }, [handleMobileLoginOpen, handleDesktopLoginOpen]);
@@ -183,9 +176,9 @@ export function Navbar() {
                 alignItems="center"
                 gap={2}
               >
-                <Text 
-                  fontFamily="logo" 
-                  fontSize="2xl" 
+                <Text
+                  fontFamily="logo"
+                  fontSize="2xl"
                   letterSpacing="wide"
                   fontWeight="bold"
                   lineHeight="1"
@@ -193,7 +186,12 @@ export function Navbar() {
                   SeasonScore
                 </Text>
               </Link>
-              <Divider borderColor="gray.600" orientation="vertical" height="20px" display={{ base: "none", md: "flex" }} />
+              <Divider
+                borderColor="gray.600"
+                orientation="vertical"
+                height="20px"
+                display={{ base: "none", md: "flex" }}
+              />
 
               {/* Menu de Navegação */}
               <HStack spacing={5} display={{ base: "none", md: "flex" }} pt={1}>
@@ -253,8 +251,7 @@ export function Navbar() {
                     <NotificationMenu />
                     <ProfileMenu />
                   </HStack>
-                  
-                  {/* Menu Mobile para usuários logados - apenas perfil com menu acionado pelo avatar */}
+
                   <HStack spacing={3} display={{ base: "flex", md: "none" }}>
                     <QuickAddButton size="26px" />
                     <NotificationMenu />
@@ -268,7 +265,7 @@ export function Navbar() {
                     <Button onClick={openSignUpModal} variant="solid" size="sm">
                       Criar Conta
                     </Button>
-                    
+
                     <AnimatedMenu
                       trigger={desktopLoginTrigger}
                       isOpen={isDesktopLoginOpen}
@@ -279,7 +276,7 @@ export function Navbar() {
                       alignOnlyOnDesktop={true}
                       responsivePosition={{
                         base: { top: "60px", right: "16px" },
-                        md: { } // Vazio para permitir alinhamento com trigger no desktop
+                        md: {}, // Vazio para permitir alinhamento com trigger no desktop
                       }}
                       transformOrigin="top right"
                       width={{ base: "calc(100vw - 32px)", md: "300px" }}
@@ -293,21 +290,21 @@ export function Navbar() {
                         p: 0,
                         borderRadius: { base: "md", md: "md" },
                         borderWidth: "1px",
-                        maxW: "350px"
+                        maxW: "350px",
                       }}
                     >
                       <Box style={getDesktopItemAnimationStyle(0)}>
-                        <LoginForm 
+                        <LoginForm
                           onSignUpClick={() => {
                             handleDesktopLoginClose();
                             setTimeout(openSignUpFromLogin, 350);
-                          }} 
-                          onClose={handleDesktopLoginClose} 
+                          }}
+                          onClose={handleDesktopLoginClose}
                         />
                       </Box>
                     </AnimatedMenu>
                   </HStack>
-                  
+
                   {/* Menu Mobile para usuários não logados */}
                   <HStack spacing={2} display={{ base: "flex", md: "none" }}>
                     <AnimatedMenu
@@ -332,20 +329,20 @@ export function Navbar() {
                         p: 0,
                         borderRadius: { base: "md", md: "md" },
                         borderWidth: "1px",
-                        maxW: "350px"
+                        maxW: "350px",
                       }}
                     >
                       <Box style={getMobileItemAnimationStyle(0)}>
-                        <LoginForm 
+                        <LoginForm
                           onSignUpClick={() => {
                             handleMobileLoginClose();
                             setTimeout(openSignUpFromLogin, 350);
-                          }} 
-                          onClose={handleMobileLoginClose} 
+                          }}
+                          onClose={handleMobileLoginClose}
                         />
                       </Box>
                     </AnimatedMenu>
-                    
+
                     <IconButton
                       aria-label="Menu"
                       icon={<List weight="bold" size={18} />}
@@ -362,10 +359,8 @@ export function Navbar() {
         </Container>
       </Box>
 
-      {/* Espaçador para compensar a navbar fixa */}
       <Box height="60px" />
 
-      {/* Modal de Cadastro */}
       <SignUpModal isOpen={isSignUpModalOpen} onClose={closeSignUpModal} />
 
       {/* Menu Mobile para todos os usuários */}

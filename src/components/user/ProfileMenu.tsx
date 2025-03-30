@@ -99,7 +99,7 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
     <IconButton
       aria-label="Opções do usuário"
       icon={
-        <Box position="relative" overflow="hidden" borderRadius="full">
+        <Box position="relative" borderRadius="full">
           <UserAvatar
             size={size}
             userId={currentUser?.uid}

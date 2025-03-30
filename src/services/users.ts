@@ -601,4 +601,39 @@ export async function addToUserWatchedSeries(userId: string, seriesId: number): 
     }
   } catch (error) {
   }
+}
+
+// Obter configurações de notificação do usuário
+export async function getUserNotificationSettings(userId: string): Promise<{
+  newEpisode: boolean;
+  newFollower: boolean;
+  newComment: boolean;
+  newReaction: boolean;
+  newReview: boolean;
+} | null> {
+  try {
+    if (!userId) return null;
+    
+    const userRef = doc(db, "users", userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      return null;
+    }
+    
+    // Obter configurações atuais ou usar defaults
+    const userData = userDoc.data();
+    const settings = userData.notificationSettings || {
+      newEpisode: true,
+      newFollower: true,
+      newComment: true,
+      newReaction: true,
+      newReview: true
+    };
+    
+    return settings;
+  } catch (error) {
+    console.error("Erro ao obter configurações de notificação:", error);
+    return null;
+  }
 } 

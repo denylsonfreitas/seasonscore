@@ -8,6 +8,7 @@ import {
   Badge,
   Stack,
   Checkbox,
+  useTheme,
 } from '@chakra-ui/react';
 import {
   FaUser, FaComment, FaVideo, FaStar
@@ -37,6 +38,17 @@ export const NotificationItem = memo(({
   isSelected = false,
   onSelect
 }: NotificationItemProps) => {
+  const theme = useTheme();
+  
+  // Definir cores padrão para os ícones
+  const notificationColors = {
+    newfollower: theme?.colors?.notifications?.newfollower || "#2B6CB0",
+    newcomment: theme?.colors?.notifications?.newcomment || "#2F855A",
+    newlike: theme?.colors?.notifications?.newlike || "#C05621",
+    newepisode: theme?.colors?.notifications?.newepisode || "#2F855A",
+    newreview: theme?.colors?.notifications?.newreview || "#F6AD55"
+  };
+
   // Verificar se o usuário está excluído
   const isUserDeleted = !notification.senderId || 
                         !notification.senderName || 
@@ -49,22 +61,22 @@ export const NotificationItem = memo(({
   // Definir o ícone com base no tipo de notificação
   const getNotificationIcon = () => {
     if (isUserDeleted) {
-      return <FaUser />;
+      return <Box as={FaUser} color="gray.400" />;
     }
     
     switch (notification.type) {
       case NotificationType.NEW_FOLLOWER:
-        return <FaUser />;
+        return <Box as={FaUser} color={notificationColors.newfollower} />;
       case NotificationType.NEW_COMMENT:
-        return <FaComment />;
+        return <Box as={FaComment} color={notificationColors.newcomment} />;
       case NotificationType.NEW_REACTION:
-        return <FaThumbsUp />;
+        return <Box as={FaThumbsUp} color={notificationColors.newlike} />;
       case NotificationType.NEW_EPISODE:
-        return <FaVideo />;
+        return <Box as={FaVideo} color={notificationColors.newepisode} />;
       case NotificationType.NEW_REVIEW:
-        return <FaStar />;
+        return <Box as={FaStar} color={notificationColors.newreview} />;
       default:
-        return <FaUser />;
+        return <Box as={FaUser} color={notificationColors.newfollower} />;
     }
   };
   

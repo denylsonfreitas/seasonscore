@@ -16,4 +16,11 @@ export interface ExtendedUser extends FirebaseUser {
       }>;
     };
   };
+  notificationSettings?: {
+    newEpisode: boolean;
+    newFollower: boolean;
+    newComment: boolean;
+    newReaction: boolean;
+    newReview: boolean;
+  };
 } 

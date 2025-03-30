@@ -23,7 +23,6 @@ import {
   AlertIcon,
   Icon,
   FormErrorMessage,
-  Switch,
   HStack,
 } from "@chakra-ui/react";
 import { useState, useRef, useEffect } from "react";
@@ -42,7 +41,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { ExtendedUser } from "../types/auth";
 import { auth } from "../config/firebase";
-import { isUsernameAvailable, updateUsername, deleteUserData, updateUserNotificationSettings } from "../services/users";
+import { isUsernameAvailable, updateUsername, deleteUserData } from "../services/users";
 import { getFirestore, deleteDoc, doc, getDoc } from "firebase/firestore";
 
 export function Settings() {
@@ -78,16 +77,6 @@ export function Settings() {
   const [usernameError, setUsernameError] = useState("");
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Estados para configurações de notificação
-  const [notificationSettings, setNotificationSettings] = useState({
-    newEpisode: true,
-    newFollower: true,
-    newComment: true,
-    newReaction: true,
-    newReview: true
-  });
-  const [isSavingNotificationSettings, setIsSavingNotificationSettings] = useState(false);
 
   const handleUpdateEmail = async () => {
     if (!auth.currentUser || !emailCurrentPassword) return;
@@ -378,58 +367,6 @@ export function Settings() {
     return () => clearTimeout(debounceTimer);
   }, [newUsername]);
 
-  // Carregar configurações de notificação do usuário atual
-  useEffect(() => {
-    const loadNotificationSettings = async () => {
-      if (!currentUser?.uid) return;
-      
-      try {
-        const userDoc = await getDoc(doc(getFirestore(), "users", currentUser.uid));
-        if (userDoc.exists() && userDoc.data().notificationSettings) {
-          setNotificationSettings(userDoc.data().notificationSettings);
-        }
-      } catch (error) {
-      }
-    };
-    
-    loadNotificationSettings();
-  }, [currentUser?.uid]);
-  
-  // Função para atualizar configurações de notificação
-  const handleNotificationSettingsChange = (setting: keyof typeof notificationSettings) => {
-    setNotificationSettings({
-      ...notificationSettings,
-      [setting]: !notificationSettings[setting]
-    });
-  };
-  
-  // Função para salvar configurações de notificação
-  const saveNotificationSettings = async () => {
-    if (!currentUser?.uid) return;
-    
-    setIsSavingNotificationSettings(true);
-    try {
-      await updateUserNotificationSettings(currentUser.uid, notificationSettings);
-      toast({
-        title: "Configurações salvas",
-        description: "Suas preferências de notificação foram atualizadas.",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível salvar suas preferências.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setIsSavingNotificationSettings(false);
-    }
-  };
-
   return (
     <Box bg="gray.900" minH="100vh">
       <Container maxW="container.md" py={8}>
@@ -437,87 +374,10 @@ export function Settings() {
           <Heading color="white">Configurações</Heading>
           <Box bg="gray.800" p={6} borderRadius="lg">
             <VStack spacing={6} align="stretch">
-              <Heading size="md" color="white">Notificações</Heading>
-              <Text color="gray.400" mb={2}>
-                Escolha quais tipos de notificações você deseja receber:
-              </Text>
-              
-              <FormControl display="flex" alignItems="center">
-                <FormLabel htmlFor="new-episode-notifications" mb="0" color="white">
-                  Novos episódios
-                </FormLabel>
-                <Switch 
-                  id="new-episode-notifications"
-                  isChecked={notificationSettings.newEpisode}
-                  onChange={() => handleNotificationSettingsChange('newEpisode')}
-                  colorScheme="primary"
-                />
-              </FormControl>
-              
-              <FormControl display="flex" alignItems="center">
-                <FormLabel htmlFor="new-follower-notifications" mb="0" color="white">
-                  Novos seguidores
-                </FormLabel>
-                <Switch 
-                  id="new-follower-notifications"
-                  isChecked={notificationSettings.newFollower}
-                  onChange={() => handleNotificationSettingsChange('newFollower')}
-                  colorScheme="primary"
-                />
-              </FormControl>
-              
-              <FormControl display="flex" alignItems="center">
-                <FormLabel htmlFor="new-comment-notifications" mb="0" color="white">
-                  Comentários
-                </FormLabel>
-                <Switch 
-                  id="new-comment-notifications"
-                  isChecked={notificationSettings.newComment}
-                  onChange={() => handleNotificationSettingsChange('newComment')}
-                  colorScheme="primary"
-                />
-              </FormControl>
-              
-              <FormControl display="flex" alignItems="center">
-                <FormLabel htmlFor="new-reaction-notifications" mb="0" color="white">
-                  Reações
-                </FormLabel>
-                <Switch 
-                  id="new-reaction-notifications"
-                  isChecked={notificationSettings.newReaction}
-                  onChange={() => handleNotificationSettingsChange('newReaction')}
-                  colorScheme="primary"
-                />
-              </FormControl>
-              
-              <FormControl display="flex" alignItems="center">
-                <FormLabel htmlFor="new-review-notifications" mb="0" color="white">
-                  Novas avaliações
-                </FormLabel>
-                <Switch 
-                  id="new-review-notifications"
-                  isChecked={notificationSettings.newReview}
-                  onChange={() => handleNotificationSettingsChange('newReview')}
-                  colorScheme="primary"
-                />
-              </FormControl>
-              
-              <Button 
-                colorScheme="primary"
-                onClick={saveNotificationSettings}
-                isLoading={isSavingNotificationSettings}
-                mt={4}
-              >
-                Salvar preferências
-              </Button>
-            </VStack>
-          </Box>
-          <Box bg="gray.800" p={6} borderRadius="lg">
-            <VStack spacing={6} align="stretch">
               
               <Heading size="md" color="white">Segurança</Heading>
               <FormControl>
-                <FormLabel color="white">Alterar Email</FormLabel>
+                <FormLabel htmlFor="email-input" color="white">Alterar Email</FormLabel>
                 <VStack spacing={3} align="stretch">
                   {emailSent && (
                     <Alert status="info" bg="blue.800" color="white">
@@ -571,13 +431,14 @@ export function Settings() {
               <Divider borderColor="gray.600" />
 
               <FormControl>
-                <FormLabel color="white">Alterar Senha</FormLabel>
+                <FormLabel htmlFor="reset-password-button" color="white">Alterar Senha</FormLabel>
                 <VStack spacing={3} align="stretch">
                   <Alert status="info" bg="blue.800" color="white">
                     <AlertIcon />
                     Por questões de segurança, você receberá um email para alterar sua senha.
                   </Alert>
                   <Button
+                    id="reset-password-button"
                     colorScheme="primary"
                     onClick={handleResetPassword}
                     width="full"
@@ -621,29 +482,34 @@ export function Settings() {
               <Text color="gray.300" mb={4}>
                 Tem certeza? Esta ação não pode ser desfeita.
               </Text>
-              <InputGroup>
-                <Input
-                  value={deleteAccountPassword}
-                  onChange={(e) => setDeleteAccountPassword(e.target.value)}
-                  placeholder="Digite sua senha para confirmar"
-                  type={showDeletePassword ? "text" : "password"}
-                  bg="gray.700"
-                  color="white"
-                  border="none"
-                  id="delete-account-password"
-                />
-                <InputRightElement width="4.5rem">
-                  <Button
-                    h="1.75rem"
-                    size="sm"
-                    onClick={() => setShowDeletePassword(!showDeletePassword)}
-                    variant="ghost"
-                    color="gray.400"
-                  >
-                    {showDeletePassword ? "Ocultar" : "Mostrar"}
-                  </Button>
-                </InputRightElement>
-              </InputGroup>
+              <FormControl>
+                <FormLabel htmlFor="delete-account-password" color="white" mb={2}>
+                  Digite sua senha para confirmar:
+                </FormLabel>
+                <InputGroup>
+                  <Input
+                    value={deleteAccountPassword}
+                    onChange={(e) => setDeleteAccountPassword(e.target.value)}
+                    placeholder="Digite sua senha para confirmar"
+                    type={showDeletePassword ? "text" : "password"}
+                    bg="gray.700"
+                    color="white"
+                    border="none"
+                    id="delete-account-password"
+                  />
+                  <InputRightElement width="4.5rem">
+                    <Button
+                      h="1.75rem"
+                      size="sm"
+                      onClick={() => setShowDeletePassword(!showDeletePassword)}
+                      variant="ghost"
+                      color="gray.400"
+                    >
+                      {showDeletePassword ? "Ocultar" : "Mostrar"}
+                    </Button>
+                  </InputRightElement>
+                </InputGroup>
+              </FormControl>
             </AlertDialogBody>
 
             <AlertDialogFooter>
