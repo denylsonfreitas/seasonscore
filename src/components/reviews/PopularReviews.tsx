@@ -1,4 +1,4 @@
-import { Box, Heading, VStack, Text, HStack, Flex, Grid, Image, Icon, useDisclosure, Button } from "@chakra-ui/react";
+import { Box, Heading, VStack, Text, HStack, Flex, Grid, Image, Icon, useDisclosure, Button, Avatar } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { getPopularReviews, PopularReview, getSeriesReviews } from "../../services/reviews";
 import { Heart, CaretDown, CaretUp } from "@phosphor-icons/react";
@@ -128,8 +128,13 @@ export function PopularReviews() {
                   />
                   <VStack align="start" spacing={1} flex="1">
                     <HStack spacing={2} align="center">
-                      <UserAvatar size="sm" photoURL={review.userAvatar} displayName={review.userName} />
-                      <UserName userId={review.userId} />
+                      <UserAvatar
+                        size="sm"
+                        photoURL={review.userAvatar}
+                        name={review.userName}
+                        userId={review.userId}
+                      />
+                      <UserName userId={review.userId}/>
                     </HStack>
                     <Text color="white" fontSize="md" fontWeight="bold">
                       {review.seriesName}

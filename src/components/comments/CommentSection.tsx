@@ -240,7 +240,7 @@ export function CommentSection({ objectId, objectType, commentsCount }: CommentS
 
         {currentUser ? (
           <Flex mb={6}>
-          <UserAvatar
+            <UserAvatar
               size="sm"
               userId={currentUser?.uid}
               photoURL={currentUser?.photoURL}
@@ -335,7 +335,7 @@ export function CommentSection({ objectId, objectType, commentsCount }: CommentS
                 <Flex justify="space-between" mb={2}>
                   <HStack>
                     <Flex alignItems="center">
-                      <Avatar 
+                      <Avatar
                         size="sm" 
                         src={comment.userPhotoURL || undefined}
                         name={comment.userDisplayName || comment.username} 
