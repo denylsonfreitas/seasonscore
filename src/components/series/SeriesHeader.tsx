@@ -166,7 +166,7 @@ export function SeriesHeader({
       </Box>
 
       {/* Conteúdo Principal */}
-      <Container maxW="1200px" position="relative" pb={16}>
+      <Container maxW="container.lg" position="relative" pb={16}>
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8} mt="-200px">
           <Box>
             <Image

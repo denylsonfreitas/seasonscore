@@ -15,7 +15,7 @@ export function Home() {
       <Box flex="1">
         <TrendingBanner />
         
-        <Container maxW="1200px" py={8} pb={16}>
+        <Container maxW="container.lg" py={8} pb={16}>
           <PersonalizedRecommendations />
 
           <HomeSeriesSection

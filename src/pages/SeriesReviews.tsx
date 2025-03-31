@@ -187,7 +187,7 @@ export function SeriesReviews() {
         </Box>
 
         {/* Conteúdo Principal */}
-        <Container maxW="1200px" position="relative" mt="-200px">
+        <Container maxW="container.lg" position="relative" mt="-200px" pb={10}>
           <VStack spacing={6} align="stretch">
             <HStack justify="space-between" align="center" p={6} borderRadius="lg">
               <Heading color="white" size="lg">

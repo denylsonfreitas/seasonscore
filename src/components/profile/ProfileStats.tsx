@@ -1,28 +1,16 @@
 import React from "react";
 import {
-  Stat,
-  StatLabel,
-  StatNumber,
-  Grid,
-  GridItem,
-  useBreakpointValue,
+  Flex,
+  Box,
+  Text,
+  HStack,
   Divider,
 } from "@chakra-ui/react";
-import { 
-  FaStar, 
-  FaEye, 
-  FaUserFriends, 
-  FaListUl 
-} from "react-icons/fa";
 
 export interface ProfileStatsProps {
   reviewsCount: number;
-  followersCount: number;
-  followingCount: number;
   watchlistCount: number;
   listsCount: number;
-  onShowFollowers: () => void;
-  onShowFollowing: () => void;
   onShowReviews: () => void;
   onShowWatchlist: () => void;
   onShowLists: () => void;
@@ -32,121 +20,90 @@ export interface ProfileStatsProps {
 
 export function ProfileStats({
   reviewsCount,
-  followersCount,
-  followingCount,
   watchlistCount,
   listsCount,
-  onShowFollowers,
-  onShowFollowing,
   onShowReviews,
   onShowWatchlist,
   onShowLists,
   isOwnProfile,
   activeSection = "reviews"
 }: ProfileStatsProps) {
-  const statSize = useBreakpointValue({ base: "sm", md: "md" });
-  const gridTemplate = useBreakpointValue({
-    base: "repeat(2, 1fr)",
-    md: "repeat(5, 1fr)",
-  });
+
+  const menuItems = [
+    {
+      key: "reviews",
+      label: "Avaliações",
+      count: reviewsCount,
+      onClick: onShowReviews,
+    },
+    {
+      key: "watchlist",
+      label: "Watchlist",
+      count: watchlistCount,
+      onClick: onShowWatchlist,
+    },
+    {
+      key: "lists",
+      label: "Listas",
+      count: listsCount,
+      onClick: onShowLists,
+    },
+  ];
 
   return (
-    <Grid
-      templateColumns={gridTemplate}
-      gap={4}
+    <Box
       w="100%"
-      p={4}
-      bg="gray.800"
-      borderRadius="lg"
-      mb={6}
     >
-      <GridItem>
-        <Stat
-          p={2}
-          borderRadius="md"
-          textAlign="center"
-          bg={activeSection === "reviews" ? "gray.700" : "transparent"}
-          _hover={{ bg: "gray.700" }}
-          transition="all 0.2s"
-          cursor="pointer"
-          onClick={onShowReviews}
-        >
-          <StatLabel fontSize={statSize} display="flex" alignItems="center" justifyContent="center">
-            <FaStar style={{ marginRight: "6px" }} /> Avaliações
-          </StatLabel>
-          <StatNumber fontSize={{ base: "lg", md: "xl" }}>{reviewsCount}</StatNumber>
-        </Stat>
-      </GridItem>
-
-      <GridItem>
-        <Stat
-          p={2}
-          borderRadius="md"
-          textAlign="center"
-          bg={activeSection === "watchlist" ? "gray.700" : "transparent"}
-          _hover={{ bg: "gray.700" }}
-          transition="all 0.2s"
-          cursor="pointer"
-          onClick={onShowWatchlist}
-        >
-          <StatLabel fontSize={statSize} display="flex" alignItems="center" justifyContent="center">
-            <FaEye style={{ marginRight: "6px" }} /> Watchlist
-          </StatLabel>
-          <StatNumber fontSize={{ base: "lg", md: "xl" }}>{watchlistCount}</StatNumber>
-        </Stat>
-      </GridItem>
-      
-      <GridItem>
-        <Stat
-          p={2}
-          borderRadius="md"
-          textAlign="center"
-          bg={activeSection === "lists" ? "gray.700" : "transparent"}
-          _hover={{ bg: "gray.700" }}
-          transition="all 0.2s"
-          cursor="pointer"
-          onClick={onShowLists}
-        >
-          <StatLabel fontSize={statSize} display="flex" alignItems="center" justifyContent="center">
-            <FaListUl style={{ marginRight: "6px" }} /> Listas
-          </StatLabel>
-          <StatNumber fontSize={{ base: "lg", md: "xl" }}>{listsCount}</StatNumber>
-        </Stat>
-      </GridItem>
-
-      <GridItem>
-        <Stat
-          p={2}
-          borderRadius="md"
-          textAlign="center"
-          _hover={{ bg: "gray.700" }}
-          transition="all 0.2s"
-          cursor="pointer"
-          onClick={onShowFollowers}
-        >
-          <StatLabel fontSize={statSize} display="flex" alignItems="center" justifyContent="center">
-            <FaUserFriends style={{ marginRight: "6px" }} /> Seguidores
-          </StatLabel>
-          <StatNumber fontSize={{ base: "lg", md: "xl" }}>{followersCount}</StatNumber>
-        </Stat>
-      </GridItem>
-
-      <GridItem>
-        <Stat
-          p={2}
-          borderRadius="md"
-          textAlign="center"
-          _hover={{ bg: "gray.700" }}
-          transition="all 0.2s"
-          cursor="pointer"
-          onClick={onShowFollowing}
-        >
-          <StatLabel fontSize={statSize} display="flex" alignItems="center" justifyContent="center">
-            <FaUserFriends style={{ marginRight: "6px" }} /> Seguindo
-          </StatLabel>
-          <StatNumber fontSize={{ base: "lg", md: "xl" }}>{followingCount}</StatNumber>
-        </Stat>
-      </GridItem>
-    </Grid>
+      <HStack spacing={6} align="center" justify="flex-start" py={2}>
+        {menuItems.map((item, index) => (
+          <React.Fragment key={item.key}>
+            <Flex 
+              align="center" 
+              onClick={item.onClick}
+              cursor="pointer"
+              position="relative"
+              py={2}
+              _after={
+                activeSection === item.key
+                  ? {
+                      content: '""',
+                      position: "absolute",
+                      bottom: "0",
+                      left: "0",
+                      right: "0",
+                      height: "2px",
+                      bg: "primary.500",
+                      borderRadius: "2px",
+                    }
+                  : {}
+              }
+            >
+              <Text 
+                fontWeight={activeSection === item.key ? "bold" : "medium"} 
+                color={activeSection === item.key ? "primary.300" : "gray.300"}
+                mr={2}
+                transition="all 0.2s"
+                _hover={{ color: "white" }}
+              >
+                {item.label}
+              </Text>
+              <Box 
+                bg={activeSection === item.key ? "primary.500" : "gray.700"} 
+                color={activeSection === item.key ? "white" : "gray.400"}
+                px={2} 
+                py={0.5} 
+                borderRadius="full" 
+                fontSize="xs"
+                minW="24px"
+                textAlign="center"
+              >
+                {item.count}
+              </Box>
+            </Flex>
+          </React.Fragment>
+        ))}
+      </HStack>
+      <Divider borderColor="gray.700" />
+    </Box>
   );
 } 

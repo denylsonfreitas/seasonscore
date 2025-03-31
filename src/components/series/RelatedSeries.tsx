@@ -26,7 +26,7 @@ export function RelatedSeries({
 
   if (isLoading) {
     return (
-      <Container maxW="1200px" pb={16}>
+      <Container maxW="container.lg" pb={16}>
         <Heading color="white" size="xl" mb={8}>
           Séries Relacionadas
         </Heading>
@@ -49,7 +49,7 @@ export function RelatedSeries({
 
   if (filteredSeries.length === 0) {
     return (
-      <Container maxW="1200px" pb={16}>
+      <Container maxW="container.lg" pb={16}>
         <Heading color="white" size="xl" mb={8}>
           Séries Relacionadas
         </Heading>
@@ -61,7 +61,7 @@ export function RelatedSeries({
   }
 
   return (
-    <Container maxW="1200px" pb={16}>
+    <Container maxW="container.lg" pb={16}>
       <Heading color="white" size="xl" mb={8}>
         Séries Relacionadas
       </Heading>

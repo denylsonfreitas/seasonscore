@@ -309,7 +309,7 @@ export function Profile() {
   if (!currentUser && !username) {
     return (
       <Box bg="gray.900" minH="100vh" pt="80px">
-        <Container maxW="1200px" py={8}>
+        <Container maxW="container.lg" py={8}>
           <Text color="white">
             Você precisa estar logado para acessar esta página.
           </Text>
@@ -383,20 +383,20 @@ export function Profile() {
           handlePhotoUpload={handlePhotoUpload}
           handleCoverUpload={handleCoverUpload}
           targetUserId={targetUserId || ""}
+          followersCount={followers.length}
+          followingCount={following.length}
+          onShowFollowers={() => setShowFollowers(true)}
+          onShowFollowing={() => setShowFollowing(true)}
         />
 
-        <Container maxW="container.lg" pt={0} pb={16} px={{ base: 4, md: 8 }}>
+        <Container maxW="container.lg" pt={0} pb={16} px={{ base: 4, md: 6 }}>
           <VStack spacing={6} align="stretch">
             {/* Stats e Favoritos */}
             <VStack spacing={4} align="stretch">
               <ProfileStats
                 reviewsCount={reviews.length}
-                followersCount={followers.length}
-                followingCount={following.length}
                 watchlistCount={watchlist.length}
                 listsCount={listsCount}
-                onShowFollowers={() => setShowFollowers(true)}
-                onShowFollowing={() => setShowFollowing(true)}
                 onShowReviews={() => {
                   setShowWatchlist(false);
                   setShowLists(false);

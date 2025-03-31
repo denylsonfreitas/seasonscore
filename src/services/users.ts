@@ -506,7 +506,7 @@ export async function deleteUserData(userId: string) {
         await batch.commit();
       }
     }, "excluir relações onde o usuário segue outros");
-    
+
     // 8. Excluir relações de seguidores - quando o usuário é quem está sendo seguido
     await safeOperation(async () => {
       const followersSnapshot = await getDocs(query(

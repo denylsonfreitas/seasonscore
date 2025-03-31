@@ -3,8 +3,8 @@ import { GithubLogo, LinkedinLogo } from "@phosphor-icons/react";
 
 export function Footer() {
   return (
-    <Box bg="gray.800" py={8} mt="auto">
-      <Container maxW="1200px">
+    <Box bg="gray.900" py={6} color="white" mt="auto">
+      <Container maxW="container.lg">
         <VStack spacing={4}>
           <HStack spacing={6} justify="center">
             <Link

@@ -27,7 +27,7 @@ export function PopularSeries() {
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
       <Box flex="1">
-        <Container maxW="1200px" py={8} pb={16}>
+        <Container maxW="container.lg" py={8} pb={16}>
           <Heading color="white" size="2xl" mb={8}>
             Séries Populares do Momento
           </Heading>

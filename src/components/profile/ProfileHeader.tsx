@@ -13,6 +13,9 @@ import {
   IconButton,
   useBreakpointValue,
   Spinner,
+  Badge,
+  Tooltip,
+  Divider,
 } from "@chakra-ui/react";
 import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -20,7 +23,8 @@ import { UserData } from "../../services/users";
 import { FollowButton } from "../user/FollowButton";
 import { ExtendedUser } from "../../types/auth";
 import { UserAvatar } from "../common/UserAvatar";
-import { Camera } from "@phosphor-icons/react";
+import { Camera, PencilSimple } from "@phosphor-icons/react";
+import { FaUserFriends } from "react-icons/fa";
 
 interface ProfileHeaderProps {
   isOwnProfile: boolean;
@@ -32,6 +36,10 @@ interface ProfileHeaderProps {
   handlePhotoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   handleCoverUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   targetUserId: string;
+  followersCount: number;
+  followingCount: number;
+  onShowFollowers: () => void;
+  onShowFollowing: () => void;
 }
 
 export function ProfileHeader({
@@ -42,6 +50,10 @@ export function ProfileHeader({
   handlePhotoUpload,
   handleCoverUpload,
   targetUserId,
+  followersCount,
+  followingCount,
+  onShowFollowers,
+  onShowFollowing,
 }: ProfileHeaderProps) {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -107,7 +119,7 @@ export function ProfileHeader({
       <Container
         maxW="container.lg"
         position="relative"
-        px={{ base: 4, md: 8 }}
+        px={{ base: 4, md: 6 }}
       >
         <Flex
           direction="row"
@@ -120,9 +132,9 @@ export function ProfileHeader({
           <Flex
             direction="row"
             align="center"
-            gap={4}
+            gap={{ base: 2, md: 4 }}
             flex="1"
-            maxW={{ base: "75%", md: "80%" }}
+            maxW={{ base: "72%", md: "80%" }}
           >
             <Box position="relative">
               <Box
@@ -133,13 +145,13 @@ export function ProfileHeader({
                 display="inline-block"
               >
                 <UserAvatar
-                  size={{ base: "xl", md: "2xl" }}
+                  size={useBreakpointValue({ base: "xl", md: "2xl" }) || "xl"}
                   photoURL={
                     isOwnProfile
                       ? currentUser?.photoURL
                       : profileUser?.photoURL
                   }
-                  displayName={userName}
+                  name={userName}
                   userId={isOwnProfile ? currentUser?.uid : profileUser?.id}
                 />
               </Box>
@@ -148,17 +160,32 @@ export function ProfileHeader({
             <VStack
               align="flex-start"
               spacing={1}
-              maxW={{ base: "160px", md: "600px" }}
+              maxW={{ base: "150px", md: "600px" }}
             >
-              <Heading
-                size={{ base: "md", md: "xl" }}
-                color="white"
-                textShadow="0 2px 4px rgba(0,0,0,0.3)"
-                textAlign="left"
-                noOfLines={1}
-              >
-                {userName}
-              </Heading>
+              <Flex align="center">
+                <Heading
+                  size={{ base: "md", md: "xl" }}
+                  color="white"
+                  textShadow="0 2px 4px rgba(0,0,0,0.3)"
+                  textAlign="left"
+                  noOfLines={1}
+                  mr={2}
+                >
+                  {userName}
+                </Heading>
+                {isOwnProfile && (
+                  <Tooltip label="Editar perfil" placement="top">
+                    <IconButton
+                      aria-label="Editar perfil"
+                      icon={<PencilSimple weight="fill" />}
+                      size="xs"
+                      colorScheme="primary"
+                      variant="ghost"
+                      onClick={() => navigate("/settings/profile")}
+                    />
+                  </Tooltip>
+                )}
+              </Flex>
               <Text
                 color="gray.300"
                 fontSize={{ base: "xs", md: "md" }}
@@ -184,18 +211,50 @@ export function ProfileHeader({
             </VStack>
           </Flex>
 
-          <Box>
+          <Flex direction="column" align="flex-end" minW={{ base: "80px", md: "auto" }}>
             {!isOwnProfile && <FollowButton userId={targetUserId} />}
-            {isOwnProfile && (
-              <Button
-                colorScheme="primary"
-                onClick={() => navigate("/settings/profile")}
-                size={{ base: "sm", md: "md" }}
+            
+            <HStack spacing={{ base: 2, md: 4 }} mt={isOwnProfile ? 0 : 3} align="center">
+              <Flex 
+                direction="column" 
+                align="center" 
+                cursor="pointer" 
+                onClick={onShowFollowers}
+                borderRadius="md"
+                p={{ base: 1, md: 2 }}
+                _hover={{ bg: "gray.700" }}
+                transition="all 0.2s"
               >
-                Editar Perfil
-              </Button>
-            )}
-          </Box>
+                <Flex align="center" mb={1}>
+                  <Text fontWeight="bold" color="white" fontSize={{ base: "sm", md: "md" }}>{followersCount}</Text>
+                </Flex>
+                <Text fontSize="xs" color="gray.300">Seguidores</Text>
+              </Flex>
+
+              <Box 
+                h="20px" 
+                w="1px" 
+                bg="gray.600"
+                alignSelf="center"
+              />
+
+              <Flex 
+                direction="column" 
+                align="center" 
+                cursor="pointer" 
+                onClick={onShowFollowing}
+                borderRadius="md"
+                p={{ base: 1, md: 2 }}
+                _hover={{ bg: "gray.700" }}
+                transition="all 0.2s"
+              >
+                <Flex align="center" mb={1}>
+                  <Text fontWeight="bold" color="white" fontSize={{ base: "sm", md: "md" }}>{followingCount}</Text>
+                </Flex>
+                <Text fontSize="xs" color="gray.300">Seguindo</Text>
+              </Flex>
+            </HStack>
+          </Flex>
         </Flex>
       </Container>
     </Box>

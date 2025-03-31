@@ -409,7 +409,7 @@ export default function ListPage() {
 
   if (loading) {
     return (
-      <Container maxW="6xl" py={8}>
+      <Container maxW="container.lg" py={8}>
         <Skeleton height="40px" width="50%" mb={4} />
         <Skeleton height="20px" width="30%" mb={6} />
         <Skeleton height="200px" mb={8} />
@@ -428,7 +428,7 @@ export default function ListPage() {
   }
 
   return (
-    <Container maxW="6xl" py={8}>
+    <Container maxW="container.lg" py={8}>
       <Box
         bg={bgColor}
         borderRadius="lg"

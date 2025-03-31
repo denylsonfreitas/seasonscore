@@ -77,9 +77,9 @@ export function SeriesDetailsTabs({
     }
   };
 
-  // Configuração do comportamento de scroll horizontal para dispositivos móveis
+  // Configuração do comportamento de scroll horizontal para todos os dispositivos
   useEffect(() => {
-    if (isMobile && tabListRef.current) {
+    if (tabListRef.current) {
       const tabList = tabListRef.current;
       
       // Verificar scroll inicial
@@ -92,7 +92,7 @@ export function SeriesDetailsTabs({
         tabList.removeEventListener('scroll', checkScroll);
       };
     }
-  }, [isMobile]);
+  }, []);
 
   // Reverifcar quando o tamanho da tela muda
   useEffect(() => {
@@ -103,31 +103,29 @@ export function SeriesDetailsTabs({
   return (
     <Box width="100%">
       <Tabs variant="enclosed" colorScheme="primary" size="sm">
-        {isMobile && (
-          <Flex justify="flex-end" mb={1} px={2}>
-            <Box fontSize="xs" color="gray.400" mr={2} alignSelf="center">
-              {canScrollLeft || canScrollRight ? "Deslize para ver mais" : ""}
-            </Box>
-            <IconButton
-              aria-label="Rolar para a esquerda"
-              icon={<CaretLeft />}
-              size="sm"
-              variant="ghost"
-              colorScheme="primary"
-              isDisabled={!canScrollLeft}
-              onClick={() => handleScroll('left')}
-            />
-            <IconButton
-              aria-label="Rolar para a direita"
-              icon={<CaretRight />}
-              size="sm"
-              variant="ghost"
-              colorScheme="primary"
-              isDisabled={!canScrollRight}
-              onClick={() => handleScroll('right')}
-            />
-          </Flex>
-        )}
+        <Flex justify="flex-end" mb={1} px={2}>
+          <Box fontSize="xs" color="gray.400" mr={2} alignSelf="center">
+            {canScrollLeft || canScrollRight ?  "Navegue entre as abas" : ""}
+          </Box>
+          <IconButton
+            aria-label="Rolar para a esquerda"
+            icon={<CaretLeft />}
+            size="sm"
+            variant="ghost"
+            colorScheme="primary"
+            isDisabled={!canScrollLeft}
+            onClick={() => handleScroll('left')}
+          />
+          <IconButton
+            aria-label="Rolar para a direita"
+            icon={<CaretRight />}
+            size="sm"
+            variant="ghost"
+            colorScheme="primary"
+            isDisabled={!canScrollRight}
+            onClick={() => handleScroll('right')}
+          />
+        </Flex>
         
         <TabList 
           borderBottomColor="gray.700" 

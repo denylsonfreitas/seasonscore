@@ -163,7 +163,7 @@ export function Navbar() {
         display="flex"
         alignItems="center"
       >
-        <Container maxW="1200px">
+        <Container maxW="container.lg">
           <HStack justify="space-between" align="center" height="100%">
             {/* Logo e Menu de Navegação à esquerda */}
             <HStack spacing={6}>

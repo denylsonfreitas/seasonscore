@@ -18,7 +18,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { getSeriesDetails, getRelatedSeries } from "../services/tmdb";
 import { useAuth } from "../contexts/AuthContext";
-import { useState, useRef, useEffect, useMemo, useCallback, memo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { SeriesReview, getSeriesReviews, deleteReview } from "../services/reviews";
 import { Footer } from "../components/common/Footer";
@@ -27,29 +27,8 @@ import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 import { ReviewDetailsModal } from "../components/reviews/ReviewDetailsModal";
 import { getUserData } from "../services/users";
 import { SeriesHeader } from "../components/series/SeriesHeader";
+import { RelatedSeries } from "../components/series/RelatedSeries";
 import { User as FirebaseUser } from "firebase/auth";
-
-// Componente memoizado para séries relacionadas
-const RelatedSeries = memo(({ relatedSeries, isLoading, currentSeriesId }: any) => {
-  // Se não tiver séries relacionadas ou estiver carregando, não renderiza
-  if (isLoading || !relatedSeries?.results || relatedSeries.results.length === 0) return null;
-
-  return (
-    <Container maxW="1200px" py={8}>
-      <Box>
-        <Flex direction="column" gap={4}>
-          {relatedSeries.results.map((series: any) => (
-            <Box key={series.id}>
-              {/* Conteúdo existente... */}
-            </Box>
-          ))}
-        </Flex>
-      </Box>
-    </Container>
-  );
-});
-
-RelatedSeries.displayName = 'RelatedSeries';
 
 export function SeriesDetails() {
   const { id } = useParams<{ id: string }>();
@@ -300,7 +279,7 @@ export function SeriesDetails() {
   // Memoize o componente de erro
   const NotFoundComponent = useMemo(() => (
     <Box bg="gray.900" minH="100vh" pt="80px">
-      <Container maxW="1200px" py={8}>
+      <Container maxW="container.lg" py={8}>
         <Box>Série não encontrada</Box>
       </Container>
     </Box>
@@ -333,14 +312,12 @@ export function SeriesDetails() {
           navigate={navigate}
         />
 
-        {/* Séries Relacionadas - renderização condicional */}
-        {!isLoadingRelated && relatedSeries?.results && Array.isArray(relatedSeries.results) && relatedSeries.results.length > 0 && (
-          <RelatedSeries 
-            relatedSeries={relatedSeries} 
-            isLoading={isLoadingRelated} 
-            currentSeriesId={id!}
-          />
-        )}
+        {/* Séries Relacionadas */}
+        <RelatedSeries 
+          relatedSeries={relatedSeries} 
+          isLoading={isLoadingRelated} 
+          currentSeriesId={id!}
+        />
       </Box>
 
       <Footer />

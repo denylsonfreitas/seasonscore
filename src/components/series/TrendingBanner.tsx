@@ -124,7 +124,7 @@ export function TrendingBanner() {
         transition="opacity 0.5s ease-in-out"
         opacity={isTransitioning ? 0 : 1}
       >
-        <Box maxW="1150px" width="100%" position="relative">
+        <Box maxW="container.lg" width="100%" position="relative">
           <VStack align={{ base: "center", md: "start" }} spacing={3} maxW="600px">
             <Heading 
               color="white" 
