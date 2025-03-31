@@ -49,6 +49,7 @@ import {
   getListsContainingSeries
 } from '../../services/lists';
 import { addToWatchlist, removeFromWatchlist, isInWatchlist } from '../../services/watchlist';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AddToListButtonProps {
   series: Series;
@@ -88,6 +89,7 @@ export function AddToListButton({
   const [isCreating, setIsCreating] = useState(false);
   
   const toast = useToast();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (currentUser) {
@@ -265,6 +267,8 @@ export function AddToListButton({
     try {
       if (isInWatchlistFlag) {
         await removeFromWatchlist(currentUser.uid, series.id);
+        // Invalidar a consulta da watchlist para atualizar a interface
+        queryClient.invalidateQueries({ queryKey: ["userWatchlist"] });
         setIsInWatchlistFlag(false);
         toast({
           title: "Removida da Watchlist",
@@ -280,6 +284,8 @@ export function AddToListButton({
           poster_path: series.poster_path,
           first_air_date: series.first_air_date,
         });
+        // Invalidar a consulta da watchlist para atualizar a interface
+        queryClient.invalidateQueries({ queryKey: ["userWatchlist"] });
         setIsInWatchlistFlag(true);
         toast({
           title: "Adicionada à Watchlist",

@@ -17,6 +17,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { addToWatchlist, removeFromWatchlist, isInWatchlist } from "../../services/watchlist";
 import { useSearchParams } from "react-router-dom";
 import { AddToListButton } from "../lists/AddToListButton";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface WatchlistButtonProps {
   series: {
@@ -39,6 +40,7 @@ export function WatchlistButton({ series, size = "md", variant = "ghost", menuAs
   const toast = useToast();
   const [searchParams] = useSearchParams();
   const listId = searchParams.get("list_id");
+  const queryClient = useQueryClient();
 
   // Se temos um list_id na URL, devemos mostrar o botão de adicionar à lista específica
   if (listId) {
@@ -106,6 +108,8 @@ export function WatchlistButton({ series, size = "md", variant = "ghost", menuAs
     try {
       if (isInList) {
         await removeFromWatchlist(currentUser.uid, series.id);
+        // Invalidar a consulta da watchlist para atualizar a interface
+        queryClient.invalidateQueries({ queryKey: ["userWatchlist"] });
         toast({
           title: "Removido da sua watchlist",
           status: "success",
@@ -113,6 +117,8 @@ export function WatchlistButton({ series, size = "md", variant = "ghost", menuAs
         });
       } else {
         await addToWatchlist(currentUser.uid, series);
+        // Invalidar a consulta da watchlist para atualizar a interface
+        queryClient.invalidateQueries({ queryKey: ["userWatchlist"] });
         toast({
           title: "Adicionado à sua watchlist",
           status: "success",

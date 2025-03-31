@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, browserSessionPersistence, setPersistence } from "firebase/auth";
+import { getAuth, browserLocalPersistence, setPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -15,8 +15,8 @@ const app = initializeApp(firebaseConfig);
 
 // Configuração correta da persistência usando constantes do Firebase
 const auth = getAuth(app);
-// Configurar persistência de sessão para mitigar problemas com cookies de terceiros
-setPersistence(auth, browserSessionPersistence).catch((error) => {
+// Configurar persistência local para manter o login entre abas e sessões
+setPersistence(auth, browserLocalPersistence).catch((error) => {
   console.error("Erro ao configurar persistência:", error);
 });
 

@@ -6,7 +6,6 @@ import {
   Heading,
   Text,
   Flex,
-  Avatar,
   HStack,
   Tag,
   TagLabel,
@@ -61,9 +60,9 @@ import {
 } from '../services/lists';
 import { ListWithUserData } from '../types/list';
 import { Link } from 'react-router-dom';
-import { AddToListButton } from '../components/lists/AddToListButton';
 import { SeriesListItem, searchSeries } from '../services/tmdb';
 import { EditListModal } from '../components/lists/EditListModal';
+import { UserAvatar } from '../components/common/UserAvatar';
 
 export default function ListPage() {
   const { listId } = useParams();
@@ -72,7 +71,6 @@ export default function ListPage() {
   const { currentUser } = useAuth();
   const toast = useToast();
   
-  // Usar cores do tema
   const bgColor = useColorModeValue('secondary.800', 'secondary.700');
   const borderColor = useColorModeValue('gray.700', 'gray.600');
   const textColor = useColorModeValue('white', 'white');
@@ -87,7 +85,6 @@ export default function ListPage() {
   const [isRemovingSeries, setIsRemovingSeries] = useState<number | null>(null);
   const [isTogglingLike, setIsTogglingLike] = useState(false);
   
-  // Estado para o modal de pesquisa de séries
   const { isOpen: isSearchModalOpen, onOpen: onSearchModalOpen, onClose: onSearchModalClose } = useDisclosure();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SeriesListItem[]>([]);
@@ -97,7 +94,6 @@ export default function ListPage() {
   
   const { isOpen: isEditModalOpen, onOpen: onEditModalOpen, onClose: onEditModalClose } = useDisclosure();
 
-  // Estado para controle do AlertDialog de confirmação para remover série
   const [seriesIdToRemove, setSeriesIdToRemove] = useState<number | null>(null);
   const [seriesNameToRemove, setSeriesNameToRemove] = useState<string>('');
   const { isOpen: isRemoveAlertOpen, onOpen: onRemoveAlertOpen, onClose: onRemoveAlertClose } = useDisclosure();
@@ -120,7 +116,6 @@ export default function ListPage() {
         setList(listData);
         setLikesCount(listData.likesCount || 0);
         
-        // Verificar se o usuário atual curtiu esta lista usando reactions do BD
         if (currentUser && listData.reactions) {
           const userReaction = listData.reactions.find(
             reaction => reaction.userId === currentUser.uid && reaction.type === 'like'
@@ -142,7 +137,6 @@ export default function ListPage() {
   }, [listId, currentUser, navigate]);
 
   useEffect(() => {
-    // Atualizar o título da página quando a lista for carregada
     document.title = 'SeasonScore';
   }, [list]);
 
@@ -158,24 +152,18 @@ export default function ListPage() {
       return;
     }
 
-    // Evitar múltiplos cliques
     if (isTogglingLike) return;
     
     try {
       setIsTogglingLike(true);
       const newIsLiked = !isLiked;
       
-      // Atualize o estado UI imediatamente para feedback
       setIsLiked(newIsLiked);
       setLikesCount(prev => newIsLiked ? prev + 1 : prev - 1);
       
-      // Fazer a chamada para o backend
       await toggleListReaction(list.id, 'like');
       
-      // Uma vez que a operação foi bem-sucedida, não precisamos fazer mais nada
-      // O estado UI já foi atualizado
     } catch (error: any) {
-      // Em caso de erro, revertemos o estado UI
       setIsLiked(!isLiked);
       setLikesCount(prev => isLiked ? prev + 1 : prev - 1);
       
@@ -256,7 +244,6 @@ export default function ListPage() {
       setIsRemovingSeries(seriesId);
       await removeSeriesFromList(list.id, seriesId);
       
-      // Atualizar o estado local removendo a série
       setList(prevList => {
         if (!prevList) return null;
         
@@ -312,7 +299,6 @@ export default function ListPage() {
     }
   };
 
-  // Função para buscar séries no API
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     
@@ -320,7 +306,6 @@ export default function ListPage() {
     setSearchPerformed(true);
     try {
       const response = await searchSeries(searchQuery, 1);
-      // Modificando para incluir apenas as propriedades necessárias para renderização
       const seriesResults = response.results.map(item => ({
         id: item.id,
         name: item.name,
@@ -345,11 +330,9 @@ export default function ListPage() {
     }
   };
   
-  // Função para adicionar uma série à lista
   const handleAddSeriesToList = async (series: SeriesListItem) => {
     if (!listId || !currentUser) return;
     
-    // Verificar se a série já está na lista
     if (list?.items.some(item => item.seriesId === series.id)) {
       toast({
         title: 'Série já adicionada',
@@ -369,7 +352,6 @@ export default function ListPage() {
         poster_path: series.poster_path,
       });
       
-      // Atualizar o estado local adicionando a série
       setList(prevList => {
         if (!prevList) return null;
         
@@ -423,7 +405,6 @@ export default function ListPage() {
   }
 
   if (error || !list) {
-    // O redirecionamento para a página 404 já está sendo tratado no useEffect
     return null;
   }
 
@@ -467,7 +448,12 @@ export default function ListPage() {
               <Flex alignItems="center" mb={4}>
                 <Link to={`/u/${list.username || list.userId}`} style={{ textDecoration: 'none' }}>
                   <Flex alignItems="center">
-                    <Avatar size="sm" src={list.userPhotoURL || undefined} name={list.username || list.userDisplayName} mr={2} />
+                  <UserAvatar
+                    size="sm"
+                    userId={currentUser?.uid}
+                    photoURL={currentUser?.photoURL}
+                    mr={2}
+                  />
                     <Text fontWeight="medium" color={textColor} _hover={{ color: "primary.400" }}>
                       @{list.username || list.userDisplayName || 'Usuário'}
                     </Text>
@@ -586,12 +572,10 @@ export default function ListPage() {
           ) : (
             <SimpleGrid columns={{ base: 3, md: 4, lg: 6, xl: 7 }} spacing={3}>
               {list.items.map(item => {
-                // Criar um objeto com propriedades mínimas para o SeriesCard
                 const seriesData = {
                   id: item.seriesId,
                   name: item.name,
                   poster_path: item.poster_path,
-                  // Adicionar propriedades padrão para satisfazer o tipo
                   backdrop_path: '',
                   overview: '',
                   vote_average: 0,

@@ -36,6 +36,7 @@ import {
   updateComment,
 } from '../../services/comments';
 import { UserName } from '../common/UserName';
+import { UserAvatar } from '../common/UserAvatar';
 
 export interface Comment {
   id: string;
@@ -239,11 +240,12 @@ export function CommentSection({ objectId, objectType, commentsCount }: CommentS
 
         {currentUser ? (
           <Flex mb={6}>
-            <Avatar
+          <UserAvatar
               size="sm"
-              src={currentUser.photoURL || undefined}
-              name={currentUser.displayName || currentUser.email || undefined}
+              userId={currentUser?.uid}
+              photoURL={currentUser?.photoURL}
               mr={2}
+              mt={1}
             />
             <Box flex="1">
               <Input

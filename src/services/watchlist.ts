@@ -100,7 +100,11 @@ export async function getUserWatchlist(userId: string) {
     const watchlistItems: any[] = [];
     
     querySnapshot.forEach((doc) => {
-      watchlistItems.push(doc.data());
+      // Incluir o ID do documento junto com os dados
+      watchlistItems.push({
+        id: doc.id,  // Incluir o ID do documento
+        ...doc.data()
+      });
     });
     
     return watchlistItems;

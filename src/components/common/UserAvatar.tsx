@@ -66,7 +66,6 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
       name={userIsDeleted ? "Usuário excluído" : name || (userEmail ? userEmail.split('@')[0] : 'Usuário')}
       bg={bg}
       icon={userIsDeleted ? <FaUser /> : undefined}
-      cursor={onClick ? 'pointer' : 'default'}
       onClick={onClick}
       borderWidth={userIsDeleted ? '1px' : 0}
       borderColor="gray.500"
