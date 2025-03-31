@@ -1,8 +1,22 @@
 import { useState, useEffect } from "react";
-import { IconButton, Tooltip, useToast, useMediaQuery } from "@chakra-ui/react";
-import { Bookmark, BookmarkSimple } from "@phosphor-icons/react";
+import { 
+  IconButton, 
+  Tooltip, 
+  useToast, 
+  useMediaQuery, 
+  Menu, 
+  MenuButton, 
+  MenuList, 
+  MenuItem, 
+  MenuDivider,
+  Box,
+  Portal
+} from "@chakra-ui/react";
+import { Bookmark, BookmarkSimple, ListPlus, DotsThree } from "@phosphor-icons/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { addToWatchlist, removeFromWatchlist, isInWatchlist } from "../../services/watchlist";
+import { useSearchParams } from "react-router-dom";
+import { AddToListButton } from "../lists/AddToListButton";
 
 interface WatchlistButtonProps {
   series: {
@@ -13,15 +27,40 @@ interface WatchlistButtonProps {
   };
   size?: string;
   variant?: string;
+  menuAsBox?: boolean;
 }
 
-export function WatchlistButton({ series, size = "md", variant = "ghost" }: WatchlistButtonProps) {
+export function WatchlistButton({ series, size = "md", variant = "ghost", menuAsBox = false }: WatchlistButtonProps) {
   const { currentUser } = useAuth();
   const [isInList, setIsInList] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile] = useMediaQuery("(max-width: 768px)");
   const toast = useToast();
+  const [searchParams] = useSearchParams();
+  const listId = searchParams.get("list_id");
+
+  // Se temos um list_id na URL, devemos mostrar o botão de adicionar à lista específica
+  if (listId) {
+    // Criar um objeto que atenda à interface Series esperada pelo AddToListButton
+    const seriesForList = {
+      ...series,
+      // Adicionar propriedades adicionais exigidas pela interface Series
+      backdrop_path: "",
+      overview: "",
+      vote_average: 0,
+      number_of_seasons: 0,
+      genres: [],
+      networks: [],
+      status: "",
+      popularity: 0,
+      in_production: false,
+      homepage: "",
+      last_air_date: ""
+    };
+    
+    return <AddToListButton series={seriesForList as any} size={size as any} variant={variant as any} iconOnly useButtonElement={!menuAsBox} />;
+  }
 
   useEffect(() => {
     if (currentUser) {
@@ -97,31 +136,107 @@ export function WatchlistButton({ series, size = "md", variant = "ghost" }: Watc
     }
   }
 
+  // Criar um objeto completo para a série que atenda à interface Series
+  const seriesForList = {
+    ...series,
+    backdrop_path: "",
+    overview: "",
+    vote_average: 0,
+    number_of_seasons: 0,
+    genres: [],
+    networks: [],
+    status: "",
+    popularity: 0,
+    in_production: false,
+    homepage: "",
+    last_air_date: ""
+  };
+
+  if (!currentUser) {
+    return (
+      <Tooltip 
+        label="Faça login para adicionar à sua watchlist"
+        hasArrow
+        placement="top"
+      >
+        <IconButton
+          aria-label="Opções"
+          icon={<BookmarkSimple />}
+          size={size}
+          variant={variant}
+          colorScheme="primary"
+          color="white"
+          bg="blackAlpha.600"
+          _hover={{ bg: "blackAlpha.700" }}
+          onClick={() => toast({
+            title: "Faça login para adicionar à sua watchlist",
+            status: "warning",
+            duration: 3000,
+            isClosable: true,
+          })}
+        />
+      </Tooltip>
+    );
+  }
+
+  // Versão com menu para usuários logados
   return (
-    <Tooltip 
-      label={isInList ? "Remover da watchlist" : "Adicionar à watchlist"}
-      isOpen={isOpen}
-      onClose={() => setIsOpen(false)}
-      hasArrow
-      placement="top"
-      closeOnClick={true}
-      gutter={10}
-    >
-      <IconButton
-        aria-label="Watchlist"
-        icon={isInList ? <Bookmark weight="fill" /> : <BookmarkSimple />}
-        size={size}
-        variant={variant}
-        colorScheme="primary"
-        color="white"
-        bg="blackAlpha.600"
-        _hover={{ bg: "blackAlpha.700" }}
-        isLoading={isLoading}
-        onClick={handleWatchlistClick}
-        onMouseEnter={() => !isMobile && setIsOpen(true)}
-        onMouseLeave={() => !isMobile && setIsOpen(false)}
-        onTouchStart={() => isMobile && setIsOpen(true)}
-      />
-    </Tooltip>
+    <Menu closeOnSelect={false} placement="bottom-end">
+      {menuAsBox ? (
+        <MenuButton
+          as={Box}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          borderRadius="md"
+          cursor="pointer"
+          width="36px"
+          height="36px"
+          bg="blackAlpha.600"
+          color="white"
+          _hover={{ bg: "blackAlpha.700" }}
+          p={0}
+        >
+          <Box display="flex" alignItems="center" justifyContent="center">
+            <DotsThree weight="bold" size={20} />
+          </Box>
+        </MenuButton>
+      ) : (
+        <MenuButton
+          as={IconButton}
+          aria-label="Opções"
+          icon={<DotsThree weight="bold" />}
+          size={size}
+          variant={variant}
+          colorScheme="primary"
+          color="white"
+          bg="blackAlpha.600"
+          _hover={{ bg: "blackAlpha.700" }}
+        />
+      )}
+      <Portal>
+        <MenuList bg="gray.900" borderColor="gray.700" minW="180px">
+          <MenuItem 
+            icon={isInList ? <Bookmark weight="fill" color="white" size={16} /> : <BookmarkSimple color="white" size={16} />}
+            onClick={handleWatchlistClick}
+            isDisabled={isLoading}
+            bg="gray.800"
+            _hover={{ bg: "gray.600" }}
+            color="white"
+          >
+            <Box color="white">
+              {isInList ? "Remover da watchlist" : "Adicionar à watchlist"}
+            </Box>
+          </MenuItem>
+          <MenuDivider borderColor="gray.700" />
+          <AddToListButton 
+            series={seriesForList as any} 
+            size={size as any} 
+            variant="ghost" 
+            useButtonElement={false} 
+          />
+        </MenuList>
+      </Portal>
+    </Menu>
   );
 } 

@@ -19,6 +19,7 @@ interface SeriesCardProps {
   series: SeriesListItem & { rating?: number };
   size?: "sm" | "md" | "lg";
   position?: number;
+  highlightAddToList?: boolean;
 }
 
 const sizeStyles = {
@@ -105,7 +106,7 @@ const getBadgeStyle = (position: number) => {
   }
 };
 
-export function SeriesCard({ series, size = "md", position }: SeriesCardProps) {
+export function SeriesCard({ series, size = "md", position, highlightAddToList = false }: SeriesCardProps) {
   const styles = sizeStyles[size];
   const badgeStyle = position ? getBadgeStyle(position) : null;
 
@@ -121,8 +122,9 @@ export function SeriesCard({ series, size = "md", position }: SeriesCardProps) {
       {...styles.container}
       mx="auto"
       role="group"
+      zIndex={1}
     >
-      <Box as={RouterLink} to={`/series/${series.id}`}>
+      <Box as={RouterLink} to={`/series/${series.id}`} zIndex={1}>
         <Box position="relative" bg="gray.700" height="100%">
           {series.poster_path ? (
             <LazyImage
@@ -170,13 +172,18 @@ export function SeriesCard({ series, size = "md", position }: SeriesCardProps) {
             position="absolute"
             top={3}
             right={3}
-            opacity={0}
+            opacity={highlightAddToList ? 1 : 0}
             _groupHover={{ opacity: 1 }}
             transition="opacity 0.2s"
             zIndex={1}
             onClick={(e) => e.preventDefault()}
           >
-            <WatchlistButton series={series} variant="ghost" size={size === "sm" ? "sm" : "md"} />
+            <WatchlistButton 
+              series={series} 
+              variant={highlightAddToList ? "solid" : "ghost"} 
+              size={size === "sm" ? "sm" : "md"} 
+              menuAsBox={true}
+            />
           </Box>
 
           {/* Nota do SeasonScore */}

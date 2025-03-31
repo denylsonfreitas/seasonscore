@@ -140,6 +140,23 @@ const SeriesReviewsLazy = React.lazy(() =>
     .then(module => ({ default: module.SeriesReviews }))
 );
 
+// Adicionar carregamento lazy para a página de pesquisa
+const SearchLazy = React.lazy(() => 
+  import(/* webpackChunkName: "search" */ "../pages/Series")
+    .then(module => ({ default: module.Series }))
+);
+
+// Adicionar carregamento lazy para a página de lista
+const ListPageLazy = React.lazy(() => 
+  import(/* webpackChunkName: "list-page" */ "../pages/ListPage")
+);
+
+// Adicionar carregamento lazy para a página NotFound (404)
+const NotFoundLazy = React.lazy(() => 
+  import(/* webpackChunkName: "not-found" */ "../pages/NotFound")
+    .then(module => ({ default: module.NotFound }))
+);
+
 export const routes = [
   {
     path: "/",
@@ -246,6 +263,31 @@ export const routes = [
           <ProtectedRoute>
             <ProfileSettingsLazy />
           </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/search",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <SearchLazy />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/lists/:listId",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ListPageLazy />
+          </Suspense>
+        ),
+      },
+      // Adicionar rota 404 para capturar todas as rotas inexistentes
+      {
+        path: "*",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <NotFoundLazy />
+          </Suspense>
         ),
       },
     ],

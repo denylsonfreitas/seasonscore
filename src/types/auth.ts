@@ -22,5 +22,7 @@ export interface ExtendedUser extends FirebaseUser {
     newComment: boolean;
     newReaction: boolean;
     newReview: boolean;
+    listComment: boolean;
+    listReaction: boolean;
   };
 } 

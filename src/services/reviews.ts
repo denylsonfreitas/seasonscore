@@ -17,9 +17,10 @@ import {
   arrayRemove,
   limit,
   writeBatch,
+  startAfter,
 } from "firebase/firestore";
 import { auth } from "../config/firebase";
-import { getSeriesDetails } from "./tmdb";
+import { getSeriesDetails, Series } from "./tmdb";
 import { createNotification, NotificationType } from "./notifications";
 import { Comment } from "../types/review";
 import { getUserData } from "./users";
@@ -29,6 +30,53 @@ import { getFollowing } from "./followers";
 import { isInWatchlist } from "./watchlist";
 
 const reviewsCollection = collection(db, "reviews");
+
+// Cache para rastrear notificações recentes
+// Estrutura: { [receiverId_objectId_senderId_type]: timestamp }
+const recentNotificationsCache = new Map<string, number>();
+const NOTIFICATION_COOLDOWN = 30 * 60 * 1000; // 30 minutos em milissegundos
+
+/**
+ * Verifica se uma notificação foi enviada recentemente
+ * @param objectId ID do objeto (review ou comment)
+ * @param senderId ID do usuário que interagiu
+ * @param receiverId ID do usuário que recebe a notificação
+ * @param type Tipo de interação ('reaction' ou 'comment')
+ * @returns Verdadeiro se uma notificação foi enviada nos últimos 30 minutos
+ */
+function wasNotifiedRecently(
+  objectId: string, 
+  senderId: string, 
+  receiverId: string,
+  type: string
+): boolean {
+  const cacheKey = `${receiverId}_${objectId}_${senderId}_${type}`;
+  const lastNotified = recentNotificationsCache.get(cacheKey);
+  
+  if (lastNotified) {
+    const now = Date.now();
+    return (now - lastNotified) < NOTIFICATION_COOLDOWN;
+  }
+  
+  return false;
+}
+
+/**
+ * Registra que uma notificação foi enviada
+ * @param objectId ID do objeto (review ou comment)
+ * @param senderId ID do usuário que interagiu
+ * @param receiverId ID do usuário que recebe a notificação
+ * @param type Tipo de interação ('reaction' ou 'comment')
+ */
+function trackNotification(
+  objectId: string, 
+  senderId: string, 
+  receiverId: string,
+  type: string
+): void {
+  const cacheKey = `${receiverId}_${objectId}_${senderId}_${type}`;
+  recentNotificationsCache.set(cacheKey, Date.now());
+}
 
 export interface Review {
   id: string;
@@ -499,23 +547,40 @@ export async function addCommentToReview(
     // Notificar o dono da avaliação sobre o novo comentário
     if (review.userId !== auth.currentUser.uid) {
       try {
-        const seriesDetails = await getSeriesDetails(review.seriesId);
-        const userData = await getUserData(auth.currentUser.uid);
-        const userName = userData?.username || userData?.displayName || auth.currentUser.email;
-        
-        await createNotification(
+        // Verificar se uma notificação foi enviada recentemente
+        const wasNotified = wasNotifiedRecently(
+          reviewId,
+          auth.currentUser.uid,
           review.userId,
-          NotificationType.NEW_COMMENT,
-          {
-            senderId: auth.currentUser.uid,
-            seriesId: review.seriesId,
-            seriesName: seriesDetails.name,
-            seriesPoster: seriesDetails.poster_path || undefined,
-            seasonNumber,
-            reviewId,
-            message: `${userName} comentou na sua avaliação de ${seriesDetails.name} (Temporada ${seasonNumber}).`
-          }
+          'comment'
         );
+        
+        // Se não foi notificado recentemente, enviar notificação
+        if (!wasNotified) {
+          const seriesDetails = await getSeriesDetails(review.seriesId);
+          const userData = await getUserData(auth.currentUser.uid);
+          const userName = userData?.username || userData?.displayName || auth.currentUser.email;
+          
+          // Registrar que a notificação está sendo enviada
+          trackNotification(reviewId, auth.currentUser.uid, review.userId, 'comment');
+          
+          // Mensagem mais genérica para comentários
+          const message = `${userName} comentou na sua avaliação de ${seriesDetails.name} (Temporada ${seasonNumber}).`;
+          
+          await createNotification(
+            review.userId,
+            NotificationType.NEW_COMMENT,
+            {
+              senderId: auth.currentUser.uid,
+              seriesId: review.seriesId,
+              seriesName: seriesDetails.name,
+              seriesPoster: seriesDetails.poster_path || undefined,
+              seasonNumber,
+              reviewId,
+              message
+            }
+          );
+        }
       } catch (error) {
       }
     }
@@ -737,23 +802,40 @@ export async function toggleReaction(
     }
     else if (!isRemoving && review.userId !== auth.currentUser.uid) {
       try {
-        const seriesDetails = await getSeriesDetails(review.seriesId);
-        const userData = await getUserData(auth.currentUser.uid);
-        const userName = userData?.username || userData?.displayName || auth.currentUser.email;
-        
-        await createNotification(
+        // Verificar se uma notificação foi enviada recentemente
+        const wasNotified = wasNotifiedRecently(
+          reviewId,
+          auth.currentUser.uid,
           review.userId,
-          NotificationType.NEW_REACTION,
-          {
-            senderId: auth.currentUser.uid,
-            seriesId: review.seriesId,
-            seriesName: seriesDetails.name,
-            seriesPoster: seriesDetails.poster_path || undefined,
-            seasonNumber,
-            reviewId,
-            message: `${userName} reagiu à sua avaliação de ${seriesDetails.name} (Temporada ${seasonNumber}) com um ${reactionType === "likes" ? "like" : "dislike"}.`
-          }
+          'reaction'
         );
+        
+        // Se não foi notificado recentemente, enviar notificação
+        if (!wasNotified) {
+          const seriesDetails = await getSeriesDetails(review.seriesId);
+          const userData = await getUserData(auth.currentUser.uid);
+          const userName = userData?.username || userData?.displayName || auth.currentUser.email;
+          
+          // Registrar que a notificação está sendo enviada
+          trackNotification(reviewId, auth.currentUser.uid, review.userId, 'reaction');
+          
+          // Usar mensagem mais genérica para evitar múltiplas notificações específicas
+          const message = `${userName} reagiu à sua avaliação de ${seriesDetails.name} (Temporada ${seasonNumber}).`;
+          
+          await createNotification(
+            review.userId,
+            NotificationType.NEW_REACTION,
+            {
+              senderId: auth.currentUser.uid,
+              seriesId: review.seriesId,
+              seriesName: seriesDetails.name,
+              seriesPoster: seriesDetails.poster_path || undefined,
+              seasonNumber,
+              reviewId,
+              message
+            }
+          );
+        }
       } catch (error) {
       }
     }
@@ -858,23 +940,45 @@ export async function toggleCommentReaction(
     }
     else if (!isRemoving && comment.userId !== auth.currentUser.uid) {
       try {
-        const seriesDetails = await getSeriesDetails(review.seriesId);
-        const userData = await getUserData(auth.currentUser.uid);
-        const userName = userData?.username || userData?.displayName || auth.currentUser.email;
-        
-        await createNotification(
+        // Verificar se uma notificação foi enviada recentemente
+        const wasNotified = wasNotifiedRecently(
+          `${reviewId}_comment_${commentId}`,
+          auth.currentUser.uid,
           comment.userId,
-          NotificationType.NEW_REACTION,
-          {
-            senderId: auth.currentUser.uid,
-            seriesId: review.seriesId,
-            seriesName: seriesDetails.name,
-            seriesPoster: seriesDetails.poster_path || undefined,
-            seasonNumber,
-            reviewId: `${reviewId}_comment_${commentId}`,
-            message: `${userName} reagiu ao seu comentário em ${seriesDetails.name} (Temporada ${seasonNumber}) com um ${reactionType === "likes" ? "like" : "dislike"}.`
-          }
+          'reaction'
         );
+        
+        // Se não foi notificado recentemente, enviar notificação
+        if (!wasNotified) {
+          const seriesDetails = await getSeriesDetails(review.seriesId);
+          const userData = await getUserData(auth.currentUser.uid);
+          const userName = userData?.username || userData?.displayName || auth.currentUser.email;
+          
+          // Registrar que a notificação está sendo enviada
+          trackNotification(
+            `${reviewId}_comment_${commentId}`, 
+            auth.currentUser.uid, 
+            comment.userId, 
+            'reaction'
+          );
+          
+          // Usar mensagem mais genérica para evitar múltiplas notificações específicas
+          const message = `${userName} reagiu ao seu comentário em ${seriesDetails.name} (Temporada ${seasonNumber}).`;
+          
+          await createNotification(
+            comment.userId,
+            NotificationType.NEW_REACTION,
+            {
+              senderId: auth.currentUser.uid,
+              seriesId: review.seriesId,
+              seriesName: seriesDetails.name,
+              seriesPoster: seriesDetails.poster_path || undefined,
+              seasonNumber,
+              reviewId: `${reviewId}_comment_${commentId}`,
+              message
+            }
+          );
+        }
       } catch (error) {
       }
     }

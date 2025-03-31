@@ -16,6 +16,10 @@ import {
   HStack,
   CloseButton,
   Center,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
 } from "@chakra-ui/react";
 import { SeriesCard } from "../components/series/SeriesCard";
 import { useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
@@ -32,6 +36,7 @@ import { Footer } from "../components/common/Footer";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { getSeriesReviews } from "../services/reviews";
+import { getListById } from "../services/lists";
 
 export function Series() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -40,6 +45,11 @@ export function Series() {
   const [genreFilter, setGenreFilter] = useState(searchParams.get("genre") || "");
   const [genreName, setGenreName] = useState(searchParams.get("name") || "");
   const navigate = useNavigate();
+  
+  // Verificar se estamos adicionando a uma lista específica
+  const [listId, setListId] = useState<string | null>(searchParams.get("list_id"));
+  const [listInfo, setListInfo] = useState<any>(null);
+  const [isLoadingList, setIsLoadingList] = useState(false);
 
   useEffect(() => {
     // Atualiza os estados com base nos parâmetros da URL
@@ -55,7 +65,26 @@ export function Series() {
       setGenreFilter(genre);
       setGenreName(decodeURIComponent(name));
     }
+    
+    // Verificar se há um list_id e buscar informações da lista
+    const listIdParam = searchParams.get("list_id");
+    if (listIdParam) {
+      setListId(listIdParam);
+      fetchListInfo(listIdParam);
+    }
   }, [searchParams]);
+  
+  const fetchListInfo = async (id: string) => {
+    setIsLoadingList(true);
+    try {
+      const list = await getListById(id);
+      setListInfo(list);
+    } catch (error) {
+      console.error("Erro ao buscar informações da lista:", error);
+    } finally {
+      setIsLoadingList(false);
+    }
+  };
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useInfiniteQuery({
@@ -173,6 +202,18 @@ export function Series() {
             Explorar Séries
           </Heading>
 
+          {listId && listInfo && (
+            <Alert status="info" mb={6} borderRadius="md">
+              <AlertIcon />
+              <Box>
+                <AlertTitle>Adicionando séries à lista:</AlertTitle>
+                <AlertDescription>
+                  "{listInfo.title}" - Use o botão de listas em cada série para adicionar à sua lista.
+                </AlertDescription>
+              </Box>
+            </Alert>
+          )}
+
           {genreFilter && genreName && (
             <Box mb={6}>
               <HStack spacing={2}>
@@ -236,7 +277,11 @@ export function Series() {
           {seriesWithRatings.length > 0 ? (
             <SimpleGrid columns={{ base: 3, md: 4, lg: 6 }} spacing={4}>
               {seriesWithRatings.map((series) => (
-                <SeriesCard key={series.id} series={series} />
+                <SeriesCard 
+                  key={series.id} 
+                  series={series} 
+                  highlightAddToList={!!listId} 
+                />
               ))}
             </SimpleGrid>
           ) : (

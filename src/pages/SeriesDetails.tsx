@@ -70,11 +70,18 @@ export function SeriesDetails() {
   const userDataFetched = useRef(false);
 
   // Priorizar o carregamento dos dados da série primeiro
-  const { data: series, isLoading } = useQuery({
+  const { data: series, isLoading, isError, error } = useQuery({
     queryKey: ["series", id],
     queryFn: () => getSeriesDetails(Number(id)),
     staleTime: 1000 * 60 * 30, // 30 minutos
   });
+
+  // Redirecionar para a página NotFound se a série não for encontrada
+  useEffect(() => {
+    if (!isLoading && !series && isError) {
+      navigate('/404', { replace: true });
+    }
+  }, [isLoading, series, isError, navigate]);
 
   // Carregar avaliações depois da série principal
   const { data: reviews = [] } = useQuery({

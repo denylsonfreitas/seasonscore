@@ -31,7 +31,9 @@ export enum NotificationType {
   NEW_COMMENT = "NEW_COMMENT",
   NEW_REACTION = "NEW_REACTION",
   NEW_EPISODE = "NEW_EPISODE",
-  NEW_REVIEW = "NEW_REVIEW"
+  NEW_REVIEW = "NEW_REVIEW",
+  LIST_COMMENT = "LIST_COMMENT",
+  LIST_REACTION = "LIST_REACTION"
 }
 
 // Interface para notificações
@@ -105,7 +107,9 @@ export async function createNotification(
       newFollower: true,
       newComment: true,
       newReaction: true,
-      newReview: true
+      newReview: true,
+      listComment: true,
+      listReaction: true
     };
     
     let isEnabled = true;
@@ -115,6 +119,8 @@ export async function createNotification(
       case NotificationType.NEW_COMMENT: isEnabled = settings.newComment; break;
       case NotificationType.NEW_REACTION: isEnabled = settings.newReaction; break;
       case NotificationType.NEW_REVIEW: isEnabled = settings.newReview; break;
+      case NotificationType.LIST_COMMENT: isEnabled = settings.listComment; break;
+      case NotificationType.LIST_REACTION: isEnabled = settings.listReaction; break;
     }
     
     if (!isEnabled) {
@@ -184,6 +190,18 @@ function sanitizeMessage(message: string, senderName: string, type: Notification
     case NotificationType.NEW_REACTION:
       if (sanitized.includes("reagiu à sua avaliação")) {
         return sanitized.replace(/^.+?(?=reagiu)/i, "Usuário excluído ");
+      }
+      break;
+      
+    case NotificationType.LIST_COMMENT:
+      if (sanitized.includes("comentou na sua lista")) {
+        return sanitized.replace(/^.+?(?=comentou)/i, "Usuário excluído ");
+      }
+      break;
+      
+    case NotificationType.LIST_REACTION:
+      if (sanitized.includes("gostou da sua lista") || sanitized.includes("não gostou da sua lista")) {
+        return sanitized.replace(/^.+?(?=gostou|não gostou)/i, "Usuário excluído ");
       }
       break;
   }
@@ -935,5 +953,59 @@ export async function markAllAsRead(): Promise<number> {
     return querySnapshot.size;
   } catch (error) {
     return 0;
+  }
+}
+
+/**
+ * Encontra uma notificação existente por tipo, remetente e objeto
+ * Se encontrar, atualiza a mensagem e marca como não lida
+ * Se não encontrar, retorna null
+ */
+export async function findAndUpdateExistingNotification(
+  receiverId: string,
+  senderId: string,
+  type: NotificationType,
+  objectId: string,
+  newMessage: string
+): Promise<string | null> {
+  if (!auth.currentUser) return null;
+  
+  try {
+    // Buscar notificações existentes com esses filtros
+    const q = query(
+      notificationsCollection,
+      where("userId", "==", receiverId),
+      where("senderId", "==", senderId),
+      where("type", "==", type),
+      where("reviewId", "==", objectId),
+      orderBy("createdAt", "desc"),
+      firestoreLimit(1)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    // Se não encontrou notificação existente, retorna null
+    if (querySnapshot.empty) {
+      return null;
+    }
+    
+    // Encontrou - atualizar a notificação existente
+    const notificationDoc = querySnapshot.docs[0];
+    const notificationId = notificationDoc.id;
+    
+    // Atualizar a mensagem e marcar como não lida novamente
+    await updateDoc(doc(notificationsCollection, notificationId), {
+      message: newMessage,
+      read: false,
+      createdAt: serverTimestamp() // Atualizar o timestamp para aparecer no topo
+    });
+    
+    // Invalidar o cache
+    invalidateCache(receiverId);
+    
+    return notificationId;
+  } catch (error) {
+    console.error("Erro ao buscar/atualizar notificação existente:", error);
+    return null;
   }
 } 

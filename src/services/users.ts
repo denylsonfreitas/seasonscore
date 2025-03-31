@@ -43,6 +43,8 @@ export interface UserData {
     newComment: boolean;
     newReaction: boolean;
     newReview: boolean;
+    listComment: boolean;
+    listReaction: boolean;
   };
   watchedSeriesIds?: number[]; // Array de IDs de séries que o usuário acompanha
 }
@@ -520,6 +522,89 @@ export async function deleteUserData(userId: string) {
       }
     }, "excluir relações onde o usuário é seguido");
 
+    // 9. Excluir listas criadas pelo usuário
+    await safeOperation(async () => {
+      const listsSnapshot = await getDocs(query(
+        collection(db, "lists"),
+        where("userId", "==", userId)
+      ));
+      
+      const batch = writeBatch(db);
+      const listIds: string[] = [];
+      
+      listsSnapshot.forEach((doc) => {
+        listIds.push(doc.id);
+        batch.delete(doc.ref);
+      });
+      
+      if (listsSnapshot.size > 0) {
+        await batch.commit();
+        
+        // Após excluir as listas, exclua também as reações e comentários associados a elas
+        for (const listId of listIds) {
+          // Excluir reações das listas
+          await safeOperation(async () => {
+            const reactionsSnapshot = await getDocs(query(
+              collection(db, "listReactions"),
+              where("listId", "==", listId)
+            ));
+            
+            const reactionsBatch = writeBatch(db);
+            reactionsSnapshot.forEach((doc) => reactionsBatch.delete(doc.ref));
+            
+            if (reactionsSnapshot.size > 0) {
+              await reactionsBatch.commit();
+            }
+          }, `excluir reações da lista ${listId}`);
+          
+          // Excluir comentários das listas
+          await safeOperation(async () => {
+            const commentsSnapshot = await getDocs(query(
+              collection(db, "comments"),
+              where("listId", "==", listId)
+            ));
+            
+            const commentsBatch = writeBatch(db);
+            commentsSnapshot.forEach((doc) => commentsBatch.delete(doc.ref));
+            
+            if (commentsSnapshot.size > 0) {
+              await commentsBatch.commit();
+            }
+          }, `excluir comentários da lista ${listId}`);
+        }
+      }
+    }, "excluir listas do usuário e dados relacionados");
+    
+    // 10. Excluir comentários do usuário em listas de outros usuários
+    await safeOperation(async () => {
+      const commentsSnapshot = await getDocs(query(
+        collection(db, "comments"),
+        where("userId", "==", userId)
+      ));
+      
+      const batch = writeBatch(db);
+      commentsSnapshot.forEach((doc) => batch.delete(doc.ref));
+      
+      if (commentsSnapshot.size > 0) {
+        await batch.commit();
+      }
+    }, "excluir comentários do usuário em listas de outros");
+    
+    // 11. Excluir reações do usuário em listas de outros usuários
+    await safeOperation(async () => {
+      const reactionsSnapshot = await getDocs(query(
+        collection(db, "listReactions"),
+        where("userId", "==", userId)
+      ));
+      
+      const batch = writeBatch(db);
+      reactionsSnapshot.forEach((doc) => batch.delete(doc.ref));
+      
+      if (reactionsSnapshot.size > 0) {
+        await batch.commit();
+      }
+    }, "excluir reações do usuário em listas de outros");
+
     // Retornar resultados das operações
     return {
       userId,
@@ -539,6 +624,8 @@ export async function updateUserNotificationSettings(
     newComment?: boolean;
     newReaction?: boolean;
     newReview?: boolean;
+    listComment?: boolean;
+    listReaction?: boolean;
   }
 ): Promise<void> {
   try {
@@ -557,7 +644,9 @@ export async function updateUserNotificationSettings(
       newFollower: true,
       newComment: true,
       newReaction: true,
-      newReview: true
+      newReview: true,
+      listComment: true,
+      listReaction: true
     };
     
     // Mesclar configurações existentes com as novas
@@ -579,27 +668,26 @@ export async function updateUserNotificationSettings(
 // Nova função para adicionar uma série à lista de séries que o usuário acompanha
 export async function addToUserWatchedSeries(userId: string, seriesId: number): Promise<void> {
   try {
+    if (!userId) throw new Error("ID de usuário não fornecido");
+    
     const userRef = doc(db, "users", userId);
-    const userDoc = await getDoc(userRef);
     
-    if (!userDoc.exists()) {
-      return;
-    }
+    // Usar uma transação para garantir que os dados estejam atualizados
+    const userData = await getUserData(userId);
+    if (!userData) throw new Error("Usuário não encontrado");
     
-    // Obter a lista atual ou inicializar se não existir
-    const userData = userDoc.data();
-    const currentWatchedSeries = userData.watchedSeriesIds || [];
+    const watchedSeriesIds = userData.watchedSeriesIds || [];
     
-    // Verificar se a série já está na lista
-    if (!currentWatchedSeries.includes(seriesId)) {
-      // Adicionar a série à lista
+    // Adicionar apenas se ainda não estiver na lista
+    if (!watchedSeriesIds.includes(seriesId)) {
       await updateDoc(userRef, {
-        watchedSeriesIds: [...currentWatchedSeries, seriesId],
+        watchedSeriesIds: [...watchedSeriesIds, seriesId],
         updatedAt: new Date()
       });
-      
     }
+    
   } catch (error) {
+    throw error;
   }
 }
 
@@ -610,6 +698,8 @@ export async function getUserNotificationSettings(userId: string): Promise<{
   newComment: boolean;
   newReaction: boolean;
   newReview: boolean;
+  listComment: boolean;
+  listReaction: boolean;
 } | null> {
   try {
     if (!userId) return null;
@@ -628,7 +718,9 @@ export async function getUserNotificationSettings(userId: string): Promise<{
       newFollower: true,
       newComment: true,
       newReaction: true,
-      newReview: true
+      newReview: true,
+      listComment: true,
+      listReaction: true
     };
     
     return settings;

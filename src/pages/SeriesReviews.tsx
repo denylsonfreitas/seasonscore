@@ -15,14 +15,14 @@ import {
   useToast,
   Divider,
 } from "@chakra-ui/react";
-import { useParams, useSearchParams, Link as RouterLink } from "react-router-dom";
+import { useParams, useSearchParams, Link as RouterLink, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getSeriesDetails } from "../services/tmdb";
 import { getSeriesReviews, toggleReaction } from "../services/reviews";
 import { RatingStars } from "../components/common/RatingStars";
 import { UserName } from "../components/common/UserName";
 import { ReviewDetailsModal } from "../components/reviews/ReviewDetailsModal";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useUsersData } from "../hooks/useUsersData";
 import { useAuth } from "../contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -39,13 +39,21 @@ export function SeriesReviews() {
   );
   const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const navigate = useNavigate();
 
   const starSize = useBreakpointValue({ base: 16, md: 20 });
 
-  const { data: series, isLoading: isLoadingSeries } = useQuery({
+  const { data: series, isLoading: isLoadingSeries, isError: isSeriesError } = useQuery({
     queryKey: ["series", id],
     queryFn: () => getSeriesDetails(Number(id)),
   });
+
+  // Adicionar redirecionamento para página 404 quando série não for encontrada
+  useEffect(() => {
+    if (!isLoadingSeries && !series && isSeriesError) {
+      navigate('/404', { replace: true });
+    }
+  }, [isLoadingSeries, series, isSeriesError, navigate]);
 
   const { data: reviews = [], isLoading: isLoadingReviews } = useQuery({
     queryKey: ["reviews", id],
@@ -145,16 +153,6 @@ export function SeriesReviews() {
     );
   }
 
-  if (!series) {
-    return (
-      <Box bg="gray.900" minH="100vh" pt="80px">
-        <Container maxW="1200px" py={8}>
-          <Text color="white">Série não encontrada</Text>
-        </Container>
-      </Box>
-    );
-  }
-
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
       <Box flex="1">
@@ -172,7 +170,7 @@ export function SeriesReviews() {
               left={0}
               right={0}
               bottom={0}
-              bgImage={`url(https://image.tmdb.org/t/p/original${series.backdrop_path})`}
+              bgImage={`url(https://image.tmdb.org/t/p/original${series?.backdrop_path || ''})`}
               bgSize="cover"
               bgPosition="center"
               _after={{
@@ -193,7 +191,7 @@ export function SeriesReviews() {
           <VStack spacing={6} align="stretch">
             <HStack justify="space-between" align="center" p={6} borderRadius="lg">
               <Heading color="white" size="lg">
-                Avaliações de {series.name}
+                Avaliações de {series?.name || 'Série'}
               </Heading>
               <Select
                 value={selectedSeason}
@@ -208,7 +206,7 @@ export function SeriesReviews() {
                 borderColor="gray.600"
                 _hover={{ borderColor: "gray.500" }}
               >
-                {Array.from({ length: series.number_of_seasons }, (_, i) => i + 1).map(
+                {Array.from({ length: series?.number_of_seasons || 1 }, (_, i) => i + 1).map(
                   (season) => (
                     <option key={season} value={season} style={{ backgroundColor: "#2D3748" }}>
                       Temporada {season}
@@ -240,7 +238,7 @@ export function SeriesReviews() {
                             userId={review.userId}
                             userEmail={review.userEmail}
                             photoURL={usersData[review.userId]?.photoURL}
-                            size={{ base: "sm", md: "md" }}
+                            size="md"
                           />
                           <VStack align="start" spacing={2} flex={1}>
                             <UserName userId={review.userId} />
@@ -309,8 +307,8 @@ export function SeriesReviews() {
             seriesId: id!,
             userId: selectedReview.userId!,
             userEmail: selectedReview.userEmail!,
-            seriesName: series.name,
-            seriesPoster: series.poster_path || "",
+            seriesName: series?.name || "Série desconhecida",
+            seriesPoster: series?.poster_path || "",
             seasonNumber: selectedSeason,
             rating: selectedReview.rating || 0,
             comment: selectedReview.comment || "",

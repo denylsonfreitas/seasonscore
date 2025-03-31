@@ -6,6 +6,8 @@ import {
   Flex,
   useToast,
   useDisclosure,
+  Center,
+  Spinner,
 } from "@chakra-ui/react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
@@ -26,6 +28,7 @@ import {
   createOrUpdateUser,
   getUserByUsername,
 } from "../services/users";
+import { getUserLists } from "../services/lists";
 import { UserListModal } from "../components/user/UserListModal";
 import { ExtendedUser } from "../types/auth";
 import { ReviewDetailsModal } from "../components/reviews/ReviewDetailsModal";
@@ -36,6 +39,7 @@ import { ProfileHeader } from "../components/profile/ProfileHeader";
 import { ProfileStats } from "../components/profile/ProfileStats";
 import { ReviewsSection } from "../components/profile/ReviewsSection";
 import { WatchlistSection } from "../components/profile/WatchlistSection";
+import { ListsSection } from "../components/profile/ListsSection";
 
 // Função para adaptar a avaliação para o formato esperado pelo ReviewDetailsModal
 const adaptReviewForDetails = (review: SeriesReview): any => {
@@ -86,6 +90,7 @@ export function Profile() {
   const [selectedReviewForDetails, setSelectedReviewForDetails] = useState<SeriesReview | null>(null);
   const [isReviewDetailsOpen, setIsReviewDetailsOpen] = useState(false);
   const [showWatchlist, setShowWatchlist] = useState(false);
+  const [showLists, setShowLists] = useState(false);
 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -109,7 +114,8 @@ export function Profile() {
             duration: 3000,
             isClosable: true,
           });
-          navigate("/");
+          // Redirecionar para a página 404 quando o usuário não for encontrado
+          navigate("/404", { replace: true });
         }
       } else if (currentUser) {
         const userData = await getUserData(currentUser.uid);
@@ -144,6 +150,12 @@ export function Profile() {
     queryKey: ["following", targetUserId],
     queryFn: () => getFollowing(targetUserId!),
     enabled: !!targetUserId,
+  });
+
+  const { data: userLists = [], isLoading: isLoadingLists } = useQuery({
+    queryKey: ['userLists', targetUserId],
+    queryFn: () => getUserLists(targetUserId || ''),
+    enabled: !!targetUserId
   });
 
   // Usar useEffect para manter a avaliação selecionada atualizada quando os dados forem buscados novamente
@@ -312,6 +324,51 @@ export function Profile() {
       profileUser?.email?.split("@")[0] ||
       "Usuário";
 
+  // Contar listas
+  const listsCount = userLists?.length || 0;
+
+  // Função que renderiza a seção ativa (Reviews, Watchlist ou Listas)
+  const renderActiveSection = () => {
+    if (isLoadingLists) {
+      return (
+        <Center p={8}>
+          <Spinner size="xl" color="primary.500" />
+        </Center>
+      );
+    }
+
+    const section = showLists ? "lists" : showWatchlist ? "watchlist" : "reviews";
+    
+    switch (section) {
+      case "reviews":
+        return (
+          <ReviewsSection
+            reviews={reviews}
+            isLoading={isLoadingReviews}
+            onReviewClick={handleReviewClick}
+          />
+        );
+      case "watchlist":
+        return (
+          <WatchlistSection 
+            watchlist={watchlist} 
+            isLoading={isLoadingWatchlist}
+            isOwnProfile={isOwnProfile === true}
+            currentUser={currentUser}
+          />
+        );
+      case "lists":
+        return (
+          <ListsSection
+            userId={targetUserId || ''}
+            isOwnProfile={isOwnProfile === true}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
       <Box flex="1">
@@ -337,43 +394,28 @@ export function Profile() {
                 followersCount={followers.length}
                 followingCount={following.length}
                 watchlistCount={watchlist.length}
+                listsCount={listsCount}
                 onShowFollowers={() => setShowFollowers(true)}
                 onShowFollowing={() => setShowFollowing(true)}
-                onShowReviews={() => setShowWatchlist(false)}
-                onShowWatchlist={() => setShowWatchlist(true)}
+                onShowReviews={() => {
+                  setShowWatchlist(false);
+                  setShowLists(false);
+                }}
+                onShowWatchlist={() => {
+                  setShowWatchlist(true);
+                  setShowLists(false);
+                }}
+                onShowLists={() => {
+                  setShowWatchlist(false);
+                  setShowLists(true);
+                }}
                 isOwnProfile={isOwnProfile}
-                activeSection={showWatchlist ? "watchlist" : "reviews"}
+                activeSection={showLists ? "lists" : showWatchlist ? "watchlist" : "reviews"}
               />
             </VStack>
 
-            {/* Conteúdo principal - alternando entre Avaliações e Watchlist */}
-            <VStack spacing={4} align="stretch">
-              <Flex justify="space-between" align="center">
-                <Text 
-                  fontSize="xl" 
-                  fontWeight="bold" 
-                  color="white"
-                  pb={2}
-                >
-                  {showWatchlist ? "Watchlist" : "Avaliações"}
-                </Text>
-              </Flex>
-              
-              {showWatchlist && isOwnProfile ? (
-                <WatchlistSection
-                  watchlist={watchlist}
-                  isLoading={isLoadingWatchlist}
-                  isOwnProfile={!!isOwnProfile}
-                  currentUser={currentUser}
-                />
-              ) : (
-                <ReviewsSection
-                  reviews={reviews}
-                  isLoading={isLoadingReviews}
-                  onReviewClick={handleReviewClick}
-                />
-              )}
-            </VStack>
+            {/* Conteúdo principal - alternando entre Avaliações, Watchlist e Listas */}
+            {renderActiveSection()}
             {selectedReviewForDetails && (
               <ReviewDetailsModal
                 isOpen={isReviewDetailsOpen}

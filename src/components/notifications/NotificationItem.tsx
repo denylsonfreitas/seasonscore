@@ -13,7 +13,7 @@ import {
 import {
   FaUser, FaComment, FaVideo, FaStar
 } from 'react-icons/fa';
-import { FaThumbsUp } from 'react-icons/fa';
+import { FaHeart } from 'react-icons/fa';
 import { Notification, NotificationType } from '../../services/notifications';
 import { UserAvatar } from '../common/UserAvatar';
 import { formatNotificationDate } from '../../utils/dateUtils';
@@ -68,9 +68,11 @@ export const NotificationItem = memo(({
       case NotificationType.NEW_FOLLOWER:
         return <Box as={FaUser} color={notificationColors.newfollower} />;
       case NotificationType.NEW_COMMENT:
+      case NotificationType.LIST_COMMENT:
         return <Box as={FaComment} color={notificationColors.newcomment} />;
       case NotificationType.NEW_REACTION:
-        return <Box as={FaThumbsUp} color={notificationColors.newlike} />;
+      case NotificationType.LIST_REACTION:
+        return <Box as={FaHeart} color={notificationColors.newlike} />;
       case NotificationType.NEW_EPISODE:
         return <Box as={FaVideo} color={notificationColors.newepisode} />;
       case NotificationType.NEW_REVIEW:

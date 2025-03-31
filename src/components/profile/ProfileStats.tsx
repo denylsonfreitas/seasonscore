@@ -1,27 +1,33 @@
+import React from "react";
 import {
-  HStack,
   Stat,
   StatLabel,
   StatNumber,
-  Box,
-  useColorModeValue,
+  Grid,
+  GridItem,
+  useBreakpointValue,
   Divider,
-  Flex,
-  Hide,
-  Show,
 } from "@chakra-ui/react";
+import { 
+  FaStar, 
+  FaEye, 
+  FaUserFriends, 
+  FaListUl 
+} from "react-icons/fa";
 
 export interface ProfileStatsProps {
   reviewsCount: number;
   followersCount: number;
   followingCount: number;
   watchlistCount: number;
+  listsCount: number;
   onShowFollowers: () => void;
   onShowFollowing: () => void;
   onShowReviews: () => void;
   onShowWatchlist: () => void;
+  onShowLists: () => void;
   isOwnProfile: boolean | null;
-  activeSection?: "reviews" | "watchlist";
+  activeSection?: "reviews" | "watchlist" | "lists";
 }
 
 export function ProfileStats({
@@ -29,142 +35,118 @@ export function ProfileStats({
   followersCount,
   followingCount,
   watchlistCount,
+  listsCount,
   onShowFollowers,
   onShowFollowing,
   onShowReviews,
   onShowWatchlist,
+  onShowLists,
   isOwnProfile,
   activeSection = "reviews"
 }: ProfileStatsProps) {
-  const hoverBg = useColorModeValue("gray.700", "gray.700");
-  const activeBg = useColorModeValue("primary.500", "primary.500");
+  const statSize = useBreakpointValue({ base: "sm", md: "md" });
+  const gridTemplate = useBreakpointValue({
+    base: "repeat(2, 1fr)",
+    md: "repeat(5, 1fr)",
+  });
 
   return (
-    <Box
+    <Grid
+      templateColumns={gridTemplate}
+      gap={4}
+      w="100%"
+      p={4}
       bg="gray.800"
-      p={3}
-      borderRadius="md"
+      borderRadius="lg"
+      mb={6}
     >
-      <Flex
-        direction="row"
-        justify="space-around"
-        align="center"
-        gap={1}
-        flexWrap="wrap"
-      >
-
-        {/* Avaliações e Watchlist */}
-        <HStack 
-          spacing={{ base: 3, md: 6 }}
-          flex={1}
-          justify="center"
-          py={1}
+      <GridItem>
+        <Stat
+          p={2}
+          borderRadius="md"
+          textAlign="center"
+          bg={activeSection === "reviews" ? "gray.700" : "transparent"}
+          _hover={{ bg: "gray.700" }}
+          transition="all 0.2s"
+          cursor="pointer"
+          onClick={onShowReviews}
         >
-          <Stat
-            px={{ base: 1, md: 3 }}
-            py={1}
-            textAlign="center"
-            borderRadius="md"
-            cursor="pointer"
-            bg={activeSection === "reviews" ? activeBg : "transparent"}
-            _hover={{ bg: activeSection === "reviews" ? activeBg : hoverBg }}
-            onClick={onShowReviews}
-            transition="all 0.2s"
-            minW={{ base: "70px", md: "100px" }}
-          >
-            <StatLabel 
-              fontSize={{ base: "2xs", md: "sm" }} 
-              color={activeSection === "reviews" ? "white" : "gray.400"}
-              fontWeight={activeSection === "reviews" ? "medium" : "normal"}
-            >
-              Avaliações
-            </StatLabel>
-            <StatNumber fontSize={{ base: "md", md: "xl" }} color="white">
-              {reviewsCount}
-            </StatNumber>
-          </Stat>
+          <StatLabel fontSize={statSize} display="flex" alignItems="center" justifyContent="center">
+            <FaStar style={{ marginRight: "6px" }} /> Avaliações
+          </StatLabel>
+          <StatNumber fontSize={{ base: "lg", md: "xl" }}>{reviewsCount}</StatNumber>
+        </Stat>
+      </GridItem>
 
-          {isOwnProfile && (
-            <Stat
-              px={{ base: 1, md: 3 }}
-              py={1}
-              textAlign="center"
-              borderRadius="md"
-              cursor="pointer"
-              bg={activeSection === "watchlist" ? activeBg : "transparent"}
-              _hover={{ bg: activeSection === "watchlist" ? activeBg : hoverBg }}
-              onClick={onShowWatchlist}
-              transition="all 0.2s"
-              minW={{ base: "70px", md: "100px" }}
-            >
-              <StatLabel 
-                fontSize={{ base: "2xs", md: "sm" }} 
-                color={activeSection === "watchlist" ? "white" : "gray.400"}
-                fontWeight={activeSection === "watchlist" ? "medium" : "normal"}
-              >
-                Watchlist
-              </StatLabel>
-              <StatNumber fontSize={{ base: "md", md: "xl" }} color="white">
-                {watchlistCount}
-              </StatNumber>
-            </Stat>
-          )}
-        </HStack>
-
-        {/* Divisor Vertical */}
-        <Divider 
-          orientation="vertical"
-          height={{ base: "40px", md: "50px" }}
-          mx={{ base: 1, md: 4 }}
-          bg="gray.600"
-        />
-
-        {/* Seguidores e Seguindo */}
-        <HStack 
-          spacing={{ base: 3, md: 6 }}
-          flex={1}
-          justify="center"
-          py={1}
+      <GridItem>
+        <Stat
+          p={2}
+          borderRadius="md"
+          textAlign="center"
+          bg={activeSection === "watchlist" ? "gray.700" : "transparent"}
+          _hover={{ bg: "gray.700" }}
+          transition="all 0.2s"
+          cursor="pointer"
+          onClick={onShowWatchlist}
         >
-          <Stat
-            px={{ base: 1, md: 3 }}
-            py={1}
-            textAlign="center"
-            borderRadius="md"
-            cursor="pointer"
-            _hover={{ bg: hoverBg }}
-            onClick={onShowFollowers}
-            transition="all 0.2s"
-            minW={{ base: "70px", md: "100px" }}
-          >
-            <StatLabel fontSize={{ base: "2xs", md: "sm" }} color="gray.400">
-              Seguidores
-            </StatLabel>
-            <StatNumber fontSize={{ base: "md", md: "xl" }} color="white">
-              {followersCount}
-            </StatNumber>
-          </Stat>
+          <StatLabel fontSize={statSize} display="flex" alignItems="center" justifyContent="center">
+            <FaEye style={{ marginRight: "6px" }} /> Watchlist
+          </StatLabel>
+          <StatNumber fontSize={{ base: "lg", md: "xl" }}>{watchlistCount}</StatNumber>
+        </Stat>
+      </GridItem>
+      
+      <GridItem>
+        <Stat
+          p={2}
+          borderRadius="md"
+          textAlign="center"
+          bg={activeSection === "lists" ? "gray.700" : "transparent"}
+          _hover={{ bg: "gray.700" }}
+          transition="all 0.2s"
+          cursor="pointer"
+          onClick={onShowLists}
+        >
+          <StatLabel fontSize={statSize} display="flex" alignItems="center" justifyContent="center">
+            <FaListUl style={{ marginRight: "6px" }} /> Listas
+          </StatLabel>
+          <StatNumber fontSize={{ base: "lg", md: "xl" }}>{listsCount}</StatNumber>
+        </Stat>
+      </GridItem>
 
-          <Stat
-            px={{ base: 1, md: 3 }}
-            py={1}
-            textAlign="center"
-            borderRadius="md"
-            cursor="pointer"
-            _hover={{ bg: hoverBg }}
-            onClick={onShowFollowing}
-            transition="all 0.2s"
-            minW={{ base: "70px", md: "100px" }}
-          >
-            <StatLabel fontSize={{ base: "2xs", md: "sm" }} color="gray.400">
-              Seguindo
-            </StatLabel>
-            <StatNumber fontSize={{ base: "md", md: "xl" }} color="white">
-              {followingCount}
-            </StatNumber>
-          </Stat>
-        </HStack>
-      </Flex>
-    </Box>
+      <GridItem>
+        <Stat
+          p={2}
+          borderRadius="md"
+          textAlign="center"
+          _hover={{ bg: "gray.700" }}
+          transition="all 0.2s"
+          cursor="pointer"
+          onClick={onShowFollowers}
+        >
+          <StatLabel fontSize={statSize} display="flex" alignItems="center" justifyContent="center">
+            <FaUserFriends style={{ marginRight: "6px" }} /> Seguidores
+          </StatLabel>
+          <StatNumber fontSize={{ base: "lg", md: "xl" }}>{followersCount}</StatNumber>
+        </Stat>
+      </GridItem>
+
+      <GridItem>
+        <Stat
+          p={2}
+          borderRadius="md"
+          textAlign="center"
+          _hover={{ bg: "gray.700" }}
+          transition="all 0.2s"
+          cursor="pointer"
+          onClick={onShowFollowing}
+        >
+          <StatLabel fontSize={statSize} display="flex" alignItems="center" justifyContent="center">
+            <FaUserFriends style={{ marginRight: "6px" }} /> Seguindo
+          </StatLabel>
+          <StatNumber fontSize={{ base: "lg", md: "xl" }}>{followingCount}</StatNumber>
+        </Stat>
+      </GridItem>
+    </Grid>
   );
 } 
