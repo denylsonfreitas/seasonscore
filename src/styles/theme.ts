@@ -1,19 +1,16 @@
 import { extendTheme, ThemeConfig } from "@chakra-ui/react";
 
-// Configuração para o modo de cor (claro/escuro)
 const config: ThemeConfig = {
   initialColorMode: "dark",
   useSystemColorMode: false,
 };
 
-// Fontes
 const fonts = {
   heading: "'Inter', sans-serif",
   body: "'Inter', sans-serif",
-  logo: "'DM Serif Display', serif", // Fonte específica para o logo
+  logo: "'DM Serif Display', serif",
 };
 
-// Sombras personalizadas
 const shadows = {
   outline: "0 0 0 3px var(--primary-200)",
   sm: "0 2px 8px rgba(0, 0, 0, 0.1)",
@@ -22,7 +19,6 @@ const shadows = {
   xl: "0 12px 28px rgba(0, 0, 0, 0.25)",
 };
 
-// Sistema de cores centralizado
 const colors = {
   primary: {
     50: "#e0f7f0",
@@ -30,7 +26,7 @@ const colors = {
     200: "#84ddc4",
     300: "#54cfad",
     400: "#2ec59b",
-    500: "#04a777", // Cor principal definida pelo usuário
+    500: "#04a777",
     600: "#039b6d",
     700: "#028a60",
     800: "#017853",
@@ -81,7 +77,6 @@ const colors = {
   info: "#3182CE",
 };
 
-// Bordas arredondadas
 const radii = {
   none: "0",
   sm: "5px",
@@ -95,7 +90,6 @@ const radii = {
 
 const styles = {
   global: {
-    // Estilos globais para todo o app
     "html, body": {
       padding: 0,
       margin: 0,
@@ -107,10 +101,9 @@ const styles = {
       position: "relative",
       lineHeight: "tall",
     },
-    // Quando um modal está aberto
     "body.chakra-modal-open": {
       overflow: "hidden",
-      paddingRight: "0 !important", // Impede o padding que o Chakra adiciona
+      paddingRight: "0 !important",
     },
     "body.chakra-ui-light": {
       scrollbarWidth: "none",
@@ -119,7 +112,6 @@ const styles = {
         display: "none",
       },
     },
-    // Estilo de texto padrão
     "h1, h2, h3, h4, h5, h6": {
       fontWeight: "700",
       letterSpacing: "-0.01em",
@@ -130,7 +122,6 @@ const styles = {
   },
 };
 
-// Definindo o tema estendido
 const theme = extendTheme({
   colors,
   fonts,
@@ -173,7 +164,6 @@ const theme = extendTheme({
       },
     },
     Modal: {
-      // Configuração para evitar o deslocamento quando modais são abertos
       baseStyle: {
         overlay: {
           backdropFilter: "blur(5px)",
@@ -186,14 +176,12 @@ const theme = extendTheme({
           borderRadius: "xl",
         },
         dialogContainer: {
-          // Isso ajuda a centralizar sem deslocar o conteúdo
           alignItems: "center",
           justifyContent: "center",
         },
       },
     },
     Drawer: {
-      // Configuração para drawers
       baseStyle: {
         overlay: {
           backdropFilter: "blur(5px)",
@@ -204,7 +192,6 @@ const theme = extendTheme({
       },
     },
     Popover: {
-      // Configuração para popovers
       baseStyle: {
         popper: {
           zIndex: 1500,
@@ -237,4 +224,4 @@ const theme = extendTheme({
   },
 });
 
-export default theme; 
+export default theme;

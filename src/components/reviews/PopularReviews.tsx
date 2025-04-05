@@ -26,14 +26,12 @@ export function PopularReviews() {
     staleTime: 0
   });
 
-  // Buscar detalhes da série selecionada
   const { data: selectedSeries } = useQuery({
     queryKey: ["series", selectedReview?.seriesId],
     queryFn: () => getSeriesDetails(selectedReview?.seriesId || 0),
     enabled: !!selectedReview?.seriesId
   });
 
-  // Buscar reviews atualizadas da série
   const { data: seriesReviews = [] } = useQuery({
     queryKey: ["reviews", selectedReview?.seriesId],
     queryFn: () => getSeriesReviews(selectedReview?.seriesId || 0),
@@ -53,7 +51,6 @@ export function PopularReviews() {
     navigate(`/series/${seriesId}`);
   };
 
-  // Encontrar a review atualizada
   const currentReview = selectedReview && seriesReviews.length > 0
     ? seriesReviews.find(r => r.id === selectedReview.id)
     : null;
@@ -62,13 +59,10 @@ export function PopularReviews() {
     sr => sr.seasonNumber === selectedReview?.seasonNumber
   );
 
-  // Filtrar reviews com pelo menos 1 like
   const popularReviews = reviews.filter(review => review.likes > 0);
   const displayedReviews = isExpanded ? popularReviews : popularReviews.slice(0, 6);
 
-  // Função para atualizar dados após mudanças
   const handleReviewUpdated = () => {
-    // Invalidar ambas as queries para garantir dados atualizados
     queryClient.invalidateQueries({
       queryKey: ["reviews", selectedReview?.seriesId],
     });

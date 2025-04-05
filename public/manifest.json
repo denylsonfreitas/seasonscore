@@ -1,0 +1,45 @@
+{
+  "name": "SeasonScore",
+  "short_name": "SeasonScore",
+  "description": "Avalie e acompanhe suas séries favoritas por temporada",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1A202C",
+  "theme_color": "#805AD5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Séries Populares",
+      "short_name": "Populares",
+      "description": "Ver séries populares",
+      "url": "/series/popular",
+      "icons": [{ "src": "/icon.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Minhas Listas",
+      "short_name": "Listas",
+      "description": "Ver minhas listas de séries",
+      "url": "/lists",
+      "icons": [{ "src": "/icon.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [],
+  "categories": ["entertainment", "social"],
+  "dir": "ltr",
+  "lang": "pt-BR",
+  "prefer_related_applications": false
+} 

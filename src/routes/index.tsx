@@ -6,19 +6,15 @@ import { Box, Spinner, Center } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 import { getUserData } from "../services/users";
 
-// Loading fallback component
 const PageLoader = () => (
   <Center minH="75vh">
     <Spinner size="xl" color="primary.500" thickness="4px" />
   </Center>
 );
 
-// Componente de precarregamento para rotas importantes
 const PrefetchRoutes = () => {
   useEffect(() => {
-    // Precarregar componentes importantes após 1 segundo
     const timer = setTimeout(() => {
-      // Precarregar componentes críticos
       import("../pages/Home");
       import("../pages/SeriesDetails");
       import("../pages/Series");
@@ -80,7 +76,6 @@ function ProfileRedirect() {
   return <PageLoader />;
 }
 
-// Lazy loading com chunks nomeados para debugging mais fácil
 const HomeLazy = React.lazy(() => 
   import(/* webpackChunkName: "home" */ "../pages/Home")
     .then(module => ({ default: module.Home }))
@@ -131,24 +126,20 @@ const SeriesReviewsLazy = React.lazy(() =>
     .then(module => ({ default: module.SeriesReviews }))
 );
 
-// Adicionar carregamento lazy para a página de pesquisa
 const SearchLazy = React.lazy(() => 
   import(/* webpackChunkName: "search" */ "../pages/Series")
     .then(module => ({ default: module.Series }))
 );
 
-// Adicionar carregamento lazy para a página de lista
 const ListPageLazy = React.lazy(() => 
   import(/* webpackChunkName: "list-page" */ "../pages/ListPage")
 );
 
-// Adicionar carregamento lazy para a página NotFound (404)
 const NotFoundLazy = React.lazy(() => 
   import(/* webpackChunkName: "not-found" */ "../pages/NotFound")
     .then(module => ({ default: module.NotFound }))
 );
 
-// Adicionar carregamento lazy para a página de listas
 const ListsLazy = React.lazy(() => 
   import(/* webpackChunkName: "lists" */ "../pages/Lists")
 );
@@ -293,7 +284,6 @@ export const routes = [
           </Suspense>
         ),
       },
-      // Adicionar rota 404 para capturar todas as rotas inexistentes
       {
         path: "*",
         element: (

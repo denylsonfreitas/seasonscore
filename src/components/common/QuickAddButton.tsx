@@ -23,7 +23,6 @@ export function QuickAddButton({ size = "32px" }: QuickAddButtonProps) {
   
   const [selectedSeriesId, setSelectedSeriesId] = useState<number | null>(null);
   
-  // Determine se deve mostrar o texto do botão com base no tamanho da tela
   const showButtonText = useBreakpointValue({ base: false, sm: true });
 
   const handleQuickAddSelect = useCallback((seriesId: number) => {
@@ -37,7 +36,6 @@ export function QuickAddButton({ size = "32px" }: QuickAddButtonProps) {
     onQuickAddOpen();
   }, [onReviewModalClose, onQuickAddOpen]);
 
-  // Memoizando os botões para reduzir recriações
   const addButton = useMemo(() => {
     if (showButtonText) {
       return (
@@ -74,10 +72,8 @@ export function QuickAddButton({ size = "32px" }: QuickAddButtonProps) {
     }
   }, [showButtonText, size, onQuickAddOpen]);
 
-  // Memoizando os modais para evitar recriações desnecessárias
   const modals = useMemo(() => (
     <>
-      {/* Modal de Busca para Avaliação Rápida */}
       <SearchModal 
         isOpen={isQuickAddOpen} 
         onClose={onQuickAddClose} 
@@ -86,7 +82,6 @@ export function QuickAddButton({ size = "32px" }: QuickAddButtonProps) {
         subtitle="Busque uma série para avaliar rapidamente"
       />
 
-      {/* Modal de Avaliação */}
       {selectedSeriesId && (
         <ReviewModal
           isOpen={isReviewModalOpen}

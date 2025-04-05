@@ -8,14 +8,11 @@ const firebaseConfig = {
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  // Remove a configuração de cookies que pode estar causando problemas
 };
 
 const app = initializeApp(firebaseConfig);
 
-// Configuração correta da persistência usando constantes do Firebase
 const auth = getAuth(app);
-// Configurar persistência local para manter o login entre abas e sessões
 setPersistence(auth, browserLocalPersistence).catch((error) => {
   console.error("Erro ao configurar persistência:", error);
 });

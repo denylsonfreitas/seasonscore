@@ -21,13 +21,11 @@ export function InfiniteScroll({
   const isLoadingRef = useRef(isLoading);
   const hasMoreRef = useRef(hasMore);
 
-  // Atualizar refs quando as props mudarem
   useEffect(() => {
     isLoadingRef.current = isLoading;
     hasMoreRef.current = hasMore;
   }, [isLoading, hasMore]);
 
-  // Memo para loadMore para evitar recreation excessiva do observer
   const memoizedLoadMore = useCallback(() => {
     if (!isLoadingRef.current && hasMoreRef.current) {
       loadMore();
@@ -35,7 +33,6 @@ export function InfiniteScroll({
   }, [loadMore]);
 
   useEffect(() => {
-    // Limpar observer anterior
     if (observerRef.current && loaderRef.current) {
       observerRef.current.disconnect();
     }
@@ -62,7 +59,6 @@ export function InfiniteScroll({
     };
   }, [threshold, memoizedLoadMore]);
 
-  // Memorizar o componente de loading e mensagem de fim da lista
   const loaderComponent = useMemo(() => {
     if (isLoading) {
       return (

@@ -203,31 +203,27 @@ export async function getFilteredSeries(filters: SeriesFilters = {}, page = 1) {
 }
 
 export async function getRelatedSeries(id: number) {
-  // Primeiro, obtemos os detalhes da série atual para saber seu idioma e gêneros
   const seriesDetails = await getSeriesDetails(id);
   
-  // Buscamos séries similares usando a API de descoberta
   const response = await api.get<SeriesResponse>("/discover/tv", {
     params: {
       ...defaultParams,
       with_original_language: seriesDetails.original_language,
       with_genres: seriesDetails.genres.map(g => g.id).join('|'),
-      without_genres: "10767,10764", // Excluir reality shows e talk shows
-      "vote_count.gte": 50, // Garantir um mínimo de votos
-      "vote_average.gte": 6, // Garantir uma nota mínima
+      without_genres: "10767,10764",
+      "vote_count.gte": 50,
+      "vote_average.gte": 6,
       sort_by: "popularity.desc",
       page: 1,
-      without_series: id // Excluir a série atual
+      without_series: id
     },
   });
 
-  // Se não houver resultados suficientes, fazemos uma busca mais ampla
   if (response.data.results.length < 6) {
     const fallbackResponse = await api.get<SeriesResponse>(`/tv/${id}/similar`, {
       params: defaultParams,
     });
     
-    // Combinar resultados, removendo duplicatas
     const combinedResults = [
       ...response.data.results,
       ...fallbackResponse.data.results.filter(
@@ -237,7 +233,7 @@ export async function getRelatedSeries(id: number) {
 
     return {
       ...response.data,
-      results: combinedResults.slice(0, 20) // Limitar a 20 resultados
+      results: combinedResults.slice(0, 20)
     };
   }
 

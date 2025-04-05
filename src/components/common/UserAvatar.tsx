@@ -28,23 +28,19 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   userEmail,
   ...props
 }) => {
-  // Extrair propriedade displayName das props extras
   const { displayName, ...filteredProps } = props as { 
     displayName?: string
   } & AvatarProps;
   
-  // Determinar se o usuário foi excluído
   const userIsDeleted = isDeleted || 
                        !userId || 
                        isDeletedExtra || 
                        !photoURL || 
                        (name && name.toLowerCase().includes('excluído'));
   
-  // Cores para o fallback
   const bg = useColorModeValue('gray.300', 'gray.600');
   const iconColor = useColorModeValue('gray.600', 'gray.300');
   
-  // Definir o fallback para usuários excluídos
   const FallbackAvatar = () => (
     <Box
       width="100%"

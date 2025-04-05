@@ -55,7 +55,7 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
             gap={4}
           >
             <Avatar
-              size="md"
+              size="sm"
               name={actor.name}
               src={
                 actor.profile_path

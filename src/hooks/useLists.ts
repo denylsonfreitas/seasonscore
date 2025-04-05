@@ -16,9 +16,6 @@ interface Series {
   first_air_date?: string;
 }
 
-/**
- * Hook personalizado para gerenciar operações com listas de usuário
- */
 export function useLists() {
   const { currentUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -27,9 +24,6 @@ export function useLists() {
   const toast = useToast();
   const queryClient = useQueryClient();
 
-  /**
-   * Carrega as listas do usuário e verifica quais já contêm a série especificada
-   */
   const loadUserLists = async (seriesId?: number) => {
     if (!currentUser) {
       toast({
@@ -44,11 +38,9 @@ export function useLists() {
     
     setIsLoading(true);
     try {
-      // Buscar listas do usuário
       const lists = await getUserLists(currentUser.uid);
       setUserLists(lists);
       
-      // Se um ID de série foi fornecido, verificar quais listas já a contêm
       if (seriesId) {
         const listsWithThisSeries = await getListsContainingSeries(currentUser.uid, seriesId);
         const seriesListIds = listsWithThisSeries.map(list => list.id);
@@ -72,9 +64,6 @@ export function useLists() {
     }
   };
 
-  /**
-   * Adiciona uma série a uma lista específica
-   */
   const addToList = async (listId: string, series: Series) => {
     if (!currentUser) {
       toast({

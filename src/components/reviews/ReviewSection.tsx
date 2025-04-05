@@ -83,7 +83,6 @@ export function ReviewSection({
     mutation.mutate();
   }
 
-  // Calcula a média das avaliações por temporada
   const seasonAverages = Array.from({ length: numberOfSeasons }, (_, i) => {
     const seasonReviews = reviews.flatMap((review: SeriesReview) =>
       review.seasonReviews.filter((sr: { seasonNumber: number; rating: number; comment?: string }) => sr.seasonNumber === i + 1)

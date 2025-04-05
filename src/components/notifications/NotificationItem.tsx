@@ -18,7 +18,6 @@ import { Notification, NotificationType } from '../../services/notifications';
 import { UserAvatar } from '../common/UserAvatar';
 import { formatNotificationDate } from '../../utils/dateUtils';
 
-// Propriedades para o componente NotificationItem
 export interface NotificationItemProps {
   notification: Notification;
   onClick: (notification: Notification) => void;
@@ -40,7 +39,6 @@ export const NotificationItem = memo(({
 }: NotificationItemProps) => {
   const theme = useTheme();
   
-  // Definir cores padrão para os ícones
   const notificationColors = {
     newfollower: theme?.colors?.notifications?.newfollower || "#2B6CB0",
     newcomment: theme?.colors?.notifications?.newcomment || "#2F855A",
@@ -49,16 +47,13 @@ export const NotificationItem = memo(({
     newreview: theme?.colors?.notifications?.newreview || "#F6AD55"
   };
 
-  // Verificar se o usuário está excluído
   const isUserDeleted = !notification.senderId || 
                         !notification.senderName || 
                         notification.isDeleted || 
                         notification.senderName === 'Usuário excluído';
 
-  // Formatar data de criação
   const formattedDate = formatNotificationDate(notification.createdAt);
   
-  // Definir o ícone com base no tipo de notificação
   const getNotificationIcon = () => {
     if (isUserDeleted) {
       return <Box as={FaUser} color="gray.400" />;
@@ -89,7 +84,6 @@ export const NotificationItem = memo(({
   
   const hoverBgColor = useColorModeValue('gray.600', 'gray.600');
 
-  // Handler para lidar com o clique no checkbox
   const handleCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onSelect) {
@@ -97,7 +91,6 @@ export const NotificationItem = memo(({
     }
   };
 
-  // Renderizar o componente
   return (
     <Box
       borderBottomWidth="1px"

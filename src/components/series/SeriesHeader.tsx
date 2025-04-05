@@ -22,7 +22,6 @@ import { SeriesDetailsTabs } from "./SeriesDetailsTabs";
 import { SeriesReview } from "../../services/reviews";
 import { getSeriesVideos } from "../../services/tmdb";
 
-// Definição para a estrutura de séries
 interface Series {
   id: number;
   name: string;
@@ -40,10 +39,9 @@ interface Series {
     episode_count: number;
     poster_path: string | null;
   }[];
-  [key: string]: any; // Para outras propriedades que possam existir
+  [key: string]: any;
 }
 
-// Definição para usuário atual
 interface User {
   uid: string;
   email: string | null;
@@ -88,7 +86,6 @@ export function SeriesHeader({
   const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
   const toast = useToast();
   
-  // Buscar trailer da série
   useEffect(() => {
     const fetchTrailer = async () => {
       if (!seriesId) return;
@@ -97,7 +94,6 @@ export function SeriesHeader({
       try {
         const videos = await getSeriesVideos(parseInt(seriesId));
         
-        // Procurar por trailers, teasers ou clipes - pela ordem de preferência
         const trailer = videos.find(video => 
           video.type === "Trailer" && video.site === "YouTube"
         ) || videos.find(video => 
@@ -118,7 +114,6 @@ export function SeriesHeader({
     fetchTrailer();
   }, [seriesId]);
   
-  // Abrir trailer
   const handleOpenTrailer = () => {
     if (trailerUrl) {
       window.open(trailerUrl, "_blank", "noopener,noreferrer");
@@ -136,7 +131,6 @@ export function SeriesHeader({
   return (
     <>
       <Box position="relative">
-        {/* Banner */}
         <Box
           h="400px"
           w="100%"
@@ -165,7 +159,6 @@ export function SeriesHeader({
         </Box>
       </Box>
 
-      {/* Conteúdo Principal */}
       <Container maxW="container.lg" position="relative" pb={16}>
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8} mt="-200px">
           <Box>
@@ -214,7 +207,6 @@ export function SeriesHeader({
                   </Button>
                 )}
                 
-                {/* Botão para assistir trailer */}
                 <Button
                   leftIcon={<VideoCamera weight="fill" />}
                   colorScheme="primary"
@@ -272,7 +264,6 @@ export function SeriesHeader({
               <WatchlistButton series={series} />
             </Stack>
 
-            {/* Abas de detalhes da série */}
             <SeriesDetailsTabs
               series={series}
               reviews={reviews}

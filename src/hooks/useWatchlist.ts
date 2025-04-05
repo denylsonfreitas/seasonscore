@@ -11,10 +11,6 @@ interface Series {
   first_air_date: string;
 }
 
-/**
- * Hook personalizado para gerenciar operações de watchlist
- * @param seriesId ID da série (opcional - pode ser passado mais tarde nas funções)
- */
 export function useWatchlist(seriesId?: number) {
   const { currentUser } = useAuth();
   const [isInList, setIsInList] = useState(false);

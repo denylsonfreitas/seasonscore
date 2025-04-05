@@ -52,7 +52,6 @@ export function RatingStars({
 
   const displayRating = hoverRating !== null ? hoverRating : rating;
 
-  // Memorizar a renderização das estrelas
   const starsArray = useMemo(() => {
     return [...Array(5)].map((_, index) => {
       const starValue = index + 1;
@@ -71,7 +70,6 @@ export function RatingStars({
           transition="transform 0.1s ease-in-out"
           _hover={isEditable ? { transform: "scale(1.1)" } : {}}
         >
-          {/* Estrela base (vazia) */}
           <Icon
             as={Star}
             weight="regular"
@@ -80,7 +78,6 @@ export function RatingStars({
             position="absolute"
           />
           
-          {/* Meia estrela */}
           {isHalfStar && (
             <Icon
               as={Star}
@@ -94,7 +91,6 @@ export function RatingStars({
             />
           )}
           
-          {/* Estrela cheia */}
           {isFullStar && (
             <Icon
               as={Star}
@@ -109,7 +105,6 @@ export function RatingStars({
     });
   }, [displayRating, handleStarClick, handleStarHover, isEditable, size]);
 
-  // Memorizar o texto da classificação
   const ratingText = useMemo(() => {
     if (!showNumber) return null;
     return (
