@@ -4,7 +4,6 @@ import {
   Heading,
   Text,
   Flex,
-  Avatar,
   Button,
   Input,
   VStack,
@@ -335,10 +334,11 @@ export function CommentSection({ objectId, objectType, commentsCount }: CommentS
                 <Flex justify="space-between" mb={2}>
                   <HStack>
                     <Flex alignItems="center">
-                      <Avatar
+                      <UserAvatar
                         size="sm" 
-                        src={comment.userPhotoURL || undefined}
+                        photoURL={comment.userPhotoURL}
                         name={comment.userDisplayName || comment.username} 
+                        userId={comment.userId}
                         mr={2} 
                       />
                       <UserName userId={comment.userId} />

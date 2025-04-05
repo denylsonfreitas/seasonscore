@@ -1,10 +1,23 @@
 import React from 'react';
-import { Box, Heading, Text, HStack, VStack, Badge, useColorModeValue, Flex } from '@chakra-ui/react';
-import { Link as RouterLink } from 'react-router-dom';
-import { ListWithUserData } from '../../types/list';
-import { UserAvatar } from '../common/UserAvatar';
-import { formatRelativeTime } from '../../utils/dateUtils';
+import {
+  Box,
+  Heading,
+  Text,
+  HStack,
+  Flex,
+  Tag,
+  TagLabel,
+  Icon,
+  Wrap,
+  WrapItem,
+  Image,
+  useColorModeValue
+} from '@chakra-ui/react';
 import { FaHeart, FaComment } from 'react-icons/fa';
+import { Link as RouterLink } from 'react-router-dom';
+import { formatRelativeTime } from '../../utils/dateUtils';
+import { UserAvatar } from '../common/UserAvatar';
+import { ListWithUserData } from '../../types/list';
 
 interface ListCardProps {
   list: ListWithUserData;
@@ -12,179 +25,123 @@ interface ListCardProps {
 }
 
 export function ListCard({ list, showUser = true }: ListCardProps) {
-  const { 
-    id, 
-    title, 
-    description, 
-    items, 
-    tags, 
-    likesCount, 
-    commentsCount, 
-    createdAt, 
-    userId, 
-    username,
-    userPhotoURL,
-    userDisplayName
-  } = list;
-
-  // Cores do tema
-  const bgColor = useColorModeValue('secondary.800', 'secondary.700');
-  const bgHoverColor = useColorModeValue('secondary.700', 'secondary.600');
-  const borderColor = useColorModeValue('primary.500', 'primary.400');
-  const textColor = useColorModeValue('white', 'white');
-  const subtextColor = useColorModeValue('secondary.300', 'secondary.300');
-  const timeColor = useColorModeValue('secondary.400', 'secondary.400');
-
-  // Mostrar no máximo 3 séries da lista
-  const displayItems = items.slice(0, 3);
-  const remainingCount = Math.max(0, items.length - 3);
-
-  // Calcular o tempo relativo (ex: "há 2 horas")
-  const timeAgo = formatRelativeTime(createdAt);
-
+  const coverBg = useColorModeValue('gray.700', 'gray.700');
+  
   return (
     <Box
-      as={RouterLink}
-      to={`/lists/${id}`}
+      bg="gray.800"
       borderRadius="lg"
       overflow="hidden"
-      bg={bgColor}
-      p={4}
-      _hover={{
-        borderColor: 'primary.500',
-        boxShadow: '0 0 0 2px var(--chakra-colors-primary-500)'
-      }}
-      transition="all 0.2s ease-in-out"
-      shadow="md"
-      w="100%"
-      borderColor={borderColor}
+      transition="all 0.3s"
+      _hover={{ transform: 'translateY(-4px)', boxShadow: 'xl' }}
+      role="group"
+      as={RouterLink}
+      to={`/list/${list.id}`}
     >
-      <VStack align="stretch" spacing={3}>
-        {/* Informações do usuário */}
-        {showUser && (
-          <Flex align="center" mb={2}>
-            <UserAvatar
-              userId={userId}
-              photoURL={userPhotoURL}
-              name={userDisplayName}
-              size="sm"
-            />
-            <Text ml={2} fontWeight="medium" fontSize="sm" color={textColor}>
-              {username ? `@${username}` : userDisplayName || "Usuário"}
-            </Text>
-            <Text ml={2} fontSize="xs" color={timeColor}>
-              • {timeAgo}
-            </Text>
+      {/* Capa da lista - usamos a primeira série da lista como capa */}
+      <Box 
+        h="140px" 
+        bg={coverBg} 
+        position="relative"
+        overflow="hidden"
+      >
+        {list.coverImage ? (
+          <Image
+            src={`https://image.tmdb.org/t/p/w500${list.coverImage}`}
+            alt={list.title}
+            w="100%"
+            h="100%"
+            objectFit="cover"
+            transition="transform 0.3s ease"
+            _groupHover={{ transform: 'scale(1.05)' }}
+            opacity={0.7}
+          />
+        ) : (
+          <Flex 
+            align="center" 
+            justify="center" 
+            h="100%" 
+            color="gray.400"
+            fontSize="lg"
+            fontStyle="italic"
+          >
+            Sem imagem
           </Flex>
         )}
-
-        {/* Título e descrição */}
-        <Box>
-          <Heading size="md" noOfLines={1} color={textColor}>
-            {title}
-          </Heading>
-          <Text fontSize="sm" color={subtextColor} noOfLines={2} mt={1}>
-            {description || "Sem descrição"}
-          </Text>
-        </Box>
-
-        {/* Cards das séries (limite de 3) */}
-        <HStack spacing={2} overflowX="auto" pb={2} css={{ 
-          '&::-webkit-scrollbar': { display: 'none' },
-          'scrollbarWidth': 'none'
-        }}>
-          {displayItems.map((item, index) => (
-            <Box
-              key={item.seriesId}
-              w="80px"
-              h="120px"
-              borderRadius="md"
-              overflow="hidden"
-              position="relative"
-              flexShrink={0}
-              style={{
-                transform: `rotate(${(index - 1) * 3}deg)`,
-                transformOrigin: 'bottom',
-                zIndex: 3 - index
-              }}
-              borderWidth="1px"
-              borderColor="primary.500"
-            >
-              <Box
-                bgImage={item.poster_path ? `url(https://image.tmdb.org/t/p/w200${item.poster_path})` : 'none'}
-                bgSize="cover"
-                bgPosition="center"
-                w="100%"
-                h="100%"
-                bg={item.poster_path ? undefined : 'secondary.600'}
-              />
-              {!item.poster_path && (
-                <Text
-                  position="absolute"
-                  top="50%"
-                  left="50%"
-                  transform="translate(-50%, -50%)"
-                  fontSize="xs"
-                  textAlign="center"
-                  fontWeight="bold"
-                  color={textColor}
-                >
-                  {item.name}
-                </Text>
-              )}
-            </Box>
-          ))}
-          
-          {remainingCount > 0 && (
-            <Box
-              w="80px"
-              h="120px"
-              borderRadius="md"
-              bg="secondary.600"
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              flexShrink={0}
-              position="relative"
-              style={{
-                transform: 'rotate(3deg)',
-                transformOrigin: 'bottom'
-              }}
-              borderWidth="1px"
-              borderColor="primary.500"
-            >
-              <Text fontWeight="bold" color={textColor}>+{remainingCount}</Text>
-            </Box>
-          )}
-        </HStack>
-
-        {/* Tags e estatísticas */}
-        <Flex justify="space-between" align="center">
-          <HStack spacing={2} flexWrap="wrap" flex="1" overflow="hidden">
-            {tags.slice(0, 3).map((tag) => (
-              <Badge key={tag} colorScheme="primary" fontSize="10px">
-                {tag}
-              </Badge>
+        
+        {/* Informações do criador da lista */}
+        {showUser && (
+          <HStack 
+            position="absolute" 
+            bottom={2} 
+            left={2} 
+            spacing={2}
+            bg="blackAlpha.700"
+            p={1}
+            px={2}
+            borderRadius="md"
+          >
+            <UserAvatar 
+              size="xs" 
+              photoURL={list.userPhotoURL}
+              name={list.userDisplayName}
+              userId={list.userId}
+            />
+            <Text fontSize="xs" color="white" fontWeight="medium">
+              {list.userDisplayName}
+            </Text>
+          </HStack>
+        )}
+      </Box>
+      
+      {/* Conteúdo */}
+      <Box p={4}>
+        <Heading size="md" color="white" noOfLines={1} mb={2}>
+          {list.title}
+        </Heading>
+        
+        <Text color="gray.400" fontSize="sm" noOfLines={2} mb={3} minH="40px">
+          {list.description || "Sem descrição"}
+        </Text>
+        
+        {/* Tags */}
+        {list.tags && list.tags.length > 0 && (
+          <Wrap spacing={2} mb={3}>
+            {list.tags.slice(0, 3).map(tag => (
+              <WrapItem key={tag}>
+                <Tag size="sm" colorScheme="primary" variant="subtle">
+                  <TagLabel>{tag}</TagLabel>
+                </Tag>
+              </WrapItem>
             ))}
-            {tags.length > 3 && (
-              <Badge colorScheme="gray" fontSize="10px">
-                +{tags.length - 3}
-              </Badge>
+            {list.tags.length > 3 && (
+              <WrapItem>
+                <Tag size="sm" colorScheme="gray" variant="subtle">
+                  <TagLabel>+{list.tags.length - 3}</TagLabel>
+                </Tag>
+              </WrapItem>
             )}
+          </Wrap>
+        )}
+        
+        {/* Estatísticas e data */}
+        <Flex justifyContent="space-between" alignItems="center" mt={2}>
+          <HStack spacing={4} color="gray.400" fontSize="sm">
+            <HStack spacing={1}>
+              <Icon as={FaHeart} color="red.500" />
+              <Text>{list.likesCount}</Text>
+            </HStack>
+            <HStack spacing={1}>
+              <Icon as={FaComment} />
+              <Text>{list.commentsCount}</Text>
+            </HStack>
           </HStack>
           
-          <HStack spacing={3}>
-            <HStack spacing={1} color="primary.300">
-              <FaComment size={14} />
-              <Text fontSize="sm">{commentsCount}</Text>
-            </HStack>
-            <HStack spacing={1} color="primary.300">
-              <FaHeart size={14} />
-              <Text fontSize="sm">{likesCount}</Text>
-            </HStack>
-          </HStack>
+          <Text fontSize="xs" color="gray.500">
+            {formatRelativeTime(list.updatedAt)}
+          </Text>
         </Flex>
-      </VStack>
+      </Box>
     </Box>
   );
 } 

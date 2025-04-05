@@ -29,7 +29,7 @@ export function PopularSeries() {
       <Box flex="1">
         <Container maxW="container.lg" py={8} pb={16}>
           <Heading color="white" size="2xl" mb={8}>
-            Séries Populares do Momento
+            Populares
           </Heading>
 
           <SeriesGrid

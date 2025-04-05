@@ -49,35 +49,27 @@ function ProfileRedirect() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Se o usuário não estiver logado, redirecionar para a home
     if (!currentUser) {
       navigate("/");
       return;
     }
     
-    // Se tivermos o username no objeto currentUser, usar ele diretamente
     if (currentUser.username) {
       navigate(`/u/${currentUser.username}`);
       return;
     }
     
-    // Criar uma variável local que o TypeScript reconhece como não-nula
     const userId = currentUser.uid;
     
-    // Se o currentUser existir mas o username não estiver disponível ainda
-    // (isso pode ocorrer logo após o login enquanto os dados estão sincronizando)
-    // buscar os dados do usuário diretamente do Firestore
     async function fetchUserData() {
       try {
         const userData = await getUserData(userId);
         if (userData?.username) {
           navigate(`/u/${userData.username}`);
         } else {
-          // Apenas em último caso, redirecionar para settings
           navigate("/settings");
         }
       } catch (error) {
-        // Em caso de erro, redirecionar para settings
         navigate("/settings");
       }
     }
@@ -85,7 +77,6 @@ function ProfileRedirect() {
     fetchUserData();
   }, [currentUser, navigate]);
   
-  // Exibir um loader enquanto os redirecionamentos estão em andamento
   return <PageLoader />;
 }
 
@@ -155,6 +146,11 @@ const ListPageLazy = React.lazy(() =>
 const NotFoundLazy = React.lazy(() => 
   import(/* webpackChunkName: "not-found" */ "../pages/NotFound")
     .then(module => ({ default: module.NotFound }))
+);
+
+// Adicionar carregamento lazy para a página de listas
+const ListsLazy = React.lazy(() => 
+  import(/* webpackChunkName: "lists" */ "../pages/Lists")
 );
 
 export const routes = [
@@ -230,6 +226,22 @@ export const routes = [
         element: (
           <Suspense fallback={<PageLoader />}>
             <SeriesReviewsLazy />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/lists",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ListsLazy />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/list/:listId",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ListPageLazy />
           </Suspense>
         ),
       },

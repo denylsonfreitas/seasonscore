@@ -534,56 +534,83 @@ export async function getUserLists(userId: string, onlyPublic: boolean = false):
 }
 
 /**
- * Busca listas populares (com mais reações)
- * @param limitCount Limite de resultados
- * @returns Promise com array de listas
+ * Obtém as listas populares
+ * @param limitCount Número máximo de listas a retornar
+ * @returns Promise com array de listas populares
  */
 export async function getPopularLists(limitCount: number = DEFAULT_LIMIT): Promise<ListWithUserData[]> {
   try {
-    // Ordenar por contagem de likes
-    const q = query(
+    const listsQuery = query(
       collection(db, LISTS_COLLECTION),
       where("isPublic", "==", true),
       orderBy("likesCount", "desc"),
       limit(limitCount)
     );
-
-    const querySnapshot = await getDocs(q);
-    const lists = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate() || new Date(),
-      updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-      items: doc.data().items.map((item: any) => ({
-        ...item,
-        addedAt: item.addedAt?.toDate() || new Date()
-      }))
-    } as List));
-
-    // Buscar informações dos usuários
-    const listsWithUserData = await Promise.all(lists.map(async (list) => {
-      const userData = await getUserData(list.userId);
-      if (!userData) {
-        return {
-          ...list,
-          username: "Usuário excluído",
-          userDisplayName: "Usuário excluído",
-          userPhotoURL: null
-        };
-      }
-
+    
+    const querySnapshot = await getDocs(listsQuery);
+    
+    if (querySnapshot.empty) {
+      return [];
+    }
+    
+    // Mapear os documentos para objetos List e incluir os IDs
+    const lists = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
       return {
-        ...list,
-        username: userData.username,
-        userDisplayName: userData.displayName || userData.username,
-        userPhotoURL: userData.photoURL
-      };
-    }));
-
-    return listsWithUserData;
+        id: doc.id,
+        userId: data.userId,
+        title: data.title,
+        description: data.description || "",
+        tags: data.tags || [],
+        isPublic: data.isPublic,
+        items: data.items || [],
+        createdAt: convertTimestampToDate(data.createdAt),
+        updatedAt: convertTimestampToDate(data.updatedAt),
+        likesCount: data.likesCount || 0,
+        dislikesCount: data.dislikesCount || 0,
+        commentsCount: data.commentsCount || 0,
+      } as List;
+    });
+    
+    // Buscar dados dos usuários para cada lista
+    const listsWithUserData = await Promise.all(
+      lists.map(async (list) => {
+        try {
+          const userData = await getUserData(list.userId);
+          
+          // Obter uma imagem de capa usando o primeiro item da lista
+          const coverImage = list.items && list.items.length > 0 
+            ? list.items[0].poster_path 
+            : null;
+          
+          return {
+            ...list,
+            userDisplayName: userData?.displayName || "Usuário",
+            userPhotoURL: userData?.photoURL || "",
+            coverImage
+          } as ListWithUserData;
+        } catch (error) {
+          return {
+            ...list,
+            userDisplayName: "Usuário",
+            userPhotoURL: "",
+          } as ListWithUserData;
+        }
+      })
+    );
+    
+    // Ordenar por data de atualização e limitar o número de resultados
+    const sortedLists = listsWithUserData.sort((a, b) => {
+      // Garantir que estamos trabalhando com objetos Date
+      const dateA = a.updatedAt instanceof Date ? a.updatedAt : convertTimestampToDate(a.updatedAt);
+      const dateB = b.updatedAt instanceof Date ? b.updatedAt : convertTimestampToDate(b.updatedAt);
+      return dateB.getTime() - dateA.getTime();
+    }).slice(0, limitCount);
+    
+    return sortedLists;
   } catch (error) {
-    console.error("Erro ao buscar listas populares:", error);
-    throw error;
+    console.error("Erro ao obter listas populares:", error);
+    return [];
   }
 }
 
@@ -1037,5 +1064,151 @@ export async function getUserListReaction(
   } catch (error) {
     console.error("Erro ao verificar reação do usuário:", error);
     return null;
+  }
+}
+
+/**
+ * Obtém listas dos usuários que o usuário atual segue
+ * @param limitCount Número máximo de listas a retornar
+ * @returns Promise com array de listas dos usuários seguidos
+ */
+export async function getFollowedUsersLists(limitCount: number = DEFAULT_LIMIT): Promise<ListWithUserData[]> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error("Usuário não autenticado");
+  }
+
+  try {
+    // Primeiro, obter a lista de usuários seguidos pelo usuário atual
+    const followingQuery = query(
+      collection(db, "followers"),
+      where("followerId", "==", currentUser.uid)
+    );
+    
+    const followingSnapshot = await getDocs(followingQuery);
+    
+    if (followingSnapshot.empty) {
+      return [];
+    }
+    
+    // Extrair os IDs dos usuários seguidos
+    const followedUserIds = followingSnapshot.docs.map(doc => doc.data().userId);
+    
+    // Buscar listas públicas dos usuários seguidos
+    const listsPromises = followedUserIds.map(async (userId) => {
+      const userListsQuery = query(
+        collection(db, LISTS_COLLECTION),
+        where("userId", "==", userId),
+        where("isPublic", "==", true),
+        orderBy("updatedAt", "desc")
+      );
+      
+      const userListsSnapshot = await getDocs(userListsQuery);
+      
+      return userListsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          userId: data.userId,
+          title: data.title,
+          description: data.description || "",
+          tags: data.tags || [],
+          isPublic: data.isPublic,
+          items: data.items || [],
+          createdAt: convertTimestampToDate(data.createdAt),
+          updatedAt: convertTimestampToDate(data.updatedAt),
+          likesCount: data.likesCount || 0,
+          dislikesCount: data.dislikesCount || 0,
+          commentsCount: data.commentsCount || 0,
+        } as List;
+      });
+    });
+    
+    // Aguardar todas as promessas e combinar os resultados
+    const allLists = (await Promise.all(listsPromises)).flat();
+    
+    // Ordenar por data de atualização e limitar o número de resultados
+    const sortedLists = allLists.sort((a, b) => {
+      // Garantir que estamos trabalhando com objetos Date
+      const dateA = a.updatedAt instanceof Date ? a.updatedAt : convertTimestampToDate(a.updatedAt);
+      const dateB = b.updatedAt instanceof Date ? b.updatedAt : convertTimestampToDate(b.updatedAt);
+      return dateB.getTime() - dateA.getTime();
+    }).slice(0, limitCount);
+    
+    // Buscar dados dos usuários para cada lista
+    const listsWithUserData = await Promise.all(
+      sortedLists.map(async (list) => {
+        try {
+          const userData = await getUserData(list.userId);
+          
+          // Obter uma imagem de capa usando o primeiro item da lista
+          const coverImage = list.items && list.items.length > 0 
+            ? list.items[0].poster_path 
+            : null;
+          
+          return {
+            ...list,
+            userDisplayName: userData?.displayName || "Usuário",
+            userPhotoURL: userData?.photoURL || "",
+            coverImage
+          } as ListWithUserData;
+        } catch (error) {
+          return {
+            ...list,
+            userDisplayName: "Usuário",
+            userPhotoURL: "",
+          } as ListWithUserData;
+        }
+      })
+    );
+    
+    return listsWithUserData;
+  } catch (error) {
+    console.error("Erro ao obter listas de usuários seguidos:", error);
+    return [];
+  }
+}
+
+/**
+ * Obtém as tags mais populares
+ * @param limitCount Número máximo de tags a retornar
+ * @returns Promise com array de tags e suas contagens
+ */
+export async function getPopularTags(limitCount: number = 20): Promise<{tag: string, count: number}[]> {
+  try {
+    // Buscar todas as listas públicas
+    const listsQuery = query(
+      collection(db, LISTS_COLLECTION),
+      where("isPublic", "==", true)
+    );
+    
+    const querySnapshot = await getDocs(listsQuery);
+    
+    if (querySnapshot.empty) {
+      return [];
+    }
+    
+    // Contar ocorrências de cada tag
+    const tagCounter = new Map<string, number>();
+    
+    querySnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      const tags = data.tags || [];
+      
+      tags.forEach((tag: string) => {
+        const currentCount = tagCounter.get(tag) || 0;
+        tagCounter.set(tag, currentCount + 1);
+      });
+    });
+    
+    // Converter o Map para array e ordenar por contagem
+    const tagsArray = Array.from(tagCounter.entries()).map(([tag, count]) => ({ tag, count }));
+    const sortedTags = tagsArray.sort((a, b) => b.count - a.count);
+    
+    // Limitar o número de resultados
+    return sortedTags.slice(0, limitCount);
+  } catch (error) {
+    console.error("Erro ao obter tags populares:", error);
+    return [];
   }
 } 

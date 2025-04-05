@@ -7,6 +7,7 @@ import {
 import { Footer } from "../components/common/Footer";
 import { TrendingBanner } from "../components/series/TrendingBanner";
 import { PopularReviews } from "../components/reviews/PopularReviews";
+import { PopularLists } from "../components/lists/PopularLists";
 import { PersonalizedRecommendations } from "../components/series/PersonalizedRecommendations";
 
 export function Home() {
@@ -19,7 +20,7 @@ export function Home() {
           <PersonalizedRecommendations />
 
           <HomeSeriesSection
-            title="Séries Populares do Momento"
+            title="Populares"
             queryKey={["popular"]}
             queryFn={() => {
               return getPopularSeries();
@@ -37,6 +38,8 @@ export function Home() {
           />
 
           <PopularReviews />
+          
+          <PopularLists />
         </Container>
       </Box>
       <Footer />

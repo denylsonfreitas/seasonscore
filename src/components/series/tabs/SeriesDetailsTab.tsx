@@ -1,3 +1,4 @@
+import React from "react";
 import {
   VStack,
   Box,
@@ -6,10 +7,10 @@ import {
   Text,
   Wrap,
   WrapItem,
-  Avatar,
+  Center,
   Image,
   Flex,
-  Center,
+  Avatar,
 } from "@chakra-ui/react";
 
 interface SeriesDetailsTabProps {

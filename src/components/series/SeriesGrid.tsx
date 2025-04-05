@@ -33,7 +33,7 @@ export function SeriesGrid({
         hasMore={!!hasNextPage}
         isLoading={!!isFetchingNextPage}
       >
-        <SimpleGrid columns={{ base: 2, md: 3, lg: 5 }} spacing={6}>
+        <SimpleGrid columns={{ base: 2, md: 3, lg: 6 }} spacing={4}>
           {series.map((series) => (
             <SeriesCard key={series.id} series={series} />
           ))}

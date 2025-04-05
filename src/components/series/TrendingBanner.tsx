@@ -1,4 +1,4 @@
-import { Box, Heading, Text, VStack, HStack, IconButton, Button } from "@chakra-ui/react";
+import { Box, Heading, Text, VStack, HStack, IconButton, Button, Image, Skeleton } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { getTrendingSeries } from "../../services/tmdb";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +11,11 @@ interface TrendingSeries {
   name: string;
   backdrop_path: string | null;
   overview: string;
+  images?: {
+    logos?: {
+      file_path: string;
+    }[];
+  };
 }
 
 export function TrendingBanner() {
@@ -84,7 +89,7 @@ export function TrendingBanner() {
       }}
     >
       <Box
-        h={{ base: "300px", md: "500px" }}
+        h={{ base: "400px", md: "400px" }}
         w="100%"
         position="relative"
         overflow="hidden"
@@ -124,16 +129,22 @@ export function TrendingBanner() {
         transition="opacity 0.5s ease-in-out"
         opacity={isTransitioning ? 0 : 1}
       >
-        <Box maxW="container.lg" width="100%" position="relative">
+        <Box maxW="container.lg" width="100%" position="relative" px={4}>
           <VStack align={{ base: "center", md: "start" }} spacing={3} maxW="600px">
-            <Heading 
-              color="white" 
-              size={{ base: "2xl", md: "3xl" }}
-              transition="transform 0.3s ease"
-              transform={isTransitioning ? "translateY(20px)" : "translateY(0)"}
-            >
-              {currentSeries.name}
-            </Heading>
+            <Skeleton isLoaded={true} startColor="gray.700" endColor="gray.800">
+              {currentSeries.images?.logos?.[0]?.file_path ? (
+                <Image
+                  src={`https://image.tmdb.org/t/p/w500${currentSeries.images.logos[0].file_path}`}
+                  alt={currentSeries.name}
+                  maxH="120px"
+                  objectFit="contain"
+                />
+              ) : (
+                <Heading color="white" size="2xl">
+                  {currentSeries.name}
+                </Heading>
+              )}
+            </Skeleton>
             <Text 
               color="gray.200" 
               fontSize={{ base: "md", md: "lg" }} 

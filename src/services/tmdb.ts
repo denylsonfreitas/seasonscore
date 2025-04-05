@@ -321,7 +321,17 @@ export async function getTrendingSeries() {
   const response = await api.get<SeriesResponse>("/trending/tv/week", {
     params: defaultParams,
   });
-  return response.data.results;
+  const seriesList = response.data.results;
+
+  // Buscar detalhes completos para cada série
+  const detailedSeriesList = await Promise.all(
+    seriesList.map(async (series) => {
+      const details = await getSeriesDetails(series.id);
+      return { ...series, ...details };
+    })
+  );
+
+  return detailedSeriesList;
 }
 
 // Interface para vídeos

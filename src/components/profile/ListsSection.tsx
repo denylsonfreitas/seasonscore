@@ -264,7 +264,7 @@ export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
             colorScheme="primary"
             onClick={onOpen}
           >
-            Nova Lista
+            Lista
           </Button>
         </Flex>
       )}

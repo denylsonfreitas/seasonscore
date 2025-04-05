@@ -27,6 +27,7 @@ export interface ListWithUserData extends List {
   userPhotoURL?: string | null;
   userDisplayName?: string;
   reactions?: ListReaction[];
+  coverImage?: string | null;
 }
 
 export interface ListComment {

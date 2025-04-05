@@ -1,4 +1,4 @@
-import { Box, Heading, VStack, Text, HStack, Flex, Grid, Image, Icon, useDisclosure, Button, Avatar } from "@chakra-ui/react";
+import { Box, Heading, VStack, Text, HStack, Flex, Grid, Image, Icon, useDisclosure, Button } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { getPopularReviews, PopularReview, getSeriesReviews } from "../../services/reviews";
 import { Heart, CaretDown, CaretUp } from "@phosphor-icons/react";
@@ -81,7 +81,7 @@ export function PopularReviews() {
   return (
     <Box mt={12}>
       <Heading color="white" size="lg" mb={6}>
-        Avaliações Populares da Semana
+        Avaliações mais curtidas
       </Heading>
       
       {popularReviews.length === 0 ? (
