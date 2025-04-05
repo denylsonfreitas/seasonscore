@@ -90,7 +90,7 @@ export function PopularLists() {
         </Button>
       </Flex>
 
-      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={6}>
+      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
         {displayedLists.map((list) => (
           <ListCard key={list.id} list={list} />
         ))}

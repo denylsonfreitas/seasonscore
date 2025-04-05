@@ -37,8 +37,10 @@ import {
   Image,
   Grid,
   GridItem,
+  Icon
 } from '@chakra-ui/react';
 import { FaPlus, FaSearch, FaTimes, FaAngleRight, FaAngleLeft, } from 'react-icons/fa';
+import { Globe, Lock } from '@phosphor-icons/react';
 import { ListCard } from '../lists/ListCard';
 import { getUserLists, createList } from '../../services/lists';
 import { useAuth } from '../../contexts/AuthContext';
@@ -247,6 +249,13 @@ export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
     setSelectedSeries(selectedSeries.filter(s => s.id !== seriesId));
   };
 
+  // Função para navegar para a página de listas com filtro de tag
+  const handleTagClick = (e: React.MouseEvent, tag: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate(`/lists?tag=${encodeURIComponent(tag)}&source=profile`);
+  };
+
   if (isLoading) {
     return (
       <Flex justify="center" align="center" p={10}>
@@ -291,11 +300,11 @@ export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
           )}
         </Box>
       ) : (
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 2 }} spacing={6}>
+        <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
           {lists.map((list) => (
             <ListCard key={list.id} list={list} showUser={false} />
           ))}
-        </SimpleGrid>
+        </Grid>
       )}
 
       {/* Modal para criar nova lista */}
@@ -389,7 +398,10 @@ export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
                     
                     <FormControl display="flex" alignItems="center">
                       <FormLabel htmlFor="visibility" mb="0">
-                        Privacidade
+                        <Flex align="center">
+                          <Icon as={isPublic ? Globe : Lock} weight="fill" mr={2} color={isPublic ? "green.400" : "gray.400"} />
+                          {isPublic ? "Pública" : "Privada"}
+                        </Flex>
                       </FormLabel>
                       <Switch
                         id="visibility"
@@ -397,11 +409,6 @@ export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
                         onChange={(e) => setIsPublic(e.target.checked)}
                         colorScheme="primary"
                       />
-                      <FormHelperText ml={2} color="gray.400">
-                        {isPublic 
-                          ? 'Listas públicas são visíveis para todos os usuários'
-                          : 'Listas privadas são visíveis apenas para você'}
-                      </FormHelperText>
                     </FormControl>
                   </VStack>
                 </TabPanel>

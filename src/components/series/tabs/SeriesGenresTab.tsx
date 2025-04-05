@@ -51,33 +51,21 @@ export function SeriesGenresTab({ series }: SeriesGenresTabProps) {
           Gêneros
         </Heading>
         
-        <Wrap spacing={4}>
+        <Wrap spacing={2}>
           {series.genres.map((genre: Genre) => (
             <WrapItem key={genre.id}>
-              <Card 
-                bg="gray.800" 
-                variant="filled" 
-                borderRadius="md"
-                _hover={{ 
-                  transform: "translateY(-4px)", 
+              <VStack spacing={2} align="center">
+                <Badge colorScheme="primary" fontSize="xs" p={2}                 
+                  _hover={{ 
+                  transform: "translateY(-3px)", 
                   transition: "all 0.3s ease",
-                  bg: "gray.700",
+                  bg: "primary.200",
                   cursor: "pointer",
-                }}
-                onClick={() => handleGenreClick(genre.id, genre.name)}
-              >
-                <CardBody>
-                  <VStack spacing={2} align="center">
-                    <Badge colorScheme="primary" fontSize="md" p={2}>
-                      {genre.name}
-                    </Badge>
-                    <Divider borderColor="gray.600" />
-                    <Text color="primary.300" fontSize="xs">
-                      Ver todas as séries
-                    </Text>
-                  </VStack>
-                </CardBody>
-              </Card>
+                  }}
+                  onClick={() => handleGenreClick(genre.id, genre.name)}>
+                  {genre.name}
+                </Badge>
+              </VStack>
             </WrapItem>
           ))}
         </Wrap>

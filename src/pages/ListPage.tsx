@@ -45,8 +45,10 @@ import {
   AlertDialogHeader,
   AlertDialogContent,
   AlertDialogOverlay,
+  Icon,
 } from '@chakra-ui/react';
 import { FaHeart, FaRegHeart, FaComment, FaShare, FaEllipsisV, FaTrash, FaEdit, FaPlus, FaSearch } from 'react-icons/fa';
+import { Globe, Lock } from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { formatRelativeTime } from '../utils/dateUtils';
 import { SeriesCard } from '../components/series/SeriesCard';
@@ -125,7 +127,6 @@ export default function ListPage() {
           setIsLiked(false);
         }
       } catch (error: any) {
-        console.error('Erro ao carregar lista:', error);
         setError(error.message || 'Erro ao carregar a lista');
         navigate('/404', { replace: true });
       } finally {
@@ -317,7 +318,6 @@ export default function ListPage() {
       }));
       setSearchResults(seriesResults);
     } catch (error) {
-      console.error('Erro ao buscar séries:', error);
       toast({
         title: 'Erro na busca',
         description: 'Não foi possível buscar séries',
@@ -389,6 +389,10 @@ export default function ListPage() {
     }
   };
 
+  const handleTagClick = (tag: string) => {
+    navigate(`/lists?tag=${encodeURIComponent(tag)}&source=listPage`);
+  };
+
   if (loading) {
     return (
       <Container maxW="container.lg" py={8}>
@@ -426,8 +430,10 @@ export default function ListPage() {
                 <Heading as="h1" size="lg" color={textColor}>
                   {list.title}
                 </Heading>
-                <Badge ml={2} colorScheme={list.isPublic ? "green" : "gray"} fontSize="sm" px={2} py={1} borderRadius="md">
-                  {list.isPublic ? "Pública" : "Privada"}
+                <Badge ml={2} colorScheme={list.isPublic ? "green" : "gray"} fontSize="sm" px={2} py={2} borderRadius="md">
+                  <Flex align="center">
+                    <Icon as={list.isPublic ? Globe : Lock} weight="fill" />
+                  </Flex>
                 </Badge>
               </Flex>
 
@@ -437,9 +443,22 @@ export default function ListPage() {
                 </Text>
               )}
               
-              <HStack spacing={2} mb={4}>
+              <HStack spacing={2} mb={4} flexWrap="wrap">
                 {list.tags && list.tags.map((tag, index) => (
-                  <Tag key={index} size="sm" colorScheme="primary" borderRadius="full">
+                  <Tag 
+                    key={index} 
+                    size="sm" 
+                    colorScheme="primary" 
+                    borderRadius="full"
+                    cursor="pointer"
+                    onClick={() => handleTagClick(tag)}
+                    _hover={{ 
+                      transform: "scale(1.05)", 
+                      bg: "primary.600", 
+                      color: "white" 
+                    }}
+                    transition="all 0.2s"
+                  >
                     <TagLabel>{tag}</TagLabel>
                   </Tag>
                 ))}
@@ -450,8 +469,8 @@ export default function ListPage() {
                   <Flex alignItems="center">
                   <UserAvatar
                     size="sm"
-                    userId={currentUser?.uid}
-                    photoURL={currentUser?.photoURL}
+                    userId={list.userId}
+                    photoURL={list.userPhotoURL}
                     mr={2}
                   />
                     <Text fontWeight="medium" color={textColor} _hover={{ color: "primary.400" }}>

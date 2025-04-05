@@ -29,8 +29,9 @@ import {
   Tag,
   TagLabel,
   TagCloseButton,
-  VStack,
   Portal,
+  Icon,
+  VStack,
 } from '@chakra-ui/react';
 import { 
   FaListUl, 
@@ -41,6 +42,7 @@ import {
 import { Series } from '../../services/tmdb';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLists } from '../../hooks/useLists';
+import { Bookmark, BookmarkSimple, DotsThree, Globe, Lock } from "@phosphor-icons/react";
 
 interface AddToListButtonProps {
   series: Series;
@@ -274,7 +276,10 @@ function ListSelectorModal({
 
               <FormControl display="flex" alignItems="center">
                 <FormLabel htmlFor="is-public" mb="0">
-                  Privacidade
+                  <Flex align="center">
+                    <Icon as={isPublic ? Globe : Lock} weight="fill" mr={2} color={isPublic ? "green.400" : "gray.400"} />
+                    {isPublic ? "Pública" : "Privada"}
+                  </Flex>
                 </FormLabel>
                 <Switch
                   id="is-public"
@@ -702,7 +707,10 @@ export function AddToListButton({
 
             <FormControl display="flex" alignItems="center">
               <FormLabel htmlFor="is-public" mb="0">
-                Privacidade
+                <Flex align="center">
+                  <Icon as={isPublic ? Globe : Lock} weight="fill" mr={2} color={isPublic ? "green.400" : "gray.400"} />
+                  {isPublic ? "Pública" : "Privada"}
+                </Flex>
               </FormLabel>
               <Switch
                 id="is-public"

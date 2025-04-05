@@ -25,35 +25,68 @@ import {
   useDisclosure,
   Icon,
   Skeleton,
-  useToast
+  useToast,
+  IconButton
 } from '@chakra-ui/react';
-import { FaSearch, FaPlus } from 'react-icons/fa';
+import { FaSearch, FaPlus, FaTimes } from 'react-icons/fa';
 import { CaretDown, CaretUp } from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { BackToTopButton } from '../components/common/BackToTopButton';
-import { getPopularLists, getFollowedUsersLists, getListsByTag, getPopularTags } from '../services/lists';
+import { getPopularLists, getFollowedUsersLists, getListsByTag, getPopularTags, searchLists } from '../services/lists';
 import { ListCard } from '../components/lists/ListCard';
 import { CreateListModal } from '../components/lists/CreateListModal';
 import { ResetScroll } from '../components/common/ResetScroll';
 import { ListWithUserData } from '../types/list';
+import { useSearchParams } from 'react-router-dom';
 
 export default function Lists() {
   const { currentUser } = useAuth();
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<ListWithUserData[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
   const [popularLists, setPopularLists] = useState<ListWithUserData[]>([]);
   const [followedLists, setFollowedLists] = useState<ListWithUserData[]>([]);
   const [popularTags, setPopularTags] = useState<{tag: string, count: number}[]>([]);
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(searchParams.get('tag'));
   const [taggedLists, setTaggedLists] = useState<ListWithUserData[]>([]);
   const [isLoadingPopular, setIsLoadingPopular] = useState(true);
   const [isLoadingFollowed, setIsLoadingFollowed] = useState(true);
   const [isLoadingTags, setIsLoadingTags] = useState(true);
   const [isLoadingTagged, setIsLoadingTagged] = useState(false);
   const [showAllTags, setShowAllTags] = useState(false);
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
   
   const { isOpen: isCreateModalOpen, onOpen: onCreateModalOpen, onClose: onCreateModalClose } = useDisclosure();
+
+  // Verificar se há uma tag nos parâmetros da URL 
+  useEffect(() => {
+    const tagParam = searchParams.get('tag');
+    if (tagParam) {
+      setSelectedTag(tagParam);
+      
+      // Verificar a fonte da navegação
+      const source = searchParams.get('source');
+      
+      // Selecionar a aba apropriada com base na fonte
+      switch (source) {
+        case 'listPage':  // Navegação da página de detalhes de lista
+        case 'profile':   // Navegação da página de perfil
+          setActiveTabIndex(2); // Selecionar a aba "Tags" (índice 2)
+          break;
+        case 'listCard':  // Navegação de um card de lista
+          // Se vier de um card, manter na aba "Destaques" para mostrar resultados filtrados
+          setActiveTabIndex(0);
+          break;
+        default:
+          // Por padrão, mostrar na aba "Destaques"
+          setActiveTabIndex(0);
+      }
+    }
+  }, [searchParams]);
 
   // Carregar listas populares
   useEffect(() => {
@@ -141,30 +174,52 @@ export default function Lists() {
   }, [selectedTag]);
 
   const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+    if (!searchQuery.trim()) {
+      setShowSearchResults(false);
+      return;
+    }
     
     setIsSearching(true);
     try {
-      // Aqui você pode implementar a lógica de busca
-      // por enquanto, vamos apenas simular
-      console.log('Buscando por:', searchQuery);
+      const results = await searchLists(searchQuery);
+      setSearchResults(results);
+      setShowSearchResults(true);
       
+      if (results.length === 0) {
+        toast({
+          title: 'Nenhum resultado encontrado',
+          description: `Não foram encontradas listas para "${searchQuery}"`,
+          status: 'info',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Erro na busca:', error);
       toast({
-        title: 'Funcionalidade em desenvolvimento',
-        description: 'A busca por listas será implementada em breve',
-        status: 'info',
+        title: 'Erro na busca',
+        description: 'Ocorreu um erro ao buscar listas',
+        status: 'error',
         duration: 3000,
         isClosable: true,
       });
-    } catch (error) {
-      console.error('Erro na busca:', error);
     } finally {
       setIsSearching(false);
     }
   };
 
   const handleTagClick = (tag: string) => {
-    setSelectedTag(tag === selectedTag ? null : tag);
+    if (tag === selectedTag) {
+      setSelectedTag(null);
+      // Remover o parâmetro tag da URL
+      searchParams.delete('tag');
+      setSearchParams(searchParams);
+    } else {
+      setSelectedTag(tag);
+      // Adicionar o parâmetro tag à URL
+      searchParams.set('tag', tag);
+      setSearchParams(searchParams);
+    }
   };
 
   const displayedTags = showAllTags ? popularTags : popularTags.slice(0, 10);
@@ -193,21 +248,58 @@ export default function Lists() {
               <Input
                 placeholder="Buscar listas..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (!e.target.value.trim()) {
+                    setShowSearchResults(false);
+                  }
+                }}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 bg="gray.700"
                 borderColor="gray.600"
+                pr="16"
               />
-              <InputRightElement>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  colorScheme="primary"
-                  isLoading={isSearching}
-                  onClick={handleSearch}
-                >
-                  <FaSearch />
-                </Button>
+              <InputRightElement pr="8">
+                {searchQuery ? (
+                  <HStack spacing={0}>
+                    <IconButton
+                      aria-label="Limpar busca"
+                      icon={<FaTimes size={12} />}
+                      size="sm"
+                      variant="ghost"
+                      h="8"
+                      minW="8"
+                      colorScheme="whiteAlpha"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setShowSearchResults(false);
+                      }}
+                    />
+                    <IconButton
+                      aria-label="Buscar"
+                      icon={<FaSearch size={12} />}
+                      size="sm"
+                      variant="ghost"
+                      h="8"
+                      minW="8"
+                      colorScheme="primary"
+                      isLoading={isSearching}
+                      onClick={handleSearch}
+                    />
+                  </HStack>
+                ) : (
+                  <IconButton
+                    aria-label="Buscar"
+                    icon={<FaSearch size={12} />}
+                    size="sm"
+                    variant="ghost"
+                    h="8"
+                    minW="8"
+                    colorScheme="primary"
+                    isLoading={isSearching}
+                    onClick={handleSearch}
+                  />
+                )}
               </InputRightElement>
             </InputGroup>
             
@@ -216,13 +308,21 @@ export default function Lists() {
               colorScheme="primary"
               onClick={onCreateModalOpen}
               width={{ base: "100%", sm: "auto" }}
+              size="md"
             >
-              Lista
+              Nova Lista
             </Button>
           </Flex>
         </Flex>
         
-        <Tabs variant="line" colorScheme="primary" isLazy mb={8}>
+        <Tabs 
+          variant="line" 
+          colorScheme="primary" 
+          isLazy 
+          mb={8}
+          index={activeTabIndex}
+          onChange={setActiveTabIndex}
+        >
           <TabList borderBottomColor="gray.700">
             <Tab color="gray.300" _selected={{ color: "white", borderColor: "primary.500" }}>Destaques</Tab>
             <Tab 
@@ -241,6 +341,38 @@ export default function Lists() {
           <TabPanels>
             {/* Painel de Destaques */}
             <TabPanel px={0}>
+              {/* Resultados da busca - mostrados acima de tudo quando uma busca for feita */}
+              {showSearchResults && (
+                <Box mb={8}>
+                  <Flex justifyContent="space-between" alignItems="center" mb={4}>
+                    <Heading size="md" color="white">
+                      Resultados para "{searchQuery}"
+                    </Heading>
+                    <Button 
+                      variant="link" 
+                      colorScheme="primary" 
+                      onClick={() => setShowSearchResults(false)}
+                    >
+                      Limpar busca
+                    </Button>
+                  </Flex>
+                  
+                  {searchResults.length === 0 ? (
+                    <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
+                      <Text color="gray.400">
+                        Nenhuma lista encontrada para "{searchQuery}".
+                      </Text>
+                    </Box>
+                  ) : (
+                    <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
+                      {searchResults.map((list) => (
+                        <ListCard key={list.id} list={list} />
+                      ))}
+                    </Grid>
+                  )}
+                </Box>
+              )}
+              
               {selectedTag ? (
                 <Box mb={8}>
                   <Flex justifyContent="space-between" alignItems="center" mb={4}>
@@ -257,9 +389,9 @@ export default function Lists() {
                   </Flex>
                   
                   {isLoadingTagged ? (
-                    <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={6}>
+                    <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
                       {[1, 2, 3, 4, 5, 6].map((i) => (
-                        <Skeleton key={i} height="200px" borderRadius="lg" />
+                        <Skeleton key={i} height="240px" borderRadius="lg" />
                       ))}
                     </Grid>
                   ) : taggedLists.length === 0 ? (
@@ -269,7 +401,7 @@ export default function Lists() {
                       </Text>
                     </Box>
                   ) : (
-                    <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={6}>
+                    <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
                       {taggedLists.map((list) => (
                         <ListCard key={list.id} list={list} />
                       ))}
@@ -284,9 +416,9 @@ export default function Lists() {
                     </Heading>
                     
                     {isLoadingPopular ? (
-                      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={6}>
+                      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
                         {[1, 2, 3, 4, 5, 6].map((i) => (
-                          <Skeleton key={i} height="200px" borderRadius="lg" />
+                          <Skeleton key={i} height="240px" borderRadius="lg" />
                         ))}
                       </Grid>
                     ) : popularLists.length === 0 ? (
@@ -296,7 +428,7 @@ export default function Lists() {
                         </Text>
                       </Box>
                     ) : (
-                      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={6}>
+                      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
                         {popularLists.map((list) => (
                           <ListCard key={list.id} list={list} />
                         ))}
@@ -331,12 +463,14 @@ export default function Lists() {
                               <Tag
                                 size="lg"
                                 colorScheme="primary"
-                                variant="subtle"
+                                variant={selectedTag === tagItem.tag ? "solid" : "subtle"}
                                 cursor="pointer"
                                 onClick={() => handleTagClick(tagItem.tag)}
                                 opacity={selectedTag === tagItem.tag ? 1 : 0.8}
                                 transform={selectedTag === tagItem.tag ? "scale(1.05)" : "scale(1)"}
                                 transition="all 0.2s"
+                                fontWeight={selectedTag === tagItem.tag ? "bold" : "normal"}
+                                boxShadow={selectedTag === tagItem.tag ? "0 0 0 1px #805AD5" : "none"}
                               >
                                 <TagLabel>{tagItem.tag} ({tagItem.count})</TagLabel>
                               </Tag>
@@ -371,9 +505,9 @@ export default function Lists() {
                   </Text>
                 </Box>
               ) : isLoadingFollowed ? (
-                <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={6}>
+                <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
                   {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <Skeleton key={i} height="200px" borderRadius="lg" />
+                    <Skeleton key={i} height="240px" borderRadius="lg" />
                   ))}
                 </Grid>
               ) : followedLists.length === 0 ? (
@@ -383,7 +517,7 @@ export default function Lists() {
                   </Text>
                 </Box>
               ) : (
-                <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={6}>
+                <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
                   {followedLists.map((list) => (
                     <ListCard key={list.id} list={list} />
                   ))}
@@ -449,9 +583,9 @@ export default function Lists() {
                     </Flex>
                     
                     {isLoadingTagged ? (
-                      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={6}>
+                      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
                         {[1, 2, 3, 4, 5, 6].map((i) => (
-                          <Skeleton key={i} height="200px" borderRadius="lg" />
+                          <Skeleton key={i} height="240px" borderRadius="lg" />
                         ))}
                       </Grid>
                     ) : taggedLists.length === 0 ? (
@@ -461,7 +595,7 @@ export default function Lists() {
                         </Text>
                       </Box>
                     ) : (
-                      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={6}>
+                      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
                         {taggedLists.map((list) => (
                           <ListCard key={list.id} list={list} />
                         ))}

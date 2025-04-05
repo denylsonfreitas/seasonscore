@@ -25,8 +25,10 @@ import {
   InputRightElement,
   IconButton,
   Text,
+  Icon
 } from '@chakra-ui/react';
 import { FaPlus } from 'react-icons/fa';
+import { Globe, Lock } from '@phosphor-icons/react';
 import { List } from '../../types/list';
 import { updateList } from '../../services/lists';
 import { useAuth } from '../../contexts/AuthContext';
@@ -45,6 +47,7 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
   const [title, setTitle] = useState(list.title);
   const [description, setDescription] = useState(list.description || '');
   const [isPublic, setIsPublic] = useState(list.isPublic !== false); // Default to true if not specified
+  const [accessByLink, setAccessByLink] = useState(list.accessByLink || false); // Novo estado para acesso por link
   const [tags, setTags] = useState<string[]>(list.tags || []);
   const [tagInput, setTagInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -116,6 +119,7 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
         description: description.trim(),
         tags,
         isPublic,
+        accessByLink,
       };
       
       await updateList(list.id, updatedListData);
@@ -234,20 +238,43 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
             
             <FormControl display="flex" alignItems="center">
               <FormLabel htmlFor="visibility" mb="0">
-                Privacidade
+                <Flex align="center">
+                  <Icon as={isPublic ? Globe : Lock} weight="fill" mr={2} color={isPublic ? "green.400" : "gray.400"} />
+                  {isPublic ? "Pública" : "Privada"}
+                </Flex>
               </FormLabel>
               <Switch
                 id="visibility"
                 isChecked={isPublic}
-                onChange={(e) => setIsPublic(e.target.checked)}
+                onChange={(e) => {
+                  setIsPublic(e.target.checked);
+                  // Se tornar pública, desativa o acesso por link
+                  if (e.target.checked) {
+                    setAccessByLink(false);
+                  }
+                }}
                 colorScheme="primary"
               />
-              <FormHelperText ml={2}>
-                {isPublic 
-                  ? 'Listas públicas são visíveis para todos os usuários'
-                  : 'Listas privadas são visíveis apenas para você'}
-              </FormHelperText>
             </FormControl>
+
+            {/* Opção de acesso por link - aparece apenas quando a lista é privada */}
+            {!isPublic && (
+              <FormControl display="flex" alignItems="center" mt={2} pl={6}>
+                <FormLabel htmlFor="access-by-link" mb="0" fontSize="sm">
+                  <Flex align="center">
+                    <Icon as={accessByLink ? Globe : Lock} weight="fill" mr={2} color={accessByLink ? "blue.400" : "gray.400"} size={14} />
+                    Permitir acesso por link
+                  </Flex>
+                </FormLabel>
+                <Switch
+                  id="access-by-link"
+                  isChecked={accessByLink}
+                  onChange={(e) => setAccessByLink(e.target.checked)}
+                  colorScheme="blue"
+                  size="sm"
+                />
+              </FormControl>
+            )}
           </VStack>
         </ModalBody>
 

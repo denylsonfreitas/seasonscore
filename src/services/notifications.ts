@@ -510,48 +510,39 @@ export async function cleanupNotifications(userId: string): Promise<number> {
   }
 }
 
-// Marcar notificação como lida
 export async function markNotificationAsRead(userId: string, notificationId: string): Promise<void> {
   try {
     const notificationRef = doc(db, "notifications", notificationId);
     const notificationDoc = await getDoc(notificationRef);
     
     if (!notificationDoc.exists()) {
-      return; // Notificação não encontrada, simplesmente retornar
+      return; 
     }
     
-    // Verificar permissão
     const notification = notificationDoc.data() as Notification;
     if (notification.userId !== userId) {
-      return; // Sem permissão, simplesmente retornar
+      return;
     }
     
-    // Marcar como lida
     await updateDoc(notificationRef, { read: true });
     
-    // Invalidar cache
     invalidateCache(userId);
     
-    // Remover console.log desnecessário
   } catch (error) {
-    // Silenciar erro não crítico
-    // Continuar mesmo em caso de erro
   }
 }
 
-// Marcar todas notificações como lidas
 export async function markAllNotificationsAsRead(userId: string): Promise<void> {
   if (!auth.currentUser || auth.currentUser.uid !== userId) {
     return;
   }
   
   try {
-    // Buscar notificações não lidas
     const q = query(
       notificationsCollection,
       where("userId", "==", userId),
       where("read", "==", false),
-      firestoreLimit(100) // Limitar para não exceder limites do Firestore
+      firestoreLimit(100) 
     );
     
     const querySnapshot = await getDocs(q);
@@ -560,7 +551,6 @@ export async function markAllNotificationsAsRead(userId: string): Promise<void> 
       return;
     }
     
-    // Atualizar em lote
     const batch = writeBatch(db);
     
     querySnapshot.forEach(doc => {
@@ -569,7 +559,6 @@ export async function markAllNotificationsAsRead(userId: string): Promise<void> 
     
       await batch.commit();
     
-    // Invalidar cache
     invalidateCache(userId);
     
   } catch (error) {
@@ -577,42 +566,34 @@ export async function markAllNotificationsAsRead(userId: string): Promise<void> 
   }
 }
 
-// Excluir notificação
 export async function deleteNotification(notificationId: string): Promise<boolean> {
   if (!auth.currentUser) {
-    return false; // Sem usuário autenticado
+    return false;
   }
 
   try {
-    // Verificar se a notificação existe antes de tentar excluí-la
     const notificationRef = doc(db, "notifications", notificationId);
     const notificationDoc = await getDoc(notificationRef);
     
     if (!notificationDoc.exists()) {
-      return false; // Notificação não encontrada
+      return false; 
     }
     
-    // Verificar permissão
     const notification = notificationDoc.data() as Notification;
     
-    // Verificar se o usuário tem permissão para excluir esta notificação
-    // (deve ser o destinatário ou o remetente)
     if (auth.currentUser.uid !== notification.userId && 
         auth.currentUser.uid !== notification.senderId) {
-      return false; // Sem permissão
+      return false; 
     }
     
-    // Excluir a notificação
     await deleteDoc(notificationRef);
     
-    // Invalidar cache
     if (notification.userId) {
       invalidateCache(notification.userId);
     }
     
     return true;
   } catch (error) {
-    // Silenciar erro não crítico
     return false;
   }
 }

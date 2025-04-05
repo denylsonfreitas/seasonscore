@@ -15,6 +15,7 @@ export interface List {
   items: ListItem[];
   tags: string[];
   isPublic: boolean;
+  accessByLink: boolean;
   createdAt: Date | Timestamp;
   updatedAt: Date | Timestamp;
   likesCount: number;

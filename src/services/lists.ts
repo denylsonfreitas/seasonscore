@@ -106,6 +106,7 @@ function convertTimestampToDate(timestamp: Date | Timestamp): Date {
  * @param tags Tags da lista (opcional)
  * @param isPublic Se a lista é pública (padrão: true)
  * @param items Itens iniciais da lista (opcional)
+ * @param accessByLink Se a lista é acessível por link (padrão: false)
  * @returns Promise com o ID da lista criada
  */
 export async function createList(
@@ -113,7 +114,8 @@ export async function createList(
   description: string = "",
   tags: string[] = [],
   isPublic: boolean = true,
-  initialItems: ListItem[] = []
+  initialItems: ListItem[] = [],
+  accessByLink: boolean = false
 ): Promise<string> {
   const currentUser = auth.currentUser;
   if (!currentUser) {
@@ -127,6 +129,7 @@ export async function createList(
       description,
       tags,
       isPublic,
+      accessByLink,
       items: initialItems.map(item => ({
         ...item,
         addedAt: new Date()
@@ -261,7 +264,7 @@ export async function removeSeriesFromList(
 /**
  * Atualiza informações de uma lista
  * @param listId ID da lista
- * @param data Dados a serem atualizados (título, descrição, tags, isPublic)
+ * @param data Dados a serem atualizados (título, descrição, tags, isPublic, accessByLink)
  * @returns Promise<void>
  */
 export async function updateList(
@@ -271,6 +274,7 @@ export async function updateList(
     description?: string;
     tags?: string[];
     isPublic?: boolean;
+    accessByLink?: boolean;
   }
 ): Promise<void> {
   const currentUser = auth.currentUser;
@@ -382,9 +386,13 @@ export async function getListById(listId: string): Promise<ListWithUserData | nu
     
     const listData = listDoc.data() as List;
     const isPublic = listData.isPublic !== false;
+    const allowAccessByLink = listData.accessByLink === true;
     
-    // Se a lista não for pública, verificar se o usuário atual é o dono
-    if (!isPublic) {
+    // Verificar permissões de acesso:
+    // 1. Lista pública: qualquer um pode acessar
+    // 2. Lista privada com acesso por link: qualquer um com o link pode acessar
+    // 3. Lista totalmente privada: apenas o dono pode acessar
+    if (!isPublic && !allowAccessByLink) {
       const currentUser = auth.currentUser;
       if (!currentUser || currentUser.uid !== listData.userId) {
         throw new Error("Você não tem permissão para acessar esta lista");
@@ -511,9 +519,13 @@ export async function getUserLists(userId: string, onlyPublic: boolean = false):
     querySnapshot.forEach((doc) => {
       const data = doc.data() as List;
       
+      // Garantir que accessByLink esteja presente, mesmo em documentos antigos
+      const accessByLink = data.accessByLink || false;
+      
       lists.push({
         ...data,
         id: doc.id,
+        accessByLink,
         createdAt: convertTimestampToDate(data.createdAt),
         updatedAt: convertTimestampToDate(data.updatedAt),
         items: data.items.map((item: any) => ({
@@ -1209,6 +1221,110 @@ export async function getPopularTags(limitCount: number = 20): Promise<{tag: str
     return sortedTags.slice(0, limitCount);
   } catch (error) {
     console.error("Erro ao obter tags populares:", error);
+    return [];
+  }
+}
+
+/**
+ * Busca listas públicas por título, descrição ou tags
+ * @param query Termo de busca
+ * @param limitCount Limite de resultados
+ * @returns Promise com array de listas que correspondem à busca
+ */
+export async function searchLists(
+  searchText: string,
+  limitCount: number = DEFAULT_LIMIT
+): Promise<ListWithUserData[]> {
+  if (!searchText.trim()) return [];
+  
+  try {
+    const searchTerm = searchText.trim().toLowerCase();
+    
+    // Buscar todas as listas públicas
+    const listsQuery = query(
+      collection(db, LISTS_COLLECTION),
+      where("isPublic", "==", true),
+      orderBy("updatedAt", "desc")
+    );
+    
+    const querySnapshot = await getDocs(listsQuery);
+    
+    if (querySnapshot.empty) {
+      return [];
+    }
+    
+    // Filtrar por título, descrição ou tags que contenham o termo de busca
+    const matchingLists = querySnapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          userId: data.userId,
+          title: data.title,
+          description: data.description || "",
+          tags: data.tags || [],
+          isPublic: data.isPublic,
+          items: (data.items || []).map((item: any) => ({
+            ...item,
+            addedAt: convertTimestampToDate(item.addedAt)
+          })),
+          createdAt: convertTimestampToDate(data.createdAt),
+          updatedAt: convertTimestampToDate(data.updatedAt),
+          likesCount: data.likesCount || 0,
+          dislikesCount: data.dislikesCount || 0,
+          commentsCount: data.commentsCount || 0,
+        } as List;
+      })
+      .filter(list => {
+        // Verificar se o termo de busca está no título
+        if (list.title.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        
+        // Verificar se o termo de busca está na descrição
+        if (list.description && list.description.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        
+        // Verificar se o termo de busca está em alguma tag
+        if (list.tags && list.tags.some(tag => tag.includes(searchTerm))) {
+          return true;
+        }
+        
+        return false;
+      })
+      .slice(0, limitCount);
+    
+    // Buscar informações dos usuários para cada lista
+    const listsWithUserData = await Promise.all(
+      matchingLists.map(async (list) => {
+        try {
+          const userData = await getUserData(list.userId);
+          
+          // Obter uma imagem de capa usando o primeiro item da lista
+          const coverImage = list.items && list.items.length > 0 
+            ? list.items[0].poster_path 
+            : null;
+          
+          return {
+            ...list,
+            userDisplayName: userData?.displayName || "Usuário",
+            userPhotoURL: userData?.photoURL || "",
+            coverImage
+          } as ListWithUserData;
+        } catch (error) {
+          return {
+            ...list,
+            userDisplayName: "Usuário",
+            userPhotoURL: "",
+          } as ListWithUserData;
+        }
+      })
+    );
+    
+    return listsWithUserData;
+  } catch (error) {
+    console.error("Erro ao buscar listas:", error);
     return [];
   }
 } 
