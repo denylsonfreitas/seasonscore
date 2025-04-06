@@ -1,8 +1,4 @@
-import {
-  Spinner,
-  Text,
-  Box,
-} from "@chakra-ui/react";
+import { Spinner, Text, Box, color } from "@chakra-ui/react";
 import { SeriesCard } from "./SeriesCard";
 import { SeriesResponse } from "../../services/tmdb";
 import { useQuery } from "@tanstack/react-query";
@@ -36,34 +32,33 @@ export function HomeSeriesSection({
     queryKey: ["all-reviews"],
     queryFn: async () => {
       if (!data?.results) return {};
-      
+
       const reviewsMap: { [key: number]: number } = {};
-      
+
       await Promise.all(
         data.results.map(async (series) => {
           try {
             const reviews = await getSeriesReviews(series.id);
             if (reviews.length > 0) {
               // Calcular a média das avaliações
-              const allRatings = reviews.flatMap(review => 
-                review.seasonReviews.map(sr => sr.rating)
+              const allRatings = reviews.flatMap((review) =>
+                review.seasonReviews.map((sr) => sr.rating)
               );
-              
+
               if (allRatings.length > 0) {
-                reviewsMap[series.id] = 
+                reviewsMap[series.id] =
                   allRatings.reduce((a, b) => a + b, 0) / allRatings.length;
               }
             }
-          } catch (error) {
-          }
+          } catch (error) {}
         })
       );
-      
+
       return reviewsMap;
     },
     enabled: !!data?.results,
   });
-  
+
   const sliderSettings = {
     dots: true,
     infinite: false,
@@ -76,70 +71,76 @@ export function HomeSeriesSection({
         settings: {
           slidesToShow: 4,
           slidesToScroll: 2,
-        }
+        },
       },
       {
         breakpoint: 768,
         settings: {
           slidesToShow: 3,
           slidesToScroll: 2,
-        }
+        },
       },
       {
         breakpoint: 480,
         settings: {
           slidesToShow: 2,
           slidesToScroll: 1,
-        }
-      }
-    ]
+        },
+      },
+    ],
   };
-  
+
   const renderContent = () => {
     return (
-      <Box 
+      <Box
         sx={{
           ".slick-prev, .slick-next": {
             zIndex: 1,
             color: "white",
             "&:before": {
-              fontSize: "24px"
-            }
+              fontSize: "24px",
+            },
           },
           ".slick-prev": {
-            left: "-10px"
+            left: "-10px",
           },
           ".slick-next": {
-            right: "-10px"
+            right: "-10px",
           },
           ".slick-track": {
             display: "flex",
             paddingTop: "8px",
-            paddingBottom: "8px"
+            paddingBottom: "8px",
           },
           ".slick-slide": {
             padding: "0 4px",
             "& > div": {
-              height: "100%"
-            }
+              height: "100%",
+            },
           },
           ".slick-list": {
-            margin: "0 -4px"
+            margin: "0 -4px",
           },
           ".slick-dots": {
-            bottom: "-30px"
-          }
+            bottom: "-30px",
+            "li button:before": {
+              color: "gray.600",
+            },
+            "li.slick-active button:before": {
+              color: "primary.500",
+            }
+          },
         }}
         pb={8}
       >
         <Slider {...sliderSettings}>
           {data?.results?.map((series) => (
             <Box key={series.id}>
-              <SeriesCard 
-                key={series.id} 
+              <SeriesCard
+                key={series.id}
                 series={{
                   ...series,
-                  rating: allReviews[series.id]
+                  rating: allReviews[series.id],
                 }}
               />
             </Box>
@@ -172,7 +173,6 @@ export function HomeSeriesSection({
       loadingElement={loadingElement}
       errorElement={errorElement}
       renderContent={() => renderContent()}
-      containerProps={{ mb: 12 }}
     />
   );
 }

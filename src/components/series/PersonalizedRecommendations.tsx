@@ -144,7 +144,7 @@ export function PersonalizedRecommendations() {
   };
 
   return (
-    <Box mb={12}>
+    <Box >
       <HStack spacing={2} mb={6}>
         <Heading color="white" size="md">Recomendações para Você</Heading>
         <Tooltip 
@@ -185,7 +185,13 @@ export function PersonalizedRecommendations() {
             margin: "0 -4px"
           },
           ".slick-dots": {
-            bottom: "-30px"
+            bottom: "-30px",
+            "li button:before": {
+              color: "gray.600",
+            },
+            "li.slick-active button:before": {
+              color: "primary.500",
+            }
           }
         }}
         pb={8}

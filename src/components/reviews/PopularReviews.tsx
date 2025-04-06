@@ -142,7 +142,13 @@ export function PopularReviews() {
             margin: "0 -4px"
           },
           ".slick-dots": {
-            bottom: "-30px"
+            bottom: "-30px",
+            "li button:before": {
+              color: "gray.600",
+            },
+            "li.slick-active button:before": {
+              color: "primary.500",
+            }
           }
         }}
         pb={8}
