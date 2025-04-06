@@ -1091,3 +1091,74 @@ export async function getFollowedUsersReviews(userId: string, seriesId: number):
 
   return reviews;
 }
+
+/**
+ * Busca avaliações recentes de usuários que o usuário atual segue
+ * @param limitCount Número máximo de avaliações a retornar
+ * @returns Promise com array de avaliações populares
+ */
+export async function getRecentFollowedUsersReviews(limitCount: number = 10): Promise<PopularReview[]> {
+  if (!auth.currentUser) {
+    return [];
+  }
+  
+  try {
+    // Buscar os usuários que o usuário atual segue
+    const following = await getFollowing(auth.currentUser.uid);
+    const followedUserIds = following.map(f => f.userId);
+    
+    // Se não estiver seguindo ninguém, retornar array vazio
+    if (followedUserIds.length === 0) {
+      return [];
+    }
+    
+    // Buscar avaliações recentes dos usuários seguidos
+    const reviewsRef = collection(db, "reviews");
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    
+    const q = query(
+      reviewsRef,
+      where("userId", "in", followedUserIds),
+      where("createdAt", ">=", oneWeekAgo),
+      orderBy("createdAt", "desc"),
+      limit(limitCount)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const reviews = await Promise.all(
+      querySnapshot.docs.map(async (doc) => {
+        const review = doc.data() as SeriesReview;
+        const userData = await getUserData(review.userId);
+        const seriesDetails = await getSeriesDetails(review.seriesId);
+        
+        // Pegar a primeira avaliação de temporada para mostrar
+        const firstSeasonReview = review.seasonReviews[0];
+        
+        return {
+          id: doc.id,
+          userId: review.userId,
+          seriesId: review.seriesId,
+          seriesName: seriesDetails.name,
+          seriesPoster: seriesDetails.poster_path,
+          seasonNumber: firstSeasonReview.seasonNumber,
+          rating: firstSeasonReview.rating,
+          comment: firstSeasonReview.comment,
+          userName: userData?.displayName || review.userEmail,
+          userAvatar: userData?.photoURL || "",
+          createdAt: firstSeasonReview.createdAt instanceof Date 
+            ? firstSeasonReview.createdAt 
+            : typeof firstSeasonReview.createdAt === 'object' && 'seconds' in firstSeasonReview.createdAt
+              ? new Date(firstSeasonReview.createdAt.seconds * 1000)
+              : new Date(),
+          likes: firstSeasonReview.reactions?.likes?.length || 0,
+        };
+      })
+    );
+    
+    return reviews;
+  } catch (error) {
+    console.error("Erro ao buscar avaliações de usuários seguidos:", error);
+    return [];
+  }
+}

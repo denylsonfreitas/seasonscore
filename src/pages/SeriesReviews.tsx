@@ -116,6 +116,7 @@ export function SeriesReviews() {
   const { currentUser } = useAuth();
   const toast = useToast();
   const queryClient = useQueryClient();
+  const [loadingReactions, setLoadingReactions] = useState<Record<string, boolean>>({});
 
   const handleReaction = useCallback(async (reviewId: string, seasonNumber: number, type: "likes", event: React.MouseEvent) => {
     event.stopPropagation(); // Impedir que abra o modal
@@ -131,6 +132,10 @@ export function SeriesReviews() {
       return;
     }
 
+    // Definir que esta reação específica está em carregamento
+    const reactionId = `${reviewId}-${seasonNumber}-${type}`;
+    setLoadingReactions(prev => ({ ...prev, [reactionId]: true }));
+
     try {
       await toggleReaction(reviewId, seasonNumber, type);
       queryClient.invalidateQueries({ queryKey: ["reviews", id] });
@@ -142,6 +147,9 @@ export function SeriesReviews() {
         duration: 3000,
         isClosable: true,
       });
+    } finally {
+      // Independente do resultado, desativar o loading
+      setLoadingReactions(prev => ({ ...prev, [reactionId]: false }));
     }
   }, [currentUser, id, queryClient, toast]);
 
@@ -270,6 +278,7 @@ export function SeriesReviews() {
                           seasonNumber={selectedSeason}
                           likes={review.reactions?.likes || []}
                           onReaction={handleReaction}
+                          isLoading={loadingReactions[`${review.id}-${selectedSeason}-likes`] || false}
                         />
                         <Divider borderColor="gray.600" orientation="vertical" height="20px" display={{ base: "none", md: "flex" }} />
                         <HStack>

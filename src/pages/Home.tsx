@@ -9,6 +9,8 @@ import { TrendingBanner } from "../components/series/TrendingBanner";
 import { PopularReviews } from "../components/reviews/PopularReviews";
 import { PopularLists } from "../components/lists/PopularLists";
 import { PersonalizedRecommendations } from "../components/series/PersonalizedRecommendations";
+import { FollowedUsersReviews } from "../components/reviews/FollowedUsersReviews";
+import { FollowedUsersLists } from "../components/lists/FollowedUsersLists";
 
 export function Home() {
   return (
@@ -18,6 +20,10 @@ export function Home() {
         
         <Container maxW="container.lg" py={8} pb={16}>
           <PersonalizedRecommendations />
+
+          <FollowedUsersReviews />
+
+          <FollowedUsersLists />
 
           <HomeSeriesSection
             title="Populares"
@@ -40,6 +46,7 @@ export function Home() {
           <PopularReviews />
           
           <PopularLists />
+          
         </Container>
       </Box>
       <Footer />

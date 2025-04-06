@@ -126,6 +126,11 @@ const SeriesReviewsLazy = React.lazy(() =>
     .then(module => ({ default: module.SeriesReviews }))
 );
 
+const ReviewsLazy = React.lazy(() => 
+  import(/* webpackChunkName: "reviews" */ "../pages/Reviews")
+    .then(module => ({ default: module.Reviews }))
+);
+
 const SearchLazy = React.lazy(() => 
   import(/* webpackChunkName: "search" */ "../pages/Series")
     .then(module => ({ default: module.Series }))
@@ -217,6 +222,14 @@ export const routes = [
         element: (
           <Suspense fallback={<PageLoader />}>
             <SeriesReviewsLazy />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/reviews",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ReviewsLazy />
           </Suspense>
         ),
       },

@@ -72,9 +72,9 @@ export function Navbar() {
   } = useAnimatedMenu();
 
   // Adicionar uso do useToken para obter as cores do tema
-  const [seriesColor, popularColor, recentColor, top10Color, listsColor] = useToken(
+  const [seriesColor, popularColor, recentColor, top10Color, reviewsColor, listsColor] = useToken(
     "colors",
-    ["linkhome.series", "linkhome.popular", "linkhome.recent", "linkhome.top10", "linkhome.lists"]
+    ["linkhome.series", "linkhome.popular", "linkhome.recent", "linkhome.top10", "linkhome.reviews", "linkhome.lists"]
   );
 
   const handleLogout = async () => {
@@ -241,6 +241,17 @@ export function Navbar() {
                 </Link>
                 <Link
                   as={RouterLink}
+                  to="/reviews"
+                  color="gray.300"
+                  _hover={{ color: "linkhome.reviews" }}
+                  fontSize="sm"
+                  fontWeight="bold"
+                  textTransform="uppercase"
+                >
+                  Avaliações
+                </Link>
+                <Link
+                  as={RouterLink}
                   to="/lists"
                   color="gray.300"
                   _hover={{ color: "linkhome.lists" }}
@@ -384,6 +395,7 @@ export function Navbar() {
         popularColor={popularColor}
         recentColor={recentColor}
         top10Color={top10Color}
+        reviewsColor={reviewsColor}
         listsColor={listsColor}
         openSignUpModal={openSignUpModal}
         openLoginPopover={handleMobileLoginOpen}

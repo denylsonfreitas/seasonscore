@@ -132,15 +132,9 @@ export function PersonalizedRecommendations() {
       <SimpleGrid columns={{ base: 3, md: 3, lg: 6 }} spacing={4}>
         {displayedRecommendations.map((series) => (
           <Box key={series.id} position="relative">
-            <Tooltip 
-              label={series.matchReason} 
-              placement="top"
-              hasArrow
-            >
               <Box>
                 <SeriesCard series={series} />
               </Box>
-            </Tooltip>
           </Box>
         ))}
       </SimpleGrid>

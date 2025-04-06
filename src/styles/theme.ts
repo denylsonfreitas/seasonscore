@@ -60,6 +60,7 @@ const colors = {
     popular: "#4299E1",
     recent: "#9F7AEA",
     top10: "#F6AD55",
+    reviews: "#D53F8C",
     lists: "#ed7d3a",
   },
 

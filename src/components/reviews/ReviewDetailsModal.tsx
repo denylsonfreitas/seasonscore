@@ -35,6 +35,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { ReactionButtons } from "./ReactionButtons";
 import { FieldValue } from "firebase/firestore";
+import { Link as RouterLink } from "react-router-dom";
 
 interface ReviewDetailsModalProps {
   isOpen: boolean;
@@ -81,6 +82,9 @@ export function ReviewDetailsModal({
   const navigate = useNavigate();
   const toast = useToast();
   const [updatedReview, setUpdatedReview] = useState<typeof review | null>(null);
+  const [isReactionLoading, setIsReactionLoading] = useState(false);
+  const [localLikes, setLocalLikes] = useState<string[]>([]);
+  const [localLikesCount, setLocalLikesCount] = useState(0);
 
   const COMMENTS_PER_PAGE = 5;
   const [currentCommentPage, setCurrentCommentPage] = useState(0);
@@ -90,7 +94,11 @@ export function ReviewDetailsModal({
   }, [activeTab]);
   
   useEffect(() => {
-    setUpdatedReview(review);
+    if (review) {
+      setUpdatedReview(review);
+      setLocalLikes(review.reactions?.likes || []);
+      setLocalLikesCount((review.reactions?.likes || []).length);
+    }
   }, [review]);
 
   // Buscar reviews mais recentes
@@ -127,6 +135,15 @@ export function ReviewDetailsModal({
     };
   }, [updatedReviews, review]);
   
+  // Atualizar likes locais quando recebermos novos dados do servidor
+  useEffect(() => {
+    if (activeReviewFromQuery && !isReactionLoading) {
+      // Só atualizamos se não estivermos processando uma reação
+      setLocalLikes(activeReviewFromQuery.reactions?.likes || []);
+      setLocalLikesCount((activeReviewFromQuery.reactions?.likes || []).length);
+    }
+  }, [activeReviewFromQuery, isReactionLoading]);
+  
   // Usar a revisão atualizada pelo usuário ou a obtida da query
   const activeReview = updatedReview || activeReviewFromQuery;
 
@@ -143,114 +160,44 @@ export function ReviewDetailsModal({
     }
 
     const userId = currentUser.uid;
-    const isCurrentlyActive = activeReview.reactions?.likes?.includes(userId);
     
-    // Construir as novas reações
-    const newReactions = {
-      likes: [...(activeReview.reactions?.likes || [])]
-    };
-
-    // Alternar a reação atual
-    const currentIndex = newReactions.likes.indexOf(userId);
-    if (currentIndex === -1 && !isCurrentlyActive) {
-      // Adicionar
-      newReactions.likes.push(userId);
-    } else if (isCurrentlyActive) {
-      // Remover
-      const index = newReactions.likes.indexOf(userId);
-      if (index !== -1) {
-        newReactions.likes.splice(index, 1);
-      }
+    // Indicar que estamos processando a reação
+    setIsReactionLoading(true);
+    
+    // Atualização otimista do estado local
+    const isCurrentlyLiked = localLikes.includes(userId);
+    let newLocalLikes;
+    
+    if (isCurrentlyLiked) {
+      // Remove o like
+      newLocalLikes = localLikes.filter(id => id !== userId);
+    } else {
+      // Adiciona o like
+      newLocalLikes = [...localLikes, userId];
     }
     
-    // Atualizando localmente primeiro para uma experiência mais responsiva
-    setUpdatedReview(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        reactions: {
-          ...prev.reactions,
-          likes: newReactions.likes
-        }
-      };
-    });
+    // Atualizar estado local imediatamente
+    setLocalLikes(newLocalLikes);
+    setLocalLikesCount(newLocalLikes.length);
     
-    // Atualização otimista do cache de React Query
-    queryClient.setQueryData(["reviews", activeReview.seriesId], (oldData: any) => {
-      if (!oldData) return oldData;
-      
-      return oldData.map((review: any) => {
-        if (review.id === activeReview.id) {
-          const updatedSeasonReviews = review.seasonReviews.map((sr: any) => {
-            if (sr.seasonNumber === activeReview.seasonNumber) {
-              return {
-                ...sr,
-                reactions: {
-                  ...sr.reactions,
-                  likes: newReactions.likes
-                }
-              };
-            }
-            return sr;
-          });
-          
-          return {
-            ...review,
-            seasonReviews: updatedSeasonReviews
-          };
-        }
-        return review;
-      });
-    });
-
     try {
       // Tentamos atualizar a reação no backend
       await toggleReaction(activeReview.id, activeReview.seasonNumber, type);
       
       // Se a atualização for bem-sucedida, atualizamos o cache com os dados mais recentes
-      // usando um pequeno atraso para evitar múltiplas atualizações imediatas
       setTimeout(() => {
         queryClient.invalidateQueries({
           queryKey: ["reviews", activeReview.seriesId],
         });
         onReviewUpdated();
+        setIsReactionLoading(false);
       }, 500);
     } catch (error) {
       // Em caso de erro, revertemos a atualização local
-      setUpdatedReview(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          reactions: activeReview.reactions || { likes: [] }
-        };
-      });
+      setLocalLikes(activeReview.reactions?.likes || []);
+      setLocalLikesCount((activeReview.reactions?.likes || []).length);
       
-      // E revertemos a atualização otimista do cache
-      queryClient.setQueryData(["reviews", activeReview.seriesId], (oldData: any) => {
-        if (!oldData) return oldData;
-        
-        return oldData.map((review: any) => {
-          if (review.id === activeReview.id) {
-            const updatedSeasonReviews = review.seasonReviews.map((sr: any) => {
-              if (sr.seasonNumber === activeReview.seasonNumber) {
-                return {
-                  ...sr,
-                  reactions: activeReview.reactions
-                };
-              }
-              return sr;
-            });
-            
-            return {
-              ...review,
-              seasonReviews: updatedSeasonReviews
-            };
-          }
-          return review;
-        });
-      });
-      
-      // Em caso de erro, mostramos mensagem ao usuário
+      // Mostramos mensagem ao usuário
       toast({
         title: "Erro",
         description: "Não foi possível registrar sua reação",
@@ -258,6 +205,8 @@ export function ReviewDetailsModal({
         duration: 3000,
         isClosable: true,
       });
+      
+      setIsReactionLoading(false);
     }
   };
 
@@ -340,8 +289,18 @@ export function ReviewDetailsModal({
                 ? <Text>Sua avaliação</Text>
                 : (
                   <HStack>
-                    <Box as="span">Avaliação de</Box>
-                    <UserName userId={activeReview.userId} />
+                    <Text fontWeight="medium" color="white">
+                      Avaliação de 
+                    </Text>
+                      <Text 
+                        as={RouterLink}
+                        to={`/u/${userData?.username || activeReview.userId}`}
+                        fontWeight="medium" 
+                        color="white" 
+                        _hover={{ color: "primary.400" }}
+                      >
+                        @{userData?.username || userData?.displayName || 'Usuário'}
+                      </Text>
                   </HStack>
                 )
               }
@@ -423,8 +382,9 @@ export function ReviewDetailsModal({
                       <ReactionButtons 
                         reviewId={activeReview.id}
                         seasonNumber={activeReview.seasonNumber}
-                        likes={activeReview.reactions?.likes || []}
+                        likes={localLikes}
                         onReaction={handleReactionWrapper}
+                        isLoading={isReactionLoading}
                       />
                     </HStack>
                   </VStack>

@@ -31,6 +31,7 @@ interface MobileMenuProps {
   popularColor: string;
   recentColor: string;
   top10Color: string;
+  reviewsColor: string;
   listsColor: string;
   openSignUpModal: () => void;
   openLoginPopover: () => void;
@@ -45,6 +46,7 @@ export function MobileMenu({
   popularColor,
   recentColor,
   top10Color,
+  reviewsColor,
   listsColor,
   openSignUpModal,
   openLoginPopover,
@@ -250,6 +252,34 @@ export function MobileMenu({
         </Box>
 
         <Box style={getItemAnimationStyle(5)}>
+          <RouterLink to="/reviews">
+            <Flex
+              align="center"
+              py={2.5}
+              px={3}
+              borderRadius="md"
+              _hover={{ bg: "gray.700" }}
+              onClick={onClose}
+            >
+              <Box
+                p={2}
+                borderRadius="md"
+                mr={3}
+                bg="gray.700"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+              >
+                <Note weight="fill" size={18} color={reviewsColor} />
+              </Box>
+              <Text color="gray.100" fontWeight="medium">
+                Avaliações
+              </Text>
+            </Flex>
+          </RouterLink>
+        </Box>
+
+        <Box style={getItemAnimationStyle(6)}>
           <RouterLink to="/lists">
             <Flex
               align="center"
@@ -277,12 +307,12 @@ export function MobileMenu({
           </RouterLink>
         </Box>
 
-        <Divider borderColor="gray.700" my={3} style={getItemAnimationStyle(6)} />
+        <Divider borderColor="gray.700" my={3} style={getItemAnimationStyle(7)} />
 
         {/* Ações do usuário na parte inferior */}
         {currentUser ? (
           <>
-            <Box style={getItemAnimationStyle(7)}>
+            <Box style={getItemAnimationStyle(8)}>
               <RouterLink to="/profile" onClick={onClose}>
                 <Flex
                   align="center"
@@ -309,7 +339,7 @@ export function MobileMenu({
               </RouterLink>
             </Box>
 
-            <Box style={getItemAnimationStyle(8)}>
+            <Box style={getItemAnimationStyle(9)}>
               <RouterLink to="/settings">
                 <Flex
                   align="center"
@@ -337,7 +367,7 @@ export function MobileMenu({
               </RouterLink>
             </Box>
 
-            <Box style={getItemAnimationStyle(9)}>
+            <Box style={getItemAnimationStyle(10)}>
               <Flex
                 align="center"
                 py={2.5}
@@ -368,7 +398,7 @@ export function MobileMenu({
             </Box>
           </>
         ) : (
-          <Box style={getItemAnimationStyle(7)}>
+          <Box style={getItemAnimationStyle(8)}>
             <Flex
               direction="column"
               p={3}

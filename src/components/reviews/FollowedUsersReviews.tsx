@@ -1,6 +1,6 @@
 import { Box, VStack, Text, HStack, Grid, Icon, useDisclosure, Badge, Center, LinkBox } from "@chakra-ui/react";
 import { useState } from "react";
-import { getPopularReviews, PopularReview, getSeriesReviews } from "../../services/reviews";
+import { getRecentFollowedUsersReviews, PopularReview, getSeriesReviews } from "../../services/reviews";
 import { Heart, TelevisionSimple } from "@phosphor-icons/react";
 import { RatingStars } from "../common/RatingStars";
 import { UserAvatar } from "../common/UserAvatar";
@@ -10,19 +10,22 @@ import { useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { getSeriesDetails } from "../../services/tmdb";
 import { UserName } from "../common/UserName";
+import { useAuth } from "../../contexts/AuthContext";
 import { LazyImage } from "../common/LazyImage";
 import { SectionBase } from "../common/SectionBase";
 
-export function PopularReviews() {
+export function FollowedUsersReviews() {
   const [selectedReview, setSelectedReview] = useState<PopularReview | null>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { currentUser } = useAuth();
 
   const { data: reviews = [], isLoading } = useQuery({
-    queryKey: ["popularReviews"],
-    queryFn: getPopularReviews,
-    refetchInterval: 3000,
+    queryKey: ["followedUsersReviews"],
+    queryFn: () => getRecentFollowedUsersReviews(12),
+    enabled: !!currentUser,
+    refetchInterval: 5000,
     refetchOnWindowFocus: true,
     staleTime: 0
   });
@@ -60,25 +63,66 @@ export function PopularReviews() {
     sr => sr.seasonNumber === selectedReview?.seasonNumber
   );
 
-  const popularReviews = reviews.filter(review => review.likes > 0);
-
   const handleReviewUpdated = () => {
     queryClient.invalidateQueries({
       queryKey: ["reviews", selectedReview?.seriesId],
     });
     
     queryClient.invalidateQueries({
-      queryKey: ["popularReviews"],
+      queryKey: ["followedUsersReviews"],
     });
   };
 
+  // Componente de carregamento
+  const loadingElement = (
+    <Grid 
+      templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} 
+      gap={6}
+    >
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <Box
+          key={i}
+          bg="gray.800"
+          p={4}
+          borderRadius="lg"
+          height="300px"
+        />
+      ))}
+    </Grid>
+  );
+
+  // Componente para mensagem quando o usuário não está logado
+  const emptyElement = !currentUser ? (
+    <Box 
+      bg="gray.800" 
+      p={6} 
+      borderRadius="lg" 
+      textAlign="center"
+    >
+      <Text color="gray.400">
+        Faça login para ver avaliações de usuários que você segue.
+      </Text>
+    </Box>
+  ) : (
+    <Box 
+      bg="gray.800" 
+      p={6} 
+      borderRadius="lg" 
+      textAlign="center"
+    >
+      <Text color="gray.400">
+        Você ainda não tem avaliações de usuários seguidos. Comece a seguir usuários para ver suas avaliações aqui.
+      </Text>
+    </Box>
+  );
+
   // Renderizar o conteúdo
   const renderContent = (limitItems: boolean) => {
-    const displayedReviews = limitItems ? popularReviews.slice(0, 6) : popularReviews;
+    const displayedReviews = limitItems ? reviews.slice(0, 6) : reviews;
     
     return (
       <Grid 
-        templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(2, 1fr)", lg: "repeat(6, 1fr)" }} 
+        templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(4, 1fr)", lg: "repeat(6, 1fr)" }} 
         gap={4}
       >
         {displayedReviews.map((review) => (
@@ -168,13 +212,14 @@ export function PopularReviews() {
   return (
     <>
       <SectionBase
-        title="Avaliações mais curtidas"
+        title="Quem você segue avaliou"
         link="/reviews"
         linkText="Ver todas"
         isLoading={isLoading}
-        isEmpty={popularReviews.length === 0}
-        emptyMessage="Nenhuma avaliação popular esta semana. Seja o primeiro a avaliar uma série!"
-        expandable={popularReviews.length > 6}
+        isEmpty={!currentUser || reviews.length === 0}
+        emptyElement={emptyElement}
+        loadingElement={loadingElement}
+        expandable={reviews.length > 6}
         renderContent={renderContent}
       />
 

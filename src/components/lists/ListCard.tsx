@@ -237,7 +237,7 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
           </Tooltip>
         </Flex>
         
-        <Text color="gray.400" fontSize="sm" noOfLines={2} mb={3} minH="40px">
+        <Text color="gray.400" fontSize="sm" noOfLines={2}  minH="40px">
           {displayList.description || "Sem descrição"}
         </Text>
         

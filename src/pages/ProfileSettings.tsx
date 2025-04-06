@@ -46,7 +46,6 @@ export function ProfileSettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [coverURL, setCoverURL] = useState("");
-  const [description, setDescription] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
@@ -56,21 +55,9 @@ export function ProfileSettings() {
   const [tempCoverURL, setTempCoverURL] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
-  const [favoriteSeries, setFavoriteSeries] = useState<{
-    id: number;
-    name: string;
-    poster_path: string;
-    backdrop_path: string;
-    images?: {
-      logos?: Array<{
-        file_path: string;
-      }>;
-    };
-  } | null>(null);
   const toast = useToast();
   const navigate = useNavigate();
   const MAX_NAME_LENGTH = 15;
-  const MAX_DESCRIPTION_LENGTH = 50;
   const [newUsername, setNewUsername] = useState("");
   const [usernameError, setUsernameError] = useState("");
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
@@ -91,8 +78,6 @@ export function ProfileSettings() {
         if (userData) {
           setDisplayName(userData.displayName || "");
           setCoverURL(userData.coverURL || "");
-          setDescription(userData.description || "");
-          setFavoriteSeries(userData.favoriteSeries || null);
           setNewUsername(userData.username || "");
         }
       } catch (error) {
@@ -173,7 +158,6 @@ export function ProfileSettings() {
     if (username.length >= 3) {
       setIsCheckingUsername(true);
       try {
-        // Se o username é igual ao atual, não precisa verificar disponibilidade
         const userData = await getUserData(currentUser?.uid || "");
         if (userData?.username?.toLowerCase() === username.toLowerCase()) {
           setUsernameError("");
@@ -218,7 +202,6 @@ export function ProfileSettings() {
 
     setIsSaving(true);
     try {
-      // Validar username se foi alterado
       const userData = await getUserData(currentUser.uid);
       const currentUsername = userData?.username?.toLowerCase();
       
@@ -233,45 +216,32 @@ export function ProfileSettings() {
         if (!isAvailable) {
           throw new Error("Este nome de usuário já está em uso");
         }
-        // Atualizar username
         await updateUsername(currentUser.uid, newUsername.toLowerCase());
       }
 
-      // Garantir que as URLs são strings válidas
-      // Se tempPhotoURL for null e estamos removendo, queremos remover a foto
       const photoURLToUse = isRemovingPhoto ? null : tempPhotoURL || currentUser?.photoURL;
       const coverURLToUse = isRemovingCover ? null : tempCoverURL || currentUser?.coverURL;
 
-      // Construir objeto base com valores explícitos para permitir remoção
       const baseData = {
         displayName,
-        description,
         photoURL: photoURLToUse,
         coverURL: coverURLToUse,
         ...(newUsername ? { username: newUsername.toLowerCase() } : {})
       };
 
-      // Adicionar favoriteSeries explicitamente, permitindo valor null para remover
       const updatedData = {
         ...baseData,
-        favoriteSeries
       };
 
-      // Primeiro atualizar o documento do usuário
       await createOrUpdateUser(auth.currentUser, updatedData);
 
-      // Depois atualizar o perfil do usuário autenticado
-      // updateProfile não aceita null, então convertemos para undefined
       if (isRemovingPhoto) {
-        // Força a remoção da foto de perfil
         try {
-          // Primeiro, tentamos o método convencional
           await updateProfile(auth.currentUser, {
             displayName,
-            photoURL: '',  // String vazia em vez de null
+            photoURL: '',
           });
           
-          // Para garantir, também atualizamos diretamente no Firestore
           const userRef = doc(db, "users", auth.currentUser.uid);
           await updateDoc(userRef, {
             photoURL: null
@@ -280,7 +250,6 @@ export function ProfileSettings() {
         } catch (err) {
         }
       } else {
-        // Atualização normal quando não está removendo a foto
         await updateProfile(auth.currentUser, {
           displayName,
           photoURL: photoURLToUse,
@@ -295,13 +264,10 @@ export function ProfileSettings() {
         isClosable: true,
       });
 
-      // Redirecionar para o perfil
       navigate("/profile", { replace: true });
       window.location.reload();
 
     } catch (error) {
-
-      // Mostrar mensagem de erro mais detalhada
       const errorMessage =
         error instanceof Error ? error.message : "Erro desconhecido";
       toast({
@@ -313,25 +279,6 @@ export function ProfileSettings() {
       });
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleSeriesSelect = async (seriesId: number) => {
-    try {
-      const seriesDetails = await getSeriesDetails(seriesId);
-      setFavoriteSeries({
-        id: seriesId,
-        name: seriesDetails.name,
-        poster_path: seriesDetails.poster_path ?? "",
-        backdrop_path: seriesDetails.backdrop_path ?? "",
-        images: seriesDetails.images ? {
-          logos: seriesDetails.images.logos ? seriesDetails.images.logos.map(logo => ({
-            file_path: logo.file_path
-          })) : undefined
-        } : undefined
-      });
-      setIsSearchOpen(false);
-    } catch (error) {
     }
   };
 
@@ -352,17 +299,6 @@ export function ProfileSettings() {
     setTempCoverURL(null);
     toast({
       title: "Capa removida",
-      description: "Clique em Salvar Alterações para confirmar a remoção",
-      status: "info",
-      duration: 3000,
-      isClosable: true,
-    });
-  };
-
-  const handleRemoveFavoriteSeries = () => {
-    setFavoriteSeries(null);
-    toast({
-      title: "Série favorita removida",
       description: "Clique em Salvar Alterações para confirmar a remoção",
       status: "info",
       duration: 3000,
@@ -471,7 +407,6 @@ export function ProfileSettings() {
                     position="relative"
                   >
                     {isRemovingCover ? (
-                      // Placeholder quando capa for removida
                       <Flex
                         align="center"
                         justify="center"
@@ -640,28 +575,6 @@ export function ProfileSettings() {
                   </Text>
                 )}
               </FormControl>
-
-              <FormControl>
-                <FormLabel color="white">Descrição</FormLabel>
-                <Textarea
-                  value={description}
-                  onChange={(e) =>
-                    setDescription(
-                      e.target.value.slice(0, MAX_DESCRIPTION_LENGTH)
-                    )
-                  }
-                  placeholder="Fale um pouco sobre você..."
-                  bg="gray.700"
-                  color="white"
-                  border="none"
-                  resize="vertical"
-                  minH="100px"
-                  maxLength={MAX_DESCRIPTION_LENGTH}
-                />
-                <Text color="gray.400" fontSize="sm" mt={1}>
-                  {description.length}/{MAX_DESCRIPTION_LENGTH} caracteres
-                </Text>
-              </FormControl>
               <Button
                 colorScheme="primary"
                 onClick={handleSave}
@@ -674,12 +587,6 @@ export function ProfileSettings() {
           </Box>
         </VStack>
       </Container>
-
-      <SearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onSelect={handleSeriesSelect}
-      />
     </Box>
   );
 }

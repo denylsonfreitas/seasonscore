@@ -39,31 +39,52 @@ export function UserListModal({ isOpen, onClose, title, userIds, type }: UserLis
   const { currentUser } = useAuth();
   const [lastFetchedIds, setLastFetchedIds] = useState<string[]>([]);
 
+  // Efeito para gerenciar o carregamento de dados quando o modal é aberto
   useEffect(() => {
-    // Só buscar se isOpen for true e se os IDs mudaram desde a última busca
-    if (isOpen && JSON.stringify(userIds) !== JSON.stringify(lastFetchedIds)) {
-      const fetchUsers = async () => {
-        setIsLoading(true);
-        try {
-          const usersData = await Promise.all(
-            userIds.map(async (userId) => {
-              const userData = await getUserData(userId);
-              return userData;
-            })
-          );
-          setUsers(usersData.filter((user): user is UserData => user !== null));
-          // Atualizar os últimos IDs buscados
-          setLastFetchedIds(userIds);
-        } catch (error) {
-          console.error("Erro ao buscar usuários:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      fetchUsers();
+    if (!isOpen) {
+      return; // Não faz nada se o modal estiver fechado
     }
-  }, [isOpen, userIds, lastFetchedIds]);
+
+    // Função para buscar os dados dos usuários
+    const fetchUsers = async () => {
+      // Se não houver IDs, definimos arrays vazios e terminamos
+      if (userIds.length === 0) {
+        setUsers([]);
+        setLastFetchedIds([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Verificamos se os IDs são os mesmos da última busca
+      const idsChanged = JSON.stringify(userIds) !== JSON.stringify(lastFetchedIds);
+      
+      // Se os IDs não mudaram e já buscamos anteriormente, não precisamos buscar novamente
+      if (!idsChanged && lastFetchedIds.length > 0) {
+        setIsLoading(false);
+        return;
+      }
+
+      // Se chegamos aqui, precisamos buscar os dados
+      setIsLoading(true);
+      
+      try {
+        const usersData = await Promise.all(
+          userIds.map(async (userId) => {
+            const userData = await getUserData(userId);
+            return userData;
+          })
+        );
+        setUsers(usersData.filter((user): user is UserData => user !== null));
+        setLastFetchedIds(userIds);
+      } catch (error) {
+        console.error("Erro ao buscar usuários:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchUsers();
+  }, [isOpen, userIds]); // Removemos lastFetchedIds das dependências para evitar o loop
 
   // Resetar busca quando o modal fechar
   useEffect(() => {
@@ -133,13 +154,17 @@ export function UserListModal({ isOpen, onClose, title, userIds, type }: UserLis
                 ))
               ) : (
                 <Text color="gray.400" textAlign="center" py={4}>
-                  Nenhum resultado encontrado para "{searchQuery}".
+                  {searchQuery 
+                    ? `Nenhum resultado encontrado para "${searchQuery}".`
+                    : "Nenhum usuário encontrado."}
                 </Text>
               )}
             </VStack>
           ) : (
             <Text color="gray.400" textAlign="center">
-              Nenhum usuário encontrado.
+              {type === "followers" 
+                ? "Este usuário ainda não tem seguidores." 
+                : "Este usuário ainda não segue ninguém."}
             </Text>
           )}
         </ModalBody>

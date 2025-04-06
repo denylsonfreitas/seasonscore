@@ -1,18 +1,14 @@
 import {
-  Box,
-  Heading,
   SimpleGrid,
-  Button,
-  Flex,
   Spinner,
   Text,
+  Box,
 } from "@chakra-ui/react";
 import { SeriesCard } from "./SeriesCard";
 import { SeriesResponse } from "../../services/tmdb";
 import { useQuery } from "@tanstack/react-query";
-import { CaretRight } from "@phosphor-icons/react";
-import { Link as RouterLink } from "react-router-dom";
 import { getSeriesReviews } from "../../services/reviews";
+import { SectionBase } from "../common/SectionBase";
 
 interface HomeSectionProps {
   title: string;
@@ -65,48 +61,11 @@ export function HomeSeriesSection({
     },
     enabled: !!data?.results,
   });
-
-  if (isLoading) {
+  
+  const renderContent = () => {
     return (
-      <Box textAlign="center" py={8}>
-        <Spinner size="xl" color="primary.500" />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box textAlign="center" py={8}>
-        <Text color="red.500">Erro ao carregar séries</Text>
-      </Box>
-    );
-  }
-
-  if (!data?.results?.length) {
-    return null;
-  }
-
-  return (
-    <Box mb={12}>
-      <Flex justify="space-between" align="center" mb={6}>
-        <Heading color="white" size="lg">
-          {title}
-        </Heading>
-        {link && (
-          <Button
-            as={RouterLink}
-            to={link}
-            variant="ghost"
-            color="primary.500"
-            rightIcon={<CaretRight weight="bold" />}
-            _hover={{ bg: "gray.800" }}
-          >
-            Ver mais
-          </Button>
-        )}
-      </Flex>
       <SimpleGrid columns={{ base: 3, md: 4, lg: 6 }} spacing={4}>
-        {data.results.slice(0, 6).map((series) => (
+        {data?.results?.slice(0, 6).map((series) => (
           <SeriesCard 
             key={series.id} 
             series={{
@@ -116,6 +75,33 @@ export function HomeSeriesSection({
           />
         ))}
       </SimpleGrid>
+    );
+  };
+
+  // Componentes de estados personalizados
+  const loadingElement = (
+    <Box textAlign="center" py={8}>
+      <Spinner size="xl" color="primary.500" />
     </Box>
+  );
+
+  const errorElement = (
+    <Box textAlign="center" py={8}>
+      <Text color="red.500">Erro ao carregar séries</Text>
+    </Box>
+  );
+
+  return (
+    <SectionBase
+      title={title}
+      link={link}
+      isLoading={isLoading}
+      error={error as Error}
+      isEmpty={!data?.results?.length}
+      loadingElement={loadingElement}
+      errorElement={errorElement}
+      renderContent={() => renderContent()}
+      containerProps={{ mb: 12 }}
+    />
   );
 }

@@ -3,19 +3,13 @@ import {
   Container,
   Heading,
   VStack,
-  Avatar,
   Text,
   Input,
   Flex,
-  Button,
-  Image,
   HStack,
   IconButton,
   useBreakpointValue,
-  Spinner,
-  Badge,
   Tooltip,
-  Divider,
 } from "@chakra-ui/react";
 import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -24,7 +18,6 @@ import { FollowButton } from "../user/FollowButton";
 import { ExtendedUser } from "../../types/auth";
 import { UserAvatar } from "../common/UserAvatar";
 import { Camera, PencilSimple } from "@phosphor-icons/react";
-import { FaUserFriends } from "react-icons/fa";
 
 interface ProfileHeaderProps {
   isOwnProfile: boolean;
@@ -47,7 +40,6 @@ export function ProfileHeader({
   profileUser,
   currentUser,
   userName,
-  handlePhotoUpload,
   handleCoverUpload,
   targetUserId,
   followersCount,
@@ -145,7 +137,7 @@ export function ProfileHeader({
                 display="inline-block"
               >
                 <UserAvatar
-                  size={useBreakpointValue({ base: "xl", md: "2xl" }) || "xl"}
+                  size={useBreakpointValue({ base: "lg", md: "2xl" }) || "xl"}
                   photoURL={
                     isOwnProfile
                       ? currentUser?.photoURL
@@ -196,18 +188,6 @@ export function ProfileHeader({
               >
                 @{isOwnProfile ? currentUser?.username : profileUser?.username}
               </Text>
-              {(isOwnProfile ? currentUser?.description : profileUser?.description) && (
-                <Text
-                  color="gray.200"
-                  maxW="600px"
-                  textAlign="left"
-                  fontSize={{ base: "xs", md: "md" }}
-                  mt={1}
-                  noOfLines={{ base: 1, md: 2 }}
-                >
-                  {isOwnProfile ? currentUser?.description : profileUser?.description}
-                </Text>
-              )}
             </VStack>
           </Flex>
 

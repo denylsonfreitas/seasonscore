@@ -61,7 +61,7 @@ export function UserName({ userId, color = "white", showAt = true }: UserNamePro
       to={`/u/${username}`}
       color={color}
       _hover={{ color: "primary.300" }}
-      fontSize={{ base: "sm", md: "md" }}
+      fontSize={{ base: "sm", md: "xs" }}
       fontWeight="bold"
     >
       <Box as="span" display="inline">

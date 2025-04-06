@@ -93,10 +93,10 @@ export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
   };
 
   const handleListCreated = (listId: string) => {
-    // Atualizar a lista de listas
-    fetchLists();
-    
-    // Navegar para a página da lista recém-criada
+      // Atualizar a lista de listas
+      fetchLists();
+      
+      // Navegar para a página da lista recém-criada
     navigate(`/list/${listId}`);
   };
 
@@ -153,7 +153,7 @@ export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
 
       {/* Usando o componente CreateListModal */}
       <CreateListModal 
-        isOpen={isOpen} 
+        isOpen={isOpen}
         onClose={onClose} 
         onListCreated={handleListCreated}
       />
