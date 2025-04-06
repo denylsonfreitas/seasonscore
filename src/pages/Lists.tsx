@@ -310,7 +310,7 @@ export default function Lists() {
               width={{ base: "100%", sm: "auto" }}
               size="md"
             >
-              Nova Lista
+              Lista
             </Button>
           </Flex>
         </Flex>

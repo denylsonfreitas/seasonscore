@@ -119,6 +119,7 @@ function ListSelectorModal({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(true);
+  const [accessByLink, setAccessByLink] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -275,19 +276,44 @@ function ListSelectorModal({
               </FormControl>
 
               <FormControl display="flex" alignItems="center">
-                <FormLabel htmlFor="is-public" mb="0">
+              <FormLabel htmlFor="is-public" mb="0">
+                <Flex align="center">
+                  <Icon as={isPublic ? Globe : Lock} weight="fill" mr={2} color={isPublic ? "green.400" : "gray.400"} />
+                  {isPublic ? "Pública" : "Privada"}
+                </Flex>
+              </FormLabel>
+              <Switch
+                id="is-public"
+                isChecked={isPublic}
+                onChange={(e) => {
+                  setIsPublic(e.target.checked);
+                  // Se tornar pública, desativa o acesso por link
+                  if (e.target.checked) {
+                    setAccessByLink(false);
+                  }
+                }}
+                colorScheme="primary"
+              />
+            </FormControl>
+
+            {/* Opção de acesso por link - aparece apenas quando a lista é privada */}
+            {!isPublic && (
+              <FormControl display="flex" alignItems="center" mt={2} pl={6}>
+                <FormLabel htmlFor="access-by-link" mb="0" fontSize="sm">
                   <Flex align="center">
-                    <Icon as={isPublic ? Globe : Lock} weight="fill" mr={2} color={isPublic ? "green.400" : "gray.400"} />
-                    {isPublic ? "Pública" : "Privada"}
+                    <Icon as={accessByLink ? Globe : Lock} weight="fill" mr={2} color={accessByLink ? "blue.400" : "gray.400"} size={14} />
+                    Permitir acesso por link
                   </Flex>
                 </FormLabel>
                 <Switch
-                  id="is-public"
-                  isChecked={isPublic}
-                  onChange={(e) => setIsPublic(e.target.checked)}
-                  colorScheme="primary"
+                  id="access-by-link"
+                  isChecked={accessByLink}
+                  onChange={(e) => setAccessByLink(e.target.checked)}
+                  colorScheme="blue"
+                  size="sm"
                 />
               </FormControl>
+            )}
             </>
           ) : (
             <>
@@ -478,6 +504,7 @@ export function AddToListButton({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(true);
+  const [accessByLink, setAccessByLink] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [isCreating, setIsCreating] = useState(false);

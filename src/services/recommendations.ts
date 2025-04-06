@@ -14,8 +14,7 @@ interface UserPreference {
 
 // Interface para séries recomendadas
 export interface RecommendedSeries extends SeriesListItem {
-  matchScore: number;  // Score de 0-100 indicando quão bem a série corresponde às preferências
-  matchReason: string; // Razão da recomendação
+  matchScore: number;
 }
 
 /**
@@ -216,8 +215,7 @@ async function fetchRecommendedSeries(
         
         recommendations.push({
           ...series,
-          matchScore,
-          matchReason: `Baseado no seu interesse por ${pref.genreName}`
+          matchScore
         });
         
         processedSeriesIds.add(series.id);
@@ -243,8 +241,7 @@ async function fetchRecommendedSeries(
         
         recommendations.push({
           ...series,
-          matchScore: 70, // Score padrão para recomendações genéricas
-          matchReason: "Série popular que pode interessar você"
+          matchScore: 70
         });
         
         processedSeriesIds.add(series.id);
