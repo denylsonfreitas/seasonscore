@@ -9,6 +9,9 @@ interface AuthUIState {
   openLoginPopover: () => void;
   closeLoginPopover: () => void;
   closeAllAuth: () => void;
+  // Aliases para compatibilidade com Home.tsx
+  openRegister: () => void;
+  openLogin: () => void;
 }
 
 export const useAuthUIStore = create<AuthUIState>((set) => ({
@@ -20,4 +23,7 @@ export const useAuthUIStore = create<AuthUIState>((set) => ({
   openLoginPopover: () => set({ isLoginPopoverOpen: true }),
   closeLoginPopover: () => set({ isLoginPopoverOpen: false }),
   closeAllAuth: () => set({ isSignUpModalOpen: false, isLoginPopoverOpen: false }),
+  // Aliases para compatibilidade com Home.tsx
+  openRegister: () => set({ isSignUpModalOpen: true }),
+  openLogin: () => set({ isLoginPopoverOpen: true }),
 })); 
