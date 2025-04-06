@@ -23,6 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogContent,
   AlertDialogOverlay,
+  Textarea,
 } from '@chakra-ui/react';
 import { FaEllipsisV, FaTrash, FaEdit } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
@@ -36,6 +37,9 @@ import {
 } from '../../services/comments';
 import { UserName } from '../common/UserName';
 import { UserAvatar } from '../common/UserAvatar';
+import { ReactionButton } from '../common/ReactionButton';
+import { useQueryClient } from '@tanstack/react-query';
+import { toggleListCommentReaction } from '../../services/lists';
 
 export interface Comment {
   id: string;
@@ -59,8 +63,8 @@ interface CommentSectionProps {
 export function CommentSection({ objectId, objectType, commentsCount }: CommentSectionProps) {
   const { currentUser } = useAuth();
   const toast = useToast();
-  const commentInputRef = useRef<HTMLInputElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const queryClient = useQueryClient();
   
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -71,12 +75,39 @@ export function CommentSection({ objectId, objectType, commentsCount }: CommentS
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   
+  // Estados para controlar reações com UI otimista
+  const [commentReactions, setCommentReactions] = useState<Record<string, {
+    isLiked: boolean;
+    likesCount: number;
+    isToggling: boolean;
+  }>>({});
+  
   const bgColor = 'gray.800';
   const borderColor = 'gray.700';
 
   useEffect(() => {
     loadComments();
   }, [objectId, objectType]);
+
+  // Inicializar estados de reação quando os comentários são carregados
+  useEffect(() => {
+    const newReactions: Record<string, { isLiked: boolean; likesCount: number; isToggling: boolean }> = {};
+    
+    comments.forEach(comment => {
+      const likes = comment as any as { likes?: Record<string, boolean> };
+      const likesMap = likes.likes || {};
+      const likesCount = Object.keys(likesMap).length;
+      const isLiked = currentUser ? !!likesMap[currentUser.uid] : false;
+      
+      newReactions[comment.id] = {
+        isLiked,
+        likesCount,
+        isToggling: false
+      };
+    });
+    
+    setCommentReactions(newReactions);
+  }, [comments, currentUser]);
 
   const loadComments = async () => {
     try {
@@ -182,9 +213,6 @@ export function CommentSection({ objectId, objectType, commentsCount }: CommentS
   const handleEditClick = (comment: Comment) => {
     setEditingComment(comment.id);
     setEditContent(comment.content);
-    setTimeout(() => {
-      commentInputRef.current?.focus();
-    }, 0);
   };
 
   const handleUpdateComment = async () => {
@@ -223,6 +251,97 @@ export function CommentSection({ objectId, objectType, commentsCount }: CommentS
     }
   };
 
+  // Adicionar função para lidar com reações em comentários
+  const handleCommentReaction = async (commentId: string) => {
+    if (!currentUser) {
+      toast({
+        title: 'Faça login',
+        description: 'Você precisa estar logado para reagir a um comentário',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (objectType !== 'list') {
+      // Somente implementamos reações para comentários de listas por enquanto
+      return;
+    }
+
+    // Evitar múltiplos cliques
+    if (commentReactions[commentId]?.isToggling) {
+      return;
+    }
+
+    // Atualização otimista da UI
+    setCommentReactions(prev => ({
+      ...prev,
+      [commentId]: {
+        isLiked: !prev[commentId]?.isLiked,
+        likesCount: prev[commentId]?.isLiked 
+          ? Math.max(0, prev[commentId]?.likesCount - 1) 
+          : (prev[commentId]?.likesCount || 0) + 1,
+        isToggling: true
+      }
+    }));
+
+    try {
+      const result = await toggleListCommentReaction(objectId, commentId);
+      
+      // Atualizar com o resultado real da API
+      setCommentReactions(prev => ({
+        ...prev,
+        [commentId]: {
+          isLiked: result.liked,
+          likesCount: result.likesCount,
+          isToggling: false
+        }
+      }));
+      
+      // Atualizar localmente o objeto de comentários para refletir a alteração
+      setComments(prev => prev.map(comment => {
+        if (comment.id === commentId) {
+          const commentWithLikes = comment as any;
+          // Inicializar o objeto likes se não existir
+          const currentLikes = commentWithLikes.likes || {};
+          
+          if (result.liked) {
+            currentLikes[currentUser.uid] = true;
+          } else {
+            delete currentLikes[currentUser.uid];
+          }
+          
+          return {
+            ...comment,
+            likes: currentLikes
+          };
+        }
+        return comment;
+      }));
+      
+    } catch (error) {
+      // Restaurar estado anterior em caso de erro
+      const previousState = commentReactions[commentId];
+      setCommentReactions(prev => ({
+        ...prev,
+        [commentId]: {
+          ...previousState,
+          isToggling: false
+        }
+      }));
+      
+      console.error("Erro ao reagir ao comentário:", error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível registrar sua reação',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
   return (
     <Box
       bg={bgColor}
@@ -247,18 +366,16 @@ export function CommentSection({ objectId, objectType, commentsCount }: CommentS
               mt={1}
             />
             <Box flex="1">
-              <Input
-                ref={commentInputRef}
-                placeholder={
-                  editingComment
-                    ? "Editar comentário..."
-                    : "Deixe seu comentário..."
-                }
+              <Textarea
                 value={editingComment ? editContent : newComment}
-                onChange={editingComment ? 
-                  (e) => setEditContent(e.target.value) : 
-                  (e) => setNewComment(e.target.value)
+                onChange={(e) => 
+                  editingComment 
+                    ? setEditContent(e.target.value) 
+                    : setNewComment(e.target.value)
                 }
+                placeholder="Adicione um comentário..."
+                rows={3}
+                resize="none"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -267,132 +384,189 @@ export function CommentSection({ objectId, objectType, commentsCount }: CommentS
                 }}
                 bg="gray.700"
                 borderColor="gray.600"
+                _hover={{ borderColor: "gray.500" }}
+                _focus={{ borderColor: "primary.500", boxShadow: "0 0 0 1px var(--chakra-colors-primary-500)" }}
               />
+
+              <Flex justify="flex-end" mt={2}>
+                {editingComment ? (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      mr={2}
+                      onClick={() => {
+                        setEditingComment(null);
+                        setEditContent('');
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      size="sm"
+                      colorScheme="primary"
+                      isLoading={isSubmitting}
+                      onClick={handleUpdateComment}
+                    >
+                      Atualizar
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    size="sm"
+                    colorScheme="primary"
+                    isLoading={isSubmitting}
+                    onClick={handleAddComment}
+                  >
+                    Comentar
+                  </Button>
+                )}
+              </Flex>
             </Box>
-            <Button
-              ml={2}
-              colorScheme="primary"
-              isLoading={isSubmitting}
-              onClick={editingComment ? handleUpdateComment : handleAddComment}
-            >
-              {editingComment ? "Atualizar" : "Comentar"}
-            </Button>
-            {editingComment && (
-              <Button
-                ml={2}
-                variant="ghost"
-                color="gray.500"
-                onClick={() => {
-                  setEditingComment(null);
-                  setEditContent('');
-                }}
-              >
-                Cancelar
-              </Button>
-            )}
           </Flex>
         ) : (
-          <Text mb={6} fontStyle="italic" textAlign="center">
-            <Link to="/login">
-              <Text color="primary.500" fontWeight="medium">
+          <Flex
+            mb={6}
+            p={4}
+            borderWidth="1px"
+            borderColor="gray.700"
+            borderRadius="md"
+            align="center"
+            justify="center"
+            bg="gray.700"
+          >
+            <Text>
+              <Link to="/login" style={{ color: "#63B3ED", fontWeight: "bold", textDecoration: "none" }}>
                 Faça login
-              </Text>
-            </Link>
-            {' '}para deixar um comentário
-          </Text>
+              </Link>{" "}
+              para adicionar um comentário.
+            </Text>
+          </Flex>
         )}
 
-        <Divider mb={6} />
+        <Divider mb={6} borderColor="gray.600" />
 
-        <VStack spacing={4} align="stretch">
-          {isLoading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <Box key={i} p={4} borderWidth="1px" borderRadius="md">
-                <Flex>
-                  <Skeleton height="32px" width="32px" borderRadius="full" mr={2} />
-                  <Box flex="1">
-                    <Skeleton height="20px" width="120px" mb={2} />
-                    <Skeleton height="16px" width="100%" />
-                  </Box>
-                </Flex>
-              </Box>
-            ))
-          ) : comments.length === 0 ? (
-            <Text textAlign="center" fontStyle="italic" color="gray.500">
-              Nenhum comentário ainda. Seja o primeiro a comentar!
-            </Text>
-          ) : (
-            comments.map((comment) => (
-              <Box
-                key={comment.id}
-                p={4}
-                borderWidth="1px"
-                borderRadius="md"
-                borderColor={borderColor}
-                bg="gray.700"
-              >
-                <Flex justify="space-between" mb={2}>
-                  <HStack>
-                    <Flex alignItems="center">
+        {isLoading ? (
+          <VStack spacing={4} align="stretch">
+            {[...Array(3)].map((_, index) => (
+              <Skeleton key={index} height="100px" />
+            ))}
+          </VStack>
+        ) : comments.length > 0 ? (
+          <VStack spacing={4} align="stretch">
+            {comments.map((comment) => {
+              const likes = comment as any as { likes?: Record<string, boolean> };
+              const likesMap = likes.likes || {};
+              const reaction = commentReactions[comment.id] || { isLiked: false, likesCount: 0, isToggling: false };
+              
+              return (
+                <Box
+                  key={comment.id}
+                  p={4}
+                  borderWidth="1px"
+                  borderColor="gray.700"
+                  borderRadius="md"
+                  bg="gray.700"
+                  _hover={{ bg: "gray.650" }}
+                  transition="all 0.2s"
+                  boxShadow="sm"
+                >
+                  <Flex justify="space-between" align="start">
+                    <HStack spacing={3} align="start" flex={1}>
                       <UserAvatar
-                        size="sm" 
-                        photoURL={comment.userPhotoURL}
-                        name={comment.userDisplayName || comment.username} 
-                        userId={comment.userId}
-                        mr={2} 
-                      />
-                      <UserName userId={comment.userId} />
-                    </Flex>
-                    <Text fontSize="sm" color="gray.500">
-                      • {formatRelativeTime(comment.createdAt)}
-                      {comment.updatedAt && comment.updatedAt > comment.createdAt && (
-                        <Text as="span" fontSize="xs" ml={1}>
-                          (editado)
-                        </Text>
-                      )}
-                    </Text>
-                  </HStack>
-
-                  {currentUser && currentUser.uid === comment.userId && (
-                    <Menu>
-                      <MenuButton
-                        as={IconButton}
-                        icon={<FaEllipsisV />}
-                        variant="ghost"
                         size="sm"
-                        aria-label="Opções"
-                        color="gray.400"
+                        userId={comment.userId}
+                        photoURL={comment.userPhotoURL}
                       />
-                      <MenuList bg="gray.800" borderColor="gray.700">
-                        <MenuItem 
-                          icon={<FaEdit />} 
-                          onClick={() => handleEditClick(comment)}
-                          _hover={{ bg: "gray.700" }}
-                          bg="gray.800"
-                        >
-                          Editar
-                        </MenuItem>
-                        <MenuItem 
-                          icon={<FaTrash />} 
-                          onClick={() => handleDeleteClick(comment.id)}
-                          color="red.500"
-                          _hover={{ bg: "gray.700" }}
-                          bg="gray.800"
-                        >
-                          Excluir
-                        </MenuItem>
-                      </MenuList>
-                    </Menu>
-                  )}
-                </Flex>
-
-                <Text mt={2}>{comment.content}</Text>
-              </Box>
-            ))
-          )}
-        </VStack>
+                      <Box flex="1">
+                        <Flex justify="space-between" align="center" width="100%">
+                          <HStack>
+                            <UserName userId={comment.userId} />
+                            <Text fontSize="xs" color="gray.400">
+                              {formatRelativeTime(comment.createdAt)}
+                              {comment.updatedAt && ' (editado)'}
+                            </Text>
+                          </HStack>
+                          
+                          <HStack spacing={3}>
+                            {/* Botão de reação para comentários de listas */}
+                            {objectType === 'list' && (
+                              <ReactionButton
+                                likes={Object.keys(likesMap)}
+                                onReaction={() => handleCommentReaction(comment.id)}
+                                size="xs"
+                                tooltipText="Curtir este comentário"
+                                forcedLikeState={reaction.isLiked}
+                                forcedLikesCount={reaction.likesCount}
+                                isLoading={reaction.isToggling}
+                              />
+                            )}
+                            
+                            {/* Separador visual entre o botão de reação e o menu de opções */}
+                            {objectType === 'list' && currentUser && currentUser.uid === comment.userId && (
+                              <Box
+                                h="16px"
+                                borderLeftWidth="1px"
+                                borderColor="gray.600"
+                                mx={1}
+                              />
+                            )}
+                            
+                            {currentUser && currentUser.uid === comment.userId && (
+                              <Menu>
+                                <MenuButton
+                                  as={IconButton}
+                                  icon={<FaEllipsisV />}
+                                  variant="ghost"
+                                  size="xs"
+                                  aria-label="Opções"
+                                />
+                                <MenuList bg="gray.800" borderColor="gray.700">
+                                  <MenuItem
+                                    icon={<FaEdit />}
+                                    onClick={() => handleEditClick(comment)}
+                                    bg="gray.800"
+                                    _hover={{ bg: "gray.700" }}
+                                  >
+                                    Editar
+                                  </MenuItem>
+                                  <MenuItem
+                                    icon={<FaTrash />}
+                                    onClick={() => handleDeleteClick(comment.id)}
+                                    color="red.500"
+                                    bg="gray.800"
+                                    _hover={{ bg: "gray.700" }}
+                                  >
+                                    Excluir
+                                  </MenuItem>
+                                </MenuList>
+                              </Menu>
+                            )}
+                          </HStack>
+                        </Flex>
+                        <Text mt={2} whiteSpace="pre-wrap" fontSize="sm" color="gray.200">{comment.content}</Text>
+                      </Box>
+                    </HStack>
+                  </Flex>
+                </Box>
+              );
+            })}
+          </VStack>
+        ) : (
+          <Box
+            p={4}
+            borderWidth="1px"
+            borderColor="gray.700"
+            borderRadius="md"
+            bg="gray.700"
+            textAlign="center"
+          >
+            <Text>Nenhum comentário ainda. Seja o primeiro a comentar!</Text>
+          </Box>
+        )}
       </Box>
 
+      {/* Confirmação de exclusão */}
       <AlertDialog
         isOpen={deleteConfirmOpen}
         leastDestructiveRef={cancelRef}
@@ -401,7 +575,7 @@ export function CommentSection({ objectId, objectType, commentsCount }: CommentS
         <AlertDialogOverlay>
           <AlertDialogContent bg="gray.800" color="white">
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              Excluir comentário
+              Excluir Comentário
             </AlertDialogHeader>
 
             <AlertDialogBody>

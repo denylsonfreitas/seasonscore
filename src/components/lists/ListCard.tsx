@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -21,6 +21,9 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { formatRelativeTime } from '../../utils/dateUtils';
 import { UserAvatar } from '../common/UserAvatar';
 import { ListWithUserData } from '../../types/list';
+import { useQuery } from '@tanstack/react-query';
+import { getListById } from '../../services/lists';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ListCardProps {
   list: ListWithUserData;
@@ -30,11 +33,41 @@ interface ListCardProps {
 export function ListCard({ list, showUser = true }: ListCardProps) {
   const coverBg = useColorModeValue('gray.700', 'gray.700');
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  
+  // Usar React Query para obter atualizações em tempo real
+  const { data: updatedList, refetch } = useQuery({
+    queryKey: ['list', list.id],
+    queryFn: () => getListById(list.id),
+    initialData: list,
+    staleTime: 1000, // Reduzir para 1 segundo (era 5000)
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchInterval: 5000, // Reduzir para 5 segundos (era 10000)
+    refetchIntervalInBackground: false,
+  });
+  
+  // Forçar uma atualização quando o componente for montado e quando
+  // o usuário interagir com o cartão
+  useEffect(() => {
+    refetch();
+    
+    const intervalId = setInterval(() => {
+      if (!document.hidden) {
+        refetch();
+      }
+    }, 3000);
+    
+    return () => clearInterval(intervalId);
+  }, [refetch]);
+
+  // Usar os dados atualizados da lista, se disponíveis
+  const displayList = updatedList || list;
   
   const handleTagClick = (e: React.MouseEvent, tag: string) => {
     e.preventDefault();
     e.stopPropagation();
-    navigate(`/lists?tag=${encodeURIComponent(tag)}&source=listCard`);
+    navigate(`/lists?tag=${encodeURIComponent(tag)}&source=listPage`);
   };
   
   return (
@@ -46,7 +79,7 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
       _hover={{ transform: 'translateY(-4px)', boxShadow: 'xl' }}
       role="group"
       as={RouterLink}
-      to={`/list/${list.id}`}
+      to={`/list/${displayList.id}`}
     >
       {/* Capa da lista - mostra imagens empilhadas horizontalmente como álbum */}
       <Box 
@@ -55,7 +88,7 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
         position="relative"
         overflow="hidden"
       >
-        {list.items && list.items.length > 0 ? (
+        {displayList.items && displayList.items.length > 0 ? (
           <Flex 
             align="center" 
             justify="flex-start" 
@@ -65,7 +98,7 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
             px={4}
           >
             {/* Renderiza até 4 imagens empilhadas horizontalmente */}
-            {list.items.slice(0, 4).map((item, index) => (
+            {displayList.items.slice(0, 4).map((item, index) => (
               <Box
                 key={item.seriesId}
                 position="absolute"
@@ -95,7 +128,7 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
             ))}
             
             {/* Indicador de quantidade de séries na lista */}
-            {list.items.length > 4 && (
+            {displayList.items.length > 4 && (
               <Box
                 position="absolute"
                 bottom="10%"
@@ -109,7 +142,7 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
                 fontWeight="bold"
                 zIndex={10}
               >
-                +{list.items.length - 4} séries
+                +{displayList.items.length - 4} séries
               </Box>
             )}
             
@@ -152,12 +185,12 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
           >
             <UserAvatar 
               size="xs" 
-              photoURL={list.userPhotoURL}
-              name={list.userDisplayName}
-              userId={list.userId}
+              photoURL={displayList.userPhotoURL}
+              name={displayList.userDisplayName}
+              userId={displayList.userId}
             />
             <Text fontSize="xs" color="white" fontWeight="medium">
-              {list.userDisplayName}
+              {displayList.userDisplayName}
             </Text>
           </HStack>
         )}
@@ -167,21 +200,21 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
       <Box p={4}>
         <Flex align="center" mb={2}>
           <Heading size="md" color="white" noOfLines={1} mr={2} flex="1">
-            {list.title}
+            {displayList.title}
           </Heading>
           <Tooltip 
-            label={list.isPublic 
+            label={displayList.isPublic 
               ? "Lista pública" 
-              : list.accessByLink 
+              : displayList.accessByLink 
                 ? "Lista privada com link compartilhável" 
                 : "Lista privada"}
             placement="top"
             hasArrow
           >
             <Box 
-              color={list.isPublic 
+              color={displayList.isPublic 
                 ? "green.400" 
-                : list.accessByLink 
+                : displayList.accessByLink 
                   ? "blue.400" 
                   : "gray.400"} 
               bg="gray.700" 
@@ -194,10 +227,10 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
               flexShrink={0}
             >
               <Icon 
-                as={list.isPublic 
+                as={displayList.isPublic 
                   ? Globe 
                   : Lock} 
-                weight={list.accessByLink && !list.isPublic ? "duotone" : "fill"}
+                weight={displayList.accessByLink && !displayList.isPublic ? "duotone" : "fill"}
                 boxSize={4}
               />
             </Box>
@@ -205,13 +238,13 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
         </Flex>
         
         <Text color="gray.400" fontSize="sm" noOfLines={2} mb={3} minH="40px">
-          {list.description || "Sem descrição"}
+          {displayList.description || "Sem descrição"}
         </Text>
         
         {/* Tags */}
-        {list.tags && list.tags.length > 0 && (
+        {displayList.tags && displayList.tags.length > 0 && (
           <Wrap spacing={2} mb={3}>
-            {list.tags.slice(0, 3).map(tag => (
+            {displayList.tags.slice(0, 3).map(tag => (
               <WrapItem key={tag}>
                 <Tag 
                   size="sm" 
@@ -230,10 +263,10 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
                 </Tag>
               </WrapItem>
             ))}
-            {list.tags.length > 3 && (
+            {displayList.tags.length > 3 && (
               <WrapItem>
                 <Tag size="sm" colorScheme="gray" variant="subtle">
-                  <TagLabel>+{list.tags.length - 3}</TagLabel>
+                  <TagLabel>+{displayList.tags.length - 3}</TagLabel>
                 </Tag>
               </WrapItem>
             )}
@@ -245,16 +278,16 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
           <HStack spacing={4} color="gray.400" fontSize="sm">
             <HStack spacing={1}>
               <Icon as={FaHeart} color="red.500" />
-              <Text>{list.likesCount}</Text>
+              <Text>{displayList.likesCount || 0}</Text>
             </HStack>
             <HStack spacing={1}>
               <Icon as={FaComment} />
-              <Text>{list.commentsCount}</Text>
+              <Text>{displayList.commentsCount}</Text>
             </HStack>
           </HStack>
           
           <Text fontSize="xs" color="gray.500">
-            {formatRelativeTime(list.updatedAt)}
+            {formatRelativeTime(displayList.updatedAt)}
           </Text>
         </Flex>
       </Box>

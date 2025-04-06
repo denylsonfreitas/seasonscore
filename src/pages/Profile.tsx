@@ -64,7 +64,7 @@ const adaptReviewForDetails = (review: SeriesReview): any => {
     rating: selectedSeasonReview.rating,
     comment: selectedSeasonReview.comment || "",
     comments: selectedSeasonReview.comments || [],
-    reactions: selectedSeasonReview.reactions || { likes: [], dislikes: [] },
+    reactions: selectedSeasonReview.reactions || { likes: [] },
     createdAt: selectedSeasonReview.createdAt || new Date()
   };
 };

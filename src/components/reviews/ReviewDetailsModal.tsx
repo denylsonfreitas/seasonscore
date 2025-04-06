@@ -57,12 +57,10 @@ interface ReviewDetailsModalProps {
       createdAt: Date;
       reactions: {
         likes: string[];
-        dislikes: string[];
       };
     }>;
     reactions: {
       likes: string[];
-      dislikes: string[];
     };
     createdAt: Date | { seconds: number } | FieldValue;
   } | null;
@@ -76,23 +74,26 @@ export function ReviewDetailsModal({
   onReviewUpdated,
 }: ReviewDetailsModalProps) {
   const { currentUser } = useAuth();
-  const { userData } = useUserData(review?.userId || "");
+  const { userData } = useUserData(review?.userId ?? "");
   const [activeTab, setActiveTab] = useState(0);
   const [showAllComments, setShowAllComments] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const toast = useToast();
+  const [updatedReview, setUpdatedReview] = useState<typeof review | null>(null);
 
   const COMMENTS_PER_PAGE = 5;
-  const hasMoreComments = (review?.comments?.length || 0) > COMMENTS_PER_PAGE;
-  const visibleComments = showAllComments
-    ? review?.comments || []
-    : review?.comments?.slice(0, COMMENTS_PER_PAGE) || [];
+  const [currentCommentPage, setCurrentCommentPage] = useState(0);
+  
+  useEffect(() => {
+    setCurrentCommentPage(0);
+  }, [activeTab]);
+  
+  useEffect(() => {
+    setUpdatedReview(review);
+  }, [review]);
 
-  const userLiked = currentUser && review?.reactions?.likes?.includes(currentUser.uid);
-  const userDisliked = currentUser && review?.reactions?.dislikes?.includes(currentUser.uid);
-
-  // Consulta para buscar atualizações em tempo real da revisão
+  // Buscar reviews mais recentes
   const { data: updatedReviews } = useQuery({
     queryKey: ["reviews", review?.seriesId],
     queryFn: () => review?.seriesId ? getSeriesReviews(Number(review.seriesId)) : Promise.resolve([]),
@@ -102,60 +103,34 @@ export function ReviewDetailsModal({
   });
 
   // Encontrar a versão mais atualizada da revisão selecionada
-  const updatedReview = useMemo(() => {
+  const activeReviewFromQuery = useMemo(() => {
     if (!updatedReviews || !review) return review;
-
-    const fullReview = updatedReviews.find(r => r.id === review.id);
-    if (!fullReview) return review;
-
-    const seasonReview = fullReview.seasonReviews.find(sr => sr.seasonNumber === review.seasonNumber);
-    if (!seasonReview) return review;
-
-    // Comparar com a versão atual para evitar renderizações desnecessárias
-    const currentComments = review.comments || [];
-    const updatedComments = seasonReview.comments || [];
-    const currentReactions = review.reactions || { likes: [], dislikes: [] };
-    const updatedReactions = seasonReview.reactions || { likes: [], dislikes: [] };
-
-    // Só atualizar se os comentários ou reações mudaram
-    if (
-      JSON.stringify(currentComments) === JSON.stringify(updatedComments) &&
-      JSON.stringify(currentReactions) === JSON.stringify(updatedReactions)
-    ) {
-      return review;
-    }
-
-    // Retorna a versão mais atualizada da revisão com todos os comentários e reações
-    return {
-      ...review,
-      comments: updatedComments,
-      reactions: updatedReactions
-    };
-  }, [updatedReviews, review]);
-
-  // Usar o review atualizado para os componentes renderizados
-  const activeReview = useMemo(() => {
-    if (!updatedReview && !review) return null;
-
-    const currentReview = (updatedReview || review) as NonNullable<typeof review>;
+    
+    const currentReview = updatedReviews.find(r => r.id === review.id);
+    if (!currentReview) return review;
+    
+    const currentSeasonReview = currentReview.seasonReviews.find(
+      sr => sr.seasonNumber === review.seasonNumber
+    );
+    
+    if (!currentSeasonReview) return review;
     
     return {
-      id: currentReview.id,
-      seriesId: currentReview.seriesId,
-      userId: currentReview.userId,
-      userEmail: currentReview.userEmail,
-      seriesName: currentReview.seriesName || "",
-      seriesPoster: currentReview.seriesPoster || "",
-      seasonNumber: currentReview.seasonNumber,
-      rating: currentReview.rating,
-      comment: currentReview.comment || "",
-      comments: currentReview.comments || [],
-      reactions: currentReview.reactions || { likes: [], dislikes: [] },
-      createdAt: currentReview.createdAt || new Date()
+      ...review,
+      seriesName: review.seriesName || "",
+      seriesPoster: review.seriesPoster || "",
+      rating: currentSeasonReview.rating,
+      comment: currentSeasonReview.comment || "",
+      comments: currentSeasonReview.comments || [],
+      reactions: currentSeasonReview.reactions || { likes: [] },
+      createdAt: currentSeasonReview.createdAt || new Date()
     };
-  }, [updatedReview, review]);
+  }, [updatedReviews, review]);
+  
+  // Usar a revisão atualizada pelo usuário ou a obtida da query
+  const activeReview = updatedReview || activeReviewFromQuery;
 
-  const handleReaction = async (type: "likes" | "dislikes") => {
+  const handleReaction = async (type: "likes") => {
     if (!currentUser || !activeReview) {
       toast({
         title: "Erro",
@@ -168,47 +143,113 @@ export function ReviewDetailsModal({
     }
 
     const userId = currentUser.uid;
-    const isLikeAction = type === "likes";
-    const isCurrentlyActive = isLikeAction 
-      ? activeReview.reactions?.likes?.includes(userId)
-      : activeReview.reactions?.dislikes?.includes(userId);
+    const isCurrentlyActive = activeReview.reactions?.likes?.includes(userId);
     
     // Construir as novas reações
     const newReactions = {
-      likes: [...(activeReview.reactions?.likes || [])],
-      dislikes: [...(activeReview.reactions?.dislikes || [])]
+      likes: [...(activeReview.reactions?.likes || [])]
     };
 
-    // Remover reação oposta se existir
-    const oppositeType = isLikeAction ? "dislikes" : "likes";
-    const oppositeIndex = newReactions[oppositeType].indexOf(userId);
-    if (oppositeIndex !== -1) {
-      newReactions[oppositeType].splice(oppositeIndex, 1);
-    }
-
     // Alternar a reação atual
-    const currentIndex = newReactions[type].indexOf(userId);
+    const currentIndex = newReactions.likes.indexOf(userId);
     if (currentIndex === -1 && !isCurrentlyActive) {
       // Adicionar
-      newReactions[type].push(userId);
+      newReactions.likes.push(userId);
     } else if (isCurrentlyActive) {
       // Remover
-      const index = newReactions[type].indexOf(userId);
+      const index = newReactions.likes.indexOf(userId);
       if (index !== -1) {
-        newReactions[type].splice(index, 1);
+        newReactions.likes.splice(index, 1);
       }
     }
+    
+    // Atualizando localmente primeiro para uma experiência mais responsiva
+    setUpdatedReview(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        reactions: {
+          ...prev.reactions,
+          likes: newReactions.likes
+        }
+      };
+    });
+    
+    // Atualização otimista do cache de React Query
+    queryClient.setQueryData(["reviews", activeReview.seriesId], (oldData: any) => {
+      if (!oldData) return oldData;
+      
+      return oldData.map((review: any) => {
+        if (review.id === activeReview.id) {
+          const updatedSeasonReviews = review.seasonReviews.map((sr: any) => {
+            if (sr.seasonNumber === activeReview.seasonNumber) {
+              return {
+                ...sr,
+                reactions: {
+                  ...sr.reactions,
+                  likes: newReactions.likes
+                }
+              };
+            }
+            return sr;
+          });
+          
+          return {
+            ...review,
+            seasonReviews: updatedSeasonReviews
+          };
+        }
+        return review;
+      });
+    });
 
     try {
       // Tentamos atualizar a reação no backend
       await toggleReaction(activeReview.id, activeReview.seasonNumber, type);
       
       // Se a atualização for bem-sucedida, atualizamos o cache com os dados mais recentes
-      queryClient.invalidateQueries({
-        queryKey: ["reviews", activeReview.seriesId],
-      });
-      onReviewUpdated();
+      // usando um pequeno atraso para evitar múltiplas atualizações imediatas
+      setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: ["reviews", activeReview.seriesId],
+        });
+        onReviewUpdated();
+      }, 500);
     } catch (error) {
+      // Em caso de erro, revertemos a atualização local
+      setUpdatedReview(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          reactions: activeReview.reactions || { likes: [] }
+        };
+      });
+      
+      // E revertemos a atualização otimista do cache
+      queryClient.setQueryData(["reviews", activeReview.seriesId], (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        return oldData.map((review: any) => {
+          if (review.id === activeReview.id) {
+            const updatedSeasonReviews = review.seasonReviews.map((sr: any) => {
+              if (sr.seasonNumber === activeReview.seasonNumber) {
+                return {
+                  ...sr,
+                  reactions: activeReview.reactions
+                };
+              }
+              return sr;
+            });
+            
+            return {
+              ...review,
+              seasonReviews: updatedSeasonReviews
+            };
+          }
+          return review;
+        });
+      });
+      
       // Em caso de erro, mostramos mensagem ao usuário
       toast({
         title: "Erro",
@@ -221,7 +262,7 @@ export function ReviewDetailsModal({
   };
 
   // Criar um wrapper para ser compatível com o ReactionButtons
-  const handleReactionWrapper = (reviewId: string, seasonNumber: number, type: "likes" | "dislikes", e: React.MouseEvent) => {
+  const handleReactionWrapper = (reviewId: string, seasonNumber: number, type: "likes", e: React.MouseEvent) => {
     e.preventDefault();
     handleReaction(type);
   };
@@ -383,7 +424,6 @@ export function ReviewDetailsModal({
                         reviewId={activeReview.id}
                         seasonNumber={activeReview.seasonNumber}
                         likes={activeReview.reactions?.likes || []}
-                        dislikes={activeReview.reactions?.dislikes || []}
                         onReaction={handleReactionWrapper}
                       />
                     </HStack>
@@ -418,9 +458,9 @@ export function ReviewDetailsModal({
 
                   <Divider borderColor="gray.600" />
 
-                  {(visibleComments?.length || 0) > 0 ? (
+                  {(activeReview.comments?.length || 0) > 0 ? (
                     <>
-                      {visibleComments?.map((comment) => (
+                      {activeReview.comments?.map((comment) => (
                         <ReviewComment
                           key={comment.id}
                           reviewId={activeReview.id}
@@ -434,7 +474,7 @@ export function ReviewDetailsModal({
                         />
                       ))}
                       
-                      {hasMoreComments && (
+                      {activeReview.comments?.length > COMMENTS_PER_PAGE && (
                         <Button
                           variant="ghost"
                           color="primary.500"

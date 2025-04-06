@@ -117,7 +117,7 @@ export function SeriesReviews() {
   const toast = useToast();
   const queryClient = useQueryClient();
 
-  const handleReaction = useCallback(async (reviewId: string, seasonNumber: number, type: "likes" | "dislikes", event: React.MouseEvent) => {
+  const handleReaction = useCallback(async (reviewId: string, seasonNumber: number, type: "likes", event: React.MouseEvent) => {
     event.stopPropagation(); // Impedir que abra o modal
 
     if (!currentUser) {
@@ -265,11 +265,10 @@ export function SeriesReviews() {
                       </HStack>
 
                       <HStack spacing={4} pl={{ base: 12, md: 16 }}>
-                        <ReactionButtons 
+                        <ReactionButtons
                           reviewId={review.id}
                           seasonNumber={selectedSeason}
                           likes={review.reactions?.likes || []}
-                          dislikes={review.reactions?.dislikes || []}
                           onReaction={handleReaction}
                         />
                         <Divider borderColor="gray.600" orientation="vertical" height="20px" display={{ base: "none", md: "flex" }} />
@@ -313,7 +312,7 @@ export function SeriesReviews() {
             rating: selectedReview.rating || 0,
             comment: selectedReview.comment || "",
             comments: selectedReview.comments || [],
-            reactions: selectedReview.reactions || { likes: [], dislikes: [] },
+            reactions: selectedReview.reactions || { likes: [] },
             createdAt: selectedReview.createdAt || new Date()
           }}
           onReviewUpdated={() => {}}

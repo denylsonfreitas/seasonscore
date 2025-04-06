@@ -163,7 +163,7 @@ export function SeasonAccordionItem({
                 onClick={() => onDeleteReview(season)}
                 bg="gray.800"
                 _hover={{ bg: "gray.700" }}
-                color="primary.700"
+                color="red.500"
               >
                 Excluir avaliação
               </MenuItem>

@@ -8,7 +8,6 @@ export interface Comment {
   createdAt: Date;
   reactions: {
     likes: string[]; // array de userIds que deram like
-    dislikes: string[]; // array de userIds que deram dislike
   };
 }
 
@@ -22,6 +21,5 @@ export interface SeasonReview {
   createdAt: Date | { seconds: number } | FieldValue;
   reactions?: {
     likes: string[];
-    dislikes: string[];
   };
 } 

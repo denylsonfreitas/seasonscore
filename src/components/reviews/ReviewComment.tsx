@@ -11,7 +11,7 @@ import {
   VStack,
   Flex,
 } from "@chakra-ui/react";
-import { Heart, HeartBreak, DotsThree, Trash } from "@phosphor-icons/react";
+import { DotsThree, Trash } from "@phosphor-icons/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { Comment } from "../../types/review";
 import { deleteComment, toggleCommentReaction } from "../../services/reviews";
@@ -21,6 +21,7 @@ import { UserName } from "../common/UserName";
 import { useUserData } from "../../hooks/useUserData";
 import { useQueryClient } from "@tanstack/react-query";
 import { UserAvatar } from "../common/UserAvatar";
+import { ReactionButton } from "../common/ReactionButton";
 
 interface ReviewCommentProps {
   reviewId: string;
@@ -77,20 +78,18 @@ export function ReviewComment({
   const toast = useToast();
   const { userData } = useUserData(comment.userId);
   const queryClient = useQueryClient();
-  const [isLiked, setIsLiked] = useState(false);
-  const [isDisliked, setIsDisliked] = useState(false);
-  const [likes, setLikes] = useState(0);
-  const [dislikes, setDislikes] = useState(0);
   const [currentComment, setCurrentComment] = useState(comment);
-
-  const userLiked = currentUser && comment.reactions.likes.includes(currentUser.uid);
-  const userDisliked = currentUser && comment.reactions.dislikes.includes(currentUser.uid);
+  const [forcedLikeState, setForcedLikeState] = useState<boolean | undefined>(undefined);
+  const [forcedLikesCount, setForcedLikesCount] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     setCurrentComment(comment);
+    // Resetar estados forçados quando o comentário for atualizado externamente
+    setForcedLikeState(undefined);
+    setForcedLikesCount(undefined);
   }, [comment]);
 
-  const handleReaction = async (type: "likes" | "dislikes") => {
+  const handleReaction = async () => {
     if (!currentUser) {
       toast({
         title: "Erro",
@@ -102,39 +101,55 @@ export function ReviewComment({
       return;
     }
 
-    // Atualização otimista do cache
-    const previousData = queryClient.getQueryData(["reviews", seriesId]);
+    // Verificar se o usuário já curtiu o comentário
+    const likes = currentComment.reactions.likes;
+    const userId = currentUser.uid;
+    const userLikedIndex = likes.indexOf(userId);
+    const userLiked = userLikedIndex !== -1;
     
-    // Atualizar o cache imediatamente
+    // Calcular otimisticamente o novo estado
+    let newLikes = [...likes];
+    if (userLiked) {
+      // Remover o like
+      newLikes = newLikes.filter(id => id !== userId);
+    } else {
+      // Adicionar o like
+      newLikes.push(userId);
+    }
+    
+    // Definir estados forçados para atualização otimista
+    setForcedLikeState(!userLiked);
+    setForcedLikesCount(newLikes.length);
+    
+    // Atualização otimista do cache de React Query
     queryClient.setQueryData(["reviews", seriesId], (oldData: any) => {
-      if (!oldData) return []; // Se não houver dados, retorna array vazio
-
+      if (!oldData) return oldData;
+      
       return oldData.map((review: any) => {
         if (review.id === reviewId) {
           const updatedSeasonReviews = review.seasonReviews.map((sr: any) => {
             if (sr.seasonNumber === seasonNumber) {
+              const updatedComments = sr.comments.map((c: any) => {
+                if (c.id === comment.id) {
+                  return {
+                    ...c,
+                    reactions: {
+                      ...c.reactions,
+                      likes: newLikes
+                    }
+                  };
+                }
+                return c;
+              });
+              
               return {
                 ...sr,
-                comments: sr.comments.map((c: any) => {
-                  if (c.id === comment.id) {
-                    const isReacted = c.reactions[type].includes(currentUser.uid);
-                    return {
-                      ...c,
-                      reactions: {
-                        ...c.reactions,
-                        [type]: isReacted
-                          ? c.reactions[type].filter((id: string) => id !== currentUser.uid)
-                          : [...c.reactions[type], currentUser.uid]
-                      }
-                    };
-                  }
-                  return c;
-                })
+                comments: updatedComments
               };
             }
             return sr;
           });
-
+          
           return {
             ...review,
             seasonReviews: updatedSeasonReviews
@@ -143,16 +158,59 @@ export function ReviewComment({
         return review;
       });
     });
-
+    
     try {
-      await toggleCommentReaction(reviewId, seasonNumber, comment.id, type);
-      // Força uma nova busca dos dados
-      await queryClient.refetchQueries({ queryKey: ["reviews", seriesId] });
+      // Chamar a API para persistir a alteração
+      await toggleCommentReaction(reviewId, seasonNumber, comment.id, "likes");
+      
+      // Após sucesso, invalidar a query para eventualmente buscar dados atualizados do backend
+      // com um pequeno atraso para evitar sobrecarga
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["reviews", seriesId] });
+      }, 500);
     } catch (error) {
       // Reverter a atualização otimista em caso de erro
-      if (previousData) {
-        queryClient.setQueryData(["reviews", seriesId], previousData);
-      }
+      setForcedLikeState(userLiked);
+      setForcedLikesCount(likes.length);
+      
+      // Reverter o cache
+      queryClient.setQueryData(["reviews", seriesId], (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        return oldData.map((review: any) => {
+          if (review.id === reviewId) {
+            const updatedSeasonReviews = review.seasonReviews.map((sr: any) => {
+              if (sr.seasonNumber === seasonNumber) {
+                const updatedComments = sr.comments.map((c: any) => {
+                  if (c.id === comment.id) {
+                    return {
+                      ...c,
+                      reactions: {
+                        ...c.reactions,
+                        likes: likes
+                      }
+                    };
+                  }
+                  return c;
+                });
+                
+                return {
+                  ...sr,
+                  comments: updatedComments
+                };
+              }
+              return sr;
+            });
+            
+            return {
+              ...review,
+              seasonReviews: updatedSeasonReviews
+            };
+          }
+          return review;
+        });
+      });
+      
       toast({
         title: "Erro",
         description: "Não foi possível registrar sua reação",
@@ -242,70 +300,39 @@ export function ReviewComment({
               </Text>
             </VStack>
             <HStack spacing={2}>
-              <HStack spacing={1}>
-                <IconButton
-                  aria-label="Like"
-                  icon={<Heart weight={userLiked ? "fill" : "regular"} />}
-                  size="sm"
-                  variant="ghost"
-                  color={userLiked ? "reactions.like" : "gray.400"}
-                  onClick={() => handleReaction("likes")}
-                  _hover={{ bg: "gray.500" }}
-                />
-                {comment.reactions.likes.length > 0 && (
-                  <Text color="gray.400" fontSize="sm">
-                    {comment.reactions.likes.length}
-                  </Text>
-                )}
-              </HStack>
-
-              <HStack spacing={1}>
-                <IconButton
-                  aria-label="Dislike"
-                  icon={<HeartBreak weight={userDisliked ? "fill" : "regular"} />}
-                  size="sm"
-                  variant="ghost"
-                  color={userDisliked ? "reactions.dislike" : "gray.400"}
-                  onClick={() => handleReaction("dislikes")}
-                  _hover={{ bg: "gray.500" }}
-                />
-                {comment.reactions.dislikes.length > 0 && (
-                  <Text color="gray.400" fontSize="sm">
-                    {comment.reactions.dislikes.length}
-                  </Text>
-                )}
-              </HStack>
-
-              {currentUser?.uid === comment.userId && (
+              <ReactionButton
+                likes={currentComment.reactions.likes}
+                onReaction={handleReaction}
+                size="xs"
+                tooltipText="Curtir este comentário"
+                forcedLikeState={forcedLikeState}
+                forcedLikesCount={forcedLikesCount}
+              />
+              
+              {currentUser && (currentUser.uid === comment.userId) && (
                 <Menu>
                   <MenuButton
                     as={IconButton}
-                    icon={<DotsThree size={24} />}
+                    icon={<DotsThree weight="bold" />}
                     variant="ghost"
-                    color="gray.400"
-                    aria-label="Opções do comentário"
+                    aria-label="Opções"
                     size="sm"
-                    _hover={{ bg: "gray.500" }}
                   />
-                  <MenuList bg="gray.800" borderColor="gray.600">
-                    <MenuItem
-                      bg="gray.800"
-                      color="primary.700"
-                      icon={<Trash size={20} />}
-                      onClick={handleDelete}
-                      _hover={{ bg: "gray.700" }}
+                  <MenuList>
+                    <MenuItem 
+                      icon={<Trash />} 
+                      onClick={handleDelete} 
+                      color="red.500"
                     >
-                      Excluir comentário
+                      Excluir
                     </MenuItem>
                   </MenuList>
                 </Menu>
               )}
             </HStack>
           </HStack>
-
-          <Text color="gray.100" fontSize="sm">
-            {comment.content}
-          </Text>
+          
+          <Text whiteSpace="pre-wrap" fontSize="sm">{currentComment.content}</Text>
         </VStack>
       </HStack>
     </Box>

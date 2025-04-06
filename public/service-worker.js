@@ -98,7 +98,6 @@ self.addEventListener('push', (event) => {
 });
 
 async function syncReviews() {
-  console.log('Sincronizando avaliações...');
 }
 
 self.addEventListener('notificationclick', (event) => {

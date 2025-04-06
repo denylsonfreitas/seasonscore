@@ -422,14 +422,9 @@ export async function deleteUserData(userId: string) {
             
             // MODIFICAÇÃO 2: Verificar reações e remover completamente as do usuário
             if (seasonReview.reactions) {
-              // Remover o usuário das listas de likes/dislikes
+              // Remover o usuário das listas de likes
               if (Array.isArray(seasonReview.reactions.likes) && seasonReview.reactions.likes.includes(userId)) {
                 seasonReview.reactions.likes = seasonReview.reactions.likes.filter((id: string) => id !== userId);
-                reviewUpdated = true;
-              }
-              
-              if (Array.isArray(seasonReview.reactions.dislikes) && seasonReview.reactions.dislikes.includes(userId)) {
-                seasonReview.reactions.dislikes = seasonReview.reactions.dislikes.filter((id: string) => id !== userId);
                 reviewUpdated = true;
               }
             }
@@ -444,12 +439,6 @@ export async function deleteUserData(userId: string) {
                   // Remover likes do usuário em comentários
                   if (Array.isArray(comment.reactions.likes) && comment.reactions.likes.includes(userId)) {
                     comment.reactions.likes = comment.reactions.likes.filter((id: string) => id !== userId);
-                    reactionUpdated = true;
-                  }
-
-                  // Remover dislikes do usuário em comentários
-                  if (Array.isArray(comment.reactions.dislikes) && comment.reactions.dislikes.includes(userId)) {
-                    comment.reactions.dislikes = comment.reactions.dislikes.filter((id: string) => id !== userId);
                     reactionUpdated = true;
                   }
 
@@ -604,6 +593,83 @@ export async function deleteUserData(userId: string) {
         await batch.commit();
       }
     }, "excluir reações do usuário em listas de outros");
+
+    // 12. Excluir comentários da coleção listComments feitos pelo usuário
+    await safeOperation(async () => {
+      const listCommentsSnapshot = await getDocs(query(
+        collection(db, "listComments"),
+        where("userId", "==", userId)
+      ));
+      
+      const batch = writeBatch(db);
+      
+      // Para cada comentário, também decrementar o contador na lista correspondente
+      const listsToUpdate = new Map<string, number>();
+      
+      listCommentsSnapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+        
+        const commentData = doc.data();
+        const listId = commentData.listId;
+        
+        if (listId) {
+          // Agrupar por listId para decrementar o contador
+          listsToUpdate.set(listId, (listsToUpdate.get(listId) || 0) + 1);
+        }
+      });
+      
+      if (listCommentsSnapshot.size > 0) {
+        await batch.commit();
+        
+        // Atualizar os contadores de comentários nas listas afetadas
+        const updateBatch = writeBatch(db);
+        for (const [listId, count] of listsToUpdate.entries()) {
+          const listRef = doc(db, "lists", listId);
+          updateBatch.update(listRef, {
+            commentsCount: increment(-count),
+            updatedAt: serverTimestamp()
+          });
+        }
+        
+        if (listsToUpdate.size > 0) {
+          await updateBatch.commit();
+        }
+      }
+    }, "excluir comentários da coleção listComments do usuário");
+
+    // 13. Remover reações (likes) deste usuário em comentários de listas
+    await safeOperation(async () => {
+      // Encontrar todos os comentários que têm likes deste usuário
+      const listCommentsSnapshot = await getDocs(collection(db, "listComments"));
+      
+      const batch = writeBatch(db);
+      let commentsToUpdate = 0;
+      
+      for (const commentDoc of listCommentsSnapshot.docs) {
+        const comment = commentDoc.data();
+        
+        // Verificar se o usuário deu like neste comentário
+        if (comment.likes && comment.likes[userId]) {
+          // Remover o like do usuário
+          delete comment.likes[userId];
+          
+          // Atualizar o comentário
+          batch.update(commentDoc.ref, { likes: comment.likes });
+          commentsToUpdate++;
+          
+          // Comitar em lotes para não exceder limites do Firestore
+          if (commentsToUpdate >= 450) {
+            await batch.commit();
+            commentsToUpdate = 0;
+          }
+        }
+      }
+      
+      // Comitar as alterações restantes
+      if (commentsToUpdate > 0) {
+        await batch.commit();
+      }
+    }, "remover likes em comentários de listas");
 
     // Retornar resultados das operações
     return {

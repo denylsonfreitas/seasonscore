@@ -59,7 +59,6 @@ export function AddComment({
       createdAt: new Date(),
       reactions: {
         likes: [],
-        dislikes: []
       }
     };
 

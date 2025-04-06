@@ -71,20 +71,8 @@ export default function Lists() {
       // Verificar a fonte da navegação
       const source = searchParams.get('source');
       
-      // Selecionar a aba apropriada com base na fonte
-      switch (source) {
-        case 'listPage':  // Navegação da página de detalhes de lista
-        case 'profile':   // Navegação da página de perfil
-          setActiveTabIndex(2); // Selecionar a aba "Tags" (índice 2)
-          break;
-        case 'listCard':  // Navegação de um card de lista
-          // Se vier de um card, manter na aba "Destaques" para mostrar resultados filtrados
-          setActiveTabIndex(0);
-          break;
-        default:
-          // Por padrão, mostrar na aba "Destaques"
-          setActiveTabIndex(0);
-      }
+      // Independentemente da fonte, se uma tag foi selecionada, mostrar a aba Tags
+      setActiveTabIndex(2); // Selecionar a aba "Tags" (índice 2)
     }
   }, [searchParams]);
 
@@ -224,6 +212,18 @@ export default function Lists() {
 
   const displayedTags = showAllTags ? popularTags : popularTags.slice(0, 10);
 
+  const handleTabChange = (index: number) => {
+    setActiveTabIndex(index);
+    
+    // Se mudar para a aba Destaques (índice 0), remover os parâmetros de tag
+    if (index === 0) {
+      const params = new URLSearchParams(searchParams);
+      params.delete('tag');
+      params.delete('source');
+      setSearchParams(params);
+    }
+  };
+
   return (
     <>
       <ResetScroll />
@@ -321,7 +321,7 @@ export default function Lists() {
           isLazy 
           mb={8}
           index={activeTabIndex}
-          onChange={setActiveTabIndex}
+          onChange={handleTabChange}
         >
           <TabList borderBottomColor="gray.700">
             <Tab color="gray.300" _selected={{ color: "white", borderColor: "primary.500" }}>Destaques</Tab>
@@ -424,7 +424,7 @@ export default function Lists() {
                     ) : popularLists.length === 0 ? (
                       <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
                         <Text color="gray.400">
-                          Ainda não há listas populares. Seja o primeiro a criar uma!
+                          Ainda não há listas populares. Listas com mais de uma curtida aparecerão aqui!
                         </Text>
                       </Box>
                     ) : (

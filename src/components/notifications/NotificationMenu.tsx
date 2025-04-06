@@ -38,7 +38,8 @@ import {
   getGroupedNotifications,
   subscribeToNotifications,
   getReviewDetails,
-  DEFAULT_NOTIFICATION_LIMIT
+  DEFAULT_NOTIFICATION_LIMIT,
+  deleteAllUserNotifications,
 } from '../../services/notifications';
 import { NotificationItem } from './NotificationItem';
 import { useNavigate } from 'react-router-dom';
@@ -261,6 +262,42 @@ export function NotificationMenu() {
     try {
       setIsLoading(true);
       
+      // Se todas as notificações estiverem selecionadas e a quantidade for significativa,
+      // usar a função de lote mais eficiente
+      if (selectedNotifications.length === notifications.length && selectedNotifications.length > 10) {
+        // Confirmar exclusão em massa
+        const isConfirmed = window.confirm("Tem certeza que deseja excluir todas as notificações selecionadas? Esta ação não pode ser desfeita.");
+        
+        if (!isConfirmed) {
+          setIsLoading(false);
+          return;
+        }
+        
+        try {
+          const count = await deleteAllUserNotifications(currentUser?.uid || "");
+          
+          if (count > 0) {
+            // Limpar a lista local
+            setNotifications([]);
+            setUnreadCount(0);
+            setSelectedNotifications([]);
+            setIsSelectionMode(false);
+            
+            toast({
+              title: `${count} notificações excluídas`,
+              status: 'success',
+              duration: 2000,
+              isClosable: true,
+            });
+            return;
+          }
+        } catch (batchError) {
+          console.error("Erro ao excluir notificações em lote:", batchError);
+          // Se falhar, continuar com o método individual
+        }
+      }
+      
+      // Método original para exclusão individual
       const successfullyDeleted: string[] = [];
       
       for (const notificationId of selectedNotifications) {
@@ -270,6 +307,7 @@ export function NotificationMenu() {
             successfullyDeleted.push(notificationId);
           }
         } catch (err) {
+          console.error(`Erro ao excluir notificação ${notificationId}:`, err);
         }
       }
       
@@ -282,10 +320,10 @@ export function NotificationMenu() {
           ).length
         );
         
-      setSelectedNotifications([]);
-      setIsSelectionMode(false);
-      
-      toast({
+        setSelectedNotifications([]);
+        setIsSelectionMode(false);
+        
+        toast({
           title: `${successfullyDeleted.length} notificações excluídas`,
           status: 'success',
           duration: 2000,
@@ -296,9 +334,9 @@ export function NotificationMenu() {
           title: 'Não foi possível excluir notificações',
           description: 'Verifique suas permissões ou tente novamente mais tarde',
           status: 'warning',
-        duration: 3000,
-        isClosable: true,
-      });
+          duration: 3000,
+          isClosable: true,
+        });
       }
     } catch (error) {
       toast({
@@ -312,7 +350,7 @@ export function NotificationMenu() {
       setIsLoading(false);
     }
   };
-
+  
   const filteredNotifications = useMemo(() => {
     if (activeFilter === 'all') {
       return notifications;

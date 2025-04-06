@@ -66,7 +66,7 @@ export function PopularLists() {
         </Heading>
         <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
           <Text color="gray.400">
-            Ainda não há listas populares. Seja o primeiro a criar e curtir uma lista!
+            Ainda não há listas populares. Listas com mais de uma curtida aparecerão aqui!
           </Text>
         </Box>
       </Box>

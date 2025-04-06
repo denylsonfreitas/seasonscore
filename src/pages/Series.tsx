@@ -99,10 +99,16 @@ export function Series() {
     });
 
   const allSeries = data?.pages.flatMap((page) => page.results) ?? [];
+  
+  // Remover séries duplicadas
+  const uniqueSeries = allSeries.filter(
+    (series, index, self) =>
+      index === self.findIndex((s) => s.id === series.id)
+  );
 
   // Buscar avaliações para todas as séries
   const seriesReviewsQueries = useQueries({
-    queries: allSeries.map(series => ({
+    queries: uniqueSeries.map(series => ({
       queryKey: ['series-reviews', series.id],
       queryFn: async () => {
         const reviews = await getSeriesReviews(series.id);
@@ -120,11 +126,11 @@ export function Series() {
 
   // Mapear as avaliações para as séries
   const seriesWithRatings = useMemo(() => {
-    return allSeries.map((series, index) => ({
+    return uniqueSeries.map((series, index) => ({
       ...series,
       rating: seriesReviewsQueries[index]?.data ?? undefined
     }));
-  }, [allSeries, seriesReviewsQueries]);
+  }, [uniqueSeries, seriesReviewsQueries]);
 
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {

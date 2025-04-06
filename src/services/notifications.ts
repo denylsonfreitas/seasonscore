@@ -736,7 +736,7 @@ export async function getReviewDetails(reviewId: string) {
           rating: 0,
           comment: "",
           comments: [],
-          reactions: { likes: [], dislikes: [] },
+          reactions: { likes: [] },
           createdAt: new Date()
         };
       }
@@ -753,7 +753,7 @@ export async function getReviewDetails(reviewId: string) {
       rating: reviewData.seasonReviews[0]?.rating || 0,
       comment: reviewData.seasonReviews[0]?.comment || "",
       comments: reviewData.seasonReviews[0]?.comments || [],
-      reactions: reviewData.seasonReviews[0]?.reactions || { likes: [], dislikes: [] },
+      reactions: reviewData.seasonReviews[0]?.reactions || { likes: [] },
       createdAt: reviewData.seasonReviews[0]?.createdAt || new Date()
     };
     } catch (seriesError) {
@@ -771,7 +771,7 @@ export async function getReviewDetails(reviewId: string) {
         rating: reviewData.seasonReviews?.[0]?.rating || 0,
         comment: reviewData.seasonReviews?.[0]?.comment || "",
         comments: reviewData.seasonReviews?.[0]?.comments || [],
-        reactions: reviewData.seasonReviews?.[0]?.reactions || { likes: [], dislikes: [] },
+        reactions: reviewData.seasonReviews?.[0]?.reactions || { likes: [] },
         createdAt: reviewData.seasonReviews?.[0]?.createdAt || new Date()
       };
     }
@@ -781,28 +781,83 @@ export async function getReviewDetails(reviewId: string) {
   }
 }
 
+/**
+ * Remove todas as notificações do usuário atual com uma abordagem mais robusta
+ * Divida as operações em lotes menores para evitar problemas de memória e timeout
+ * @param userId ID do usuário
+ * @returns Promise com o número de notificações removidas
+ */
+export async function deleteAllUserNotifications(userId: string): Promise<number> {
+  if (!userId || (auth.currentUser?.uid !== userId)) {
+    throw new Error("Permissão negada para apagar notificações");
+  }
+
+  try {
+    let totalDeleted = 0;
+    const BATCH_SIZE = 50; // Tamanho reduzido do lote para evitar limites do Firestore
+    let hasMoreToProcess = true;
+
+    // Processar em lotes para evitar limites do Firestore
+    while (hasMoreToProcess) {
+      try {
+        // Consultar apenas um lote por vez
+        const q = query(
+          notificationsCollection,
+          where("userId", "==", userId),
+          orderBy("createdAt", "desc"),
+          firestoreLimit(BATCH_SIZE)
+        );
+
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+          hasMoreToProcess = false;
+          continue;
+        }
+
+        // Excluir este lote
+        const batch = writeBatch(db);
+        const lastItem = querySnapshot.docs[querySnapshot.docs.length - 1];
+        
+        querySnapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        
+        await batch.commit();
+        
+        totalDeleted += querySnapshot.size;
+        
+        // Verificar se há mais itens para processar
+        hasMoreToProcess = querySnapshot.size >= BATCH_SIZE;
+        
+        // Pausar brevemente para evitar sobrecarga
+        if (hasMoreToProcess) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      } catch (batchError) {
+        console.error(`Erro no processamento de lote de notificações: ${batchError}`);
+        // Continuar para o próximo lote mesmo com erro
+      }
+    }
+    
+    // Invalidar cache apenas no final
+    invalidateCache(userId);
+    
+    return totalDeleted;
+  } catch (error) {
+    console.error(`Erro ao remover notificações do usuário: ${error}`);
+    throw new Error("Falha ao remover notificações. Tente novamente mais tarde.");
+  }
+}
+
 // Remover notificações do usuário (para exclusão de conta)
+// Mantido para compatibilidade com código existente
 export async function removeCurrentUserNotifications(userId: string): Promise<number> {
   if (!userId) return 0;
   
   try {
-    const q = query(notificationsCollection, where("userId", "==", userId));
-    const querySnapshot = await getDocs(q);
-    
-    if (querySnapshot.empty) {
-      return 0;
-    }
-    
-    // Excluir em lote
-    const batch = writeBatch(db);
-    querySnapshot.forEach(doc => batch.delete(doc.ref));
-    
-    await batch.commit();
-    
-    // Invalidar cache
-    invalidateCache(userId);
-    
-    return querySnapshot.size;
+    // Usar a função mais robusta
+    return await deleteAllUserNotifications(userId);
   } catch (error) {
     console.error(`❌ Erro ao remover notificações: ${error}`);
     return 0;
@@ -818,7 +873,8 @@ export async function removeCurrentUserNotifications(userId: string): Promise<nu
 export async function removeReactionNotification(
   reviewId: string,
   userId: string,
-  commentId?: string
+  commentId?: string,
+  isListReaction: boolean = false
 ) {
   try {
     if (!auth.currentUser) return false;
@@ -827,10 +883,12 @@ export async function removeReactionNotification(
     // ou que foram enviadas para o usuário atual
     const notificationsRef = collection(db, "notifications");
     
-    // Construir a query base
+    // Construir a query base com o tipo apropriado de notificação
+    const notificationType = isListReaction ? NotificationType.LIST_REACTION : NotificationType.NEW_REACTION;
+    
     let query_ = query(
       notificationsRef,
-      where("type", "==", NotificationType.NEW_REACTION),
+      where("type", "==", notificationType),
       where("reviewId", "==", reviewId)
     );
     
@@ -840,7 +898,7 @@ export async function removeReactionNotification(
       const formattedReviewId = `${reviewId}_${commentId}`;
       query_ = query(
         notificationsRef,
-        where("type", "==", NotificationType.NEW_REACTION),
+        where("type", "==", notificationType),
         where("reviewId", "==", formattedReviewId)
       );
     }

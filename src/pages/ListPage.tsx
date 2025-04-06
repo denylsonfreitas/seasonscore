@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
@@ -53,6 +53,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatRelativeTime } from '../utils/dateUtils';
 import { SeriesCard } from '../components/series/SeriesCard';
 import { CommentSection } from '../components/comments/CommentSection';
+import { ReactionButton } from '../components/common/ReactionButton';
 import { 
   getListById, 
   toggleListReaction, 
@@ -65,6 +66,7 @@ import { Link } from 'react-router-dom';
 import { SeriesListItem, searchSeries } from '../services/tmdb';
 import { EditListModal } from '../components/lists/EditListModal';
 import { UserAvatar } from '../components/common/UserAvatar';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 
 export default function ListPage() {
   const { listId } = useParams();
@@ -72,6 +74,7 @@ export default function ListPage() {
   const location = useLocation();
   const { currentUser } = useAuth();
   const toast = useToast();
+  const queryClient = useQueryClient();
   
   const bgColor = useColorModeValue('secondary.800', 'secondary.700');
   const borderColor = useColorModeValue('gray.700', 'gray.600');
@@ -79,13 +82,13 @@ export default function ListPage() {
   const subtextColor = useColorModeValue('gray.300', 'gray.300');
   
   const [list, setList] = useState<ListWithUserData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRemovingSeries, setIsRemovingSeries] = useState<number | null>(null);
   const [isTogglingLike, setIsTogglingLike] = useState(false);
+  const [isForceFetchingReaction, setIsForceFetchingReaction] = useState(false);
   
   const { isOpen: isSearchModalOpen, onOpen: onSearchModalOpen, onClose: onSearchModalClose } = useDisclosure();
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,45 +104,105 @@ export default function ListPage() {
   const { isOpen: isRemoveAlertOpen, onOpen: onRemoveAlertOpen, onClose: onRemoveAlertClose } = useDisclosure();
   const cancelRef = React.useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    const fetchList = async () => {
-      if (!listId || typeof listId !== 'string') return;
+  // Usar React Query para obter e manter os dados da lista atualizados
+  const { data: queryList, refetch, isLoading, isError } = useQuery({
+    queryKey: ['list', listId],
+    queryFn: async () => {
+      if (!listId) return null;
       
       try {
-        setLoading(true);
-        const listData = await getListById(listId);
-        
-        if (!listData) {
-          setError('Lista não encontrada');
-          navigate('/404', { replace: true });
-          return;
+        const data = await getListById(listId);
+        if (!data) {
+          throw new Error("Lista não encontrada");
         }
-        
-        setList(listData);
-        setLikesCount(listData.likesCount || 0);
-        
-        if (currentUser && listData.reactions) {
-          const userReaction = listData.reactions.find(
-            reaction => reaction.userId === currentUser.uid && reaction.type === 'like'
-          );
-          setIsLiked(!!userReaction);
-        } else {
-          setIsLiked(false);
-        }
-      } catch (error: any) {
-        setError(error.message || 'Erro ao carregar a lista');
+        return data;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Erro ao carregar a lista');
         navigate('/404', { replace: true });
-      } finally {
-        setLoading(false);
+        throw err;
       }
-    };
-
-    fetchList();
-  }, [listId, currentUser, navigate]);
+    },
+    enabled: !!listId,
+    staleTime: 1000, // 1 segundo
+    refetchInterval: 5000, // Refetch a cada 5 segundos
+    refetchOnWindowFocus: true,
+  });
+  
+  // Sincronizar o estado local com os dados do React Query
+  useEffect(() => {
+    if (queryList) {
+      setList(queryList);
+      setLikesCount(queryList.likesCount || 0);
+      
+      if (currentUser && queryList.reactions) {
+        const userReaction = queryList.reactions.find(
+          reaction => reaction.userId === currentUser.uid && reaction.type === 'like'
+        );
+        setIsLiked(!!userReaction);
+      } else {
+        setIsLiked(false);
+      }
+    }
+  }, [queryList, currentUser]);
+  
+  // Configurar um polling ativo para o estado da reação
+  useEffect(() => {
+    if (!listId || !currentUser) return;
+    
+    const intervalId = setInterval(() => {
+      if (!document.hidden) {
+        // Forçar um refetch dos dados da lista a cada 3 segundos quando a página estiver visível
+        refetch();
+      }
+    }, 3000);
+    
+    return () => clearInterval(intervalId);
+  }, [listId, currentUser, refetch]);
 
   useEffect(() => {
     document.title = 'SeasonScore';
   }, [list]);
+
+  // Função para buscar o estado atual da reação do usuário diretamente do banco de dados
+  const fetchUserReactionState = useCallback(async () => {
+    if (!currentUser || !listId) return;
+    
+    try {
+      setIsForceFetchingReaction(true);
+      const listData = await getListById(listId);
+      
+      if (listData && listData.reactions) {
+        const userReaction = listData.reactions.find(
+          reaction => reaction.userId === currentUser.uid && reaction.type === 'like'
+        );
+        
+        setIsLiked(!!userReaction);
+        setLikesCount(listData.likesCount || 0);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar estado da reação:", error);
+    } finally {
+      setIsForceFetchingReaction(false);
+    }
+  }, [currentUser, listId]);
+
+  // Efeito para forçar a atualização do estado de curtida periodicamente
+  useEffect(() => {
+    if (!currentUser || !listId) return;
+    
+    // Buscar inicialmente
+    fetchUserReactionState();
+    
+    // Configurar um intervalo para buscar atualizações a cada 10 segundos
+    const intervalId = setInterval(() => {
+      if (!document.hidden) {
+        fetchUserReactionState();
+      }
+    }, 10000);
+    
+    // Limpar intervalo ao desmontar
+    return () => clearInterval(intervalId);
+  }, [currentUser, listId, fetchUserReactionState]);
 
   const handleLikeToggle = async () => {
     if (!currentUser || !list) {
@@ -157,16 +220,37 @@ export default function ListPage() {
     
     try {
       setIsTogglingLike(true);
-      const newIsLiked = !isLiked;
       
-      setIsLiked(newIsLiked);
-      setLikesCount(prev => newIsLiked ? prev + 1 : prev - 1);
-      
-      await toggleListReaction(list.id, 'like');
-      
-    } catch (error: any) {
+      // Atualizar UI imediatamente para feedback instantâneo
       setIsLiked(!isLiked);
-      setLikesCount(prev => isLiked ? prev + 1 : prev - 1);
+      setLikesCount(prevCount => isLiked ? Math.max(0, prevCount - 1) : prevCount + 1);
+      
+      // Chamar API para persistir a mudança
+      const result = await toggleListReaction(list.id, 'like');
+      
+      // Atualizar estado com dados do servidor
+      setIsLiked(result.liked);
+      setLikesCount(result.likesCount);
+      
+      // Invalidar consultas relacionadas
+      queryClient.invalidateQueries({ queryKey: ['list', listId] });
+      queryClient.invalidateQueries({ queryKey: ['lists'] });
+      queryClient.invalidateQueries({ queryKey: ['popularLists'] });
+      queryClient.invalidateQueries({ queryKey: ['userLists'] });
+      
+      // Forçar um refetch imediato para atualizar todos os componentes
+      refetch();
+      
+      setIsTogglingLike(false);
+      
+      // Programar refetches adicionais para garantir que todos os componentes estejam atualizados
+      setTimeout(() => refetch(), 500);
+      setTimeout(() => refetch(), 1500);
+    } catch (error: any) {
+      // Reverter alterações em caso de erro
+      setIsLiked(isLiked);
+      setLikesCount(likesCount);
+      setIsTogglingLike(false);
       
       toast({
         title: 'Erro',
@@ -175,8 +259,6 @@ export default function ListPage() {
         duration: 3000,
         isClosable: true,
       });
-    } finally {
-      setIsTogglingLike(false);
     }
   };
 
@@ -393,7 +475,7 @@ export default function ListPage() {
     navigate(`/lists?tag=${encodeURIComponent(tag)}&source=listPage`);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Container maxW="container.lg" py={8}>
         <Skeleton height="40px" width="50%" mb={4} />
@@ -408,7 +490,7 @@ export default function ListPage() {
     );
   }
 
-  if (error || !list) {
+  if (isError || !list) {
     return null;
   }
 
@@ -515,50 +597,69 @@ export default function ListPage() {
             )}
           </Flex>
 
-          <HStack spacing={4} mb={4}>
-            <Tooltip label={isLiked ? "Descurtir" : "Curtir"}>
-              <Button
-                leftIcon={isLiked ? <FaHeart /> : <FaRegHeart />}
-                variant="ghost"
-                _hover={{ bg: "gray.700" }}
-                size="sm"
-                color={isLiked ? "red.500" : textColor}
-                onClick={handleLikeToggle}
-                isLoading={isTogglingLike}
-              >
-                {likesCount > 0 && likesCount}
-              </Button>
-            </Tooltip>
+          <Flex 
+            align="center" 
+            bg="gray.800" 
+            borderRadius="lg" 
+            py={2} 
+            px={4} 
+            mb={4}
+            shadow="sm"
+            borderWidth="1px"
+            borderColor="gray.700"
+          >
+            <ReactionButton 
+              likes={
+                Array.isArray(list.reactions) 
+                  ? list.reactions
+                      .filter(r => r.type === 'like')
+                      .map(r => r.userId) 
+                  : []
+              }
+              onReaction={handleLikeToggle}
+              tooltipText={isLiked ? "Descurtir" : "Curtir"}
+              showCount={true}
+              isLoading={isTogglingLike}
+              forcedLikeState={isLiked}
+              forcedLikesCount={likesCount}
+              size="md"
+            />
+
+            <Box mx={4} h="20px" borderLeftWidth="1px" borderColor="gray.600" />
 
             <Tooltip label="Comentários">
-              <Button
-                leftIcon={<FaComment />}
-                variant="ghost"
-                _hover={{ bg: "gray.700" }}
-                size="sm"
-                color={textColor}
+              <Flex
+                align="center"
+                cursor="pointer"
+                transition="all 0.2s"
                 onClick={() => {
                   const commentsSection = document.getElementById('comments');
                   commentsSection?.scrollIntoView({ behavior: 'smooth' });
                 }}
+                _hover={{ color: "primary.400" }}
               >
-                {list.commentsCount > 0 && list.commentsCount}
-              </Button>
+                <Icon as={FaComment} mr={2} />
+                <Text fontWeight="medium">
+                  {list.commentsCount > 0 ? list.commentsCount : "0"}
+                </Text>
+              </Flex>
             </Tooltip>
 
-            <Tooltip label="Compartilhar">
-              <Button
-                leftIcon={<FaShare />}
-                variant="ghost"
-                _hover={{ bg: "gray.700" }}
-                size="sm"
-                color={textColor}
+            <Box mx={4} h="20px" borderLeftWidth="1px" borderColor="gray.600" />
+
+            <Tooltip label="Compartilhar link da lista">
+              <Flex
+                align="center"
+                cursor="pointer"
+                transition="all 0.2s"
                 onClick={handleShare}
+                _hover={{ color: "primary.400" }}
               >
-                Compartilhar
-              </Button>
+                <Icon as={FaShare} mr={2} />
+                <Text fontWeight="medium">Compartilhar</Text>
+              </Flex>
             </Tooltip>
-          </HStack>
+          </Flex>
         </Box>
 
         <Divider />

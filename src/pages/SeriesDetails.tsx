@@ -95,7 +95,7 @@ export function SeriesDetails() {
       rating: seasonReview.rating,
       comment: seasonReview.comment || "",
       comments: seasonReview.comments || [],
-      reactions: seasonReview.reactions || { likes: [], dislikes: [] },
+      reactions: seasonReview.reactions || { likes: [] },
       createdAt: seasonReview.createdAt || new Date()
     };
   }, [selectedReview?.id, selectedSeason, id, series?.name, series?.poster_path, reviews]);
@@ -117,7 +117,7 @@ export function SeriesDetails() {
       rating: seasonReview.rating,
       comment: seasonReview.comment || "",
       comments: seasonReview.comments || [],
-      reactions: seasonReview.reactions || { likes: [], dislikes: [] },
+      reactions: seasonReview.reactions || { likes: [] },
       createdAt: seasonReview.createdAt || new Date()
     };
   }, [userReview?.id, selectedSeason, id, series?.name, series?.poster_path]);

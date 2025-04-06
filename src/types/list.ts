@@ -19,7 +19,6 @@ export interface List {
   createdAt: Date | Timestamp;
   updatedAt: Date | Timestamp;
   likesCount: number;
-  dislikesCount: number;
   commentsCount: number;
 }
 
@@ -38,10 +37,9 @@ export interface ListComment {
   content: string;
   createdAt: Date | Timestamp;
   likes: Record<string, boolean>;
-  dislikes: Record<string, boolean>;
 }
 
-export type ListReactionType = "like" | "dislike";
+export type ListReactionType = "like";
 
 export interface ListReaction {
   id: string;

@@ -45,8 +45,14 @@ export function SeriesSection({
   }
 
   const series = data?.pages.flatMap((page) => page.results) ?? [];
+  
+  // Remover séries duplicadas
+  const uniqueSeries = series.filter(
+    (series, index, self) =>
+      index === self.findIndex((s) => s.id === series.id)
+  );
 
-  if (series.length === 0) {
+  if (uniqueSeries.length === 0) {
     return (
       <Box textAlign="center" py={8}>
         <Text color="gray.400">Nenhuma série encontrada</Text>
@@ -74,7 +80,7 @@ export function SeriesSection({
         )}
       </Flex>
       <SimpleGrid columns={{ base: 2, md: 3, lg: 5 }} spacing={6}>
-        {series.map((series) => (
+        {uniqueSeries.map((series) => (
           <SeriesCard key={series.id} series={series} />
         ))}
       </SimpleGrid>

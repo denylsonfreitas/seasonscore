@@ -192,9 +192,8 @@ export function PopularReviews() {
             rating: seasonReview?.rating || selectedReview.rating,
             comment: seasonReview?.comment || selectedReview.comment,
             comments: seasonReview?.comments || [],
-            reactions: seasonReview?.reactions || {
+            reactions: { 
               likes: [],
-              dislikes: []
             },
             createdAt: seasonReview?.createdAt || selectedReview.createdAt
           }}

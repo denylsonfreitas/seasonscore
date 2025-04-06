@@ -23,6 +23,10 @@ export function PopularSeries() {
   });
 
   const allSeries = data?.pages.flatMap((page) => page.results) ?? [];
+  const uniqueSeries = allSeries.filter(
+    (series, index, self) =>
+      index === self.findIndex((s) => s.id === series.id)
+  );
 
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
@@ -33,7 +37,7 @@ export function PopularSeries() {
           </Heading>
 
           <SeriesGrid
-            series={allSeries}
+            series={uniqueSeries}
             isLoading={isLoading}
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}

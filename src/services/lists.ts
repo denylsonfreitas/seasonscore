@@ -43,28 +43,28 @@ import { ensureFirestoreDelete } from "../utils/deleteUtils";
 // Constantes para nomes de coleções
 const LISTS_COLLECTION = "lists";
 const LIST_REACTIONS_COLLECTION = "listReactions";
-const LIST_COMMENTS_COLLECTION = "comments";
+const LIST_COMMENTS_COLLECTION = "listComments";
 const DEFAULT_LIMIT = 10;
 
-// Cache para rastrear notificações recentes de reações em listas
-// Estrutura: { [userId_listId_reactionType]: timestamp }
-const recentListReactionsCache = new Map<string, number>();
+// Cache para rastrear notificações recentes
+// Estrutura: { [receiverId_objectId_senderId_type]: timestamp }
+const recentNotificationsCache = new Map<string, number>();
 const NOTIFICATION_COOLDOWN = 30 * 60 * 1000; // 30 minutos em milissegundos
 
 /**
- * Verifica se uma notificação de reação foi enviada recentemente
- * @param listId ID da lista
- * @param senderId ID do usuário que reagiu
+ * Verifica se uma notificação foi enviada recentemente
+ * @param objectId ID do objeto (lista ou comentário)
+ * @param senderId ID do usuário que interagiu
  * @param receiverId ID do usuário que recebe a notificação
  * @returns Verdadeiro se uma notificação foi enviada nos últimos 30 minutos
  */
-function wasReactionNotifiedRecently(
-  listId: string, 
+function wasNotifiedRecently(
+  objectId: string, 
   senderId: string, 
   receiverId: string
 ): boolean {
-  const cacheKey = `${receiverId}_${listId}_${senderId}_reaction`;
-  const lastNotified = recentListReactionsCache.get(cacheKey);
+  const cacheKey = `${receiverId}_${objectId}_${senderId}`;
+  const lastNotified = recentNotificationsCache.get(cacheKey);
   
   if (lastNotified) {
     const now = Date.now();
@@ -75,18 +75,18 @@ function wasReactionNotifiedRecently(
 }
 
 /**
- * Registra que uma notificação de reação foi enviada
- * @param listId ID da lista
- * @param senderId ID do usuário que reagiu
+ * Registra que uma notificação foi enviada
+ * @param objectId ID do objeto (lista ou comentário)
+ * @param senderId ID do usuário que interagiu
  * @param receiverId ID do usuário que recebe a notificação
  */
-function trackReactionNotification(
-  listId: string, 
+function trackNotification(
+  objectId: string, 
   senderId: string, 
   receiverId: string
 ): void {
-  const cacheKey = `${receiverId}_${listId}_${senderId}_reaction`;
-  recentListReactionsCache.set(cacheKey, Date.now());
+  const cacheKey = `${receiverId}_${objectId}_${senderId}`;
+  recentNotificationsCache.set(cacheKey, Date.now());
 }
 
 /**
@@ -137,7 +137,6 @@ export async function createList(
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       likesCount: 0,
-      dislikesCount: 0,
       commentsCount: 0,
     };
 
@@ -546,141 +545,89 @@ export async function getUserLists(userId: string, onlyPublic: boolean = false):
 }
 
 /**
- * Obtém as listas populares
- * @param limitCount Número máximo de listas a retornar
+ * Retorna as listas mais populares
+ * @param limitCount Número de listas a retornar
  * @returns Promise com array de listas populares
  */
 export async function getPopularLists(limitCount: number = DEFAULT_LIMIT): Promise<ListWithUserData[]> {
   try {
-    const listsQuery = query(
+    const q = query(
       collection(db, LISTS_COLLECTION),
       where("isPublic", "==", true),
+      where("likesCount", ">", 0),
       orderBy("likesCount", "desc"),
       limit(limitCount)
     );
-    
-    const querySnapshot = await getDocs(listsQuery);
-    
-    if (querySnapshot.empty) {
-      return [];
-    }
-    
-    // Mapear os documentos para objetos List e incluir os IDs
-    const lists = querySnapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        userId: data.userId,
-        title: data.title,
-        description: data.description || "",
-        tags: data.tags || [],
-        isPublic: data.isPublic,
-        items: data.items || [],
-        createdAt: convertTimestampToDate(data.createdAt),
-        updatedAt: convertTimestampToDate(data.updatedAt),
-        likesCount: data.likesCount || 0,
-        dislikesCount: data.dislikesCount || 0,
-        commentsCount: data.commentsCount || 0,
-      } as List;
-    });
-    
-    // Buscar dados dos usuários para cada lista
-    const listsWithUserData = await Promise.all(
+
+    const querySnapshot = await getDocs(q);
+    const lists = querySnapshot.docs.map(doc => listFromDoc(doc));
+
+    // Enriquecer com dados de usuário
+    return Promise.all(
       lists.map(async (list) => {
         try {
           const userData = await getUserData(list.userId);
-          
-          // Obter uma imagem de capa usando o primeiro item da lista
-          const coverImage = list.items && list.items.length > 0 
-            ? list.items[0].poster_path 
-            : null;
-          
           return {
             ...list,
-            userDisplayName: userData?.displayName || "Usuário",
-            userPhotoURL: userData?.photoURL || "",
-            coverImage
-          } as ListWithUserData;
+            username: userData?.username,
+            userDisplayName: userData?.displayName,
+            userPhotoURL: userData?.photoURL,
+          };
         } catch (error) {
-          return {
-            ...list,
-            userDisplayName: "Usuário",
-            userPhotoURL: "",
-          } as ListWithUserData;
+          console.error(`Erro ao obter dados do usuário para lista ${list.id}:`, error);
+          return list as ListWithUserData;
         }
       })
     );
-    
-    // Ordenar por data de atualização e limitar o número de resultados
-    const sortedLists = listsWithUserData.sort((a, b) => {
-      // Garantir que estamos trabalhando com objetos Date
-      const dateA = a.updatedAt instanceof Date ? a.updatedAt : convertTimestampToDate(a.updatedAt);
-      const dateB = b.updatedAt instanceof Date ? b.updatedAt : convertTimestampToDate(b.updatedAt);
-      return dateB.getTime() - dateA.getTime();
-    }).slice(0, limitCount);
-    
-    return sortedLists;
   } catch (error) {
-    console.error("Erro ao obter listas populares:", error);
+    console.error("Erro ao buscar listas populares:", error);
     return [];
   }
 }
 
 /**
  * Busca listas por tag
- * @param tag Tag para filtrar
- * @param limitCount Limite de resultados
- * @returns Promise com array de listas
+ * @param tag Tag para buscar
+ * @param limitCount Número máximo de resultados
+ * @returns Lista de listas que contêm a tag
  */
 export async function getListsByTag(
   tag: string,
   limitCount: number = DEFAULT_LIMIT
 ): Promise<ListWithUserData[]> {
   try {
+    // Buscar listas públicas com a tag especificada
     const q = query(
       collection(db, LISTS_COLLECTION),
-      where("tags", "array-contains", tag.toLowerCase()),
       where("isPublic", "==", true),
-      orderBy("createdAt", "desc"),
+      where("tags", "array-contains", tag),
+      orderBy("updatedAt", "desc"),
       limit(limitCount)
     );
 
     const querySnapshot = await getDocs(q);
-    const lists = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate() || new Date(),
-      updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-      items: doc.data().items.map((item: any) => ({
-        ...item,
-        addedAt: item.addedAt?.toDate() || new Date()
-      }))
-    } as List));
+    const lists = querySnapshot.docs.map(doc => listFromDoc(doc));
 
-    // Buscar informações dos usuários
-    const listsWithUserData = await Promise.all(lists.map(async (list) => {
-      const userData = await getUserData(list.userId);
-      if (!userData) {
-        return {
-          ...list,
-          username: "Usuário excluído",
-          userDisplayName: "Usuário excluído",
-          userPhotoURL: null
-        };
-      }
-
-      return {
-        ...list,
-        username: userData.username,
-        userDisplayName: userData.displayName || userData.username,
-        userPhotoURL: userData.photoURL
-      };
-    }));
-
-    return listsWithUserData;
+    // Enriquecer com dados de usuário
+    return Promise.all(
+      lists.map(async (list) => {
+        try {
+          const userData = await getUserData(list.userId);
+          return {
+            ...list,
+            username: userData?.username,
+            userDisplayName: userData?.displayName,
+            userPhotoURL: userData?.photoURL,
+          };
+        } catch (error) {
+          console.error(`Erro ao obter dados do usuário para lista ${list.id}:`, error);
+          return list as ListWithUserData;
+        }
+      })
+    );
   } catch (error) {
-    console.error("Erro ao buscar listas por tag:", error);
-    throw error;
+    console.error(`Erro ao buscar listas com tag "${tag}":`, error);
+    return [];
   }
 }
 
@@ -763,8 +710,7 @@ export async function addCommentToList(
       userId: auth.currentUser.uid,
       content,
       createdAt: serverTimestamp() as Timestamp,
-      likes: {},
-      dislikes: {}
+      likes: {}
     };
 
     const commentRef = await addDoc(collection(db, LIST_COMMENTS_COLLECTION), commentData);
@@ -880,170 +826,259 @@ export async function getListComments(listId: string): Promise<ListComment[]> {
 }
 
 /**
- * Adiciona ou remove uma reação (like/dislike) de uma lista
+ * Adiciona ou remove uma reação (like) de um comentário de lista
+ * @param listId ID da lista
+ * @param commentId ID do comentário
+ * @returns Retorna o novo status da reação e a contagem de likes
+ */
+export async function toggleListCommentReaction(
+  listId: string,
+  commentId: string
+): Promise<{
+  liked: boolean;
+  likesCount: number;
+}> {
+  if (!auth.currentUser) throw new Error("Usuário não autenticado");
+
+  const userId = auth.currentUser.uid;
+  const commentRef = doc(db, LIST_COMMENTS_COLLECTION, commentId);
+  
+  try {
+    const result = await runTransaction(db, async (transaction) => {
+      const commentDoc = await transaction.get(commentRef);
+      
+      if (!commentDoc.exists()) {
+        console.error(`Comentário ${commentId} não encontrado na coleção ${LIST_COMMENTS_COLLECTION}`);
+        throw new Error("Comentário não encontrado");
+      }
+
+      const comment = commentDoc.data() as any;
+      if (comment.objectId !== listId || comment.objectType !== "list") {
+        console.error(`Comentário não pertence à lista ${listId}`, { 
+          commentObjectId: comment.objectId, 
+          listId,
+          commentObjectType: comment.objectType
+        });
+        throw new Error("Comentário não pertence a esta lista");
+      }
+
+      // Clonar o objeto de likes para modificação - inicializa se necessário
+      const likes = comment.likes ? { ...comment.likes } : {};
+      
+      // Verificar se o usuário já curtiu o comentário
+      const userLiked = !!likes[userId];
+      
+      if (userLiked) {
+        // Remover o like
+        delete likes[userId];
+      } else {
+        // Adicionar o like
+        likes[userId] = true;
+      }
+
+      // Aplicar a atualização na transação
+      transaction.update(commentRef, { likes });
+
+      return {
+        isRemoving: userLiked,
+        comment,
+        likes,
+        likesCount: Object.keys(likes).length
+      };
+    });
+
+    const { isRemoving, comment, likes, likesCount } = result;
+    const currentUserId = auth.currentUser.uid;
+
+    // Gerenciar notificações em background
+    setTimeout(async () => {
+      try {
+        if (!auth.currentUser) return;
+        
+        // Somente notificar se for uma adição (não uma remoção) e o comentário não for do usuário atual
+        if (!isRemoving && comment.userId !== currentUserId) {
+          // Verificar se uma notificação foi enviada recentemente
+          const wasNotified = wasNotifiedRecently(
+            `list_${listId}_comment_${commentId}`,
+            currentUserId,
+            comment.userId
+          );
+          
+          // Se não foi notificado recentemente, enviar notificação
+          if (!wasNotified) {
+            try {
+              const listSnap = await getDoc(doc(db, LISTS_COLLECTION, listId));
+              if (!listSnap.exists()) return;
+              
+              const listData = listSnap.data() as List;              
+              const userData = await getUserData(auth.currentUser.uid);
+              const userName = userData?.username || userData?.displayName || auth.currentUser.email;
+              
+              // Registrar que a notificação está sendo enviada
+              trackNotification(
+                `list_${listId}_comment_${commentId}`, 
+                auth.currentUser.uid, 
+                comment.userId
+              );
+              
+              // Usar mensagem mais genérica para evitar múltiplas notificações específicas
+              const message = `${userName} reagiu ao seu comentário na lista "${listData.title}".`;
+              
+              await createNotification(
+                comment.userId,
+                NotificationType.NEW_REACTION,
+                {
+                  senderId: auth.currentUser.uid,
+                  reviewId: `list_${listId}_comment_${commentId}`,
+                  message
+                }
+              );
+            } catch (notificationError) {
+              console.error("Erro ao criar notificação:", notificationError);
+              // Silencia erros de notificação
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Erro geral no processamento de notificações:", error);
+        // Silencia erros gerais
+      }
+    }, 0);
+
+    // Retornar imediatamente o novo estado para atualização da UI
+    return {
+      liked: !isRemoving,
+      likesCount
+    };
+  } catch (error) {
+    console.error("Erro ao atualizar reação em comentário de lista:", error);
+    throw error;
+  }
+}
+
+/**
+ * Adiciona ou remove uma reação (like) de uma lista
  */
 export async function toggleListReaction(
   listId: string,
   reactionType: ListReactionType
-): Promise<void> {
-  if (!auth.currentUser) {
-    throw new Error("Você precisa estar logado para reagir a uma lista");
-  }
+): Promise<{
+  liked: boolean;
+  likesCount: number;
+}> {
+  if (!auth.currentUser) throw new Error("Usuário não autenticado");
 
+  const userId = auth.currentUser.uid;
+  const listRef = doc(db, LISTS_COLLECTION, listId);
+  
   try {
-    const currentUser = auth.currentUser;
-    const userId = currentUser.uid;
+    // Primeiro, verifique diretamente se já existe uma reação do usuário atual
+    const userReactionQuery = query(
+      collection(db, "listReactions"),
+      where("listId", "==", listId),
+      where("userId", "==", userId)
+    );
     
-    // Buscar os dados da lista
-    const listData = await getListById(listId);
-    if (!listData) {
-      throw new Error("Lista não encontrada");
-    }
+    const userReactionSnapshot = await getDocs(userReactionQuery);
+    const hasExistingReaction = !userReactionSnapshot.empty;
+    let reactionDocId = hasExistingReaction ? userReactionSnapshot.docs[0].id : null;
     
-    // IDs compostos para identificar a reação única
-    const likeId = `${listId}_${userId}_like`;
-    const dislikeId = `${listId}_${userId}_dislike`;
-    
-    // Referências aos documentos
-    const likeRef = doc(db, LIST_REACTIONS_COLLECTION, likeId);
-    const dislikeRef = doc(db, LIST_REACTIONS_COLLECTION, dislikeId);
-    
-    // Verificar se as reações já existem
-    const likeDoc = await getDoc(likeRef);
-    const dislikeDoc = await getDoc(dislikeRef);
-    
-    const hasLiked = likeDoc.exists();
-    const hasDisliked = dislikeDoc.exists();
-    
-    // Variável para rastrear se estamos removendo uma reação existente
-    let isRemoving = false;
-    
-    // Determinar a ação com base no tipo de reação e estado atual
-    if (reactionType === "like") {
-      if (hasLiked) {
-        // Remover like
-        await deleteDoc(likeRef);
-        await updateDoc(doc(db, LISTS_COLLECTION, listId), {
-          likesCount: Math.max(0, (listData.likesCount || 0) - 1)
-        });
-        isRemoving = true;
-      } else {
-        // Adicionar like e remover dislike se existir
-        const batch = writeBatch(db);
-        
-        batch.set(likeRef, {
-          userId,
-          listId,
-          type: "like",
-          createdAt: serverTimestamp()
-        });
-        
-        batch.update(doc(db, LISTS_COLLECTION, listId), {
-          likesCount: (listData.likesCount || 0) + 1
-        });
-        
-        if (hasDisliked) {
-          batch.delete(dislikeRef);
-          batch.update(doc(db, LISTS_COLLECTION, listId), {
-            dislikesCount: Math.max(0, (listData.dislikesCount || 0) - 1)
-          });
-        }
-        
-        await batch.commit();
+    // Agora use uma transação para garantir a consistência
+    const transactionResult = await runTransaction(db, async (transaction) => {
+      const listDoc = await transaction.get(listRef);
+      
+      if (!listDoc.exists()) {
+        console.error(`[toggleListReaction] Lista ${listId} não encontrada`);
+        throw new Error("Lista não encontrada");
       }
-    } else if (reactionType === "dislike") {
-      if (hasDisliked) {
-        // Remover dislike
-        await deleteDoc(dislikeRef);
-        await updateDoc(doc(db, LISTS_COLLECTION, listId), {
-          dislikesCount: Math.max(0, (listData.dislikesCount || 0) - 1)
+
+      const list = listDoc.data() as List;
+      let newLikesCount = list.likesCount || 0;
+      
+      // Se já existe uma reação, remover
+      if (hasExistingReaction && reactionDocId) {
+        transaction.delete(doc(db, "listReactions", reactionDocId));
+        newLikesCount = Math.max(0, newLikesCount - 1);
+        transaction.update(listRef, {
+          likesCount: newLikesCount
         });
-        isRemoving = true;
-      } else {
-        // Adicionar dislike e remover like se existir
-        const batch = writeBatch(db);
-        
-        batch.set(dislikeRef, {
+      } 
+      // Senão, adicionar nova reação
+      else {
+        const newReactionRef = doc(collection(db, "listReactions"));
+        const reactionData = {
+          id: newReactionRef.id,
+          listId,
           userId,
-          listId,
-          type: "dislike",
+          type: reactionType,
           createdAt: serverTimestamp()
+        };
+        transaction.set(newReactionRef, reactionData);
+        newLikesCount = newLikesCount + 1;
+        transaction.update(listRef, {
+          likesCount: newLikesCount
         });
-        
-        batch.update(doc(db, LISTS_COLLECTION, listId), {
-          dislikesCount: (listData.dislikesCount || 0) + 1
-        });
-        
-        if (hasLiked) {
-          batch.delete(likeRef);
-          batch.update(doc(db, LISTS_COLLECTION, listId), {
-            likesCount: Math.max(0, (listData.likesCount || 0) - 1)
-          });
-        }
-        
-        await batch.commit();
       }
-    }
+
+      return {
+        isRemoving: hasExistingReaction,
+        list,
+        newLikesCount
+      };
+    });
+
+    const { isRemoving, list, newLikesCount } = transactionResult;
+    const currentUserId = auth.currentUser.uid;
     
-    // Lidar com notificações
-    if (listData.userId !== currentUser.uid) {
-      if (isRemoving) {
-        // Se estamos removendo uma reação, remover notificações relacionadas
-        try {
-          // Buscar e excluir apenas as notificações enviadas pelo usuário atual para o dono da lista
-          const notificationsQuery = query(
-            collection(db, "notifications"),
-            where("type", "==", NotificationType.LIST_REACTION),
-            where("senderId", "==", currentUser.uid),
-            where("userId", "==", listData.userId),
-            where("reviewId", "==", listId)
-          );
-          
-          const querySnapshot = await getDocs(notificationsQuery);
-          
-          if (!querySnapshot.empty) {
-            const batch = writeBatch(db);
-            
-            querySnapshot.forEach(doc => {
-              batch.delete(doc.ref);
-            });
-            
-            await batch.commit();
-          }
-        } catch (error) {
-          // Silenciar erro ao remover notificações
-        }
-      } else {
-        // Verificar se uma notificação foi enviada recentemente por este usuário para esta lista
-        const wasNotifiedRecently = wasReactionNotifiedRecently(
-          listId,
-          currentUser.uid,
-          listData.userId
-        );
+    // Processar notificações em background sem bloquear
+    Promise.resolve().then(async () => {
+      try {
+        if (!auth.currentUser) return;
         
-        // Se não foi notificado recentemente, enviar notificação
-        if (!wasNotifiedRecently) {
-          // Registrar que a notificação está sendo enviada
-          trackReactionNotification(listId, currentUser.uid, listData.userId);
-          
-          // Criar mensagem mais genérica para evitar múltiplas notificações específicas
-          const message = `${currentUser.displayName || 'Alguém'} reagiu à sua lista "${listData.title}".`;
-          
-          // Enviar notificação
-          await createNotification(
-            listData.userId,
-            NotificationType.LIST_REACTION,
-            {
-              senderId: currentUser.uid,
-              reviewId: listId, // Usar reviewId para armazenar o listId
-              message
+        if (isRemoving && list.userId !== currentUserId) {
+          // Usar removeReactionNotification para tratar a remoção da notificação de maneira segura
+          await removeReactionNotification(listId, currentUserId, undefined, true);
+        }
+        else if (!isRemoving && list.userId !== currentUserId) {
+          // Verificar se já foi enviada notificação recentemente para evitar spam
+          if (!wasNotifiedRecently(listId, currentUserId, list.userId)) {
+            try {
+              const userData = await getUserData(currentUserId);
+              const username = userData?.username || userData?.displayName || auth.currentUser.email?.split('@')[0] || "Alguém";
+              
+              await createNotification(
+                list.userId,
+                NotificationType.LIST_REACTION,
+                {
+                  senderId: currentUserId,
+                  reviewId: listId,
+                  message: `${username} gostou da sua lista "${list.title}"`
+                }
+              );
+              
+              // Registrar notificação para evitar duplicatas em curto período
+              trackNotification(listId, currentUserId, list.userId);
+            } catch (error) {
+              console.error("Erro ao enviar notificação de reação:", error);
+              // Silenciar erros na notificação
             }
-          );
+          }
         }
+      } catch (error) {
+        console.error("Erro geral no processamento de notificações:", error);
       }
-    }
+    }).catch(error => {
+      console.error("Erro ao processar notificações:", error);
+    });
+    
+    // Retornar novo estado imediatamente, sem aguardar as notificações
+    const finalResult = {
+      liked: !isRemoving,
+      likesCount: newLikesCount
+    };
+    return finalResult;
   } catch (error) {
-    console.error("Erro ao reagir à lista:", error);
+    console.error("[toggleListReaction] Erro crítico ao processar reação:", error);
     throw error;
   }
 }
@@ -1080,21 +1115,32 @@ export async function getUserListReaction(
 }
 
 /**
- * Obtém listas dos usuários que o usuário atual segue
+ * Converte um objeto Timestamp para Date se necessário
+ */
+function ensureDate(dateOrTimestamp: Date | Timestamp): Date {
+  if (dateOrTimestamp instanceof Date) {
+    return dateOrTimestamp;
+  } else if ('toDate' in dateOrTimestamp) {
+    return dateOrTimestamp.toDate();
+  }
+  return new Date();
+}
+
+/**
+ * Obtém as listas dos usuários que o usuário atual segue
  * @param limitCount Número máximo de listas a retornar
- * @returns Promise com array de listas dos usuários seguidos
+ * @returns Promise com array de listas
  */
 export async function getFollowedUsersLists(limitCount: number = DEFAULT_LIMIT): Promise<ListWithUserData[]> {
-  const currentUser = auth.currentUser;
-  if (!currentUser) {
-    throw new Error("Usuário não autenticado");
+  if (!auth.currentUser) {
+    return [];
   }
-
+  
   try {
-    // Primeiro, obter a lista de usuários seguidos pelo usuário atual
+    // Buscar os usuários que o usuário atual segue
     const followingQuery = query(
       collection(db, "followers"),
-      where("followerId", "==", currentUser.uid)
+      where("followerId", "==", auth.currentUser.uid)
     );
     
     const followingSnapshot = await getDocs(followingQuery);
@@ -1117,66 +1163,36 @@ export async function getFollowedUsersLists(limitCount: number = DEFAULT_LIMIT):
       
       const userListsSnapshot = await getDocs(userListsQuery);
       
-      return userListsSnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          userId: data.userId,
-          title: data.title,
-          description: data.description || "",
-          tags: data.tags || [],
-          isPublic: data.isPublic,
-          items: data.items || [],
-          createdAt: convertTimestampToDate(data.createdAt),
-          updatedAt: convertTimestampToDate(data.updatedAt),
-          likesCount: data.likesCount || 0,
-          dislikesCount: data.dislikesCount || 0,
-          commentsCount: data.commentsCount || 0,
-        } as List;
-      });
+      return userListsSnapshot.docs.map(doc => listFromDoc(doc));
     });
     
-    // Aguardar todas as promessas e combinar os resultados
-    const allLists = (await Promise.all(listsPromises)).flat();
+    // Juntar todas as listas em um único array
+    let allLists = (await Promise.all(listsPromises)).flat();
     
-    // Ordenar por data de atualização e limitar o número de resultados
-    const sortedLists = allLists.sort((a, b) => {
-      // Garantir que estamos trabalhando com objetos Date
-      const dateA = a.updatedAt instanceof Date ? a.updatedAt : convertTimestampToDate(a.updatedAt);
-      const dateB = b.updatedAt instanceof Date ? b.updatedAt : convertTimestampToDate(b.updatedAt);
-      return dateB.getTime() - dateA.getTime();
-    }).slice(0, limitCount);
+    // Ordenar por data de atualização (mais recentes primeiro) e limitar o número
+    allLists = allLists
+      .sort((a, b) => ensureDate(b.updatedAt).getTime() - ensureDate(a.updatedAt).getTime())
+      .slice(0, limitCount);
     
-    // Buscar dados dos usuários para cada lista
-    const listsWithUserData = await Promise.all(
-      sortedLists.map(async (list) => {
+    // Adicionar dados de usuário a cada lista
+    return Promise.all(
+      allLists.map(async (list) => {
         try {
           const userData = await getUserData(list.userId);
-          
-          // Obter uma imagem de capa usando o primeiro item da lista
-          const coverImage = list.items && list.items.length > 0 
-            ? list.items[0].poster_path 
-            : null;
-          
           return {
             ...list,
-            userDisplayName: userData?.displayName || "Usuário",
-            userPhotoURL: userData?.photoURL || "",
-            coverImage
-          } as ListWithUserData;
+            username: userData?.username,
+            userDisplayName: userData?.displayName,
+            userPhotoURL: userData?.photoURL,
+          };
         } catch (error) {
-          return {
-            ...list,
-            userDisplayName: "Usuário",
-            userPhotoURL: "",
-          } as ListWithUserData;
+          console.error(`Erro ao obter dados do usuário para lista ${list.id}:`, error);
+          return list as ListWithUserData;
         }
       })
     );
-    
-    return listsWithUserData;
   } catch (error) {
-    console.error("Erro ao obter listas de usuários seguidos:", error);
+    console.error("Erro ao buscar listas de usuários seguidos:", error);
     return [];
   }
 }
@@ -1226,105 +1242,83 @@ export async function getPopularTags(limitCount: number = 20): Promise<{tag: str
 }
 
 /**
- * Busca listas públicas por título, descrição ou tags
- * @param query Termo de busca
- * @param limitCount Limite de resultados
- * @returns Promise com array de listas que correspondem à busca
+ * Busca listas que correspondam a uma pesquisa
+ * @param searchText Texto para buscar
+ * @param limitCount Número máximo de resultados
+ * @returns Array de listas que correspondem à pesquisa
  */
 export async function searchLists(
   searchText: string,
   limitCount: number = DEFAULT_LIMIT
 ): Promise<ListWithUserData[]> {
-  if (!searchText.trim()) return [];
-  
   try {
-    const searchTerm = searchText.trim().toLowerCase();
+    // Normalizar e dividir o texto de pesquisa
+    const searchTerms = searchText.toLowerCase().trim().split(/\s+/);
     
-    // Buscar todas as listas públicas
-    const listsQuery = query(
+    // Consultar todas as listas públicas
+    const q = query(
       collection(db, LISTS_COLLECTION),
       where("isPublic", "==", true),
-      orderBy("updatedAt", "desc")
+      orderBy("updatedAt", "desc"),
+      limit(limitCount * 3) // Buscar mais resultados para filtrar depois
     );
     
-    const querySnapshot = await getDocs(listsQuery);
+    const querySnapshot = await getDocs(q);
     
-    if (querySnapshot.empty) {
-      return [];
-    }
-    
-    // Filtrar por título, descrição ou tags que contenham o termo de busca
+    // Filtra as listas que correspondem aos termos de pesquisa
     const matchingLists = querySnapshot.docs
-      .map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          userId: data.userId,
-          title: data.title,
-          description: data.description || "",
-          tags: data.tags || [],
-          isPublic: data.isPublic,
-          items: (data.items || []).map((item: any) => ({
-            ...item,
-            addedAt: convertTimestampToDate(item.addedAt)
-          })),
-          createdAt: convertTimestampToDate(data.createdAt),
-          updatedAt: convertTimestampToDate(data.updatedAt),
-          likesCount: data.likesCount || 0,
-          dislikesCount: data.dislikesCount || 0,
-          commentsCount: data.commentsCount || 0,
-        } as List;
-      })
+      .map(doc => listFromDoc(doc))
       .filter(list => {
-        // Verificar se o termo de busca está no título
-        if (list.title.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
+        const titleLower = list.title.toLowerCase();
+        const descLower = (list.description || "").toLowerCase();
+        const tagsLower = (list.tags || []).map(tag => tag.toLowerCase());
         
-        // Verificar se o termo de busca está na descrição
-        if (list.description && list.description.toLowerCase().includes(searchTerm)) {
-          return true;
-        }
-        
-        // Verificar se o termo de busca está em alguma tag
-        if (list.tags && list.tags.some(tag => tag.includes(searchTerm))) {
-          return true;
-        }
-        
-        return false;
+        // Verificar se algum termo de pesquisa corresponde ao título, descrição ou tags
+        return searchTerms.some(term => 
+          titleLower.includes(term) || 
+          descLower.includes(term) || 
+          tagsLower.some(tag => tag.includes(term))
+        );
       })
-      .slice(0, limitCount);
+      .slice(0, limitCount); // Limitar ao número solicitado
     
-    // Buscar informações dos usuários para cada lista
-    const listsWithUserData = await Promise.all(
+    // Enriquecer com dados de usuário
+    return Promise.all(
       matchingLists.map(async (list) => {
         try {
           const userData = await getUserData(list.userId);
-          
-          // Obter uma imagem de capa usando o primeiro item da lista
-          const coverImage = list.items && list.items.length > 0 
-            ? list.items[0].poster_path 
-            : null;
-          
           return {
             ...list,
-            userDisplayName: userData?.displayName || "Usuário",
-            userPhotoURL: userData?.photoURL || "",
-            coverImage
-          } as ListWithUserData;
+            username: userData?.username,
+            userDisplayName: userData?.displayName,
+            userPhotoURL: userData?.photoURL,
+          };
         } catch (error) {
-          return {
-            ...list,
-            userDisplayName: "Usuário",
-            userPhotoURL: "",
-          } as ListWithUserData;
+          console.error(`Erro ao obter dados do usuário para lista ${list.id}:`, error);
+          return list as ListWithUserData;
         }
       })
     );
-    
-    return listsWithUserData;
   } catch (error) {
-    console.error("Erro ao buscar listas:", error);
+    console.error(`Erro ao buscar listas com o termo "${searchText}":`, error);
     return [];
   }
+}
+
+function listFromDoc(doc: any): List {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    userId: data.userId,
+    title: data.title,
+    description: data.description || "",
+    tags: data.tags || [],
+    isPublic: data.isPublic,
+    accessByLink: data.accessByLink || false,
+    items: data.items || [],
+    createdAt: data.createdAt?.toDate() || new Date(),
+    updatedAt: data.updatedAt?.toDate() || new Date(),
+    likesCount: data.likesCount || 0,
+    commentsCount: data.commentsCount || 0
+  };
 } 
