@@ -1,4 +1,4 @@
-import { Box, VStack, Text, HStack, Grid, Icon, useDisclosure, Badge, Center, LinkBox } from "@chakra-ui/react";
+import { Box, VStack, Text, HStack, Icon, useDisclosure, Badge, Center, LinkBox } from "@chakra-ui/react";
 import { useState } from "react";
 import { getPopularReviews, PopularReview, getSeriesReviews } from "../../services/reviews";
 import { Heart, TelevisionSimple } from "@phosphor-icons/react";
@@ -12,6 +12,9 @@ import { getSeriesDetails } from "../../services/tmdb";
 import { UserName } from "../common/UserName";
 import { LazyImage } from "../common/LazyImage";
 import { SectionBase } from "../common/SectionBase";
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 
 export function PopularReviews() {
   const [selectedReview, setSelectedReview] = useState<PopularReview | null>(null);
@@ -74,94 +77,159 @@ export function PopularReviews() {
 
   // Renderizar o conteúdo
   const renderContent = (limitItems: boolean) => {
-    const displayedReviews = limitItems ? popularReviews.slice(0, 6) : popularReviews;
+    const displayedReviews = limitItems ? popularReviews.slice(0, 12) : popularReviews;
+    
+    const sliderSettings = {
+      dots: true,
+      infinite: false,
+      speed: 500,
+      slidesToShow: 6,
+      slidesToScroll: 3,
+      responsive: [
+        {
+          breakpoint: 1024,
+          settings: {
+            slidesToShow: 4,
+            slidesToScroll: 2,
+          }
+        },
+        {
+          breakpoint: 768,
+          settings: {
+            slidesToShow: 3,
+            slidesToScroll: 2,
+          }
+        },
+        {
+          breakpoint: 480,
+          settings: {
+            slidesToShow: 2,
+            slidesToScroll: 1,
+          }
+        }
+      ]
+    };
     
     return (
-      <Grid 
-        templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(2, 1fr)", lg: "repeat(6, 1fr)" }} 
-        gap={4}
+      <Box 
+        sx={{
+          ".slick-prev, .slick-next": {
+            zIndex: 1,
+            color: "white",
+            "&:before": {
+              fontSize: "24px"
+            }
+          },
+          ".slick-prev": {
+            left: "-10px"
+          },
+          ".slick-next": {
+            right: "-10px"
+          },
+          ".slick-track": {
+            display: "flex",
+            paddingTop: "8px",
+            paddingBottom: "8px"
+          },
+          ".slick-slide": {
+            height: "230px",
+            padding: "0 4px",
+            "& > div": {
+              height: "100%"
+            }
+          },
+          ".slick-list": {
+            margin: "0 -4px"
+          },
+          ".slick-dots": {
+            bottom: "-30px"
+          }
+        }}
+        pb={8}
       >
-        {displayedReviews.map((review) => (
-          <Box
-            key={review.id}
-            as={LinkBox}
-            bg="gray.800"
-            borderRadius="lg"
-            overflow="hidden"
-            transition="transform 0.2s"
-            _hover={{ transform: "translateY(-4px)" }}
-            cursor="pointer"
-            onClick={() => handleReviewClick(review)}
-            h="225px"
-            position="relative"
-          >
-            {review.seriesPoster ? (
-              <LazyImage
-                src={`https://image.tmdb.org/t/p/w500${review.seriesPoster}`}
-                alt={review.seriesName}
-                height="100%"
-                width="100%"
-                objectFit="cover"
-                fallbackText="Imagem não disponível"
-                onClick={(e) => handlePosterClick(e, review.seriesId)}
-              />
-            ) : (
-              <Center height="100%" py={4} px={2} bg="gray.700" position="relative">
-                <VStack spacing={2} align="center" justify="center">
-                  <Icon as={TelevisionSimple} boxSize={12} color="gray.500" weight="thin" />
-                  <Text color="white" fontSize="md" fontWeight="bold" textAlign="center" noOfLines={2}>
-                    {review.seriesName}
-                  </Text>
-                </VStack>
-              </Center>
-            )}
-
-            {/* Overlay na parte inferior do card */}
+        <Slider {...sliderSettings}>
+          {displayedReviews.map((review) => (
             <Box
-              position="absolute"
-              bottom={0}
-              left={0}
-              right={0}
-              bg="rgba(0, 0, 0, 0.7)"
-              p={3}
-              borderBottomRadius="lg"
+              key={review.id}
+              as={LinkBox}
+              bg="gray.800"
+              borderRadius="lg"
+              overflow="hidden"
+              transition="transform 0.2s"
+              _hover={{ transform: "translateY(-4px)" }}
+              cursor="pointer"
+              onClick={() => handleReviewClick(review)}
+              height="100%"
+              position="relative"
             >
-              <VStack align="start" spacing={1}>
-                <HStack justify="space-between" width="100%">
-                  <HStack spacing={2} align="center">
-                    <UserAvatar
-                      size="xs"
-                      photoURL={review.userAvatar}
-                      name={review.userName}
-                      userId={review.userId}
-                    />
-                    <UserName userId={review.userId} />
+              {review.seriesPoster ? (
+                <LazyImage
+                  src={`https://image.tmdb.org/t/p/w500${review.seriesPoster}`}
+                  alt={review.seriesName}
+                  height="100%"
+                  width="100%"
+                  objectFit="cover"
+                  fallbackText="Imagem não disponível"
+                  onClick={(e) => handlePosterClick(e, review.seriesId)}
+                />
+              ) : (
+                <Center height="100%" py={4} px={2} bg="gray.700" position="relative">
+                  <VStack spacing={2} align="center" justify="center">
+                    <Icon as={TelevisionSimple} boxSize={12} color="gray.500" weight="thin" />
+                    <Text color="white" fontSize="md" fontWeight="bold" textAlign="center" noOfLines={2}>
+                      {review.seriesName}
+                    </Text>
+                  </VStack>
+                </Center>
+              )}
+
+              {/* Overlay na parte inferior do card */}
+              <Box
+                position="absolute"
+                bottom={0}
+                left={0}
+                right={0}
+                bg="rgba(0, 0, 0, 0.7)"
+                p={3}
+                borderBottomRadius="lg"
+              >
+                <VStack align="start" spacing={1}>
+                  <HStack justify="space-between" width="100%">
+                    <HStack spacing={2} align="center">
+                      <UserAvatar
+                        size="xs"
+                        photoURL={review.userAvatar}
+                        name={review.userName}
+                        userId={review.userId}
+                      />
+                      <UserName userId={review.userId} />
+                    </HStack>
+                    <HStack spacing={1}>
+                      <Icon as={Heart} weight="fill" color="red.500" />
+                      <Text color="white" fontSize="xs">{review.likes}</Text>
+                    </HStack>
                   </HStack>
-                  <HStack spacing={1}>
-                    <Icon as={Heart} weight="fill" color="red.500" />
-                    <Text color="white" fontSize="xs">{review.likes}</Text>
+                  
+                  <HStack justify="space-between" width="100%">
+                    <RatingStars rating={review.rating} size={16} showNumber={false} />
                   </HStack>
-                </HStack>
-                
-                <HStack justify="space-between" width="100%">
-                  <RatingStars rating={review.rating} size={16} showNumber={false} />
-                </HStack>
-              </VStack>
+                </VStack>
+              </Box>
+              
+              {/* Badge para mostrar a temporada */}
+              <Badge
+                position="absolute"
+                top={3}
+                right={3}
+                colorScheme="purple"
+                borderRadius="md"
+              >
+                T{review.seasonNumber}
+              </Badge>
             </Box>
-            
-            {/* Badge para mostrar a temporada */}
-            <Badge
-              position="absolute"
-              top={3}
-              right={3}
-              colorScheme="purple"
-              borderRadius="md"
-            >
-              T{review.seasonNumber}
-            </Badge>
-          </Box>
-        ))}
-      </Grid>
+          ))}
+        </Slider>
+      </Box>
     );
   };
 

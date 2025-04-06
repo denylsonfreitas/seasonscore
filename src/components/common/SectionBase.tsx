@@ -118,7 +118,7 @@ export function SectionBase({
   return (
     <Box mt={12} {...containerProps}>
       <Flex justify="space-between" align="center" mb={6} {...headerProps}>
-        <Heading color="white" size="lg" {...titleProps}>
+        <Heading color="white" size="md" {...titleProps}>
           {title}
         </Heading>
         {link && (

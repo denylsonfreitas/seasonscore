@@ -80,6 +80,9 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
       role="group"
       as={RouterLink}
       to={`/list/${displayList.id}`}
+      h="100%"
+      display="flex"
+      flexDirection="column"
     >
       {/* Capa da lista - mostra imagens empilhadas horizontalmente como álbum */}
       <Box 
@@ -87,6 +90,7 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
         bg={coverBg} 
         position="relative"
         overflow="hidden"
+        flexShrink={0}
       >
         {displayList.items && displayList.items.length > 0 ? (
           <Flex 
@@ -180,7 +184,7 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
             bg="blackAlpha.700"
             p={1}
             px={2}
-            borderRadius="md"
+            borderRadius="xl"
             zIndex={10}
           >
             <UserAvatar 
@@ -197,7 +201,7 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
       </Box>
       
       {/* Conteúdo */}
-      <Box p={4}>
+      <Box p={4} flex="1" display="flex" flexDirection="column">
         <Flex align="center" mb={2}>
           <Heading size="md" color="white" noOfLines={1} mr={2} flex="1">
             {displayList.title}
@@ -237,59 +241,55 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
           </Tooltip>
         </Flex>
         
-        <Text color="gray.400" fontSize="sm" noOfLines={2}  minH="40px">
+        <Text color="gray.400" fontSize="sm" noOfLines={2} minH="40px" mb={2}>
           {displayList.description || "Sem descrição"}
         </Text>
         
         {/* Tags */}
-        {displayList.tags && displayList.tags.length > 0 && (
-          <Wrap spacing={2} mb={3}>
-            {displayList.tags.slice(0, 3).map(tag => (
-              <WrapItem key={tag}>
-                <Tag 
-                  size="sm" 
-                  colorScheme="primary" 
-                  variant="subtle" 
-                  cursor="pointer"
-                  _hover={{ 
-                    transform: "scale(1.05)", 
-                    bg: "primary.600", 
-                    color: "white" 
-                  }}
-                  transition="all 0.2s"
-                  onClick={(e) => handleTagClick(e, tag)}
-                >
-                  <TagLabel>{tag}</TagLabel>
-                </Tag>
-              </WrapItem>
-            ))}
-            {displayList.tags.length > 3 && (
-              <WrapItem>
-                <Tag size="sm" colorScheme="gray" variant="subtle">
-                  <TagLabel>+{displayList.tags.length - 3}</TagLabel>
-                </Tag>
-              </WrapItem>
-            )}
-          </Wrap>
-        )}
+        <Box flex="1">
+          {displayList.tags && displayList.tags.length > 0 && (
+            <Wrap spacing={2} mb={3}>
+              {displayList.tags.slice(0, 3).map(tag => (
+                <WrapItem key={tag}>
+                  <Tag 
+                    size="sm" 
+                    colorScheme="primary"
+                    variant="subtle"
+                    _hover={{ bg: 'primary.400', color: 'white' }}
+                    onClick={(e) => handleTagClick(e, tag)}
+                    cursor="pointer"
+                  >
+                    <TagLabel>{tag}</TagLabel>
+                  </Tag>
+                </WrapItem>
+              ))}
+              {displayList.tags.length > 3 && (
+                <WrapItem>
+                  <Tag size="sm" colorScheme="gray" variant="subtle">
+                    <TagLabel>+{displayList.tags.length - 3}</TagLabel>
+                  </Tag>
+                </WrapItem>
+              )}
+            </Wrap>
+          )}
+        </Box>
         
-        {/* Estatísticas e data */}
-        <Flex justifyContent="space-between" alignItems="center" mt={2}>
-          <HStack spacing={4} color="gray.400" fontSize="sm">
-            <HStack spacing={1}>
-              <Icon as={FaHeart} color="red.500" />
-              <Text>{displayList.likesCount || 0}</Text>
-            </HStack>
-            <HStack spacing={1}>
-              <Icon as={FaComment} />
-              <Text>{displayList.commentsCount}</Text>
-            </HStack>
+        {/* Estatísticas */}
+        <HStack mt={1} spacing={4} color="gray.400">
+          <HStack spacing={1} fontSize="sm">
+            <Icon as={FaHeart} color={(displayList.likesCount || 0) > 0 ? "red.500" : "gray.500"} />
+            <Text>{displayList.likesCount || 0}</Text>
           </HStack>
           
-          <Text fontSize="xs" color="gray.500">
+          <HStack spacing={1} fontSize="sm">
+            <Icon as={FaComment} color={(displayList.commentsCount || 0) > 0 ? "blue.500" : "gray.500"} />
+            <Text>{displayList.commentsCount || 0}</Text>
+          </HStack>
+          
+          <Text fontSize="xs" color="gray.500" ml="auto">
             {formatRelativeTime(displayList.updatedAt)}
           </Text>
-        </Flex>
+        </HStack>
       </Box>
     </Box>
   );

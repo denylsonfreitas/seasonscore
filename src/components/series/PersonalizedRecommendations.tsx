@@ -2,7 +2,6 @@ import {
   Box,
   Heading,
   Text,
-  SimpleGrid,
   Badge,
   HStack,
   VStack,
@@ -18,10 +17,12 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getPersonalizedRecommendations, RecommendedSeries } from "../../services/recommendations";
 import { SeriesCard } from "./SeriesCard";
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 
 export function PersonalizedRecommendations() {
   const { currentUser } = useAuth();
-  const [isExpanded, setIsExpanded] = useState(false);
   const queryClient = useQueryClient();
 
   const { 
@@ -49,12 +50,6 @@ export function PersonalizedRecommendations() {
       return () => clearTimeout(timer);
     }
   }, [currentUser, recommendations, isLoading, isError, queryClient, refetch]);
-
-  // Número de séries a mostrar inicialmente
-  const initialCount = 6;
-  const displayedRecommendations = isExpanded 
-    ? recommendations
-    : recommendations.slice(0, initialCount);
 
   if (!currentUser) {
     return (
@@ -117,10 +112,41 @@ export function PersonalizedRecommendations() {
     );
   }
 
+  const sliderSettings = {
+    dots: true,
+    infinite: false,
+    speed: 500,
+    slidesToShow: 6,
+    slidesToScroll: 3,
+    responsive: [
+      {
+        breakpoint: 1024,
+        settings: {
+          slidesToShow: 4,
+          slidesToScroll: 2,
+        }
+      },
+      {
+        breakpoint: 768,
+        settings: {
+          slidesToShow: 3,
+          slidesToScroll: 2,
+        }
+      },
+      {
+        breakpoint: 480,
+        settings: {
+          slidesToShow: 2,
+          slidesToScroll: 1,
+        }
+      }
+    ]
+  };
+
   return (
     <Box mb={12}>
       <HStack spacing={2} mb={6}>
-        <Heading color="white" size="lg">Recomendações para Você</Heading>
+        <Heading color="white" size="md">Recomendações para Você</Heading>
         <Tooltip 
           label="Recomendações personalizadas baseadas nas suas avaliações e watchlist"
           placement="top"
@@ -129,15 +155,49 @@ export function PersonalizedRecommendations() {
         </Tooltip>
       </HStack>
 
-      <SimpleGrid columns={{ base: 3, md: 3, lg: 6 }} spacing={4}>
-        {displayedRecommendations.map((series) => (
-          <Box key={series.id} position="relative">
-              <Box>
-                <SeriesCard series={series} />
-              </Box>
-          </Box>
-        ))}
-      </SimpleGrid>
+      <Box 
+        sx={{
+          ".slick-prev, .slick-next": {
+            zIndex: 1,
+            color: "white",
+            "&:before": {
+              fontSize: "24px"
+            }
+          },
+          ".slick-prev": {
+            left: "-10px"
+          },
+          ".slick-next": {
+            right: "-10px"
+          },
+          ".slick-track": {
+            display: "flex",
+            paddingTop: "8px",
+            paddingBottom: "8px"
+          },
+          ".slick-slide": {
+            padding: "0 4px",
+            "& > div": {
+              height: "100%"
+            }
+          },
+          ".slick-list": {
+            margin: "0 -4px"
+          },
+          ".slick-dots": {
+            bottom: "-30px"
+          }
+        }}
+        pb={8}
+      >
+        <Slider {...sliderSettings}>
+          {recommendations.map((series) => (
+            <Box key={series.id}>
+              <SeriesCard series={series} />
+            </Box>
+          ))}
+        </Slider>
+      </Box>
     </Box>
   );
 } 

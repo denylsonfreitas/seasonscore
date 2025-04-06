@@ -12,6 +12,9 @@ import { getFollowedUsersLists } from '../../services/lists';
 import { ListWithUserData } from '../../types/list';
 import { useAuth } from '../../contexts/AuthContext';
 import { SectionBase } from '../common/SectionBase';
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 
 export function FollowedUsersLists() {
   const toast = useToast();
@@ -68,14 +71,84 @@ export function FollowedUsersLists() {
 
   // Renderização do conteúdo
   const renderContent = (limitItems: boolean) => {
-    const displayedLists = limitItems ? lists.slice(0, 6) : lists;
+    const displayedLists = limitItems ? lists.slice(0, 12) : lists;
+    
+    const sliderSettings = {
+      dots: true,
+      infinite: false,
+      speed: 500,
+      slidesToShow: 3,
+      slidesToScroll: 2,
+      responsive: [
+        {
+          breakpoint: 1024,
+          settings: {
+            slidesToShow: 2,
+            slidesToScroll: 1,
+          }
+        },
+        {
+          breakpoint: 768,
+          settings: {
+            slidesToShow: 1,
+            slidesToScroll: 1,
+          }
+        }
+      ]
+    };
     
     return (
-      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
-        {displayedLists.map((list) => (
-          <ListCard key={list.id} list={list} />
-        ))}
-      </Grid>
+      <Box 
+        sx={{
+          ".slick-prev, .slick-next": {
+            zIndex: 1,
+            color: "white",
+            "&:before": {
+              fontSize: "24px"
+            }
+          },
+          ".slick-prev": {
+            left: "-10px"
+          },
+          ".slick-next": {
+            right: "-10px"
+          },
+          ".slick-track": {
+            display: "flex",
+            paddingTop: "8px",
+            paddingBottom: "8px",
+            minHeight: "320px"
+          },
+          ".slick-slide": {
+            height: "inherit",
+            padding: "0 8px",
+            "& > div": {
+              height: "100%",
+              "& > div": {
+                height: "100%",
+                "& > div": {
+                  height: "100%"
+                }
+              }
+            }
+          },
+          ".slick-list": {
+            margin: "0 -8px"
+          },
+          ".slick-dots": {
+            bottom: "-30px"
+          }
+        }}
+        pb={8}
+      >
+        <Slider {...sliderSettings}>
+          {displayedLists.map((list) => (
+            <Box key={list.id} height="100%" px="1px">
+              <ListCard key={list.id} list={list} />
+            </Box>
+          ))}
+        </Slider>
+      </Box>
     );
   };
 

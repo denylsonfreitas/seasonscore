@@ -21,10 +21,6 @@ export function Home() {
         <Container maxW="container.lg" py={8} pb={16}>
           <PersonalizedRecommendations />
 
-          <FollowedUsersReviews />
-
-          <FollowedUsersLists />
-
           <HomeSeriesSection
             title="Populares"
             queryKey={["popular"]}
@@ -43,8 +39,12 @@ export function Home() {
             link="/series/recent"
           />
 
+          <FollowedUsersReviews />
+
           <PopularReviews />
           
+          <FollowedUsersLists />
+
           <PopularLists />
           
         </Container>
