@@ -44,6 +44,17 @@ export default defineConfig({
     cors: true,
     hmr: {
       overlay: true
+    },
+    fs: {
+      strict: true,
+      allow: ['.'],
+      deny: [
+        '.git',
+        '.env',
+        '.env.*',
+        'node_modules/.cache',
+        '**/node_modules/**/.git'
+      ]
     }
   },
   preview: {
