@@ -197,4 +197,18 @@ export function formatRelativeTime(date: Date | Timestamp | null | undefined): s
   // Mais de 365 dias
   const years = Math.floor(diff / (365 * 24 * 60 * 60 * 1000));
   return `há ${years} ano${years !== 1 ? 's' : ''}`;
+}
+
+// Função para formatar data em formato comum (dia/mês/ano)
+export function formatDate(date: Date | Timestamp | null | undefined): string {
+  if (!date) return "";
+  
+  // Converter Timestamp para Date se necessário
+  const dateObj = date instanceof Timestamp ? date.toDate() : date;
+  
+  try {
+    return format(dateObj, "dd/MM/yyyy", { locale: ptBR });
+  } catch (error) {
+    return "";
+  }
 } 

@@ -351,3 +351,51 @@ export async function getSeriesVideos(seriesId: number): Promise<Video[]> {
     return [];
   }
 }
+
+// Interface para detalhes de pessoas (atores)
+export interface Person {
+  id: number;
+  name: string;
+  profile_path: string | null;
+  biography: string;
+  birthday: string | null;
+  place_of_birth: string | null;
+  gender: number;
+  known_for_department: string;
+  popularity: number;
+  also_known_as: string[];
+}
+
+// Interface para créditos de pessoas (séries em que participou)
+export interface PersonCredits {
+  cast: {
+    id: number;
+    name: string;
+    poster_path: string | null;
+    character: string;
+    vote_average: number;
+    first_air_date: string;
+    overview: string;
+    popularity: number;
+  }[];
+}
+
+// Obter detalhes de uma pessoa (ator, diretor, etc)
+export async function getPersonDetails(personId: number) {
+  const response = await api.get<Person>(`/person/${personId}`, {
+    params: {
+      ...defaultParams,
+    },
+  });
+  return response.data;
+}
+
+// Obter créditos de uma pessoa (séries em que participou)
+export async function getPersonCredits(personId: number) {
+  const response = await api.get<PersonCredits>(`/person/${personId}/tv_credits`, {
+    params: {
+      ...defaultParams,
+    },
+  });
+  return response.data;
+}

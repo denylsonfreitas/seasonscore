@@ -1162,3 +1162,51 @@ export async function getRecentFollowedUsersReviews(limitCount: number = 10): Pr
     return [];
   }
 }
+
+export async function getUserRecentReviews(userId: string, limitCount: number = 3): Promise<PopularReview[]> {
+  try {
+    const reviewsRef = collection(db, "reviews");
+    const q = query(
+      reviewsRef,
+      where("userId", "==", userId),
+      orderBy("createdAt", "desc"),
+      limit(limitCount)
+    );
+
+    const querySnapshot = await getDocs(q);
+    const reviews = await Promise.all(
+      querySnapshot.docs.map(async (doc) => {
+        const review = doc.data() as SeriesReview;
+        const userData = await getUserData(review.userId);
+        const seriesDetails = await getSeriesDetails(review.seriesId);
+        
+        // Pegar a primeira avaliação de temporada para mostrar
+        const firstSeasonReview = review.seasonReviews[0];
+        
+        return {
+          id: doc.id,
+          userId: review.userId,
+          seriesId: review.seriesId,
+          seriesName: seriesDetails.name,
+          seriesPoster: seriesDetails.poster_path,
+          seasonNumber: firstSeasonReview.seasonNumber,
+          rating: firstSeasonReview.rating,
+          comment: firstSeasonReview.comment,
+          userName: userData?.displayName || review.userEmail,
+          userAvatar: userData?.photoURL || "",
+          createdAt: firstSeasonReview.createdAt instanceof Date 
+            ? firstSeasonReview.createdAt 
+            : typeof firstSeasonReview.createdAt === 'object' && 'seconds' in firstSeasonReview.createdAt
+              ? new Date(firstSeasonReview.createdAt.seconds * 1000)
+              : new Date(),
+          likes: firstSeasonReview.reactions?.likes?.length || 0,
+        };
+      })
+    );
+
+    return reviews;
+  } catch (error) {
+    console.error(`Erro ao buscar reviews recentes do usuário ${userId}:`, error);
+    return [];
+  }
+}

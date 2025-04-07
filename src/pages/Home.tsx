@@ -1,7 +1,6 @@
 import { HomeSeriesSection } from "../components/series/HomeSeriesSection";
 import { Box, Container, VStack, Flex, Heading, Text, Button, HStack, Icon, Image, SimpleGrid, useColorModeValue } from "@chakra-ui/react";
 import {
-  getPopularSeries,
   getAiringTodaySeries,
   getTopRatedSeries
 } from "../services/tmdb";
@@ -36,13 +35,6 @@ export function Home() {
             // Layout para usuários logados
             <>
               <PersonalizedRecommendations />
-
-              <HomeSeriesSection
-                title="Populares"
-                queryKey={["popular"]}
-                queryFn={() => getPopularSeries()}
-                link="/series/popular"
-              />
 
               <HomeSeriesSection
                 title="Novidades"
@@ -169,13 +161,6 @@ export function Home() {
                   </Text>
                 </Box>
               </SimpleGrid>
-
-              <HomeSeriesSection
-                title="Populares"
-                queryKey={["popular"]}
-                queryFn={() => getPopularSeries()}
-                link="/series/popular"
-              />
 
               <HomeSeriesSection
                 title="Novidades"

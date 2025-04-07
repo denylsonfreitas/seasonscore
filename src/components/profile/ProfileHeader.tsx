@@ -165,7 +165,7 @@ export function ProfileHeader({
                 >
                   {userName}
                 </Heading>
-                {isOwnProfile && (
+                {isOwnProfile ? (
                   <Tooltip label="Editar perfil" placement="top">
                     <IconButton
                       aria-label="Editar perfil"
@@ -176,6 +176,10 @@ export function ProfileHeader({
                       onClick={() => navigate("/settings/profile")}
                     />
                   </Tooltip>
+                ) : (
+                  <Box ml={1}>
+                    <FollowButton userId={targetUserId} />
+                  </Box>
                 )}
               </Flex>
               <Text
@@ -192,9 +196,7 @@ export function ProfileHeader({
           </Flex>
 
           <Flex direction="column" align="flex-end" minW={{ base: "80px", md: "auto" }}>
-            {!isOwnProfile && <FollowButton userId={targetUserId} />}
-            
-            <HStack spacing={{ base: 2, md: 4 }} mt={isOwnProfile ? 0 : 3} align="center">
+            <HStack spacing={{ base: 2, md: 4 }} align="center">
               <Flex 
                 direction="column" 
                 align="center" 

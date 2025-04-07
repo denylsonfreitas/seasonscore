@@ -1,12 +1,11 @@
 import { doc, setDoc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { User } from "firebase/auth";
-import { collection, query, where, getDocs, writeBatch, DocumentReference, DocumentData } from "firebase/firestore";
+import { collection, query, where, getDocs, writeBatch, DocumentReference, DocumentData, orderBy, limit } from "firebase/firestore";
 import { getFirestore } from "firebase/firestore";
 import {
   serverTimestamp,
   increment,
-  orderBy,
   startAt,
   endAt,
   FieldPath,
@@ -47,6 +46,17 @@ export interface UserData {
     listReaction: boolean;
   };
   watchedSeriesIds?: number[]; // Array de IDs de séries que o usuário acompanha
+  createdAt?: any; // Timestamp da criação do usuário
+}
+
+// Interface estendida com estatísticas do usuário para exibição em páginas como Community
+export interface UserWithStats extends UserData {
+  reviewCount?: number;
+  listCount?: number;
+  followerCount?: number;
+  followingCount?: number;
+  likesCount?: number;
+  popularityScore?: number;
 }
 
 export async function isUsernameAvailable(username: string): Promise<boolean> {
@@ -793,5 +803,73 @@ export async function getUserNotificationSettings(userId: string): Promise<{
   } catch (error) {
     console.error("Erro ao obter configurações de notificação:", error);
     return null;
+  }
+}
+
+// Retorna os usuários mais populares baseado em quantidade de seguidores e reviews
+export async function getPopularUsers(limitCount: number = 10): Promise<UserWithStats[]> {
+  try {
+    const usersRef = collection(db, "users");
+    
+    // Obter todos os usuários (limitado a 100 para performance)
+    const usersSnapshot = await getDocs(query(usersRef, orderBy("username"), limit(100)));
+    
+    const users: UserWithStats[] = [];
+    
+    // Para cada usuário, calcular as contagens diretamente das coleções
+    for (const userDoc of usersSnapshot.docs) {
+      const userData = userDoc.data() as UserData;
+      const userId = userDoc.id;
+      
+      try {
+        // Calcular contagem de seguidores diretamente da coleção de seguidores
+        const followersQuery = query(
+          collection(db, "followers"),
+          where("userId", "==", userId)
+        );
+        const followersSnapshot = await getDocs(followersQuery);
+        const followerCount = followersSnapshot.size;
+        
+        // Calcular contagem de reviews diretamente da coleção de reviews
+        const reviewsQuery = query(
+          collection(db, "reviews"),
+          where("userId", "==", userId)
+        );
+        const reviewsSnapshot = await getDocs(reviewsQuery);
+        const reviewCount = reviewsSnapshot.size;
+        
+        // Calcular pontuação de popularidade (peso para seguidores e reviews)
+        // Seguidores tem peso maior
+        const popularityScore = followerCount * 3 + reviewCount;
+        
+        users.push({
+          ...userData,
+          id: userId,
+          followerCount,
+          reviewCount,
+          popularityScore
+        });
+      } catch (error) {
+        // Se houver erro ao calcular contagens, adiciona o usuário com contagens zeradas
+        console.warn(`Erro ao calcular contagens para o usuário ${userId}:`, error);
+        users.push({
+          ...userData,
+          id: userId,
+          followerCount: 0,
+          reviewCount: 0,
+          popularityScore: 0
+        });
+      }
+    }
+    
+    // Ordenar por pontuação de popularidade e limitar ao número especificado
+    return users
+      .sort((a, b) => (b.popularityScore || 0) - (a.popularityScore || 0))
+      .slice(0, limitCount);
+      
+  } catch (error) {
+    console.error("Erro ao obter usuários populares:", error);
+    // Retornar array vazio em vez de propagar o erro
+    return [];
   }
 } 

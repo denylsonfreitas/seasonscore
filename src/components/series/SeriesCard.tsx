@@ -20,6 +20,7 @@ interface SeriesCardProps {
   size?: "sm" | "md" | "lg";
   position?: number;
   highlightAddToList?: boolean;
+  showCharacter?: string;
 }
 
 const sizeStyles = {
@@ -106,7 +107,7 @@ const getBadgeStyle = (position: number) => {
   }
 };
 
-export function SeriesCard({ series, size = "md", position, highlightAddToList = false }: SeriesCardProps) {
+export function SeriesCard({ series, size = "md", position, highlightAddToList = false, showCharacter }: SeriesCardProps) {
   const styles = sizeStyles[size];
   const badgeStyle = position ? getBadgeStyle(position) : null;
 
@@ -201,6 +202,28 @@ export function SeriesCard({ series, size = "md", position, highlightAddToList =
             >
               {series.rating.toFixed(1)} ★
             </Badge>
+          )}
+
+          {/* Character information when in actor profile */}
+          {showCharacter && (
+            <Box 
+              position="absolute" 
+              bottom={0} 
+              left={0} 
+              right={0} 
+              bg="blackAlpha.800" 
+              p={2}
+              px={3}
+            >
+              <Text 
+                color="white" 
+                fontSize="sm" 
+                fontWeight="bold"
+                noOfLines={1}
+              >
+                {showCharacter}
+              </Text>
+            </Box>
           )}
         </Box>
       </Box>

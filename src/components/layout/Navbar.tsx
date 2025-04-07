@@ -72,9 +72,9 @@ export function Navbar() {
   } = useAnimatedMenu();
 
   // Adicionar uso do useToken para obter as cores do tema
-  const [seriesColor, popularColor, recentColor, top10Color, reviewsColor, listsColor] = useToken(
+  const [seriesColor, recentColor, top10Color, reviewsColor, listsColor, communityColor] = useToken(
     "colors",
-    ["linkhome.series", "linkhome.popular", "linkhome.recent", "linkhome.top10", "linkhome.reviews", "linkhome.lists"]
+    ["linkhome.series", "linkhome.recent", "linkhome.top10", "linkhome.reviews", "linkhome.lists", "linkhome.community"]
   );
 
   const handleLogout = async () => {
@@ -208,17 +208,6 @@ export function Navbar() {
                 </Link>
                 <Link
                   as={RouterLink}
-                  to="/series/popular"
-                  color="gray.300"
-                  _hover={{ color: "linkhome.popular" }}
-                  fontSize="sm"
-                  fontWeight="bold"
-                  textTransform="uppercase"
-                >
-                  Populares
-                </Link>
-                <Link
-                  as={RouterLink}
                   to="/series/recent"
                   color="gray.300"
                   _hover={{ color: "linkhome.recent" }}
@@ -260,6 +249,17 @@ export function Navbar() {
                   textTransform="uppercase"
                 >
                   Listas
+                </Link>
+                <Link
+                  as={RouterLink}
+                  to="/community"
+                  color="gray.300"
+                  _hover={{ color: "linkhome.community" }}
+                  fontSize="sm"
+                  fontWeight="bold"
+                  textTransform="uppercase"
+                >
+                  Comunidade
                 </Link>
               </HStack>
             </HStack>
@@ -392,11 +392,11 @@ export function Navbar() {
         currentUser={currentUser}
         onLogout={handleLogout}
         seriesColor={seriesColor}
-        popularColor={popularColor}
         recentColor={recentColor}
         top10Color={top10Color}
         reviewsColor={reviewsColor}
         listsColor={listsColor}
+        communityColor={communityColor}
         openSignUpModal={openSignUpModal}
         openLoginPopover={handleMobileLoginOpen}
       />

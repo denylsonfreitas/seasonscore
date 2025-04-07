@@ -98,22 +98,6 @@ export function SectionBase({
     );
   };
 
-  // Renderização do botão de expansão padrão
-  const defaultExpandButton = (
-    <Flex justify="center" mt={6}>
-      <Button
-        variant="ghost"
-        colorScheme="whiteAlpha"
-        onClick={toggleExpand}
-        rightIcon={isExpanded ? <CaretUp weight="bold" size={20} /> : <CaretDown weight="bold" size={20} />}
-        _hover={{ bg: "whiteAlpha.200" }}
-        transition="all 0.2s ease"
-      >
-        {isExpanded ? "Ver Menos" : "Ver Mais"}
-      </Button>
-    </Flex>
-  );
-
   // Renderização do componente
   return (
     <Box mt={4} {...containerProps}>
@@ -146,12 +130,7 @@ export function SectionBase({
         renderEmptyState()
       ) : (
         <>
-          {renderContent(expandable && !isExpanded)}
-          
-          {/* Botão para expandir/contrair o conteúdo */}
-          {expandable && renderExpandButton
-            ? renderExpandButton(isExpanded, toggleExpand)
-            : expandable && defaultExpandButton}
+          {renderContent(expandable)}
         </>
       )}
       

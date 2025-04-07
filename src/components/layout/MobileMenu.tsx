@@ -16,6 +16,7 @@ import {
   UserCircle,
   Star,
   Note,
+  UsersThree,
 } from "@phosphor-icons/react";
 import { TbRosetteNumber1 } from "react-icons/tb";
 import { Link as RouterLink } from "react-router-dom";
@@ -29,11 +30,11 @@ interface MobileMenuProps {
   currentUser: ExtendedUser | null;
   onLogout: () => void;
   seriesColor: string;
-  popularColor: string;
   recentColor: string;
   top10Color: string;
   reviewsColor: string;
   listsColor: string;
+  communityColor: string;
   openSignUpModal: () => void;
   openLoginPopover: () => void;
 }
@@ -44,11 +45,11 @@ export function MobileMenu({
   currentUser,
   onLogout,
   seriesColor,
-  popularColor,
   recentColor,
   top10Color,
   reviewsColor,
   listsColor,
+  communityColor,
   openSignUpModal,
   openLoginPopover,
 }: MobileMenuProps) {
@@ -165,34 +166,6 @@ export function MobileMenu({
           </RouterLink>
         </Box>
 
-        <Box style={getItemAnimationStyle(2)}>
-          <RouterLink to="/series/popular">
-            <Flex
-              align="center"
-              py={2.5}
-              px={3}
-              borderRadius="md"
-              _hover={{ bg: "gray.700" }}
-              onClick={onClose}
-            >
-              <Box
-                p={2}
-                borderRadius="md"
-                mr={3}
-                bg="gray.700"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <Confetti weight="fill" size={18} color={popularColor} />
-              </Box>
-              <Text color="gray.100" fontWeight="medium">
-                Populares
-              </Text>
-            </Flex>
-          </RouterLink>
-        </Box>
-
         <Box style={getItemAnimationStyle(3)}>
           <RouterLink to="/series/recent">
             <Flex
@@ -300,6 +273,34 @@ export function MobileMenu({
               </Box>
               <Text color="gray.100" fontWeight="medium">
                 Listas
+              </Text>
+            </Flex>
+          </RouterLink>
+        </Box>
+
+        <Box style={getItemAnimationStyle(7)}>
+          <RouterLink to="/community">
+            <Flex
+              align="center"
+              py={2.5}
+              px={3}
+              borderRadius="md"
+              _hover={{ bg: "gray.700" }}
+              onClick={onClose}
+            >
+              <Box
+                p={2}
+                borderRadius="md"
+                mr={3}
+                bg="gray.700"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+              >
+                <UsersThree weight="fill" size={18} color={communityColor} />
+              </Box>
+              <Text color="gray.100" fontWeight="medium">
+                Comunidade
               </Text>
             </Flex>
           </RouterLink>

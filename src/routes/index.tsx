@@ -18,6 +18,7 @@ const PrefetchRoutes = () => {
       import("../pages/Home");
       import("../pages/SeriesDetails");
       import("../pages/Series");
+      import("../pages/ActorDetails");
     }, 1000);
 
     return () => clearTimeout(timer);
@@ -96,11 +97,6 @@ const ProfileLazy = React.lazy(() =>
     .then(module => ({ default: module.Profile }))
 );
 
-const PopularSeriesLazy = React.lazy(() => 
-  import(/* webpackChunkName: "popular-series" */ "../pages/PopularSeries")
-    .then(module => ({ default: module.PopularSeries }))
-);
-
 const RecentSeriesLazy = React.lazy(() => 
   import(/* webpackChunkName: "recent-series" */ "../pages/RecentSeries")
     .then(module => ({ default: module.RecentSeries }))
@@ -149,6 +145,16 @@ const ListsLazy = React.lazy(() =>
   import(/* webpackChunkName: "lists" */ "../pages/Lists")
 );
 
+const ActorDetailsLazy = React.lazy(() => 
+  import(/* webpackChunkName: "actor-details" */ "../pages/ActorDetails")
+    .then(module => ({ default: module.ActorDetails }))
+);
+
+const CommunityLazy = React.lazy(() => 
+  import(/* webpackChunkName: "community" */ "../pages/Community")
+    .then(module => ({ default: module.Community }))
+);
+
 export const routes = [
   {
     path: "/",
@@ -189,7 +195,7 @@ export const routes = [
         path: "/series/popular",
         element: (
           <Suspense fallback={<PageLoader />}>
-            <PopularSeriesLazy />
+            <Navigate to="/community" replace />
           </Suspense>
         ),
       },
@@ -294,6 +300,22 @@ export const routes = [
         element: (
           <Suspense fallback={<PageLoader />}>
             <ListPageLazy />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/actor/:id",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ActorDetailsLazy />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/community",
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <CommunityLazy />
           </Suspense>
         ),
       },

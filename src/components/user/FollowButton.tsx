@@ -1,9 +1,10 @@
-import { Button, useToast } from "@chakra-ui/react";
+import { Button, useToast, Box, Icon, Tooltip } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { followUser, unfollowUser, isFollowing } from "../../services/followers";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { UserPlus, UserMinus, SignIn } from "@phosphor-icons/react";
 
 interface FollowButtonProps {
   userId: string;
@@ -84,31 +85,43 @@ export function FollowButton({ userId }: FollowButtonProps) {
 
   if (!currentUser) {
     return (
-      <Button
-        colorScheme="primary"
-        variant="solid"
-        onClick={() => navigate("/login")}
-        size="sm"
-      >
-        Entrar para Seguir
-      </Button>
+      <Tooltip label="Entrar para seguir" placement="top" hasArrow>
+        <Button
+          colorScheme="primary"
+          variant="solid"
+          onClick={() => navigate("/login")}
+          size="sm"
+          p={0}
+          minW="30px"
+          h="30px"
+          borderRadius="full"
+        >
+          <Icon as={SignIn} weight="bold" />
+        </Button>
+      </Tooltip>
     );
   }
 
   return (
-    <Button
-      color={following ? "gray.100" : "gray.100"}
-      bg={following ? "followbutton.unfollow" : "followbutton.follow"}
-      variant={following ? "solid" : "solid"}
-      _hover={{
-        bg: following ? "gray.100" : "gray.100",
-        color: following ? "followbutton.unfollow" : "followbutton.follow",
-      }}
-      onClick={handleFollow}
-      isLoading={loading}
-      size="sm"
-    >
-      {following ? "Deixar de Seguir" : "Seguir"}
-    </Button>
+    <Tooltip label={following ? "Deixar de seguir" : "Seguir"} placement="top" hasArrow>
+      <Button
+        color={following ? "gray.100" : "gray.100"}
+        bg={following ? "followbutton.unfollow" : "followbutton.follow"}
+        variant={following ? "solid" : "solid"}
+        _hover={{
+          bg: following ? "gray.100" : "gray.100",
+          color: following ? "followbutton.unfollow" : "followbutton.follow",
+        }}
+        onClick={handleFollow}
+        isLoading={loading}
+        size="sm"
+        p={0}
+        minW="30px"
+        h="30px"
+        borderRadius="full"
+      >
+        <Icon as={following ? UserMinus : UserPlus} weight="bold" />
+      </Button>
+    </Tooltip>
   );
 } 

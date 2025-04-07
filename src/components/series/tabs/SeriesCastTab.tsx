@@ -8,11 +8,14 @@ import {
   Heading,
   Image,
   useColorModeValue,
+  LinkBox,
+  LinkOverlay,
 } from "@chakra-ui/react";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { castCarouselStyles, castSliderSettings } from "../../../styles/carouselStyles";
+import { Link as RouterLink } from "react-router-dom";
 
 interface CastMember {
   id: number;
@@ -32,7 +35,8 @@ interface SeriesCastTabProps {
 }
 
 export function SeriesCastTab({ series }: SeriesCastTabProps) {
-  const cast = series.credits?.cast || [];
+  // Verificar se credits e cast existem para evitar erros
+  const cast = series?.credits?.cast || [];
   const highlightBg = useColorModeValue("primary.500", "primary.400");
 
   if (!cast || cast.length === 0) {
@@ -54,11 +58,15 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
   return (
     <VStack align="stretch" spacing={4}>
       <Box>
+        <Heading size="md" color="white" mb={4}>
+          Elenco
+        </Heading>
         <Box sx={castCarouselStyles} pb={4}>
           <Slider {...castSliderSettings}>
             {sortedCast.map((actor) => (
               <Box key={actor.id} p={1}>
                 <Flex
+                  as={LinkBox}
                   direction="column"
                   bg="gray.800"
                   borderRadius="lg"
@@ -71,6 +79,7 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
                     boxShadow: "lg",
                     bg: "gray.750" 
                   }}
+                  cursor="pointer"
                 >
                   <Box position="relative" width="100%" paddingTop="100%">
                     {actor.profile_path ? (
@@ -101,9 +110,11 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
                     )}
                   </Box>
                   <Box p={2}>
-                    <Text fontWeight="bold" color="white" fontSize="sm" noOfLines={1}>
-                      {actor.name}
-                    </Text>
+                    <LinkOverlay as={RouterLink} to={`/actor/${actor.id}`}>
+                      <Text fontWeight="bold" color="white" fontSize="sm" noOfLines={1}>
+                        {actor.name}
+                      </Text>
+                    </LinkOverlay>
                     <Text color="gray.400" fontSize="xs" noOfLines={1}>
                       {actor.character || "Papel não informado"}
                     </Text>
