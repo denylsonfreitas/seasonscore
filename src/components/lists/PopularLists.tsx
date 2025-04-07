@@ -8,6 +8,7 @@ import { SectionBase } from '../common/SectionBase';
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import { listCarouselStyles, listsSliderSettings } from "../../styles/carouselStyles";
 
 export function PopularLists() {
   const toast = useToast();
@@ -45,81 +46,9 @@ export function PopularLists() {
   const renderContent = (limitItems: boolean) => {
     const displayedLists = limitItems ? lists.slice(0, 12) : lists;
     
-    const sliderSettings = {
-      dots: true,
-      infinite: false,
-      speed: 500,
-      slidesToShow: 3,
-      slidesToScroll: 2,
-      responsive: [
-        {
-          breakpoint: 1024,
-          settings: {
-            slidesToShow: 2,
-            slidesToScroll: 1,
-          }
-        },
-        {
-          breakpoint: 768,
-          settings: {
-            slidesToShow: 1,
-            slidesToScroll: 1,
-          }
-        }
-      ]
-    };
-    
     return (
-      <Box 
-        sx={{
-          ".slick-prev, .slick-next": {
-            zIndex: 1,
-            color: "white",
-            "&:before": {
-              fontSize: "24px"
-            }
-          },
-          ".slick-prev": {
-            left: "-10px"
-          },
-          ".slick-next": {
-            right: "-10px"
-          },
-          ".slick-track": {
-            display: "flex",
-            paddingTop: "8px",
-            paddingBottom: "8px",
-            minHeight: "320px"
-          },
-          ".slick-slide": {
-            height: "inherit",
-            padding: "0 8px",
-            "& > div": {
-              height: "100%",
-              "& > div": {
-                height: "100%",
-                "& > div": {
-                  height: "100%"
-                }
-              }
-            }
-          },
-          ".slick-list": {
-            margin: "0 -8px"
-          },
-          ".slick-dots": {
-            bottom: "-30px",
-            "li button:before": {
-              color: "gray.600",
-            },
-            "li.slick-active button:before": {
-              color: "primary.500",
-            }
-          }
-        }}
-        pb={8}
-      >
-        <Slider {...sliderSettings}>
+      <Box sx={listCarouselStyles} pb={8}>
+        <Slider {...listsSliderSettings}>
           {displayedLists.map((list) => (
             <Box key={list.id} height="100%" px="1px">
               <ListCard key={list.id} list={list} />

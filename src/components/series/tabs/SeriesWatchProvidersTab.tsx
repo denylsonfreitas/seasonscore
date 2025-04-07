@@ -50,9 +50,6 @@ export function SeriesWatchProvidersTab({ series }: SeriesWatchProvidersTabProps
     <VStack align="stretch" spacing={6}>
       {watchProviders.flatrate && (
         <Box>
-          <Heading size="md" color="white" mb={4}>
-            Disponível no Streaming
-          </Heading>
           <Wrap spacing={4}>
             {watchProviders.flatrate.map((provider: Provider) => (
               <WrapItem key={provider.provider_id}>

@@ -15,13 +15,17 @@ import { FollowedUsersLists } from "../components/lists/FollowedUsersLists";
 import { useAuth } from "../contexts/AuthContext";
 import { useAuthUIStore } from "../services/uiState";
 import { ClipboardText, Star, TelevisionSimple, UserCirclePlus } from "@phosphor-icons/react";
+import { getGlobalLoginPopover } from "../components/layout/Navbar";
 
 export function Home() {
   const { currentUser } = useAuth();
-  const { openLogin, openRegister } = useAuthUIStore();
+  const { openRegister } = useAuthUIStore();
   
   const isLoggedIn = !!currentUser;
-  
+
+  // Obter a função global para abrir o popover de login
+  const globalOpenLoginPopover = getGlobalLoginPopover();
+
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
       <Box flex="1">
@@ -94,7 +98,11 @@ export function Home() {
                         variant="outline" 
                         colorScheme="whiteAlpha" 
                         size="lg"
-                        onClick={openLogin}
+                        onClick={() => {
+                          if (globalOpenLoginPopover) {
+                            globalOpenLoginPopover();
+                          }
+                        }}
                       >
                         Entrar
                       </Button>
@@ -167,13 +175,6 @@ export function Home() {
                 queryKey={["popular"]}
                 queryFn={() => getPopularSeries()}
                 link="/series/popular"
-              />
-
-              <HomeSeriesSection
-                title="Mais Bem Avaliadas"
-                queryKey={["top-rated"]}
-                queryFn={() => getTopRatedSeries()}
-                link="/series/top-rated"
               />
 
               <HomeSeriesSection

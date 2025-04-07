@@ -1,15 +1,15 @@
 import {
   Box,
-  Button,
   Container,
   Heading,
-  SimpleGrid,
   Skeleton,
   Text,
 } from "@chakra-ui/react";
-import { CaretDown, CaretUp } from "@phosphor-icons/react";
-import { useState } from "react";
 import { SeriesCard } from "./SeriesCard";
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+import { carouselStyles, seriesSliderSettings } from "../../styles/carouselStyles";
 
 interface RelatedSeriesProps {
   relatedSeries: any;
@@ -22,21 +22,23 @@ export function RelatedSeries({
   isLoading,
   currentSeriesId,
 }: RelatedSeriesProps) {
-  const [showAllRelated, setShowAllRelated] = useState(false);
-
   if (isLoading) {
     return (
-      <Container maxW="container.lg" pb={16}>
+      <Container maxW="container.lg">
         <Heading color="white" size="xl" mb={8}>
           Séries Relacionadas
         </Heading>
-        <SimpleGrid columns={{ base: 3, md: 4, lg: 6 }} spacing={4}>
+        <Box 
+          display="grid" 
+          gridTemplateColumns={{ base: "repeat(3, 1fr)", md: "repeat(4, 1fr)", lg: "repeat(6, 1fr)" }} 
+          gap={4}
+        >
           {[...Array(6)].map((_, i) => (
             <Box key={i}>
               <Skeleton height="300px" borderRadius="lg" />
             </Box>
           ))}
-        </SimpleGrid>
+        </Box>
       </Container>
     );
   }
@@ -49,7 +51,7 @@ export function RelatedSeries({
 
   if (filteredSeries.length === 0) {
     return (
-      <Container maxW="container.lg" pb={16}>
+      <Container maxW="container.lg">
         <Heading color="white" size="xl" mb={8}>
           Séries Relacionadas
         </Heading>
@@ -60,35 +62,26 @@ export function RelatedSeries({
     );
   }
 
+  // Configurações personalizadas para o slider
+  const sliderSettings = {
+    ...seriesSliderSettings,
+    slidesToShow: Math.min(filteredSeries.length, 7),
+  };
+
   return (
-    <Container maxW="container.lg" pb={16}>
+    <Container maxW="container.lg">
       <Heading color="white" size="xl" mb={8}>
         Séries Relacionadas
       </Heading>
-      <SimpleGrid columns={{ base: 3, md: 4, lg: 7 }} spacing={4}>
-        {filteredSeries
-          .slice(0, showAllRelated ? undefined : 7)
-          .map((series: any) => (
+      <Box sx={carouselStyles} pb={8}>
+        <Slider {...sliderSettings}>
+          {filteredSeries.map((series: any) => (
             <Box key={series.id}>
-              <SeriesCard series={series} size="sm" />
+              <SeriesCard series={series} size="lg" />
             </Box>
           ))}
-      </SimpleGrid>
-      {filteredSeries.length > 7 && (
-        <Button
-          variant="ghost"
-          color="primary.500"
-          onClick={() => setShowAllRelated(!showAllRelated)}
-          rightIcon={showAllRelated ? <CaretUp /> : <CaretDown />}
-          mt={7}
-          mx="auto"
-          display="block"
-        >
-          {showAllRelated
-            ? "Ver menos"
-            : `Ver mais (${filteredSeries.length - 7} séries)`}
-        </Button>
-      )}
+        </Slider>
+      </Box>
     </Container>
   );
 } 

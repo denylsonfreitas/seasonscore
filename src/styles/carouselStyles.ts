@@ -5,6 +5,7 @@ import { SystemStyleObject } from "@chakra-ui/react";
  * Inclui customizações para as setas, dots e outras partes do carrossel
  */
 export const carouselStyles: SystemStyleObject = {
+  
   ".slick-prev, .slick-next": {
     zIndex: 1,
     color: "white",
@@ -33,13 +34,7 @@ export const carouselStyles: SystemStyleObject = {
     margin: "0 -4px"
   },
   ".slick-dots": {
-    bottom: "-30px",
-    "li button:before": {
-      color: "gray.600",
-    },
-    "li.slick-active button:before": {
-      color: "primary.500",
-    }
+    display: "none"
   }
 };
 
@@ -73,10 +68,44 @@ export const listCarouselStyles: SystemStyleObject = {
 };
 
 /**
+ * Estilos específicos para o carrossel de elenco
+ * Adaptados para cards menores e com foco na exibição de fotos
+ */
+export const castCarouselStyles: SystemStyleObject = {
+  
+  ...carouselStyles,
+  ".slick-track": {
+    display: "flex",
+    paddingTop: "8px",
+    paddingBottom: "8px",
+    minHeight: "180px"
+  },
+  ".slick-slide": {
+    height: "inherit",
+    padding: "0 6px",
+    "& > div": {
+      height: "100%"
+    }
+  },
+  ".slick-prev": {
+    left: "-15px",
+    "&:before": {
+      fontSize: "28px"
+    }
+  },
+  ".slick-next": {
+    right: "-15px",
+    "&:before": {
+      fontSize: "28px"
+    }
+  }
+};
+
+/**
  * Configurações padrão para carrosséis de séries
  */
 export const seriesSliderSettings = {
-  dots: true,
+  dots: false,
   infinite: false,
   speed: 500,
   slidesToShow: 6,
@@ -87,6 +116,7 @@ export const seriesSliderSettings = {
       settings: {
         slidesToShow: 4,
         slidesToScroll: 2,
+        dots: false
       }
     },
     {
@@ -94,6 +124,7 @@ export const seriesSliderSettings = {
       settings: {
         slidesToShow: 3,
         slidesToScroll: 2,
+        dots: false
       }
     },
     {
@@ -101,6 +132,7 @@ export const seriesSliderSettings = {
       settings: {
         slidesToShow: 2,
         slidesToScroll: 1,
+        dots: false
       }
     }
   ]
@@ -110,7 +142,7 @@ export const seriesSliderSettings = {
  * Configurações padrão para carrosséis de listas
  */
 export const listsSliderSettings = {
-  dots: true,
+  dots: false,
   infinite: false,
   speed: 500,
   slidesToShow: 3,
@@ -121,6 +153,7 @@ export const listsSliderSettings = {
       settings: {
         slidesToShow: 2,
         slidesToScroll: 1,
+        dots: false
       }
     },
     {
@@ -128,6 +161,46 @@ export const listsSliderSettings = {
       settings: {
         slidesToShow: 1,
         slidesToScroll: 1,
+        dots: false
+      }
+    }
+  ]
+};
+
+/**
+ * Configurações padrão para carrosséis de elenco
+ */
+export const castSliderSettings = {
+  dots: false,
+  infinite: false,
+  speed: 500,
+  slidesToShow: 5,
+  slidesToScroll: 3,
+  autoplay: false,
+  pauseOnHover: true,
+  responsive: [
+    {
+      breakpoint: 1024,
+      settings: {
+        slidesToShow: 4,
+        slidesToScroll: 2,
+        dots: false
+      }
+    },
+    {
+      breakpoint: 768,
+      settings: {
+        slidesToShow: 3,
+        slidesToScroll: 2,
+        dots: false
+      }
+    },
+    {
+      breakpoint: 480,
+      settings: {
+        slidesToShow: 2,
+        slidesToScroll: 1,
+        dots: false
       }
     }
   ]

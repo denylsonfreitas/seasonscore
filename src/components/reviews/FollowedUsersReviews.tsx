@@ -16,6 +16,7 @@ import { SectionBase } from "../common/SectionBase";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import { carouselStyles, seriesSliderSettings } from "../../styles/carouselStyles";
 
 export function FollowedUsersReviews() {
   const [selectedReview, setSelectedReview] = useState<PopularReview | null>(null);
@@ -123,81 +124,9 @@ export function FollowedUsersReviews() {
   const renderContent = (limitItems: boolean) => {
     const displayedReviews = limitItems ? reviews.slice(0, 12) : reviews;
     
-    const sliderSettings = {
-      dots: true,
-      infinite: false,
-      speed: 500,
-      slidesToShow: 6,
-      slidesToScroll: 3,
-      responsive: [
-        {
-          breakpoint: 1024,
-          settings: {
-            slidesToShow: 4,
-            slidesToScroll: 2,
-          }
-        },
-        {
-          breakpoint: 768,
-          settings: {
-            slidesToShow: 3,
-            slidesToScroll: 2,
-          }
-        },
-        {
-          breakpoint: 480,
-          settings: {
-            slidesToShow: 2,
-            slidesToScroll: 1,
-          }
-        }
-      ]
-    };
-    
     return (
-      <Box 
-        sx={{
-          ".slick-prev, .slick-next": {
-            zIndex: 1,
-            color: "white",
-            "&:before": {
-              fontSize: "24px"
-            }
-          },
-          ".slick-prev": {
-            left: "-10px"
-          },
-          ".slick-next": {
-            right: "-10px"
-          },
-          ".slick-track": {
-            display: "flex",
-            paddingTop: "8px",
-            paddingBottom: "8px"
-          },
-          ".slick-slide": {
-            height: "230px",
-            padding: "0 4px",
-            "& > div": {
-              height: "100%"
-            }
-          },
-          ".slick-list": {
-            margin: "0 -4px"
-          },
-          ".slick-dots": {
-            bottom: "-30px",
-            "li button:before": {
-              color: "gray.600",
-            },
-            "li.slick-active button:before": {
-              color: "primary.500",
-            }
-          }
-        }}
-        pb={8}
-      >
-        <Slider {...sliderSettings}>
+      <Box sx={carouselStyles} pb={8}>
+        <Slider {...seriesSliderSettings}>
           {displayedReviews.map((review) => (
             <Box
               key={review.id}

@@ -47,9 +47,6 @@ export function SeriesGenresTab({ series }: SeriesGenresTabProps) {
   return (
     <VStack align="stretch" spacing={6}>
       <Box>
-        <Heading size="md" color="white" mb={4}>
-          Gêneros
-        </Heading>
         
         <Wrap spacing={2}>
           {series.genres.map((genre: Genre) => (
