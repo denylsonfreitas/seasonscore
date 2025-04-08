@@ -223,7 +223,7 @@ export function SeasonAccordionItem({
               Temporada {season}
             </Text>
             {averageRating > 0 && (
-              <Badge colorScheme="yellow">
+              <Badge bg="yellow.200" color="yellow.900">
                 {averageRating.toFixed(1)} ★
               </Badge>
             )}

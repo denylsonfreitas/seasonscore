@@ -325,7 +325,8 @@ export function SeriesDetails() {
                   Cancelar
                 </Button>
                 <Button
-                  colorScheme="red"
+                  bg="red.500"
+                  _hover={{ bg: "red.600" }}
                   onClick={handleDeleteReview}
                   ml={3}
                 >

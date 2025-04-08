@@ -221,7 +221,7 @@ export function ReviewEditModal({
                 
                 <Flex direction="row" gap={3} mt={2}>
                   <Button
-                    colorScheme="red"
+                    bg="red.500"
                     onClick={() => setIsDeleteAlertOpen(true)}
                     isLoading={isDeleting}
                     flex="1"
