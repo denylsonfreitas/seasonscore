@@ -31,7 +31,6 @@ import {
 import { FaSearch, FaPlus, FaTimes } from 'react-icons/fa';
 import { CaretDown, CaretUp } from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
-import { BackToTopButton } from '../components/common/BackToTopButton';
 import { getPopularLists, getFollowedUsersLists, getListsByTag, getPopularTags, searchLists } from '../services/lists';
 import { ListCard } from '../components/lists/ListCard';
 import { CreateListModal } from '../components/lists/CreateListModal';
@@ -619,8 +618,6 @@ export default function Lists() {
           }}
         />
       )}
-      
-      <BackToTopButton />
     </>
   );
 } 

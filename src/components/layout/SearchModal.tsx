@@ -8,14 +8,19 @@ import {
   Input,
   VStack,
   HStack,
-  Image,
-  Text,
   Box,
+  Text,
+  InputGroup,
+  InputRightElement,
   Spinner,
+  Heading,
+  Skeleton,
+  SkeletonCircle,
 } from "@chakra-ui/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { searchSeries } from "../../services/tmdb";
-import { debounce } from "lodash";
+import { EnhancedImage } from "../common/EnhancedImage";
+import { SeriesSearchResult } from "../../types/series";
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -25,6 +30,9 @@ interface SearchModalProps {
   subtitle?: string;
 }
 
+/**
+ * Modal para busca de séries
+ */
 export function SearchModal({ 
   isOpen, 
   onClose, 
@@ -33,64 +41,91 @@ export function SearchModal({
   subtitle = "Digite o nome da série que deseja encontrar" 
 }: SearchModalProps) {
   const [search, setSearch] = useState("");
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<SeriesSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-
-  const debouncedSearch = debounce(async (query: string) => {
-    if (!query) {
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+  
+  useEffect(() => {
+    if (!isOpen) {
+      setSearch("");
+      setResults([]);
+    }
+  }, [isOpen]);
+  
+  useEffect(() => {
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+    
+    if (search.trim().length < 2) {
       setResults([]);
       return;
     }
-
+    
     setIsLoading(true);
-    try {
-      const data = await searchSeries(query);
-      setResults(data.results);
-    } catch (error) {
-    } finally {
-      setIsLoading(false);
-    }
-  }, 500);
-
-  useEffect(() => {
-    debouncedSearch(search);
-    return () => debouncedSearch.cancel();
+    
+    searchTimeout.current = setTimeout(async () => {
+      try {
+        const data = await searchSeries(search);
+        setResults(data.results || []);
+      } catch (error) {
+        console.error("Erro na busca:", error);
+        setResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 500);
+    
+    return () => {
+      if (searchTimeout.current) {
+        clearTimeout(searchTimeout.current);
+      }
+    };
   }, [search]);
 
   return (
-    <Modal 
-      isOpen={isOpen} 
-      onClose={onClose} 
-      size="lg"
-      scrollBehavior="inside"
-      blockScrollOnMount={false}
-    >
-      <ModalOverlay bg="blackAlpha.700" backdropFilter="blur(5px)" />
+    <Modal isOpen={isOpen} onClose={onClose} size="lg">
+      <ModalOverlay />
       <ModalContent bg="gray.800" color="white">
-        <ModalHeader>{title}</ModalHeader>
+        <ModalHeader>
+          <Heading size="md">{title}</Heading>
+          <Text fontSize="sm" color="gray.400" mt={1}>
+            {subtitle}
+          </Text>
+        </ModalHeader>
         <ModalCloseButton />
         <ModalBody pb={6}>
-          <VStack spacing={4} align="stretch">
-            <Text color="gray.400" fontSize="sm">
-              {subtitle}
-            </Text>
+          <InputGroup mb={6}>
             <Input
-              placeholder="Buscar séries..."
+              ref={inputRef}
+              id="series-search"
+              name="series-search"
+              placeholder="Nome da série"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               bg="gray.700"
               border="none"
-              _focus={{ ring: 1, ringColor: "primary.500" }}
-              autoFocus
+              _focus={{ 
+                boxShadow: "0 0 0 1px var(--chakra-colors-primary-500)",
+                borderColor: "primary.500"
+              }}
             />
-          </VStack>
-
-          {isLoading ? (
-            <Box textAlign="center" py={4}>
-              <Spinner color="primary.500" />
-            </Box>
-          ) : results.length > 0 ? (
-            <VStack spacing={4} align="stretch" maxH="400px" overflowY="auto">
+            <InputRightElement>
+              {isLoading && <Spinner size="sm" color="primary.500" />}
+            </InputRightElement>
+          </InputGroup>
+          
+          {results.length > 0 ? (
+            <VStack spacing={4} maxH="60vh" overflowY="auto" pr={2} align="stretch">
               {results.map((series) => (
                 <HStack
                   key={series.id}
@@ -102,21 +137,20 @@ export function SearchModal({
                   _hover={{ bg: "gray.600" }}
                   onClick={() => onSelect(series.id)}
                 >
-                  <Image
-                    src={`https://image.tmdb.org/t/p/w92${series.poster_path}`}
-                    alt={series.name}
-                    width="46px"
-                    height="69px"
-                    borderRadius="md"
-                    objectFit="cover"
-                    fallbackSrc="https://dummyimage.com/46x69/ffffff/000000.png&text=Poster"
-                  />
+                  <Box width="46px" height="69px" borderRadius="md" overflow="hidden">
+                    <EnhancedImage
+                      src={`https://image.tmdb.org/t/p/w92${series.poster_path}`}
+                      alt={series.name}
+                      tmdbWidth="w92"
+                      fallbackText="Poster"
+                    />
+                  </Box>
                   <Box flex="1">
                     <Text color="white" fontWeight="bold">
                       {series.name}
                     </Text>
                     <Text color="gray.400" fontSize="sm">
-                      {new Date(series.first_air_date).getFullYear()}
+                      {series.first_air_date ? new Date(series.first_air_date).getFullYear() : 'Desconhecido'}
                     </Text>
                   </Box>
                 </HStack>
@@ -126,6 +160,30 @@ export function SearchModal({
             <Text color="gray.400" textAlign="center">
               Nenhuma série encontrada.
             </Text>
+          ) : isLoading && search.trim().length >= 2 ? (
+            <VStack spacing={4} align="stretch">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <HStack
+                  key={i}
+                  spacing={4}
+                  p={2}
+                  borderRadius="md"
+                  bg="gray.700"
+                >
+                  <Skeleton 
+                    width="46px" 
+                    height="69px" 
+                    borderRadius="md" 
+                    startColor="gray.600" 
+                    endColor="gray.500"
+                  />
+                  <Box flex="1">
+                    <Skeleton height="20px" width="80%" mb={2} startColor="gray.600" endColor="gray.500" />
+                    <Skeleton height="15px" width="40%" startColor="gray.600" endColor="gray.500" />
+                  </Box>
+                </HStack>
+              ))}
+            </VStack>
           ) : null}
         </ModalBody>
       </ModalContent>

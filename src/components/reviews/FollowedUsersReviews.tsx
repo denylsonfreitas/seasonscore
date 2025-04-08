@@ -1,4 +1,4 @@
-import { Box, VStack, Text, HStack, Grid, Icon, useDisclosure, Badge, Center, LinkBox } from "@chakra-ui/react";
+import { Box, VStack, Text, HStack, Grid, Icon, useDisclosure, Badge, Center, LinkBox, Skeleton, SkeletonCircle } from "@chakra-ui/react";
 import { useState } from "react";
 import { getRecentFollowedUsersReviews, PopularReview, getSeriesReviews } from "../../services/reviews";
 import { Heart, TelevisionSimple } from "@phosphor-icons/react";
@@ -11,7 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getSeriesDetails } from "../../services/tmdb";
 import { UserName } from "../common/UserName";
 import { useAuth } from "../../contexts/AuthContext";
-import { LazyImage } from "../common/LazyImage";
+import { EnhancedImage } from "../common/EnhancedImage";
 import { SectionBase } from "../common/SectionBase";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
@@ -77,22 +77,52 @@ export function FollowedUsersReviews() {
     });
   };
 
-  // Componente de carregamento
+  // Componente de carregamento elegante como skeleton
   const loadingElement = (
-    <Grid 
-      templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} 
-      gap={6}
-    >
-      {[1, 2, 3, 4, 5, 6].map((i) => (
-        <Box
-          key={i}
-          bg="gray.800"
-          p={4}
-          borderRadius="lg"
-          height="300px"
-        />
-      ))}
-    </Grid>
+    <Box sx={carouselStyles} pb={8}>
+      <Slider {...seriesSliderSettings}>
+        {Array(8).fill(0).map((_, i) => (
+          <Box key={i} px={2}>
+            <Box 
+              bg="gray.800" 
+              borderRadius="lg" 
+              overflow="hidden" 
+              position="relative" 
+              height="100%"
+            >
+              <Skeleton 
+                height="100%" 
+                width="100%" 
+                startColor="gray.700" 
+                endColor="gray.600" 
+                speed={1.2}
+              />
+              
+              {/* Simular o rodapé com informações */}
+              <Box position="absolute" bottom={0} left={0} right={0} height="60px" zIndex={2}>
+                <Skeleton 
+                  height="100%" 
+                  startColor="blackAlpha.700" 
+                  endColor="blackAlpha.600" 
+                  speed={1.2}
+                />
+              </Box>
+              
+              {/* Simular avatar e nome do usuário */}
+              <HStack position="absolute" bottom={4} left={3} zIndex={3} spacing={2}>
+                <SkeletonCircle size="6" startColor="gray.600" endColor="gray.500" />
+                <Skeleton height="10px" width="80px" startColor="gray.600" endColor="gray.500" />
+              </HStack>
+              
+              {/* Simular badge de temporada */}
+              <Box position="absolute" top={3} right={3} zIndex={3}>
+                <Skeleton height="20px" width="30px" borderRadius="md" startColor="purple.300" endColor="purple.200" />
+              </Box>
+            </Box>
+          </Box>
+        ))}
+      </Slider>
+    </Box>
   );
 
   // Componente para mensagem quando o usuário não está logado
@@ -142,13 +172,14 @@ export function FollowedUsersReviews() {
               position="relative"
             >
               {review.seriesPoster ? (
-                <LazyImage
+                <EnhancedImage
                   src={`https://image.tmdb.org/t/p/w500${review.seriesPoster}`}
                   alt={review.seriesName}
                   height="100%"
                   width="100%"
                   objectFit="cover"
                   fallbackText="Imagem não disponível"
+                  tmdbWidth="w500"
                   onClick={(e) => handlePosterClick(e, review.seriesId)}
                 />
               ) : (

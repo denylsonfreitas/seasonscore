@@ -497,7 +497,7 @@ export default function ListPage() {
   return (
     <Container maxW="container.lg" py={8}>
       <Box
-        bg={bgColor}
+        bg="gray.800"
         borderRadius="lg"
         boxShadow="md"
         borderWidth="1px"

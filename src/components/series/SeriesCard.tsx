@@ -8,12 +8,14 @@ import {
   Flex,
   Center,
   Icon,
+  Skeleton,
+  SkeletonCircle,
 } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
 import { SeriesListItem } from "../../services/tmdb";
 import { Star, Trophy, TelevisionSimple } from "@phosphor-icons/react";
 import { WatchlistButton } from "../common/WatchlistButton";
-import { LazyImage } from "../common/LazyImage";
+import { EnhancedImage } from "../common/EnhancedImage";
 
 interface SeriesCardProps {
   series: SeriesListItem & { rating?: number };
@@ -107,6 +109,47 @@ const getBadgeStyle = (position: number) => {
   }
 };
 
+/**
+ * Componente de esqueleto para carregamento elegante de SeriesCard
+ */
+export function SeriesCardSkeleton({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
+  const styles = sizeStyles[size];
+  
+  return (
+    <Box 
+      bg="gray.800"
+      borderRadius="lg"
+      overflow="hidden"
+      position="relative"
+      {...styles.container}
+      mx="auto"
+    >
+      <Skeleton 
+        height="100%" 
+        width="100%" 
+        startColor="gray.700" 
+        endColor="gray.600" 
+        speed={1.2}
+      />
+      
+      {/* Simular o badge de posição */}
+      <Box position="absolute" top={3} left={3} zIndex={2}>
+        <Skeleton height="24px" width="35px" borderRadius="lg" startColor="gray.600" endColor="gray.500" />
+      </Box>
+      
+      {/* Simular o botão de watchlist */}
+      <Box position="absolute" top={3} right={3} zIndex={2}>
+        <SkeletonCircle size="8" startColor="gray.600" endColor="gray.500" />
+      </Box>
+      
+      {/* Simular a classificação */}
+      <Box position="absolute" bottom={3} left={3} zIndex={2}>
+        <Skeleton height="16px" width="40px" borderRadius="md" startColor="primary.300" endColor="primary.200" />
+      </Box>
+    </Box>
+  );
+}
+
 export function SeriesCard({ series, size = "md", position, highlightAddToList = false, showCharacter }: SeriesCardProps) {
   const styles = sizeStyles[size];
   const badgeStyle = position ? getBadgeStyle(position) : null;
@@ -128,10 +171,11 @@ export function SeriesCard({ series, size = "md", position, highlightAddToList =
       <Box as={RouterLink} to={`/series/${series.id}`} zIndex={1}>
         <Box position="relative" bg="gray.700" height="100%">
           {series.poster_path ? (
-            <LazyImage
+            <EnhancedImage
               src={`https://image.tmdb.org/t/p/w500${series.poster_path}`}
               alt={series.name}
               fallbackText="Imagem não disponível"
+              tmdbWidth="w500"
             />
           ) : (
             <Center height="100%" py={4} px={2} bg="gray.700" position="relative">

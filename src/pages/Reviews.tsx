@@ -24,12 +24,12 @@ import {
   useDisclosure,
   Skeleton,
   useToast,
+  SkeletonCircle,
 } from '@chakra-ui/react';
 import { MagnifyingGlass, Heart, TelevisionSimple } from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
-import { BackToTopButton } from '../components/common/BackToTopButton';
 import { getPopularReviews, getRecentFollowedUsersReviews, getSeriesReviews, PopularReview } from '../services/reviews';
-import { LazyImage } from '../components/common/LazyImage';
+import { EnhancedImage } from '../components/common/EnhancedImage';
 import { RatingStars } from '../components/common/RatingStars';
 import { UserAvatar } from '../components/common/UserAvatar';
 import { UserName } from '../components/common/UserName';
@@ -164,13 +164,14 @@ export function Reviews() {
       position="relative"
     >
       {review.seriesPoster && (
-        <LazyImage
+        <EnhancedImage
           src={`https://image.tmdb.org/t/p/w500${review.seriesPoster}`}
           alt={review.seriesName}
           height="100%"
           width="100%"
           objectFit="cover"
           fallbackText="Imagem não disponível"
+          tmdbWidth="w500"
           onClick={(e) => handlePosterClick(e, review.seriesId)}
         />
       )}
@@ -223,9 +224,38 @@ export function Reviews() {
 
   // Renderizar o esqueleto de carregamento
   const renderLoadingSkeletons = () => (
-    <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(2, 1fr)", lg: "repeat(6, 1fr)" }} gap={4}>
-      {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-        <Skeleton key={i} height="225px" borderRadius="lg" />
+    <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(4, 1fr)", lg: "repeat(6, 1fr)" }} gap={4}>
+      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
+        <Box key={i} bg="gray.800" borderRadius="lg" overflow="hidden" position="relative" h="225px">
+          <Skeleton 
+            height="100%" 
+            width="100%" 
+            startColor="gray.700" 
+            endColor="gray.600" 
+            speed={1.2}
+          />
+          
+          {/* Simular o rodapé com informações */}
+          <Box position="absolute" bottom={0} left={0} right={0} height="60px" zIndex={2}>
+            <Skeleton 
+              height="100%" 
+              startColor="blackAlpha.700" 
+              endColor="blackAlpha.600" 
+              speed={1.2}
+            />
+          </Box>
+          
+          {/* Simular avatar e nome do usuário */}
+          <HStack position="absolute" bottom={4} left={3} zIndex={3} spacing={2}>
+            <SkeletonCircle size="6" startColor="gray.600" endColor="gray.500" />
+            <Skeleton height="10px" width="80px" startColor="gray.600" endColor="gray.500" />
+          </HStack>
+          
+          {/* Simular badge de temporada */}
+          <Box position="absolute" top={3} right={3} zIndex={3}>
+            <Skeleton height="20px" width="30px" borderRadius="md" startColor="purple.300" endColor="purple.200" />
+          </Box>
+        </Box>
       ))}
     </Grid>
   );
@@ -336,8 +366,6 @@ export function Reviews() {
       </Box>
       
       <Footer />
-      
-      <BackToTopButton />
       
       {/* Modal de detalhes da avaliação */}
       {selectedReview && selectedSeries && (

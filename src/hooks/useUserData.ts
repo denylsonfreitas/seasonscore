@@ -1,20 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { getUserData, UserData } from "../services/users";
-
-// Cache para armazenar dados de usuários já carregados
-const userDataCache: Record<string, { 
-  data: any, 
-  timestamp: number 
-}> = {};
-
-// Tempo de expiração do cache (5 minutos)
-const CACHE_EXPIRY_TIME = 5 * 60 * 1000;
+import { userCache } from "../services/cacheService";
 
 // Interface para o userData com a flag isDeleted
 export interface ExtendedUserData extends Partial<UserData> {
   isDeleted?: boolean;
 }
 
+/**
+ * Hook para buscar e gerenciar dados de um usuário
+ * Utiliza o serviço de cache centralizado para evitar requisições desnecessárias
+ */
 export function useUserData(userId: string) {
   const [userData, setUserData] = useState<ExtendedUserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,14 +37,13 @@ export function useUserData(userId: string) {
         return;
       }
 
-      // Verificar se os dados estão em cache e não expirados
-      const cachedData = userDataCache[userId];
-      const now = Date.now();
+      // Verificar se os dados estão em cache
+      const cachedData = userCache.getUser<ExtendedUserData>(userId);
       
-      if (cachedData && (now - cachedData.timestamp) < CACHE_EXPIRY_TIME) {
-        // Usar dados do cache se estiverem disponíveis e válidos
+      if (cachedData) {
+        // Usar dados do cache se estiverem disponíveis
         if (isMounted.current) {
-          setUserData(cachedData.data);
+          setUserData(cachedData);
           setIsLoading(false);
         }
         return;
@@ -62,35 +57,26 @@ export function useUserData(userId: string) {
         if (!data) {
           const deletedUserData: ExtendedUserData = { isDeleted: true };
           
-          // Atualizar o cache com informação de usuário excluído
-          userDataCache[userId] = {
-            data: deletedUserData,
-            timestamp: Date.now()
-          };
+          // Atualizar o cache
+          userCache.setUser(userId, deletedUserData);
           
           if (isMounted.current) {
             setUserData(deletedUserData);
           }
         } else {
           // Atualizar o cache
-          userDataCache[userId] = {
-            data,
-            timestamp: Date.now()
-          };
+          userCache.setUser(userId, data);
           
           if (isMounted.current) {
             setUserData(data);
           }
         }
       } catch (error) {
-        // Em caso de erro, também considerar o usuário como excluído
+        // Em caso de erro, considerar o usuário como excluído
         const deletedUserData: ExtendedUserData = { isDeleted: true };
         
         // Atualizar o cache
-        userDataCache[userId] = {
-          data: deletedUserData,
-          timestamp: Date.now()
-        };
+        userCache.setUser(userId, deletedUserData);
         
         if (isMounted.current) {
           setUserData(deletedUserData);

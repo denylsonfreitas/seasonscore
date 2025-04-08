@@ -1,4 +1,4 @@
-import { Box, VStack, Text, HStack, Icon, useDisclosure, Badge, Center, LinkBox } from "@chakra-ui/react";
+import { Box, VStack, Text, HStack, Icon, useDisclosure, Badge, Center, LinkBox, Skeleton, SkeletonCircle } from "@chakra-ui/react";
 import { useState } from "react";
 import { getPopularReviews, PopularReview, getSeriesReviews } from "../../services/reviews";
 import { Heart, TelevisionSimple } from "@phosphor-icons/react";
@@ -10,7 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { getSeriesDetails } from "../../services/tmdb";
 import { UserName } from "../common/UserName";
-import { LazyImage } from "../common/LazyImage";
+import { EnhancedImage } from "../common/EnhancedImage";
 import { SectionBase } from "../common/SectionBase";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
@@ -76,6 +76,54 @@ export function PopularReviews() {
     });
   };
 
+  // Componente de carregamento elegante como skeleton
+  const loadingElement = (
+    <Box sx={carouselStyles} pb={8}>
+      <Slider {...seriesSliderSettings}>
+        {Array(8).fill(0).map((_, i) => (
+          <Box key={i} px={2}>
+            <Box 
+              bg="gray.800" 
+              borderRadius="lg" 
+              overflow="hidden" 
+              position="relative" 
+              height="100%"
+            >
+              <Skeleton 
+                height="100%" 
+                width="100%" 
+                startColor="gray.700" 
+                endColor="gray.600" 
+                speed={1.2}
+              />
+              
+              {/* Simular o rodapé com informações */}
+              <Box position="absolute" bottom={0} left={0} right={0} height="60px" zIndex={2}>
+                <Skeleton 
+                  height="100%" 
+                  startColor="blackAlpha.700" 
+                  endColor="blackAlpha.600" 
+                  speed={1.2}
+                />
+              </Box>
+              
+              {/* Simular avatar e nome do usuário */}
+              <HStack position="absolute" bottom={4} left={3} zIndex={3} spacing={2}>
+                <SkeletonCircle size="6" startColor="gray.600" endColor="gray.500" />
+                <Skeleton height="10px" width="80px" startColor="gray.600" endColor="gray.500" />
+              </HStack>
+              
+              {/* Simular badge de temporada */}
+              <Box position="absolute" top={3} right={3} zIndex={3}>
+                <Skeleton height="20px" width="30px" borderRadius="md" startColor="purple.300" endColor="purple.200" />
+              </Box>
+            </Box>
+          </Box>
+        ))}
+      </Slider>
+    </Box>
+  );
+
   // Renderizar o conteúdo
   const renderContent = (limitItems: boolean) => {
     const displayedReviews = limitItems ? popularReviews.slice(0, 12) : popularReviews;
@@ -98,13 +146,14 @@ export function PopularReviews() {
               position="relative"
             >
               {review.seriesPoster ? (
-                <LazyImage
+                <EnhancedImage
                   src={`https://image.tmdb.org/t/p/w500${review.seriesPoster}`}
                   alt={review.seriesName}
                   height="100%"
                   width="100%"
                   objectFit="cover"
                   fallbackText="Imagem não disponível"
+                  tmdbWidth="w500"
                   onClick={(e) => handlePosterClick(e, review.seriesId)}
                 />
               ) : (
@@ -179,6 +228,7 @@ export function PopularReviews() {
         emptyMessage="Nenhuma avaliação popular esta semana. Seja o primeiro a avaliar uma série!"
         expandable={popularReviews.length > 6}
         renderContent={renderContent}
+        loadingElement={loadingElement}
       />
 
       {selectedReview && selectedSeries && (

@@ -48,18 +48,11 @@ import { ListWithUserData } from '../../types/list';
 import { useNavigate } from 'react-router-dom';
 import { searchSeries } from '../../services/tmdb';
 import { CreateListModal } from '../lists/CreateListModal';
+import { SeriesSearchResult } from '../../types/series';
 
 interface ListsSectionProps {
   userId: string;
   isOwnProfile: boolean;
-}
-
-// Interface para representar os resultados da busca de séries
-interface SeriesSearchResult {
-  id: number;
-  name: string;
-  poster_path: string | null;
-  first_air_date: string;
 }
 
 export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {

@@ -34,6 +34,8 @@ export function SeriesFilter({
 
   return (
     <Select
+      id="genre-filter"
+      name="genre-filter"
       value={genreFilter}
       onChange={handleChange}
       bg="gray.700"

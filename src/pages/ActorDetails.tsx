@@ -4,7 +4,6 @@ import {
   Container,
   Heading,
   Text,
-  Image,
   VStack,
   HStack,
   Flex,
@@ -20,7 +19,6 @@ import { useQuery } from '@tanstack/react-query';
 import { getPersonDetails, getPersonCredits } from '../services/tmdb';
 import { SeriesCard } from '../components/series/SeriesCard';
 import { Footer } from '../components/common/Footer';
-import { BackToTopButton } from '../components/common/BackToTopButton';
 import { formatDistanceToNow, format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ArrowLeft } from '@phosphor-icons/react';
@@ -28,6 +26,7 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { carouselStyles, seriesSliderSettings } from "../styles/carouselStyles";
+import { EnhancedImage } from '../components/common/EnhancedImage';
 
 export function ActorDetails() {
   const { id } = useParams<{ id: string }>();
@@ -138,18 +137,21 @@ export function ActorDetails() {
               boxShadow="lg"
               bg="gray.800"
               mb={4}
+              height={{ base: '450px', md: 'auto' }}
             >
               {actor.profile_path ? (
-                <Image
+                <EnhancedImage
                   src={`https://image.tmdb.org/t/p/w500${actor.profile_path}`}
                   alt={actor.name}
+                  height="100%"
                   width="100%"
-                  height="auto"
                   objectFit="cover"
+                  tmdbWidth="w500"
+                  priority
                 />
               ) : (
                 <Flex
-                  height="400px"
+                  height="100%"
                   bg="gray.700"
                   alignItems="center"
                   justifyContent="center"
@@ -267,7 +269,6 @@ export function ActorDetails() {
         </Box>
       </Container>
       
-      <BackToTopButton />
       <Footer />
     </Flex>
   );

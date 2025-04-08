@@ -10,7 +10,6 @@ import {
   Icon,
   Wrap,
   WrapItem,
-  Image,
   useColorModeValue,
   Stack,
   Tooltip
@@ -24,6 +23,7 @@ import { ListWithUserData } from '../../types/list';
 import { useQuery } from '@tanstack/react-query';
 import { getListById } from '../../services/lists';
 import { useAuth } from '../../contexts/AuthContext';
+import { EnhancedImage } from '../common/EnhancedImage';
 
 interface ListCardProps {
   list: ListWithUserData;
@@ -119,14 +119,14 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
                   transform: `translateX(${index * 3}px) translateY(-${index * 2}px) scale(${1 - index * 0.05})`,
                 }}
               >
-                <Image
+                <EnhancedImage
                   src={item.poster_path ? `https://image.tmdb.org/t/p/w200${item.poster_path}` : 'https://placehold.co/200x300/222222/FFFFFF?text=Sem+Imagem'}
                   alt={item.name}
-                  w="100%"
-                  h="100%"
-                  objectFit="cover"
-                  opacity={1 - (index * 0.12)}
-                  transition="all 0.3s ease"
+                  tmdbWidth="w200"
+                  style={{
+                    opacity: 1 - (index * 0.12),
+                    transition: "all 0.3s ease"
+                  }}
                 />
               </Box>
             ))}

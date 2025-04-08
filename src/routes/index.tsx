@@ -109,11 +109,6 @@ const ProfileLazy = React.lazy(() =>
     .then(module => ({ default: module.Profile }))
 );
 
-const RecentSeriesLazy = React.lazy(() => 
-  import(/* webpackChunkName: "recent-series" */ "../pages/RecentSeries")
-    .then(module => ({ default: module.RecentSeries }))
-);
-
 const TopRatedSeriesLazy = React.lazy(() => 
   import(/* webpackChunkName: "top-rated-series" */ "../pages/TopRatedSeries")
     .then(module => ({ default: module.TopRatedSeries }))
@@ -208,14 +203,6 @@ export const routes = [
         element: (
           <Suspense fallback={<PageLoader />}>
             <Navigate to="/community" replace />
-          </Suspense>
-        ),
-      },
-      {
-        path: "/series/recent",
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <RecentSeriesLazy />
           </Suspense>
         ),
       },

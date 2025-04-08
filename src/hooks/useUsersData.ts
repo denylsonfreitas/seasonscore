@@ -1,25 +1,12 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { getUserData } from "../services/users";
 import { ExtendedUserData } from "./useUserData";
+import { userCache } from "../services/cacheService";
 
-// Cache para armazenar dados de usuários já carregados
-const userDataCache: Record<string, { 
-  data: any, 
-  timestamp: number 
-}> = {};
-
-// Tempo de expiração do cache (5 minutos)
-const CACHE_EXPIRY_TIME = 5 * 60 * 1000;
-
-// Função para verificar se o cache é válido
-const isCacheValid = (userId: string): boolean => {
-  const cachedData = userDataCache[userId];
-  if (!cachedData) return false;
-  
-  const now = Date.now();
-  return (now - cachedData.timestamp) < CACHE_EXPIRY_TIME;
-};
-
+/**
+ * Hook para buscar e gerenciar dados de múltiplos usuários
+ * Utiliza o serviço de cache centralizado para evitar requisições desnecessárias
+ */
 export function useUsersData(userIds: string[]) {
   const [usersData, setUsersData] = useState<Record<string, ExtendedUserData>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -58,16 +45,17 @@ export function useUsersData(userIds: string[]) {
         
         // Primeiro, verifique o cache para cada ID
         uniqueUserIds.forEach(userId => {
-          if (isCacheValid(userId)) {
+          const cachedData = userCache.getUser<ExtendedUserData>(userId);
+          if (cachedData) {
             // Use os dados do cache
-            result[userId] = userDataCache[userId].data;
+            result[userId] = cachedData;
           } else {
             // Marque para buscar
             userIdsToFetch.push(userId);
           }
         });
         
-        // Busque apenas os usuários que não estão em cache ou que expiraram
+        // Busque apenas os usuários que não estão em cache
         if (userIdsToFetch.length > 0) {
           // Divida em lotes de 10 para evitar sobrecarga
           const batchSize = 10;
@@ -86,18 +74,12 @@ export function useUsersData(userIds: string[]) {
                 result[userId] = deletedUserData;
                 
                 // Atualizar o cache
-                userDataCache[userId] = {
-                  data: deletedUserData,
-                  timestamp: Date.now()
-                };
+                userCache.setUser(userId, deletedUserData);
               } else {
                 result[userId] = userData;
                 
                 // Atualizar o cache
-                userDataCache[userId] = {
-                  data: userData,
-                  timestamp: Date.now()
-                };
+                userCache.setUser(userId, userData);
               }
             });
           }

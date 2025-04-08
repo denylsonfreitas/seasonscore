@@ -1,7 +1,6 @@
 import { Box } from "@chakra-ui/react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Navbar } from "./Navbar";
-import { BackToTopButton } from "../common/BackToTopButton";
 import { ResetScroll } from "../common/ResetScroll";
 
 export function Layout() {
@@ -20,7 +19,6 @@ export function Layout() {
       <Box w="100%">
         <Outlet />
       </Box>
-      <BackToTopButton />
     </Box>
   );
 }

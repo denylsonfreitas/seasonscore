@@ -2,7 +2,8 @@ import { HomeSeriesSection } from "../components/series/HomeSeriesSection";
 import { Box, Container, VStack, Flex, Heading, Text, Button, HStack, Icon, Image, SimpleGrid, useColorModeValue } from "@chakra-ui/react";
 import {
   getAiringTodaySeries,
-  getTopRatedSeries
+  getTopRatedSeries,
+  getPopularSeries
 } from "../services/tmdb";
 import { Footer } from "../components/common/Footer";
 import { TrendingBanner } from "../components/series/TrendingBanner";
@@ -35,13 +36,6 @@ export function Home() {
             // Layout para usuários logados
             <>
           <PersonalizedRecommendations />
-
-          <HomeSeriesSection
-            title="Novidades"
-            queryKey={["recent"]}
-                queryFn={() => getAiringTodaySeries()}
-            link="/series/recent"
-          />
 
           <FollowedUsersReviews />
 
@@ -161,13 +155,6 @@ export function Home() {
                   </Text>
                 </Box>
               </SimpleGrid>
-
-              <HomeSeriesSection
-                title="Novidades"
-                queryKey={["recent"]}
-                queryFn={() => getAiringTodaySeries()}
-                link="/series/recent"
-              />
 
               <PopularReviews />
               

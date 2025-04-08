@@ -99,6 +99,7 @@ export interface SeriesFilters {
   minVotes?: number;
   minRating?: number;
   fromDate?: string;
+  sortBy?: string;
 }
 
 const defaultParams = {
@@ -145,14 +146,36 @@ export async function getTopRatedSeries(page = 1) {
   return response.data;
 }
 
-export async function getAiringTodaySeries(page = 1) {
+export async function getAiringTodaySeries(page = 1, options: {
+  searchQuery?: string;
+  sortBy?: string;
+  fromDate?: string;
+} = {}) {
+  // Se tiver uma query de busca, usar a função de busca
+  if (options.searchQuery) {
+    const response = await api.get<SeriesResponse>("/search/tv", {
+      params: { 
+        ...defaultParams, 
+        query: options.searchQuery, 
+        page,
+        sort_by: options.sortBy || "first_air_date.desc",
+        "first_air_date.lte": getCurrentDate(),
+        "first_air_date.gte": options.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0],
+      },
+    });
+    return response.data;
+  }
+
+  // Caso contrário, usar descoberta normal
   const response = await api.get<SeriesResponse>("/discover/tv", {
     params: {
       ...defaultParams,
       page,
-      sort_by: "first_air_date.desc",
+      sort_by: options.sortBy || "first_air_date.desc",
       "first_air_date.lte": getCurrentDate(),
-      "first_air_date.gte": new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      "first_air_date.gte": options.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
         .toISOString()
         .split("T")[0],
       "vote_count.gte": 5,
@@ -192,7 +215,7 @@ export async function getFilteredSeries(filters: SeriesFilters = {}, page = 1) {
     params: {
       ...defaultParams,
       page,
-      sort_by: "popularity.desc",
+      sort_by: filters.sortBy || "popularity.desc",
       with_genres: filters.genre,
       "vote_count.gte": filters.minVotes || 10,
       "vote_average.gte": filters.minRating || 0,

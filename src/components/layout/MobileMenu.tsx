@@ -30,7 +30,6 @@ interface MobileMenuProps {
   currentUser: ExtendedUser | null;
   onLogout: () => void;
   seriesColor: string;
-  recentColor: string;
   top10Color: string;
   reviewsColor: string;
   listsColor: string;
@@ -45,7 +44,6 @@ export function MobileMenu({
   currentUser,
   onLogout,
   seriesColor,
-  recentColor,
   top10Color,
   reviewsColor,
   listsColor,
@@ -166,33 +164,7 @@ export function MobileMenu({
           </RouterLink>
         </Box>
 
-        <Box style={getItemAnimationStyle(3)}>
-          <RouterLink to="/series/recent">
-            <Flex
-              align="center"
-              py={2.5}
-              px={3}
-              borderRadius="md"
-              _hover={{ bg: "gray.700" }}
-              onClick={onClose}
-            >
-              <Box
-                p={2}
-                borderRadius="md"
-                mr={3}
-                bg="gray.700"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <TrendUp weight="fill" size={18} color={recentColor} />
-              </Box>
-              <Text color="gray.100" fontWeight="medium">
-                Novidades
-              </Text>
-            </Flex>
-          </RouterLink>
-        </Box>
+
 
         <Box style={getItemAnimationStyle(4)}>
           <RouterLink to="/series/top10">

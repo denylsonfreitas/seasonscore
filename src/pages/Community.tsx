@@ -33,7 +33,6 @@ import { UserAvatar } from '../components/common/UserAvatar';
 import { FollowButton } from '../components/user/FollowButton';
 import { Link as RouterLink } from 'react-router-dom';
 import { Footer } from '../components/common/Footer';
-import { BackToTopButton } from '../components/common/BackToTopButton';
 import { Trophy, UsersThree } from '@phosphor-icons/react';
 import { RatingStars } from '../components/common/RatingStars';
 import { ChevronRightIcon, StarIcon } from '@chakra-ui/icons';
@@ -149,7 +148,6 @@ export function Community() {
         )}
       </Container>
       
-      <BackToTopButton />
       <Footer />
     </Flex>
   );
