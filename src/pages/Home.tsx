@@ -34,22 +34,22 @@ export function Home() {
           {isLoggedIn ? (
             // Layout para usuários logados
             <>
-              <PersonalizedRecommendations />
+          <PersonalizedRecommendations />
 
-              <HomeSeriesSection
-                title="Novidades"
-                queryKey={["recent"]}
+          <HomeSeriesSection
+            title="Novidades"
+            queryKey={["recent"]}
                 queryFn={() => getAiringTodaySeries()}
-                link="/series/recent"
-              />
+            link="/series/recent"
+          />
 
-              <FollowedUsersReviews />
+          <FollowedUsersReviews />
 
-              <PopularReviews />
-              
-              <FollowedUsersLists />
+          <PopularReviews />
+          
+          <FollowedUsersLists />
 
-              <PopularLists />
+          <PopularLists />
             </>
           ) : (
             // Layout para usuários não logados

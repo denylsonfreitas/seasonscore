@@ -193,14 +193,17 @@ export function SeriesCard({ series, size = "md", position, highlightAddToList =
               position="absolute"
               bottom={3}
               left={3}
-              colorScheme="yellow"
+              variant="rating"
               fontSize="xs"
               py={0.5}
               px={1.5}
               borderRadius="md"
               zIndex={1}
             >
-              {series.rating.toFixed(1)} ★
+              <Flex align="center" gap={1}>
+                <Star weight="fill" size={12} />
+                {series.rating.toFixed(1)}
+              </Flex>
             </Badge>
           )}
 

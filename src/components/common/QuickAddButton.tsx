@@ -40,12 +40,11 @@ export function QuickAddButton({ size = "32px" }: QuickAddButtonProps) {
     if (showButtonText) {
       return (
         <Button
-          bg="primary.500"
-          color="white"
+          colorScheme="primary"
+          variant="solid"
           borderRadius="full"
           height={size}
           px="16px"
-          _hover={{ bg: "primary.600" }}
           onClick={onQuickAddOpen}
           leftIcon={<Plus weight="bold" />}
           fontWeight="500"
@@ -59,13 +58,11 @@ export function QuickAddButton({ size = "32px" }: QuickAddButtonProps) {
         <IconButton
           aria-label="Avaliar série"
           icon={<Plus weight="bold" />}
-          bg="primary.500"
-          color="white"
+          colorScheme="primary"
           borderRadius="full"
           height={size}
           width={size}
           minW={size}
-          _hover={{ bg: "primary.600" }}
           onClick={onQuickAddOpen}
         />
       );

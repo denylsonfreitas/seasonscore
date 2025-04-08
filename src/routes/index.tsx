@@ -14,14 +14,26 @@ const PageLoader = () => (
 
 const PrefetchRoutes = () => {
   useEffect(() => {
-    const timer = setTimeout(() => {
-      import("../pages/Home");
-      import("../pages/SeriesDetails");
-      import("../pages/Series");
-      import("../pages/ActorDetails");
-    }, 1000);
+    // Prefetch apenas das rotas mais acessadas
+    const prefetchRoutes = async () => {
+      try {
+        // Prefetch imediato para rotas críticas
+        await Promise.all([
+          import("../pages/Home"),
+          import("../pages/Series")
+        ]);
 
-    return () => clearTimeout(timer);
+        // Prefetch com delay para rotas secundárias
+        setTimeout(() => {
+          import("../pages/SeriesDetails");
+          import("../pages/ActorDetails");
+        }, 2000);
+      } catch (error) {
+        console.error("Erro ao prefetch rotas:", error);
+      }
+    };
+
+    prefetchRoutes();
   }, []);
 
   return null;

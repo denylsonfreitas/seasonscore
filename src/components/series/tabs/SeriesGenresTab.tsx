@@ -2,16 +2,10 @@ import React from 'react';
 import {
   VStack,
   Box,
-  Heading,
   Text,
   Wrap,
   WrapItem,
   Badge,
-  Card,
-  CardBody,
-  HStack,
-  Divider,
-  useColorModeValue,
 } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 
@@ -56,7 +50,7 @@ export function SeriesGenresTab({ series }: SeriesGenresTabProps) {
                   _hover={{ 
                   transform: "translateY(-3px)", 
                   transition: "all 0.3s ease",
-                  bg: "primary.200",
+                  bg: "primary.800",
                   cursor: "pointer",
                   }}
                   onClick={() => handleGenreClick(genre.id, genre.name)}>

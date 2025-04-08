@@ -2,7 +2,7 @@ import { extendTheme, ThemeConfig } from "@chakra-ui/react";
 
 const config: ThemeConfig = {
   initialColorMode: "dark",
-  useSystemColorMode: false,
+  useSystemColorMode: true,
 };
 
 const fonts = {
@@ -139,6 +139,35 @@ const theme = extendTheme({
           boxShadow: "0 0 0 3px var(--primary-300)",
         },
       },
+      variants: {
+        solid: {
+          bg: "primary.500",
+          color: "white",
+          _hover: {
+            bg: "primary.600",
+          },
+          _active: {
+            bg: "primary.700",
+          },
+        },
+        outline: {
+          borderColor: "primary.500",
+          color: "primary.500",
+          _hover: {
+            bg: "primary.50",
+          },
+        },
+        ghost: {
+          color: "primary.500",
+          _hover: {
+            bg: "primary.50",
+          },
+        },
+      },
+      defaultProps: {
+        colorScheme: "primary",
+        variant: "solid",
+      },
     },
     Input: {
       baseStyle: {
@@ -221,6 +250,25 @@ const theme = extendTheme({
           pointerEvents: "none"
         }
       }
+    },
+    Badge: {
+      baseStyle: {
+        fontWeight: "600",
+        borderRadius: "md",
+      },
+      variants: {
+        solid: {
+          bg: "primary.500",
+          color: "white",
+        },
+        rating: {
+          bg: "yellow.200",
+          color: "yellow.900",
+        },
+      },
+      defaultProps: {
+        variant: "solid",
+      },
     },
   },
 });
