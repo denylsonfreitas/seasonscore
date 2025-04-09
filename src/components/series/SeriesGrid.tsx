@@ -40,7 +40,7 @@ export function SeriesGrid({ series, isLoading, hasNextPage, isFetchingNextPage,
     base: 2, 
     sm: 3, 
     md: 4, 
-    lg: 5, 
+    lg: 6, 
     xl: 6 
   }) || 4;
   
@@ -67,7 +67,7 @@ export function SeriesGrid({ series, isLoading, hasNextPage, isFetchingNextPage,
         </HStack>
         
         {viewMode === 'grid' ? (
-          <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 5, xl: 6 }} spacing={4}>
+          <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 6, xl: 6 }} spacing={4}>
             {Array(12).fill(0).map((_, i) => (
               <SeriesCardSkeleton key={i} />
             ))}
@@ -201,7 +201,7 @@ export function SeriesGrid({ series, isLoading, hasNextPage, isFetchingNextPage,
         </HStack>
         
         {viewMode === 'grid' ? (
-          <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 5, xl: 6 }} spacing={4}>
+          <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 6, xl: 6 }} spacing={4}>
             {series.map((item) => (
               <SeriesCard key={item.id} series={item} />
             ))}

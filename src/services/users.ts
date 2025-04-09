@@ -807,14 +807,19 @@ export async function getUserNotificationSettings(userId: string): Promise<{
 }
 
 // Retorna os usuários mais populares baseado em quantidade de seguidores e reviews
-export async function getPopularUsers(limitCount: number = 10): Promise<UserWithStats[]> {
+export async function getPopularUsers(
+  limitCount: number = 10, 
+  orderBy: "popular" | "newest" | "all" = "popular"
+): Promise<UserWithStats[]> {
   try {
     const usersRef = collection(db, "users");
     
     // Obter todos os usuários (limitado a 100 para performance)
-    const usersSnapshot = await getDocs(query(usersRef, orderBy("username"), limit(100)));
+    const usersSnapshot = await getDocs(query(usersRef, limit(100)));
     
     const users: UserWithStats[] = [];
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
     
     // Para cada usuário, calcular as contagens diretamente das coleções
     for (const userDoc of usersSnapshot.docs) {
@@ -842,12 +847,19 @@ export async function getPopularUsers(limitCount: number = 10): Promise<UserWith
         // Seguidores tem peso maior
         const popularityScore = followerCount * 3 + reviewCount;
         
+        // Data de criação do usuário
+        const createdAtTimestamp = userData.createdAt ? 
+          (typeof userData.createdAt === 'object' && 'toDate' in userData.createdAt) ? 
+            userData.createdAt.toDate() : new Date(userData.createdAt) 
+          : null;
+          
         users.push({
           ...userData,
           id: userId,
           followerCount,
           reviewCount,
-          popularityScore
+          popularityScore,
+          createdAt: createdAtTimestamp
         });
       } catch (error) {
         // Se houver erro ao calcular contagens, adiciona o usuário com contagens zeradas
@@ -862,14 +874,175 @@ export async function getPopularUsers(limitCount: number = 10): Promise<UserWith
       }
     }
     
-    // Ordenar por pontuação de popularidade e limitar ao número especificado
-    return users
-      .sort((a, b) => (b.popularityScore || 0) - (a.popularityScore || 0))
-      .slice(0, limitCount);
+    // Filtrar e ordenar de acordo com o critério especificado
+    let filteredUsers = [...users];
+    
+    switch (orderBy) {
+      case "popular":
+        // Filtrar apenas usuários com pelo menos 1 seguidor
+        filteredUsers = users.filter(user => (user.followerCount || 0) >= 1);
+        // Ordenar por pontuação de popularidade (decrescente)
+        filteredUsers.sort((a, b) => (b.popularityScore || 0) - (a.popularityScore || 0));
+        break;
+        
+      case "newest":
+        // Filtrar apenas usuários criados nos últimos 3 dias
+        filteredUsers = users.filter(user => {
+          if (!user.createdAt) return false;
+          return user.createdAt >= threeDaysAgo;
+        });
+        // Ordenar por data de criação (mais recentes primeiro)
+        filteredUsers.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateB - dateA;
+        });
+        break;
+        
+      case "all":
+        // Embaralhar a lista (ordenação aleatória)
+        for (let i = filteredUsers.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [filteredUsers[i], filteredUsers[j]] = [filteredUsers[j], filteredUsers[i]];
+        }
+        break;
+    }
+
+    // Limitar ao número especificado
+    return filteredUsers.slice(0, limitCount);
       
   } catch (error) {
     console.error("Erro ao obter usuários populares:", error);
     // Retornar array vazio em vez de propagar o erro
+    return [];
+  }
+}
+
+/**
+ * Busca usuários por nome ou username
+ * @param searchText Texto para buscar
+ * @param limitCount Número máximo de resultados
+ * @param orderType Tipo de ordenação (igual a getPopularUsers)
+ * @returns Array de usuários que correspondem à busca
+ */
+export async function searchUsers(
+  searchText: string,
+  limitCount: number = 10,
+  orderType: "popular" | "newest" | "all" = "popular"
+): Promise<UserWithStats[]> {
+  try {
+    // Normalizar o texto de busca
+    const searchTerms = searchText.toLowerCase().trim().split(/\s+/);
+    
+    // Buscar todos os usuários (limitado para performance)
+    const usersRef = collection(db, "users");
+    const usersSnapshot = await getDocs(query(usersRef, limit(100)));
+    
+    // Data de 3 dias atrás para filtragem de novatos
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    
+    // Filtrar usuários que correspondem aos termos de busca
+    const matchingUsers = usersSnapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() } as UserData))
+      .filter(user => {
+        const displayNameLower = (user.displayName || "").toLowerCase();
+        const usernameLower = (user.username || "").toLowerCase();
+        const emailLower = (user.email || "").toLowerCase();
+        
+        return searchTerms.some(term => 
+          displayNameLower.includes(term) || 
+          usernameLower.includes(term) ||
+          emailLower.includes(term)
+        );
+      });
+    
+    // Calcular estatísticas para cada usuário
+    const usersWithStats = await Promise.all(
+      matchingUsers.map(async (user) => {
+        try {
+          // Calcular contagem de seguidores
+          const followersQuery = query(
+            collection(db, "followers"),
+            where("userId", "==", user.id)
+          );
+          const followersSnapshot = await getDocs(followersQuery);
+          const followerCount = followersSnapshot.size;
+          
+          // Calcular contagem de reviews
+          const reviewsQuery = query(
+            collection(db, "reviews"),
+            where("userId", "==", user.id)
+          );
+          const reviewsSnapshot = await getDocs(reviewsQuery);
+          const reviewCount = reviewsSnapshot.size;
+          
+          // Calcular pontuação de popularidade
+          const popularityScore = followerCount * 3 + reviewCount;
+          
+          // Data de criação do usuário
+          const createdAtTimestamp = user.createdAt ? 
+            (typeof user.createdAt === 'object' && 'toDate' in user.createdAt) ? 
+              user.createdAt.toDate() : new Date(user.createdAt) 
+            : null;
+            
+          return {
+            ...user,
+            followerCount,
+            reviewCount,
+            popularityScore,
+            createdAt: createdAtTimestamp
+          };
+        } catch (error) {
+          return {
+            ...user,
+            followerCount: 0,
+            reviewCount: 0,
+            popularityScore: 0
+          };
+        }
+      })
+    );
+    
+    // Filtrar e ordenar de acordo com o critério especificado
+    let filteredUsers = [...usersWithStats];
+    
+    switch (orderType) {
+      case "popular":
+        // Filtrar apenas usuários com pelo menos 1 seguidor
+        filteredUsers = usersWithStats.filter(user => (user.followerCount || 0) >= 1);
+        // Ordenar por pontuação de popularidade (decrescente)
+        filteredUsers.sort((a, b) => (b.popularityScore || 0) - (a.popularityScore || 0));
+        break;
+        
+      case "newest":
+        // Filtrar apenas usuários criados nos últimos 3 dias
+        filteredUsers = usersWithStats.filter(user => {
+          if (!user.createdAt) return false;
+          return user.createdAt >= threeDaysAgo;
+        });
+        // Ordenar por data de criação (mais recentes primeiro)
+        filteredUsers.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateB - dateA;
+        });
+        break;
+        
+      case "all":
+        // Todos sem filtros adicionais, apenas ordenar aleatoriamente
+        for (let i = filteredUsers.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [filteredUsers[i], filteredUsers[j]] = [filteredUsers[j], filteredUsers[i]];
+        }
+        break;
+    }
+    
+    // Limitar ao número especificado
+    return filteredUsers.slice(0, limitCount);
+      
+  } catch (error) {
+    console.error("Erro ao buscar usuários:", error);
     return [];
   }
 } 

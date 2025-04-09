@@ -23,6 +23,7 @@ import { Footer } from "../components/common/Footer";
 import { Star, Trophy, TelevisionSimple } from "@phosphor-icons/react";
 import { getSeriesReviews, getTopRatedSeries as getTopRatedReviews } from "../services/reviews";
 import { useMemo } from "react";
+import { PageHeader } from "../components/common/PageHeader";
 
 interface SeriesReview {
   id: string;
@@ -128,16 +129,12 @@ export function TopRatedSeries() {
 
   return (
     <Box minH="100vh" bg="gray.900">
-      <Container maxW="container.lg" py={8}>
-        <Box>
-          <Heading color="white" size="2xl" mb={4}>
-            Top 10 Séries
-          </Heading>
-          <Text color="gray.400" fontSize="lg">
-            As séries mais bem avaliadas pela comunidade
-          </Text>
-        </Box>
+      <PageHeader
+        title="Top 10 Séries"
+        subtitle="As séries mais bem avaliadas pela comunidade"
+      />
 
+      <Container maxW="container.lg" pb={20}>
         {!topSeries || topSeries.length === 0 ? (
           <Flex 
             direction="column" 
@@ -166,7 +163,7 @@ export function TopRatedSeries() {
                 }}
                 gap={{ base: 4, md: 4 }}
                 position="relative"
-                my={20}
+                my={12}
               >
                 {/* Segundo Lugar */}
                 <GridItem

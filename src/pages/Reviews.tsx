@@ -28,7 +28,7 @@ import {
 } from '@chakra-ui/react';
 import { MagnifyingGlass, Heart, TelevisionSimple } from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
-import { getPopularReviews, getRecentFollowedUsersReviews, getSeriesReviews, PopularReview } from '../services/reviews';
+import { getPopularReviews, getRecentFollowedUsersReviews, getSeriesReviews, PopularReview, getAllReviews } from '../services/reviews';
 import { EnhancedImage } from '../components/common/EnhancedImage';
 import { RatingStars } from '../components/common/RatingStars';
 import { UserAvatar } from '../components/common/UserAvatar';
@@ -38,6 +38,7 @@ import { getSeriesDetails } from '../services/tmdb';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Footer } from '../components/common/Footer';
+import { PageHeader } from '../components/common/PageHeader';
 
 export function Reviews() {
   const { currentUser } = useAuth();
@@ -49,13 +50,25 @@ export function Reviews() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedReview, setSelectedReview] = useState<PopularReview | null>(null);
 
-  // Buscar avaliações populares
+  // Buscar avaliações populares (com pelo menos 1 curtida)
   const { 
     data: popularReviews = [], 
     isLoading: isLoadingPopular 
   } = useQuery({
     queryKey: ["allPopularReviews"],
     queryFn: getPopularReviews,
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
+    staleTime: 0
+  });
+
+  // Buscar todas as avaliações
+  const {
+    data: allReviews = [],
+    isLoading: isLoadingAll
+  } = useQuery({
+    queryKey: ["allReviews"],
+    queryFn: () => getAllReviews(),
     refetchInterval: 10000,
     refetchOnWindowFocus: true,
     staleTime: 0
@@ -107,6 +120,12 @@ export function Reviews() {
     review.userName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const filteredAllReviews = allReviews.filter((review: PopularReview) => 
+    searchQuery === '' || 
+    review.seriesName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    review.userName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const filteredFollowedReviews = followedReviews.filter(review => 
     searchQuery === '' || 
     review.seriesName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -145,6 +164,10 @@ export function Reviews() {
 
     queryClient.invalidateQueries({
       queryKey: ["allFollowedReviews"],
+    });
+
+    queryClient.invalidateQueries({
+      queryKey: ["allReviews"],
     });
   };
 
@@ -222,38 +245,17 @@ export function Reviews() {
     </Box>
   );
 
-  // Renderizar o esqueleto de carregamento
-  const renderLoadingSkeletons = () => (
-    <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(4, 1fr)", lg: "repeat(6, 1fr)" }} gap={4}>
-      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
-        <Box key={i} bg="gray.800" borderRadius="lg" overflow="hidden" position="relative" h="225px">
-          <Skeleton 
-            height="100%" 
-            width="100%" 
-            startColor="gray.700" 
-            endColor="gray.600" 
-            speed={1.2}
-          />
-          
-          {/* Simular o rodapé com informações */}
-          <Box position="absolute" bottom={0} left={0} right={0} height="60px" zIndex={2}>
-            <Skeleton 
-              height="100%" 
-              startColor="blackAlpha.700" 
-              endColor="blackAlpha.600" 
-              speed={1.2}
-            />
-          </Box>
-          
-          {/* Simular avatar e nome do usuário */}
-          <HStack position="absolute" bottom={4} left={3} zIndex={3} spacing={2}>
-            <SkeletonCircle size="6" startColor="gray.600" endColor="gray.500" />
-            <Skeleton height="10px" width="80px" startColor="gray.600" endColor="gray.500" />
-          </HStack>
-          
-          {/* Simular badge de temporada */}
-          <Box position="absolute" top={3} right={3} zIndex={3}>
-            <Skeleton height="20px" width="30px" borderRadius="md" startColor="purple.300" endColor="purple.200" />
+  // Renderizar o grid de skeleton cards para o estado de carregamento
+  const renderSkeletonGrid = () => (
+    <Grid templateColumns={{ base: "repeat(2, 1fr)", sm: "repeat(4, 1fr)", lg: "repeat(6, 1fr)" }} gap={4}>
+      {Array(6).fill(0).map((_, i) => (
+        <Box key={i} bg="gray.800" borderRadius="lg" h="225px" position="relative">
+          <Skeleton h="100%" />
+          <Box position="absolute" bottom={0} left={0} right={0} p={3}>
+            <HStack>
+              <SkeletonCircle size="8" />
+              <Skeleton height="20px" width="100px" />
+            </HStack>
           </Box>
         </Box>
       ))}
@@ -262,111 +264,89 @@ export function Reviews() {
 
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
-      <Box flex="1">
-        <Container maxW="container.lg" py={8} pb={16}>
-          <Heading color="white" size="2xl" mb={6}>
-            Avaliações
-          </Heading>
-          
-          {/* Barra de busca */}
-          <InputGroup mb={8} size="lg">
-            <Input 
-              placeholder="Buscar por série ou usuário"
-              bg="gray.800"
-              border="none"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearch}
-            />
-            <InputRightElement>
-              <Icon as={MagnifyingGlass} color="gray.400" weight="bold" />
-            </InputRightElement>
-          </InputGroup>
-          
-          {/* Tabs para diferentes categorias de avaliações */}
-          <Tabs 
-            variant="line" 
-            colorScheme="primary" 
-            index={activeTabIndex} 
-            onChange={handleTabChange}
-            mb={8}
-          >
-            <TabList borderBottomColor="gray.700">
-              <Tab color="gray.400" _selected={{ color: "primary.500", borderColor: "primary.500" }}>
-                Mais curtidas
-              </Tab>
-              {currentUser && (
-                <Tab color="gray.400" _selected={{ color: "primary.500", borderColor: "primary.500" }}>
-                  De quem você segue
-                </Tab>
-              )}
-            </TabList>
-            
-            <TabPanels>
-              {/* Tab de avaliações populares */}
-              <TabPanel p={0} pt={6}>
-                {isLoadingPopular ? (
-                  renderLoadingSkeletons()
-                ) : filteredPopularReviews.length === 0 ? (
-                  <Box 
-                    bg="gray.800" 
-                    p={8} 
-                    borderRadius="lg" 
-                    textAlign="center"
-                  >
-                    {searchQuery ? (
-                      <Text color="gray.400">
-                        Nenhuma avaliação encontrada para "{searchQuery}".
-                      </Text>
-                    ) : (
-                      <Text color="gray.400">
-                        Nenhuma avaliação popular esta semana. Seja o primeiro a avaliar uma série!
-                      </Text>
-                    )}
-                  </Box>
-                ) : (
-                  <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(4, 1fr)", lg: "repeat(6, 1fr)" }} gap={4}>
-                    {filteredPopularReviews.map(review => renderReviewCard(review))}
-                  </Grid>
-                )}
-              </TabPanel>
-              
-              {/* Tab de avaliações de usuários seguidos */}
-              {currentUser && (
-                <TabPanel p={0} pt={6}>
-                  {isLoadingFollowed ? (
-                    renderLoadingSkeletons()
-                  ) : filteredFollowedReviews.length === 0 ? (
-                    <Box 
-                      bg="gray.800" 
-                      p={8} 
-                      borderRadius="lg" 
-                      textAlign="center"
-                    >
-                      {searchQuery ? (
-                        <Text color="gray.400">
-                          Nenhuma avaliação encontrada para "{searchQuery}".
-                        </Text>
-                      ) : (
-                        <Text color="gray.400">
-                          Você ainda não tem avaliações de usuários seguidos. Comece a seguir usuários para ver suas avaliações aqui.
-                        </Text>
-                      )}
-                    </Box>
-                  ) : (
-                    <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(4, 1fr)", lg: "repeat(6, 1fr)" }} gap={4}>
-                      {filteredFollowedReviews.map(review => renderReviewCard(review))}
-                    </Grid>
-                  )}
-                </TabPanel>
-              )}
-            </TabPanels>
-          </Tabs>
-        </Container>
-      </Box>
-      
-      <Footer />
-      
+      <PageHeader
+        title="Avaliações"
+        subtitle="Descubra o que a comunidade está assistindo e avaliando"
+        tabs={[
+          {
+            label: "Populares",
+            isSelected: activeTabIndex === 0,
+            onClick: () => handleTabChange(0)
+          },
+          {
+            label: "Seguindo",
+            isSelected: activeTabIndex === 1,
+            onClick: () => handleTabChange(1)
+          },
+          {
+            label: "Todas",
+            isSelected: activeTabIndex === 2,
+            onClick: () => handleTabChange(2)
+          }
+        ]}
+        showSearch={true}
+        searchPlaceholder="Buscar por série ou usuário..."
+        onSearch={setSearchQuery}
+        onSearchSubmit={handleSearch}
+        searchValue={searchQuery}
+      />
+
+      <Container maxW="container.lg" flex="1" py={8}>
+        {activeTabIndex === 0 ? (
+          isLoadingPopular ? (
+            renderSkeletonGrid()
+          ) : filteredPopularReviews.length > 0 ? (
+            <Grid templateColumns={{ base: "repeat(2, 1fr)", sm: "repeat(4, 1fr)", lg: "repeat(6, 1fr)" }} gap={4}>
+              {filteredPopularReviews.map(renderReviewCard)}
+            </Grid>
+          ) : (
+            <Center py={10}>
+              <VStack spacing={4}>
+                <Icon as={TelevisionSimple} boxSize={12} color="gray.500" />
+                <Text color="gray.500">Nenhuma avaliação com curtidas encontrada</Text>
+              </VStack>
+            </Center>
+          )
+        ) : activeTabIndex === 1 ? (
+          // Conteúdo da aba "Seguindo"
+          !currentUser ? (
+            <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
+              <Text color="gray.400">
+                Faça login para ver avaliações de usuários que você segue
+              </Text>
+            </Box>
+          ) : isLoadingFollowed ? (
+            renderSkeletonGrid()
+          ) : filteredFollowedReviews.length > 0 ? (
+            <Grid templateColumns={{ base: "repeat(2, 1fr)", sm: "repeat(4, 1fr)", lg: "repeat(6, 1fr)" }} gap={4}>
+              {filteredFollowedReviews.map(renderReviewCard)}
+            </Grid>
+          ) : (
+            <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
+              <Text color="gray.400">
+                Você ainda não tem avaliações de usuários seguidos
+              </Text>
+            </Box>
+          )
+        ) : (
+          // Conteúdo da aba "Todas"
+          isLoadingAll ? (
+            renderSkeletonGrid()
+          ) : filteredAllReviews.length > 0 ? (
+            <Grid templateColumns={{ base: "repeat(2, 1fr)", sm: "repeat(4, 1fr)", lg: "repeat(6, 1fr)" }} gap={4}>
+              {filteredAllReviews.map(renderReviewCard)}
+            </Grid>
+          ) : (
+            <Center py={10}>
+              <VStack spacing={4}>
+                <Icon as={TelevisionSimple} boxSize={12} color="gray.500" />
+                <Text color="gray.500">Nenhuma avaliação encontrada</Text>
+              </VStack>
+            </Center>
+          )
+        )}
+      </Container>
+
       {/* Modal de detalhes da avaliação */}
       {selectedReview && selectedSeries && (
         <ReviewDetailsModal
@@ -394,6 +374,8 @@ export function Reviews() {
           onReviewUpdated={handleReviewUpdated}
         />
       )}
+
+      <Footer />
     </Flex>
   );
 } 

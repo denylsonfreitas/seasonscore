@@ -26,33 +26,36 @@ import {
   Icon,
   Skeleton,
   useToast,
-  IconButton
+  IconButton,
+  Center
 } from '@chakra-ui/react';
 import { FaSearch, FaPlus, FaTimes } from 'react-icons/fa';
-import { CaretDown, CaretUp } from '@phosphor-icons/react';
+import { CaretDown, CaretUp, Plus, TagSimple, X } from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
-import { getPopularLists, getFollowedUsersLists, getListsByTag, getPopularTags, searchLists } from '../services/lists';
+import { getPopularLists, getFollowedUsersLists, getListsByTag, getPopularTags, searchLists, getAllLists } from '../services/lists';
 import { ListCard } from '../components/lists/ListCard';
 import { CreateListModal } from '../components/lists/CreateListModal';
 import { ResetScroll } from '../components/common/ResetScroll';
 import { ListWithUserData } from '../types/list';
 import { useSearchParams } from 'react-router-dom';
+import { PageHeader } from '../components/common/PageHeader';
 
 export default function Lists() {
   const { currentUser } = useAuth();
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
-  
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<ListWithUserData[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [popularLists, setPopularLists] = useState<ListWithUserData[]>([]);
+  const [allLists, setAllLists] = useState<ListWithUserData[]>([]);
   const [followedLists, setFollowedLists] = useState<ListWithUserData[]>([]);
   const [popularTags, setPopularTags] = useState<{tag: string, count: number}[]>([]);
-  const [selectedTag, setSelectedTag] = useState<string | null>(searchParams.get('tag'));
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [taggedLists, setTaggedLists] = useState<ListWithUserData[]>([]);
   const [isLoadingPopular, setIsLoadingPopular] = useState(true);
+  const [isLoadingAll, setIsLoadingAll] = useState(true);
   const [isLoadingFollowed, setIsLoadingFollowed] = useState(true);
   const [isLoadingTags, setIsLoadingTags] = useState(true);
   const [isLoadingTagged, setIsLoadingTagged] = useState(false);
@@ -61,17 +64,26 @@ export default function Lists() {
   
   const { isOpen: isCreateModalOpen, onOpen: onCreateModalOpen, onClose: onCreateModalClose } = useDisclosure();
 
-  // Verificar se há uma tag nos parâmetros da URL 
+  // Verificar se há uma tag ou tab nos parâmetros da URL 
   useEffect(() => {
+    // Verificar se há um parâmetro 'tab' na URL
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      const tabIndex = parseInt(tabParam, 10);
+      if (!isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 2) {
+        setActiveTabIndex(tabIndex);
+      }
+    }
+    
+    // Verificar se há um parâmetro 'tag' na URL
     const tagParam = searchParams.get('tag');
     if (tagParam) {
       setSelectedTag(tagParam);
       
-      // Verificar a fonte da navegação
-      const source = searchParams.get('source');
-      
-      // Independentemente da fonte, se uma tag foi selecionada, mostrar a aba Tags
-      setActiveTabIndex(2); // Selecionar a aba "Tags" (índice 2)
+      // Se não houver um parâmetro 'tab', definir a aba para Tags
+      if (!tabParam) {
+        setActiveTabIndex(1); // Selecionar a aba "Tags" (índice 1)
+      }
     }
   }, [searchParams]);
 
@@ -97,6 +109,30 @@ export default function Lists() {
     };
     
     fetchPopularLists();
+  }, [toast]);
+
+  // Carregar todas as listas em ordem aleatória
+  useEffect(() => {
+    const fetchAllLists = async () => {
+      setIsLoadingAll(true);
+      try {
+        const lists = await getAllLists();
+        setAllLists(lists);
+      } catch (error) {
+        console.error('Erro ao carregar todas as listas:', error);
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível carregar todas as listas',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      } finally {
+        setIsLoadingAll(false);
+      }
+    };
+    
+    fetchAllLists();
   }, [toast]);
 
   // Carregar listas de usuários seguidos apenas se o usuário estiver logado
@@ -196,16 +232,39 @@ export default function Lists() {
   };
 
   const handleTagClick = (tag: string) => {
+    // Se clicar na tag já selecionada, remove a seleção
     if (tag === selectedTag) {
       setSelectedTag(null);
       // Remover o parâmetro tag da URL
       searchParams.delete('tag');
       setSearchParams(searchParams);
     } else {
+      // Seleciona a nova tag
       setSelectedTag(tag);
       // Adicionar o parâmetro tag à URL
       searchParams.set('tag', tag);
       setSearchParams(searchParams);
+      
+      // Se não estiver na aba Tags, muda para ela
+      if (activeTabIndex !== 1) {
+        setActiveTabIndex(1);
+      } else {
+        // Se já estiver na aba Tags, força uma atualização das listas filtradas
+        // reconsultando as listas com a tag selecionada
+        const fetchListsByTag = async () => {
+          setIsLoadingTagged(true);
+          try {
+            const lists = await getListsByTag(tag);
+            setTaggedLists(lists);
+          } catch (error) {
+            console.error(`Erro ao carregar listas com a tag "${tag}":`, error);
+          } finally {
+            setIsLoadingTagged(false);
+          }
+        };
+        
+        fetchListsByTag();
+      }
     }
   };
 
@@ -213,411 +272,192 @@ export default function Lists() {
 
   const handleTabChange = (index: number) => {
     setActiveTabIndex(index);
+    setShowSearchResults(false);
     
-    // Se mudar para a aba Destaques (índice 0), remover os parâmetros de tag
-    if (index === 0) {
-      const params = new URLSearchParams(searchParams);
-      params.delete('tag');
-      params.delete('source');
-      setSearchParams(params);
+    // Atualizar o parâmetro tab na URL
+    searchParams.set('tab', index.toString());
+    
+    // Se não estiver na aba Tags (índice 1), remover o parâmetro tag
+    if (index !== 1) {
+      searchParams.delete('tag');
     }
+    
+    setSearchParams(searchParams);
+  };
+
+  // Renderizar o conteúdo da aba de tags
+  const renderTagsContent = () => {
+    return (
+      <Box>
+        <Box mb={isLoadingTags ? 0 : 6}>
+          {isLoadingTags ? (
+            <Skeleton height="60px" width="100%" />
+          ) : (
+            <Wrap spacing={2} mb={4}>
+              {displayedTags.map(({ tag, count }) => (
+                <WrapItem key={tag}>
+                  <Tag
+                    size="md"
+                    variant={selectedTag === tag ? "solid" : "subtle"}
+                    colorScheme="primary"
+                    cursor="pointer"
+                    onClick={() => handleTagClick(tag)}
+                  >
+                    <TagLabel>{tag} ({count})</TagLabel>
+                    {selectedTag === tag && (
+                      <IconButton
+                        aria-label="Remover tag"
+                        icon={<X size={12} weight="bold" />}
+                        size="xs"
+                        colorScheme="primary"
+                        variant="ghost"
+                        ml={1}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTagClick(tag);
+                        }}
+                      />
+                    )}
+                  </Tag>
+                </WrapItem>
+              ))}
+              {popularTags.length > 10 && (
+                <WrapItem>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    colorScheme="primary"
+                    rightIcon={
+                      <Icon
+                        as={showAllTags ? CaretUp : CaretDown}
+                        weight="bold"
+                      />
+                    }
+                    onClick={() => setShowAllTags(!showAllTags)}
+                  >
+                    {showAllTags ? "Mostrar menos" : "Ver mais"}
+                  </Button>
+                </WrapItem>
+              )}
+            </Wrap>
+          )}
+        </Box>
+
+        {selectedTag ? (
+          isLoadingTagged ? (
+            <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} height="300px" borderRadius="lg" />
+              ))}
+            </Grid>
+          ) : taggedLists.length > 0 ? (
+            <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
+              {taggedLists.map((list) => (
+                <ListCard key={list.id} list={list} />
+              ))}
+            </Grid>
+          ) : (
+            <Center py={8}>
+              <VStack spacing={4}>
+                <Icon as={TagSimple} boxSize={12} color="gray.500" weight="thin" />
+                <Text color="gray.400">Nenhuma lista encontrada com a tag "{selectedTag}"</Text>
+              </VStack>
+            </Center>
+          )
+        ) : (
+          <Center py={8}>
+            <Text color="gray.400">Selecione uma tag para ver as listas</Text>
+          </Center>
+        )}
+      </Box>
+    );
   };
 
   return (
-    <>
-      <ResetScroll />
-      <Container maxW="container.lg" py={8}>
-        <Flex 
-          direction={{ base: "column", md: "row" }}
-          justifyContent="space-between" 
-          alignItems={{ base: "flex-start", md: "center" }}
-          mb={{ base: 6, md: 8 }}
-          gap={{ base: 4, md: 0 }}
-        >
-          <Heading color="white" size="lg" mb={{ base: 2, md: 0 }}>
-            Listas
-          </Heading>
-          
-          <Flex 
-            width={{ base: "100%", md: "auto" }}
-            direction={{ base: "column", sm: "row" }}
-            gap={3}
+    <Flex direction="column" minH="100vh" bg="gray.900">
+      <PageHeader
+        title="Listas"
+        subtitle="Navegue pelas listas da comunidade ou crie a sua própria"
+        showSearch={true}
+        searchPlaceholder="Buscar listas..."
+        onSearch={setSearchQuery}
+        onSearchSubmit={(e) => {
+          if (e.key === 'Enter') {
+            handleSearch();
+          }
+        }}
+        searchValue={searchQuery}
+        tabs={[
+          { label: "Populares", isSelected: activeTabIndex === 0, onClick: () => handleTabChange(0) },
+          { label: "Tags", isSelected: activeTabIndex === 1, onClick: () => handleTabChange(1) },
+          { label: "Todas", isSelected: activeTabIndex === 2, onClick: () => handleTabChange(2) }
+        ]}
+        actionButton={
+          <Button
+            leftIcon={<Icon as={Plus} weight="bold" />}
+            colorScheme="primary"
+            onClick={onCreateModalOpen}
+            size="md"
           >
-            <InputGroup maxW={{ base: "100%", md: "300px" }}>
-              <Input
-                placeholder="Buscar listas..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  if (!e.target.value.trim()) {
-                    setShowSearchResults(false);
-                  }
-                }}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                bg="gray.700"
-                borderColor="gray.600"
-                pr="16"
-              />
-              <InputRightElement pr="8">
-                {searchQuery ? (
-                  <HStack spacing={0}>
-                    <IconButton
-                      aria-label="Limpar busca"
-                      icon={<FaTimes size={12} />}
-                      size="sm"
-                      variant="ghost"
-                      h="8"
-                      minW="8"
-                      colorScheme="whiteAlpha"
-                      onClick={() => {
-                        setSearchQuery('');
-                        setShowSearchResults(false);
-                      }}
-                    />
-                    <IconButton
-                      aria-label="Buscar"
-                      icon={<FaSearch size={12} />}
-                      size="sm"
-                      variant="ghost"
-                      h="8"
-                      minW="8"
-                      colorScheme="primary"
-                      isLoading={isSearching}
-                      onClick={handleSearch}
-                    />
-                  </HStack>
-                ) : (
-                  <IconButton
-                    aria-label="Buscar"
-                    icon={<FaSearch size={12} />}
-                    size="sm"
-                    variant="ghost"
-                    h="8"
-                    minW="8"
-                    colorScheme="primary"
-                    isLoading={isSearching}
-                    onClick={handleSearch}
-                  />
-                )}
-              </InputRightElement>
-            </InputGroup>
-            
-            <Button
-              leftIcon={<FaPlus />}
-              colorScheme="primary"
-              onClick={onCreateModalOpen}
-              width={{ base: "100%", sm: "auto" }}
-              size="md"
-            >
-              Lista
-            </Button>
-          </Flex>
-        </Flex>
-        
-        <Tabs 
-          variant="line" 
-          colorScheme="primary" 
-          isLazy 
-          mb={8}
-          index={activeTabIndex}
-          onChange={handleTabChange}
-        >
-          <TabList borderBottomColor="gray.700">
-            <Tab color="gray.300" _selected={{ color: "white", borderColor: "primary.500" }}>Destaques</Tab>
-            <Tab 
-              color="gray.300" 
-              _selected={{ color: "white", borderColor: "primary.500" }}
-              isDisabled={!currentUser}
-              title={!currentUser ? "Faça login para ver listas de usuários que você segue" : ""}
-            >
-              Seguindo
-            </Tab>
-            <Tab color="gray.300" _selected={{ color: "white", borderColor: "primary.500" }}>
-              Tags
-            </Tab>
-          </TabList>
-          
-          <TabPanels>
-            {/* Painel de Destaques */}
-            <TabPanel px={0}>
-              {/* Resultados da busca - mostrados acima de tudo quando uma busca for feita */}
-              {showSearchResults && (
-                <Box mb={8}>
-                  <Flex justifyContent="space-between" alignItems="center" mb={4}>
-                    <Heading size="md" color="white">
-                      Resultados para "{searchQuery}"
-                    </Heading>
-                    <Button 
-                      variant="link" 
-                      colorScheme="primary" 
-                      onClick={() => setShowSearchResults(false)}
-                    >
-                      Limpar busca
-                    </Button>
-                  </Flex>
-                  
-                  {searchResults.length === 0 ? (
-                    <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
-                      <Text color="gray.400">
-                        Nenhuma lista encontrada para "{searchQuery}".
-                      </Text>
-                    </Box>
-                  ) : (
-                    <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
-                      {searchResults.map((list) => (
-                        <ListCard key={list.id} list={list} />
-                      ))}
-                    </Grid>
-                  )}
-                </Box>
-              )}
-              
-              {selectedTag ? (
-                <Box mb={8}>
-                  <Flex justifyContent="space-between" alignItems="center" mb={4}>
-                    <Heading size="md" color="white">
-                      Listas com a tag "{selectedTag}"
-                    </Heading>
-                    <Button 
-                      variant="link" 
-                      colorScheme="primary" 
-                      onClick={() => setSelectedTag(null)}
-                    >
-                      Limpar filtro
-                    </Button>
-                  </Flex>
-                  
-                  {isLoadingTagged ? (
-                    <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
-                      {[1, 2, 3, 4, 5, 6].map((i) => (
-                        <Skeleton key={i} height="240px" borderRadius="lg" />
-                      ))}
-                    </Grid>
-                  ) : taggedLists.length === 0 ? (
-                    <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
-                      <Text color="gray.400">
-                        Nenhuma lista encontrada com a tag "{selectedTag}".
-                      </Text>
-                    </Box>
-                  ) : (
-                    <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
-                      {taggedLists.map((list) => (
-                        <ListCard key={list.id} list={list} />
-                      ))}
-                    </Grid>
-                  )}
-                </Box>
-              ) : (
-                <>
-                  <Box mb={8}>
-                    <Heading size="md" color="white" mb={4}>
-                      Listas Populares
-                    </Heading>
-                    
-                    {isLoadingPopular ? (
-                      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
-                        {[1, 2, 3, 4, 5, 6].map((i) => (
-                          <Skeleton key={i} height="240px" borderRadius="lg" />
-                        ))}
-                      </Grid>
-                    ) : popularLists.length === 0 ? (
-                      <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
-                        <Text color="gray.400">
-                          Ainda não há listas populares. Listas com mais de uma curtida aparecerão aqui!
-                        </Text>
-                      </Box>
-                    ) : (
-                      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
-                        {popularLists.map((list) => (
-                          <ListCard key={list.id} list={list} />
-                        ))}
-                      </Grid>
-                    )}
-                  </Box>
-                  
-                  <Divider borderColor="gray.700" my={8} />
-                  
-                  <Box>
-                    <Heading size="md" color="white" mb={4}>
-                      Tags Populares
-                    </Heading>
-                    
-                    {isLoadingTags ? (
-                      <Wrap spacing={3}>
-                        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                          <WrapItem key={i}>
-                            <Skeleton height="32px" width="100px" borderRadius="full" />
-                          </WrapItem>
-                        ))}
-                      </Wrap>
-                    ) : popularTags.length === 0 ? (
-                      <Text color="gray.400">
-                        Nenhuma tag encontrada.
-                      </Text>
-                    ) : (
-                      <>
-                        <Wrap spacing={3}>
-                          {displayedTags.map((tagItem) => (
-                            <WrapItem key={tagItem.tag}>
-                              <Tag
-                                size="lg"
-                                colorScheme="primary"
-                                variant={selectedTag === tagItem.tag ? "solid" : "subtle"}
-                                cursor="pointer"
-                                onClick={() => handleTagClick(tagItem.tag)}
-                                opacity={selectedTag === tagItem.tag ? 1 : 0.8}
-                                transform={selectedTag === tagItem.tag ? "scale(1.05)" : "scale(1)"}
-                                transition="all 0.2s"
-                                fontWeight={selectedTag === tagItem.tag ? "bold" : "normal"}
-                                boxShadow={selectedTag === tagItem.tag ? "0 0 0 1px #805AD5" : "none"}
-                              >
-                                <TagLabel>{tagItem.tag} ({tagItem.count})</TagLabel>
-                              </Tag>
-                            </WrapItem>
-                          ))}
-                        </Wrap>
-                        
-                        {popularTags.length > 10 && (
-                          <Button
-                            variant="link"
-                            colorScheme="primary"
-                            onClick={() => setShowAllTags(!showAllTags)}
-                            mt={4}
-                            rightIcon={showAllTags ? <CaretUp weight="bold" /> : <CaretDown weight="bold" />}
-                          >
-                            {showAllTags ? "Ver menos" : `Ver mais (${popularTags.length - 10})`}
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </Box>
-                </>
-              )}
-            </TabPanel>
-            
-            {/* Painel de Seguindo */}
-            <TabPanel px={0}>
-              {!currentUser ? (
-                <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
-                  <Text color="gray.400">
-                    Faça login para ver listas de usuários que você segue.
-                  </Text>
-                </Box>
-              ) : isLoadingFollowed ? (
-                <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
-                  {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <Skeleton key={i} height="240px" borderRadius="lg" />
-                  ))}
-                </Grid>
-              ) : followedLists.length === 0 ? (
-                <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
-                  <Text color="gray.400">
-                    Você ainda não tem listas de usuários seguidos. Comece a seguir usuários para ver suas listas aqui.
-                  </Text>
-                </Box>
-              ) : (
-                <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
-                  {followedLists.map((list) => (
-                    <ListCard key={list.id} list={list} />
-                  ))}
-                </Grid>
-              )}
-            </TabPanel>
-            
-            {/* Painel de Tags */}
-            <TabPanel px={0}>
-              <Box>
-                <Heading size="md" color="white" mb={4}>
-                  Todas as Tags
-                </Heading>
-                
-                {isLoadingTags ? (
-                  <Wrap spacing={3}>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((i) => (
-                      <WrapItem key={i}>
-                        <Skeleton height="32px" width={`${Math.floor(Math.random() * 50) + 80}px`} borderRadius="full" />
-                      </WrapItem>
-                    ))}
-                  </Wrap>
-                ) : popularTags.length === 0 ? (
-                  <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
-                    <Text color="gray.400">
-                      Ainda não há tags disponíveis. As tags são criadas quando os usuários adicionam elas às suas listas.
-                    </Text>
-                  </Box>
-                ) : (
-                  <Wrap spacing={3}>
-                    {popularTags.map((tagItem) => (
-                      <WrapItem key={tagItem.tag}>
-                        <Tag
-                          size="lg"
-                          colorScheme="primary"
-                          variant="subtle"
-                          cursor="pointer"
-                          onClick={() => handleTagClick(tagItem.tag)}
-                          opacity={selectedTag === tagItem.tag ? 1 : 0.8}
-                          transform={selectedTag === tagItem.tag ? "scale(1.05)" : "scale(1)"}
-                          transition="all 0.2s"
-                        >
-                          <TagLabel>{tagItem.tag} ({tagItem.count})</TagLabel>
-                        </Tag>
-                      </WrapItem>
-                    ))}
-                  </Wrap>
-                )}
-                
-                {selectedTag && (
-                  <Box mt={8}>
-                    <Flex justifyContent="space-between" alignItems="center" mb={4}>
-                      <Heading size="md" color="white">
-                        Listas com a tag "{selectedTag}"
-                      </Heading>
-                      <Button 
-                        variant="link" 
-                        colorScheme="primary" 
-                        onClick={() => setSelectedTag(null)}
-                      >
-                        Limpar filtro
-                      </Button>
-                    </Flex>
-                    
-                    {isLoadingTagged ? (
-                      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
-                        {[1, 2, 3, 4, 5, 6].map((i) => (
-                          <Skeleton key={i} height="240px" borderRadius="lg" />
-                        ))}
-                      </Grid>
-                    ) : taggedLists.length === 0 ? (
-                      <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
-                        <Text color="gray.400">
-                          Nenhuma lista encontrada com a tag "{selectedTag}".
-                        </Text>
-                      </Box>
-                    ) : (
-                      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
-                        {taggedLists.map((list) => (
-                          <ListCard key={list.id} list={list} />
-                        ))}
-                      </Grid>
-                    )}
-                  </Box>
-                )}
-              </Box>
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
+            Lista
+          </Button>
+        }
+      />
+
+      <Container maxW="container.lg" flex="1" py={8}>
+        {activeTabIndex === 0 ? (
+          showSearchResults ? (
+            <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
+              {searchResults.map((list) => (
+                <ListCard key={list.id} list={list} />
+              ))}
+            </Grid>
+          ) : isLoadingPopular ? (
+            <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} height="300px" borderRadius="lg" />
+              ))}
+            </Grid>
+          ) : popularLists.length > 0 ? (
+            <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
+              {popularLists.map((list) => (
+                <ListCard key={list.id} list={list} />
+              ))}
+            </Grid>
+          ) : (
+            <Center py={8}>
+              <VStack spacing={4}>
+                <Icon as={TagSimple} boxSize={12} color="gray.500" weight="thin" />
+                <Text color="gray.400">Nenhuma lista popular encontrada</Text>
+              </VStack>
+            </Center>
+          )
+        ) : activeTabIndex === 1 ? (
+          renderTagsContent()
+        ) : (
+          // Conteúdo da aba "Todas"
+          showSearchResults ? (
+            <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
+              {searchResults.map((list) => (
+                <ListCard key={list.id} list={list} />
+              ))}
+            </Grid>
+          ) : (
+            <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
+              {allLists.map((list) => (
+                <ListCard key={list.id} list={list} />
+              ))}
+            </Grid>
+          )
+        )}
       </Container>
-      
-      {isCreateModalOpen && (
-        <CreateListModal 
-          isOpen={isCreateModalOpen}
-          onClose={onCreateModalClose}
-          onListCreated={() => {
-            // Recarregar as listas após criação
-            // Você precisa implementar esta função
-          }}
-        />
-      )}
-    </>
+
+      <CreateListModal
+        isOpen={isCreateModalOpen}
+        onClose={onCreateModalClose}
+      />
+
+      <ResetScroll />
+    </Flex>
   );
 } 

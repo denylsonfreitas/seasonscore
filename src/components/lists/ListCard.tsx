@@ -67,7 +67,7 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
   const handleTagClick = (e: React.MouseEvent, tag: string) => {
     e.preventDefault();
     e.stopPropagation();
-    navigate(`/lists?tag=${encodeURIComponent(tag)}&source=listPage`);
+    navigate(`/lists?tag=${encodeURIComponent(tag)}&source=listPage&tab=1`);
   };
   
   return (

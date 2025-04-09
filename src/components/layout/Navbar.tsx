@@ -157,7 +157,6 @@ export function Navbar() {
         left={0}
         right={0}
         zIndex={1000}
-        borderBottom="1px solid"
         borderColor="gray.700"
         height="60px"
         display="flex"

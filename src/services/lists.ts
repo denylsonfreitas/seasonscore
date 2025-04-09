@@ -586,6 +586,54 @@ export async function getPopularLists(limitCount: number = DEFAULT_LIMIT): Promi
 }
 
 /**
+ * Retorna todas as listas públicas em ordem aleatória
+ * @param limitCount Número de listas a retornar
+ * @returns Promise com array de listas em ordem aleatória
+ */
+export async function getAllLists(limitCount: number = DEFAULT_LIMIT): Promise<ListWithUserData[]> {
+  try {
+    const q = query(
+      collection(db, LISTS_COLLECTION),
+      where("isPublic", "==", true),
+      limit(500) // Buscar um número maior para depois randomizar
+    );
+
+    const querySnapshot = await getDocs(q);
+    let lists = querySnapshot.docs.map(doc => listFromDoc(doc));
+    
+    // Embaralhar a lista usando o algoritmo Fisher-Yates
+    for (let i = lists.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [lists[i], lists[j]] = [lists[j], lists[i]];
+    }
+    
+    // Limitar ao número solicitado
+    lists = lists.slice(0, limitCount);
+
+    // Enriquecer com dados de usuário
+    return Promise.all(
+      lists.map(async (list) => {
+        try {
+          const userData = await getUserData(list.userId);
+          return {
+            ...list,
+            username: userData?.username,
+            userDisplayName: userData?.displayName,
+            userPhotoURL: userData?.photoURL,
+          };
+        } catch (error) {
+          console.error(`Erro ao obter dados do usuário para lista ${list.id}:`, error);
+          return list as ListWithUserData;
+        }
+      })
+    );
+  } catch (error) {
+    console.error("Erro ao buscar todas as listas:", error);
+    return [];
+  }
+}
+
+/**
  * Busca listas por tag
  * @param tag Tag para buscar
  * @param limitCount Número máximo de resultados

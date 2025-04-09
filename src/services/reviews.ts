@@ -1006,49 +1006,67 @@ export interface PopularReview {
 }
 
 export async function getPopularReviews(): Promise<PopularReview[]> {
-  const reviewsRef = collection(db, "reviews");
-  const oneWeekAgo = new Date();
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  try {
+    const reviewsRef = collection(db, "reviews");
+    
+    // Não usamos mais o filtro de data
+    const q = query(
+      reviewsRef,
+      orderBy("createdAt", "desc"),
+      limit(50) // Buscamos mais para poder filtrar depois
+    );
 
-  const q = query(
-    reviewsRef,
-    where("createdAt", ">=", oneWeekAgo),
-    orderBy("createdAt", "desc"),
-    limit(10)
-  );
-
-  const querySnapshot = await getDocs(q);
-  const reviews = await Promise.all(
-    querySnapshot.docs.map(async (doc) => {
-      const review = doc.data() as SeriesReview;
-      const userData = await getUserData(review.userId);
-      const seriesDetails = await getSeriesDetails(review.seriesId);
-      
-      // Pegar a primeira avaliação de temporada para mostrar
-      const firstSeasonReview = review.seasonReviews[0];
-      
-      return {
-        id: doc.id,
-        userId: review.userId,
-        seriesId: review.seriesId,
-        seriesName: seriesDetails.name,
-        seriesPoster: seriesDetails.poster_path,
-        seasonNumber: firstSeasonReview.seasonNumber,
-        rating: firstSeasonReview.rating,
-        comment: firstSeasonReview.comment,
-        userName: userData?.displayName || review.userEmail,
-        userAvatar: userData?.photoURL || "",
-        createdAt: firstSeasonReview.createdAt instanceof Date 
-          ? firstSeasonReview.createdAt 
-          : typeof firstSeasonReview.createdAt === 'object' && 'seconds' in firstSeasonReview.createdAt
-            ? new Date(firstSeasonReview.createdAt.seconds * 1000)
-            : new Date(),
-        likes: firstSeasonReview.reactions?.likes?.length || 0,
-      };
-    })
-  );
-
-  return reviews;
+    const querySnapshot = await getDocs(q);
+    const reviews = await Promise.all(
+      querySnapshot.docs.map(async (doc) => {
+        const review = doc.data() as SeriesReview;
+        const userData = await getUserData(review.userId);
+        const seriesDetails = await getSeriesDetails(review.seriesId);
+        
+        // Verificar se existem avaliações de temporada
+        if (!review.seasonReviews || review.seasonReviews.length === 0) {
+          return null; // Ignorar avaliações sem temporadas
+        }
+        
+        // Pegar a primeira avaliação de temporada para mostrar
+        const firstSeasonReview = review.seasonReviews[0];
+        
+        // Calcular o número de curtidas
+        const likesCount = firstSeasonReview.reactions?.likes?.length || 0;
+        
+        return {
+          id: doc.id,
+          userId: review.userId,
+          seriesId: review.seriesId,
+          seriesName: seriesDetails.name,
+          seriesPoster: seriesDetails.poster_path,
+          seasonNumber: firstSeasonReview.seasonNumber,
+          rating: firstSeasonReview.rating,
+          comment: firstSeasonReview.comment,
+          userName: userData?.displayName || review.userEmail,
+          userAvatar: userData?.photoURL || "",
+          createdAt: firstSeasonReview.createdAt instanceof Date 
+            ? firstSeasonReview.createdAt 
+            : typeof firstSeasonReview.createdAt === 'object' && 'seconds' in firstSeasonReview.createdAt
+              ? new Date(firstSeasonReview.createdAt.seconds * 1000)
+              : new Date(),
+          likes: likesCount,
+        };
+      })
+    );
+    
+    // Filtrar avaliações nulas e que tenham pelo menos 1 curtida
+    const filteredReviews = reviews
+      .filter(review => review !== null && review.likes >= 1) as PopularReview[];
+    
+    // Ordenar por número de curtidas (decrescente)
+    return filteredReviews
+      .sort((a, b) => b.likes - a.likes)
+      .slice(0, 30); // Limitar a 30 resultados
+  } catch (error) {
+    console.error("Erro ao buscar avaliações populares:", error);
+    return [];
+  }
 }
 
 export async function getFollowedUsersReviews(userId: string, seriesId: number): Promise<SeriesReview[]> {
@@ -1207,6 +1225,65 @@ export async function getUserRecentReviews(userId: string, limitCount: number = 
     return reviews;
   } catch (error) {
     console.error(`Erro ao buscar reviews recentes do usuário ${userId}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Busca todas as avaliações, independente de popularidade
+ * @param limitCount Número máximo de avaliações a retornar
+ * @returns Promise com array de todas as avaliações
+ */
+export async function getAllReviews(limitCount: number = 30): Promise<PopularReview[]> {
+  try {
+    const reviewsRef = collection(db, "reviews");
+    
+    const q = query(
+      reviewsRef,
+      orderBy("createdAt", "desc"),
+      limit(limitCount)
+    );
+
+    const querySnapshot = await getDocs(q);
+    const reviews = await Promise.all(
+      querySnapshot.docs.map(async (doc) => {
+        const review = doc.data() as SeriesReview;
+        const userData = await getUserData(review.userId);
+        const seriesDetails = await getSeriesDetails(review.seriesId);
+        
+        // Verificar se existem avaliações de temporada
+        if (!review.seasonReviews || review.seasonReviews.length === 0) {
+          return null; // Ignorar avaliações sem temporadas
+        }
+        
+        // Pegar a primeira avaliação de temporada para mostrar
+        const firstSeasonReview = review.seasonReviews[0];
+        
+        return {
+          id: doc.id,
+          userId: review.userId,
+          seriesId: review.seriesId,
+          seriesName: seriesDetails.name,
+          seriesPoster: seriesDetails.poster_path,
+          seasonNumber: firstSeasonReview.seasonNumber,
+          rating: firstSeasonReview.rating,
+          comment: firstSeasonReview.comment,
+          userName: userData?.displayName || review.userEmail,
+          userAvatar: userData?.photoURL || "",
+          createdAt: firstSeasonReview.createdAt instanceof Date 
+            ? firstSeasonReview.createdAt 
+            : typeof firstSeasonReview.createdAt === 'object' && 'seconds' in firstSeasonReview.createdAt
+              ? new Date(firstSeasonReview.createdAt.seconds * 1000)
+              : new Date(),
+          likes: firstSeasonReview.reactions?.likes?.length || 0,
+        };
+      })
+    );
+    
+    // Filtrar itens nulos (que foram ignorados por não terem avaliações de temporada)
+    return reviews.filter(review => review !== null) as PopularReview[];
+  } catch (error) {
+    console.error("Erro ao buscar todas as avaliações:", error);
     return [];
   }
 }

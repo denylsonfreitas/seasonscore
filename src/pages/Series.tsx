@@ -35,6 +35,14 @@ import {
   Tab,
   TabPanels,
   TabPanel,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverBody,
+  PopoverArrow,
+  PopoverCloseButton,
+  useDisclosure,
+  Portal,
 } from "@chakra-ui/react";
 import { SeriesGrid } from "../components/series/SeriesGrid";
 import { useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
@@ -46,7 +54,7 @@ import {
   getPopularSeries,
   getAiringTodaySeries,
 } from "../services/tmdb";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { SeriesFilter } from "../components/series/SeriesFilter";
 import { Footer } from "../components/common/Footer";
 import { useSearchParams, useNavigate } from "react-router-dom";
@@ -56,10 +64,12 @@ import {
   SortDescending, 
   Television, 
   Star, 
-  TrendUp 
+  TrendUp,
+  Funnel,
 } from "@phosphor-icons/react";
 import { getSeriesReviews } from "../services/reviews";
 import { getListById } from "../services/lists";
+import { PageHeader } from "../components/common/PageHeader";
 
 export function Series() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -67,7 +77,8 @@ export function Series() {
   const [activeSearch, setActiveSearch] = useState(searchParams.get("search") || "");
   const [genreFilter, setGenreFilter] = useState(searchParams.get("genre") || "");
   const [genreName, setGenreName] = useState(searchParams.get("name") || "");
-  const [sortBy, setSortBy] = useState("popularity.desc");
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const filterPopoverRef = useRef<HTMLButtonElement>(null);
   
   const navigate = useNavigate();
   
@@ -76,32 +87,25 @@ export function Series() {
   const [listInfo, setListInfo] = useState<any>(null);
   const [isLoadingList, setIsLoadingList] = useState(false);
 
+  // Efeito que sincroniza os parâmetros da URL com o estado local
+  // Este efeito só é executado uma vez na montagem do componente
   useEffect(() => {
-    // Atualiza os estados com base nos parâmetros da URL
-    if (searchParams.get("search")) {
-      const search = searchParams.get("search") || "";
-      setSearchQuery(search);
-      setActiveSearch(search);
-    }
-    
-    if (searchParams.get("genre")) {
-      const genre = searchParams.get("genre") || "";
-      const name = searchParams.get("name") || "";
-      setGenreFilter(genre);
-      setGenreName(decodeURIComponent(name));
-    }
-    
-    // Verificar se há um list_id e buscar informações da lista
+    // Inicialização dos estados a partir dos parâmetros da URL
+    const search = searchParams.get("search") || "";
+    const genre = searchParams.get("genre") || "";
+    const name = searchParams.get("name") || "";
     const listIdParam = searchParams.get("list_id");
+
+    setSearchQuery(search);
+    setActiveSearch(search);
+    setGenreFilter(genre);
+    setGenreName(name ? decodeURIComponent(name) : "");
+    
     if (listIdParam) {
       setListId(listIdParam);
       fetchListInfo(listIdParam);
     }
-    
-    if (searchParams.get("sortBy")) {
-      setSortBy(searchParams.get("sortBy") || "popularity.desc");
-    }
-  }, [searchParams]);
+  }, []); // Sem dependências - executado apenas na montagem
   
   const fetchListInfo = async (id: string) => {
     setIsLoadingList(true);
@@ -124,18 +128,18 @@ export function Series() {
     isLoading: isAllSeriesLoading,
     refetch: refetchAllSeries
   } = useInfiniteQuery({
-    queryKey: ["series", "all", activeSearch, genreFilter, sortBy],
+    queryKey: ["series", "all", activeSearch, genreFilter],
     queryFn: async ({ pageParam = 1 }) => {
       if (activeSearch) {
         return searchSeries(activeSearch, pageParam as number);
       } else if (genreFilter) {
         return getFilteredSeries({ 
           genre: genreFilter,
-          sortBy: sortBy 
+          sortBy: "popularity.desc"
         }, pageParam as number);
       } else {
         return getFilteredSeries({ 
-          sortBy: sortBy
+          sortBy: "popularity.desc"
         }, pageParam as number);
       }
     },
@@ -147,7 +151,7 @@ export function Series() {
   // Atualizar a busca quando os filtros mudarem
   useEffect(() => {
     refetchAllSeries();
-  }, [sortBy, refetchAllSeries]);
+  }, [activeSearch, genreFilter, refetchAllSeries]);
 
   // Processamento de dados
   const currentQueryData = allSeriesData;
@@ -190,15 +194,23 @@ export function Series() {
     }));
   }, [uniqueSeries, seriesReviewsQueries]);
   
+  // Ordenação das séries por popularidade (padrão da API)
+  const sortedSeriesWithRatings = useMemo(() => {
+    // Clonar array para não modificar o original
+    const sorted = [...seriesWithRatings];
+    // Ordenar por popularidade (padrão)
+    return sorted;
+  }, [seriesWithRatings]);
+  
   // Estatísticas
   const stats = useMemo(() => {
-    const totalSeries = seriesWithRatings.length;
+    const totalSeries = sortedSeriesWithRatings.length;
     
     // Séries com avaliações
-    const seriesWithRatingsCount = seriesWithRatings.filter(s => s.rating !== undefined).length;
+    const seriesWithRatingsCount = sortedSeriesWithRatings.filter(s => s.rating !== undefined).length;
     
     // Média de avaliações
-    const ratings = seriesWithRatings
+    const ratings = sortedSeriesWithRatings
       .filter(s => s.rating !== undefined)
       .map(s => s.rating as number);
     
@@ -220,7 +232,7 @@ export function Series() {
       averageRating,
       genresCount,
     };
-  }, [seriesWithRatings]);
+  }, [sortedSeriesWithRatings]);
 
   // Cores para o modo escuro do site
   const statBgColor = useColorModeValue("gray.700", "gray.800");
@@ -241,7 +253,11 @@ export function Series() {
   const clearSearch = () => {
     setSearchQuery("");
     setActiveSearch("");
-    updateSearchParams();
+    
+    // Remover o parâmetro de busca da URL
+    const newParams = new URLSearchParams(searchParams.toString());
+    newParams.delete("search");
+    setSearchParams(newParams);
   };
 
   const handleGenreChange = (genre: string, name: string = "") => {
@@ -253,28 +269,29 @@ export function Series() {
   const clearGenreFilter = () => {
     setGenreFilter("");
     setGenreName("");
-    updateSearchParams();
+    
+    // Remover os parâmetros de gênero da URL
+    const newParams = new URLSearchParams(searchParams.toString());
+    newParams.delete("genre");
+    newParams.delete("name");
+    setSearchParams(newParams);
   };
   
   // Função para atualizar os parâmetros da URL
   const updateSearchParams = () => {
-    const params: Record<string, string> = {};
+    const params = new URLSearchParams();
     
-    if (searchQuery.trim()) {
-      params.search = searchQuery.trim();
+    if (activeSearch.trim()) {
+      params.set("search", activeSearch.trim());
     }
     
     if (genreFilter) {
-      params.genre = genreFilter;
-      if (genreName) params.name = genreName;
-    }
-    
-    if (sortBy !== "popularity.desc") {
-      params.sortBy = sortBy;
+      params.set("genre", genreFilter);
+      if (genreName) params.set("name", genreName);
     }
     
     if (listId) {
-      params.list_id = listId;
+      params.set("list_id", listId);
     }
     
     setSearchParams(params);
@@ -290,195 +307,113 @@ export function Series() {
 
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
-      <Box flex="1">
-        <Container maxW="container.lg" py={8} pb={16}>
-          <Flex 
-            direction={{ base: "column", md: "row" }} 
-            align={{ base: "start", md: "center" }} 
-            justify="space-between" 
-            mb={6}
+      <PageHeader
+        title="Séries"
+        subtitle="Explore e descubra novas séries para assistir"
+        showSearch={true}
+        searchPlaceholder="Buscar séries..."
+        searchValue={searchQuery}
+        onSearch={setSearchQuery}
+        onSearchSubmit={handleSearch}
+        actionButton={
+          <Popover
+            isOpen={isOpen}
+            onClose={onClose}
+            placement="bottom-end"
+            closeOnBlur={true}
+            isLazy
           >
-            <VStack align="start" spacing={1}>
-              <Heading color="white" size="2xl">
-                Séries
-              </Heading>
-              <Text color="gray.400">
-                Explore e descubra novas séries para assistir
-              </Text>
-            </VStack>
-            
-            {/* Filtros em dispositivos maiores */}
-            <HStack 
-              display={{ base: "none", md: "flex" }} 
-              spacing={4} 
-              mt={{ base: 4, md: 0 }}
-            >
-              <Select 
-                id="sort-select"
-                name="sort-select"
-                value={sortBy} 
-                onChange={(e) => {
-                  setSortBy(e.target.value);
-                  updateSearchParams();
-                }}
-                bg="gray.800"
-                border="none"
-                width="220px"
-                icon={<SortDescending />}
+            <PopoverTrigger>
+              <Button
+                ref={filterPopoverRef}
+                leftIcon={<Icon as={Funnel} weight="bold" />}
+                colorScheme="primary"
+                variant="solid"
+                onClick={onOpen}
+                size="md"
               >
-                <option value="popularity.desc">Popularidade</option>
-                <option value="vote_average.desc">Avaliação</option>
-                <option value="first_air_date.desc">Data (mais recente)</option>
-                <option value="first_air_date.asc">Data (mais antiga)</option>
-              </Select>
+                Filtros
+              </Button>
+            </PopoverTrigger>
+            <Portal>
+              <PopoverContent 
+                bg="gray.800" 
+                borderColor="gray.700" 
+                width={{ base: "300px", md: "400px" }}
+                _focus={{ boxShadow: "none" }}
+              >
+                <PopoverArrow bg="gray.800" />
+                <PopoverCloseButton color="gray.400" />
+                <PopoverBody p={4}>
+                  <VStack spacing={4} align="stretch">
+                    <Box>
+                      <Text color="gray.300" fontWeight="medium" mb={2}>Gênero</Text>
+                      <SeriesFilter
+                        genreFilter={genreFilter}
+                        onGenreChange={(genre, name) => {
+                          handleGenreChange(genre, name);
+                          onClose();
+                        }}
+                      />
+                    </Box>
+                  </VStack>
+                </PopoverBody>
+              </PopoverContent>
+            </Portal>
+          </Popover>
+        }
+      />
+
+      <Container maxW="container.lg" flex="1" py={8}>
+        {listId && listInfo && (
+          <Alert status="info" mb={6} borderRadius="md">
+            <AlertIcon />
+            <Box>
+              <AlertTitle>Adicionando séries à lista:</AlertTitle>
+              <AlertDescription>
+                "{listInfo.title}" - Use o botão de listas em cada série para adicionar à sua lista.
+              </AlertDescription>
+            </Box>
+          </Alert>
+        )}
+
+        {/* Mostrar tags de filtros ativos */}
+        {(activeSearch || genreFilter) && (
+          <Box mb={6}>
+            <Text fontSize="sm" fontWeight="medium" color="gray.400" mb={2}>
+              Filtros ativos:
+            </Text>
+            <HStack spacing={2} flexWrap="wrap">
+              {activeSearch && (
+                <Tag colorScheme="primary" size="md">
+                  <HStack spacing={2}>
+                    <Text>Busca: {activeSearch}</Text>
+                    <CloseButton size="sm" onClick={clearSearch} />
+                  </HStack>
+                </Tag>
+              )}
+              {genreFilter && genreName && (
+                <Tag colorScheme="purple" size="md">
+                  <HStack spacing={2}>
+                    <Text>Gênero: {genreName}</Text>
+                    <CloseButton size="sm" onClick={clearGenreFilter} />
+                  </HStack>
+                </Tag>
+              )}
             </HStack>
-          </Flex>
-          
-          {listId && listInfo && (
-            <Alert status="info" mb={6} borderRadius="md">
-              <AlertIcon />
-              <Box>
-                <AlertTitle>Adicionando séries à lista:</AlertTitle>
-                <AlertDescription>
-                  "{listInfo.title}" - Use o botão de listas em cada série para adicionar à sua lista.
-                </AlertDescription>
-              </Box>
-            </Alert>
-          )}
-          
-          {/* Filtros em dispositivos móveis */}
-          <VStack 
-            display={{ base: "flex", md: "none" }} 
-            spacing={3} 
-            mb={5}
-          >
-            <Select 
-              id="sort-select-mobile"
-              name="sort-select-mobile"
-              value={sortBy} 
-              onChange={(e) => {
-                setSortBy(e.target.value);
-                updateSearchParams();
-              }}
-              bg="gray.800"
-              border="none"
-              icon={<SortDescending />}
-            >
-              <option value="popularity.desc">Popularidade</option>
-              <option value="vote_average.desc">Avaliação</option>
-              <option value="first_air_date.desc">Data (mais recente)</option>
-              <option value="first_air_date.asc">Data (mais antiga)</option>
-            </Select>
-          </VStack>
+          </Box>
+        )}
+        
+        <Divider mb={6} borderColor="gray.700" />
 
-          <Flex 
-            gap={4} 
-            mb={6} 
-            direction={{ base: "column", md: "row" }}
-            align={{ base: "stretch", md: "center" }}
-            bg="gray.800"
-            p={4}
-            borderRadius="lg"
-          >
-            <Box flex={1}>
-              <InputGroup>
-                <Input
-                  id="series-search"
-                  name="series-search"
-                  placeholder="Buscar séries..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={handleSearch}
-                  bg="gray.700"
-                  color="white"
-                  border="none"
-                  _placeholder={{ color: "gray.400" }}
-                />
-                <InputRightElement width="4.5rem">
-                  {activeSearch && (
-                    <Button 
-                      h="1.75rem" 
-                      size="sm" 
-                      mr={1}
-                      variant="ghost"
-                      color="gray.400"
-                      _hover={{ color: "white" }}
-                      onClick={clearSearch}
-                    >
-                      ✕
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    color="gray.400"
-                    _hover={{ color: "white" }}
-                    onClick={handleSearchClick}
-                    aria-label="Buscar"
-                    h="1.75rem"
-                    size="sm"
-                    mr={6}
-                  >
-                    <MagnifyingGlass size={24} weight="bold" />
-                  </Button>
-                </InputRightElement>
-              </InputGroup>
-            </Box>
-
-            <Box minW={{ base: "100%", md: "200px" }}>
-              <SeriesFilter
-                genreFilter={genreFilter}
-                onGenreChange={handleGenreChange}
-              />
-            </Box>
-          </Flex>
-          
-          {/* Mostrar tags de filtros ativos */}
-          {(activeSearch || genreFilter || sortBy !== "popularity.desc") && (
-            <Box mb={6}>
-              <Text fontSize="sm" fontWeight="medium" color="gray.400" mb={2}>
-                Filtros ativos:
-              </Text>
-              <HStack spacing={2} flexWrap="wrap">
-                {activeSearch && (
-                  <Tag colorScheme="primary" size="md">
-                    <HStack spacing={2}>
-                      <Text>Busca: {activeSearch}</Text>
-                      <CloseButton size="sm" onClick={clearSearch} />
-                    </HStack>
-                  </Tag>
-                )}
-                {genreFilter && genreName && (
-                  <Tag colorScheme="purple" size="md">
-                    <HStack spacing={2}>
-                      <Text>Gênero: {genreName}</Text>
-                      <CloseButton size="sm" onClick={clearGenreFilter} />
-                    </HStack>
-                  </Tag>
-                )}
-                {sortBy !== "popularity.desc" && (
-                  <Tag colorScheme="green" size="md">
-                    Ordenação: {
-                      sortBy === "vote_average.desc" ? "Avaliação" :
-                      sortBy === "first_air_date.desc" ? "Data (mais recente)" :
-                      sortBy === "first_air_date.asc" ? "Data (mais antiga)" : ""
-                    }
-                  </Tag>
-                )}
-              </HStack>
-            </Box>
-          )}
-          
-          <Divider mb={6} borderColor="gray.700" />
-
-          <SeriesGrid
-            series={seriesWithRatings}
-            isLoading={isLoading && seriesWithRatings.length === 0}
-            hasNextPage={hasNextPage}
-            isFetchingNextPage={isFetchingNextPage}
-            onLoadMore={fetchNextPage}
-          />
-        </Container>
-      </Box>
+        <SeriesGrid
+          series={sortedSeriesWithRatings}
+          isLoading={isLoading && sortedSeriesWithRatings.length === 0}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          onLoadMore={fetchNextPage}
+        />
+      </Container>
       <Footer />
     </Flex>
   );
