@@ -24,7 +24,6 @@ import { SeriesReview, getSeriesReviews, deleteReview } from "../services/review
 import { Footer } from "../components/common/Footer";
 import { ReviewModal } from "../components/reviews/ReviewModal";
 import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
-import { ReviewDetailsModal } from "../components/reviews/ReviewDetailsModal";
 import { getUserData } from "../services/users";
 import { SeriesHeader } from "../components/series/SeriesHeader";
 import { RelatedSeries } from "../components/series/RelatedSeries";
@@ -37,11 +36,14 @@ export function SeriesDetails() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [existingReview, setExistingReview] = useState<SeriesReview | null>(null);
   const [selectedSeason, setSelectedSeason] = useState(1);
-  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
-  const [seasonToDelete, setSeasonToDelete] = useState<number | null>(null);
-  const [isReviewDetailsOpen, setIsReviewDetailsOpen] = useState(false);
+  
+  // Combinar estados relacionados para reduzir re-renders
+  const [deleteState, setDeleteState] = useState({
+    isOpen: false,
+    seasonToDelete: null as number | null
+  });
+  
   const [userData, setUserData] = useState<{ photoURL?: string | null } | null>(null);
-  const [selectedReview, setSelectedReview] = useState<any>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -49,17 +51,12 @@ export function SeriesDetails() {
   const seriesDetailsRef = useRef<HTMLDivElement>(null);
   const userDataFetched = useRef(false);
 
-  const { data: series, isLoading, isError, error } = useQuery({
+  // Queries
+  const { data: series, isLoading, isError } = useQuery({
     queryKey: ["series", id],
     queryFn: () => getSeriesDetails(Number(id)),
-    staleTime: 1000 * 60 * 30,
+    staleTime: 1000 * 60 * 30, // 30 minutos
   });
-
-  useEffect(() => {
-    if (!isLoading && !series && isError) {
-      navigate('/404', { replace: true });
-    }
-  }, [isLoading, series, isError, navigate]);
 
   const { data: reviews = [] } = useQuery({
     queryKey: ["reviews", id],
@@ -70,35 +67,24 @@ export function SeriesDetails() {
     enabled: !!series,
   });
 
+  const { data: relatedSeries, isLoading: isLoadingRelated } = useQuery({
+    queryKey: ["related-series", id],
+    queryFn: () => getRelatedSeries(Number(id)),
+    enabled: !!series,
+    staleTime: 1000 * 60 * 60, // 1 hora
+  });
+
+  // Efeitos e dados derivados
+  useEffect(() => {
+    if (!isLoading && !series && isError) {
+      navigate('/404', { replace: true });
+    }
+  }, [isLoading, series, isError, navigate]);
+
   const userReview = useMemo(() => 
     reviews.find((review) => review.userId === currentUser?.uid),
     [reviews, currentUser?.uid]
   );
-
-  const currentReview = useMemo(() => {
-    if (!selectedReview || !series) return null;
-    
-    const review = reviews.find(r => r.id === selectedReview.id);
-    if (!review) return null;
-
-    const seasonReview = review.seasonReviews.find(sr => sr.seasonNumber === selectedSeason);
-    if (!seasonReview) return null;
-
-    return {
-      id: review.id,
-      seriesId: id!,
-      userId: review.userId,
-      userEmail: review.userEmail,
-      seriesName: series.name || "",
-      seriesPoster: series.poster_path || "",
-      seasonNumber: selectedSeason,
-      rating: seasonReview.rating,
-      comment: seasonReview.comment || "",
-      comments: seasonReview.comments || [],
-      reactions: seasonReview.reactions || { likes: [] },
-      createdAt: seasonReview.createdAt || new Date()
-    };
-  }, [selectedReview?.id, selectedSeason, id, series?.name, series?.poster_path, reviews]);
 
   const currentUserReview = useMemo(() => {
     if (!userReview || !series) return null;
@@ -120,75 +106,119 @@ export function SeriesDetails() {
       reactions: seasonReview.reactions || { likes: [] },
       createdAt: seasonReview.createdAt || new Date()
     };
-  }, [userReview?.id, selectedSeason, id, series?.name, series?.poster_path]);
+  }, [userReview, series, selectedSeason, id]);
 
-  useEffect(() => {
-    if (selectedReview && reviews.length > 0) {
-      const updatedReview = reviews
-        .find(review => review.id === selectedReview.id)
-        ?.seasonReviews
-        .find(sr => sr.seasonNumber === selectedSeason);
+  // Memoizar dados do SEO para evitar recálculos
+  const seoData = useMemo(() => ({
+    title: series ? `${series.name} | SeasonScore` : 'Carregando série | SeasonScore',
+    description: series 
+      ? `Avalie e confira as reviews da série ${series.name} no SeasonScore.`
+      : 'Carregando detalhes da série.',
+    image: series?.poster_path 
+      ? `https://image.tmdb.org/t/p/w500${series.poster_path}` 
+      : ''
+  }), [series]);
 
-      if (updatedReview) {
-        setSelectedReview((prev: typeof selectedReview) => ({
-          ...prev,
-          ...updatedReview
-        }));
-      }
-    }
-  }, [reviews, selectedReview?.id, selectedSeason]);
-
-  const { data: relatedSeries, isLoading: isLoadingRelated } = useQuery({
-    queryKey: ["related-series", id],
-    queryFn: () => getRelatedSeries(Number(id)),
-    enabled: !!series,
-    staleTime: 1000 * 60 * 60,
-  });
-
-  const fetchUserData = useCallback(async (user: FirebaseUser) => {
-    if (userDataFetched.current) return;
-    
-    try {
-      const data = await getUserData(user.uid);
-      setUserData(data);
-      userDataFetched.current = true;
-    } catch (error) {
-    }
-  }, []);
-
-  useEffect(() => {
-    if (currentUser && !userDataFetched.current) {
-      fetchUserData(currentUser);
-    }
-  }, [currentUser, fetchUserData]);
-
+  // Callbacks otimizados
   const handleDeleteReview = useCallback(async () => {
-    if (!userReview || seasonToDelete === null) return;
+    if (!currentUser || !series || !deleteState.seasonToDelete || !userReview?.id) {
+      toast({
+        title: "Erro ao excluir avaliação",
+        description: "Dados inválidos para exclusão da avaliação.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
 
     try {
-      await deleteReview(userReview.id!, seasonToDelete);
+      await deleteReview(userReview.id, deleteState.seasonToDelete);
       queryClient.invalidateQueries({ queryKey: ["reviews", id] });
       toast({
-        title: "Avaliação excluída",
-        description: "Sua avaliação foi excluída com sucesso!",
+        title: "Avaliação excluída com sucesso!",
         status: "success",
         duration: 3000,
         isClosable: true,
       });
     } catch (error) {
+      console.error("Error deleting review:", error);
       toast({
-        title: "Erro ao excluir",
-        description: "Ocorreu um erro ao excluir sua avaliação.",
+        title: "Erro ao excluir avaliação",
+        description: "Por favor, tente novamente mais tarde.",
         status: "error",
         duration: 3000,
         isClosable: true,
       });
     } finally {
-      setIsDeleteAlertOpen(false);
-      setSeasonToDelete(null);
+      setDeleteState({
+        isOpen: false,
+        seasonToDelete: null
+      });
     }
-  }, [userReview, seasonToDelete, id, queryClient, toast]);
+  }, [currentUser, series, deleteState.seasonToDelete, userReview?.id, id, queryClient, toast]);
 
+  const handleReviewClick = useCallback((review: any) => {
+    navigate(`/reviews/${review.id}/${review.seasonNumber}`);
+  }, [navigate]);
+
+  const handleEditReview = useCallback((seasonNumber: number) => {
+    navigate(`/series/${id}/season/${seasonNumber}/review`);
+  }, [navigate, id]);
+
+  const handleDeleteClick = useCallback((seasonNumber: number) => {
+    setDeleteState({
+      isOpen: true,
+      seasonToDelete: seasonNumber
+    });
+  }, []);
+
+  const handleCancelDelete = useCallback(() => {
+    setDeleteState({
+      isOpen: false,
+      seasonToDelete: null
+    });
+  }, []);
+
+  const handleModalClose = useCallback(() => {
+    onClose();
+    queryClient.invalidateQueries({ queryKey: ["reviews", id] });
+  }, [onClose, queryClient, id]);
+
+  const handleReviewEditModalClose = useCallback(() => {
+    setExistingReview(null);
+    queryClient.invalidateQueries({ queryKey: ["reviews", id] });
+  }, [queryClient, id]);
+
+  // Memoizar handlers para componentes filhos
+  const handleSetDeleteAlertOpen = useCallback((isOpen: boolean) => {
+    setDeleteState(prev => ({ ...prev, isOpen }));
+  }, []);
+
+  const handleSetSeasonToDelete = useCallback((seasonToDelete: number | null) => {
+    setDeleteState(prev => ({ ...prev, seasonToDelete }));
+  }, []);
+
+  // Buscar dados do usuário
+  useEffect(() => {
+    if (!currentUser || userDataFetched.current) return;
+
+    const fetchUserData = async () => {
+      try {
+        const userDoc = await getUserData(currentUser.uid);
+        if (userDoc) {
+          setUserData(userDoc);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchUserData();
+    userDataFetched.current = true;
+  }, [currentUser]);
+
+  // Memoizar componentes que podem ser caros de renderizar
   const LoadingComponent = useMemo(() => (
     <Center minH="70vh">
       <Spinner size="xl" color="primary.500" />
@@ -203,23 +233,15 @@ export function SeriesDetails() {
     </Box>
   ), []);
 
-  const seoTitle = series ? `${series.name} | SeasonScore` : 'Carregando série | SeasonScore';
-  const seoDescription = series 
-    ? `Avalie e confira as reviews da série ${series.name} no SeasonScore.`
-    : 'Carregando detalhes da série.';
-  const seoImage = series?.poster_path 
-    ? `https://image.tmdb.org/t/p/w500${series.poster_path}` 
-    : '';
-
   if (isLoading) return LoadingComponent;
   if (!series) return NotFoundComponent;
 
   return (
     <>
       <SEO 
-        title={seoTitle}
-        description={seoDescription}
-        image={seoImage}
+        title={seoData.title}
+        description={seoData.description}
+        image={seoData.image}
         type="article"
       />
       
@@ -236,12 +258,9 @@ export function SeriesDetails() {
             onSeasonSelect={setSelectedSeason}
             onOpenReviewModal={onOpen}
             onSetExistingReview={setExistingReview}
-            onSetDeleteAlertOpen={setIsDeleteAlertOpen}
-            onSetSeasonToDelete={setSeasonToDelete}
-            onReviewClick={(review) => {
-              setSelectedReview(review);
-              setIsReviewDetailsOpen(true);
-            }}
+            onSetDeleteAlertOpen={handleSetDeleteAlertOpen}
+            onSetSeasonToDelete={handleSetSeasonToDelete}
+            onReviewClick={handleReviewClick}
             navigate={navigate}
           />
 
@@ -257,10 +276,7 @@ export function SeriesDetails() {
         {isOpen && (
           <ReviewModal
             isOpen={isOpen}
-            onClose={() => {
-              onClose();
-              queryClient.invalidateQueries({ queryKey: ["reviews", id] });
-            }}
+            onClose={handleModalClose}
             seriesId={Number(id)}
             seriesName={series.name}
             numberOfSeasons={series.number_of_seasons}
@@ -272,7 +288,7 @@ export function SeriesDetails() {
         {existingReview && (
           <ReviewEditModal
             isOpen={!!existingReview}
-            onClose={() => setExistingReview(null)}
+            onClose={handleReviewEditModalClose}
             review={{
               ...existingReview,
               id: existingReview.id,
@@ -286,22 +302,14 @@ export function SeriesDetails() {
               },
             }}
             initialSeasonNumber={selectedSeason}
-            onReviewUpdated={() => {
-              setExistingReview(null);
-              queryClient.invalidateQueries({
-                queryKey: ["reviews", id],
-              });
-            }}
+            onReviewUpdated={handleReviewEditModalClose}
           />
         )}
 
         <AlertDialog
-          isOpen={isDeleteAlertOpen}
+          isOpen={deleteState.isOpen}
           leastDestructiveRef={cancelRef}
-          onClose={() => {
-            setIsDeleteAlertOpen(false);
-            setSeasonToDelete(null);
-          }}
+          onClose={handleCancelDelete}
         >
           <AlertDialogOverlay>
             <AlertDialogContent bg="gray.800">
@@ -309,15 +317,12 @@ export function SeriesDetails() {
                 Excluir avaliação
               </AlertDialogHeader>
               <AlertDialogBody color="white">
-                Tem certeza que deseja excluir sua avaliação da temporada {seasonToDelete}? Esta ação não pode ser desfeita.
+                Tem certeza que deseja excluir sua avaliação da temporada {deleteState.seasonToDelete}? Esta ação não pode ser desfeita.
               </AlertDialogBody>
               <AlertDialogFooter>
                 <Button
                   ref={cancelRef}
-                  onClick={() => {
-                    setIsDeleteAlertOpen(false);
-                    setSeasonToDelete(null);
-                  }}
+                  onClick={handleCancelDelete}
                   variant="ghost"
                   color="white"
                   _hover={{ bg: "gray.700" }}
@@ -336,20 +341,6 @@ export function SeriesDetails() {
             </AlertDialogContent>
           </AlertDialogOverlay>
         </AlertDialog>
-
-        <ReviewDetailsModal
-          isOpen={isReviewDetailsOpen}
-          onClose={() => {
-            setIsReviewDetailsOpen(false);
-            setSelectedReview(null);
-          }}
-          review={currentReview}
-          onReviewUpdated={() => {
-            queryClient.invalidateQueries({
-              queryKey: ["reviews", id],
-            });
-          }}
-        />
       </Flex>
     </>
   );

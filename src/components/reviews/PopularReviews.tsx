@@ -1,54 +1,33 @@
-import { Box, VStack, Text, HStack, Icon, useDisclosure, Badge, Center, LinkBox, Skeleton, SkeletonCircle } from "@chakra-ui/react";
-import { useState } from "react";
-import { getPopularReviews, PopularReview, getSeriesReviews } from "../../services/reviews";
+import React, { useState } from "react";
+import {
+  Box, Text, HStack, VStack, Icon, Badge, Center, Skeleton, SkeletonCircle, Link,
+  LinkBox,
+} from "@chakra-ui/react";
+import { useNavigate } from "react-router-dom";
 import { Heart, TelevisionSimple } from "@phosphor-icons/react";
 import { RatingStars } from "../common/RatingStars";
 import { UserAvatar } from "../common/UserAvatar";
-import { ReviewDetailsModal } from "./ReviewDetailsModal";
-import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
-import { getSeriesDetails } from "../../services/tmdb";
 import { UserName } from "../common/UserName";
-import { EnhancedImage } from "../common/EnhancedImage";
+import { getPopularReviews, PopularReview } from "../../services/reviews";
 import { SectionBase } from "../common/SectionBase";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import { carouselStyles, seriesSliderSettings } from "../../styles/carouselStyles";
+import { seriesSliderSettings, carouselStyles } from "../../styles/carouselStyles";
+import { EnhancedImage } from "../common/EnhancedImage";
 
 export function PopularReviews() {
-  const [selectedReview, setSelectedReview] = useState<PopularReview | null>(null);
-  const { isOpen, onOpen, onClose } = useDisclosure();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-
+  
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ["popularReviews"],
     queryFn: getPopularReviews,
-    refetchInterval: 3000,
-    refetchOnWindowFocus: true,
-    staleTime: 0
-  });
-
-  const { data: selectedSeries } = useQuery({
-    queryKey: ["series", selectedReview?.seriesId],
-    queryFn: () => getSeriesDetails(selectedReview?.seriesId || 0),
-    enabled: !!selectedReview?.seriesId
-  });
-
-  const { data: seriesReviews = [] } = useQuery({
-    queryKey: ["reviews", selectedReview?.seriesId],
-    queryFn: () => getSeriesReviews(selectedReview?.seriesId || 0),
-    enabled: !!selectedReview?.seriesId,
-    refetchInterval: 3000,
-    refetchOnWindowFocus: true,
-    staleTime: 0
+    staleTime: 1000 * 60 * 5, // 5 minutos
   });
 
   const handleReviewClick = (review: PopularReview) => {
-    setSelectedReview(review);
-    onOpen();
+    // Redirecionar para a página de detalhes da review em vez de abrir o modal
+    navigate(`/reviews/${review.id}/${review.seasonNumber}`);
   };
 
   const handlePosterClick = (e: React.MouseEvent, seriesId: number) => {
@@ -56,25 +35,7 @@ export function PopularReviews() {
     navigate(`/series/${seriesId}`);
   };
 
-  const currentReview = selectedReview && seriesReviews.length > 0
-    ? seriesReviews.find(r => r.id === selectedReview.id)
-    : null;
-
-  const seasonReview = currentReview?.seasonReviews.find(
-    sr => sr.seasonNumber === selectedReview?.seasonNumber
-  );
-
   const popularReviews = reviews.filter(review => review.likes > 0);
-
-  const handleReviewUpdated = () => {
-    queryClient.invalidateQueries({
-      queryKey: ["reviews", selectedReview?.seriesId],
-    });
-    
-    queryClient.invalidateQueries({
-      queryKey: ["popularReviews"],
-    });
-  };
 
   // Componente de carregamento elegante como skeleton
   const loadingElement = (
@@ -218,45 +179,16 @@ export function PopularReviews() {
   };
 
   return (
-    <>
-      <SectionBase
-        title="Avaliações mais curtidas"
-        link="/reviews"
-        linkText="Ver todas"
-        isLoading={isLoading}
-        isEmpty={popularReviews.length === 0}
-        emptyMessage="Nenhuma avaliação popular esta semana. Seja o primeiro a avaliar uma série!"
-        expandable={popularReviews.length > 6}
-        renderContent={renderContent}
-        loadingElement={loadingElement}
-      />
-
-      {selectedReview && selectedSeries && (
-        <ReviewDetailsModal
-          isOpen={isOpen}
-          onClose={() => {
-            onClose();
-            setSelectedReview(null);
-          }}
-          review={{
-            id: selectedReview.id,
-            seriesId: selectedReview.seriesId.toString(),
-            userId: selectedReview.userId,
-            userEmail: selectedReview.userName,
-            seriesName: selectedSeries.name,
-            seriesPoster: selectedSeries.poster_path || "",
-            seasonNumber: selectedReview.seasonNumber,
-            rating: seasonReview?.rating || selectedReview.rating,
-            comment: seasonReview?.comment || selectedReview.comment,
-            comments: seasonReview?.comments || [],
-            reactions: { 
-              likes: [],
-            },
-            createdAt: seasonReview?.createdAt || selectedReview.createdAt
-          }}
-          onReviewUpdated={handleReviewUpdated}
-        />
-      )}
-    </>
+    <SectionBase
+      title="Avaliações mais curtidas"
+      link="/reviews"
+      linkText="Ver todas"
+      isLoading={isLoading}
+      isEmpty={popularReviews.length === 0}
+      emptyMessage="Nenhuma avaliação popular esta semana. Seja o primeiro a avaliar uma série!"
+      expandable={popularReviews.length > 6}
+      renderContent={renderContent}
+      loadingElement={loadingElement}
+    />
   );
 } 

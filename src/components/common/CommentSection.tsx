@@ -35,9 +35,9 @@ import {
   deleteComment,
   updateComment,
 } from '../../services/comments';
-import { UserName } from '../common/UserName';
-import { UserAvatar } from '../common/UserAvatar';
-import { ReactionButton } from '../common/ReactionButton';
+import { UserName } from './UserName';
+import { UserAvatar } from './UserAvatar';
+import { ReactionButton } from './ReactionButton';
 import { useQueryClient } from '@tanstack/react-query';
 import { toggleListCommentReaction } from '../../services/lists';
 
@@ -58,9 +58,10 @@ interface CommentSectionProps {
   objectId: string;
   objectType: 'review' | 'list';
   commentsCount: number;
+  seasonNumber?: number;
 }
 
-export function CommentSection({ objectId, objectType, commentsCount }: CommentSectionProps) {
+export function CommentSection({ objectId, objectType, commentsCount, seasonNumber }: CommentSectionProps) {
   const { currentUser } = useAuth();
   const toast = useToast();
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -112,7 +113,7 @@ export function CommentSection({ objectId, objectType, commentsCount }: CommentS
   const loadComments = async () => {
     try {
       setIsLoading(true);
-      const commentsData = await getComments(objectId, objectType);
+      const commentsData = await getComments(objectId, objectType, seasonNumber);
       setComments(commentsData);
     } catch (error) {
       console.error('Erro ao carregar comentários:', error);
@@ -153,7 +154,7 @@ export function CommentSection({ objectId, objectType, commentsCount }: CommentS
     try {
       setIsSubmitting(true);
       
-      const addedComment = await addComment(objectId, objectType, newComment.trim());
+      const addedComment = await addComment(objectId, objectType, newComment.trim(), seasonNumber);
       
       setComments([addedComment, ...comments]);
       setNewComment('');
@@ -347,8 +348,6 @@ export function CommentSection({ objectId, objectType, commentsCount }: CommentS
       bg={bgColor}
       borderRadius="lg"
       boxShadow="md"
-      borderWidth="1px"
-      borderColor={borderColor}
       overflow="hidden"
     >
       <Box p={6}>

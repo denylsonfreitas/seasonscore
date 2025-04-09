@@ -5,6 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { Box, Spinner, Center } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 import { getUserData } from "../services/users";
+import { ReviewDetails } from "../pages/ReviewDetails";
 
 const PageLoader = () => (
   <Center minH="75vh">
@@ -317,6 +318,14 @@ export const routes = [
             <CommunityLazy />
           </Suspense>
         ),
+      },
+      {
+        path: "/reviews/:reviewId/:seasonNumber",
+        element: <ReviewDetails />,
+      },
+      {
+        path: "/reviews/:reviewId",
+        element: <ReviewDetails />,
       },
       {
         path: "*",

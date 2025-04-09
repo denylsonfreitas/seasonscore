@@ -100,6 +100,10 @@ export function SeriesDetailsTabs({
     return () => window.removeEventListener('resize', checkScroll);
   }, []);
 
+  const handleReviewClick = (review: any) => {
+    navigate(`/reviews/${review.id}/${review.seasonNumber}`);
+  };
+
   return (
     <Box width="100%">
       <Tabs variant="enclosed" colorScheme="primary" size="sm">

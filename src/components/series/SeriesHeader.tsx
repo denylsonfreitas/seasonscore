@@ -61,7 +61,7 @@ interface SeriesHeaderProps {
   onSetExistingReview: (review: SeriesReview) => void;
   onSetDeleteAlertOpen: (isOpen: boolean) => void;
   onSetSeasonToDelete: (season: number | null) => void;
-  onReviewClick: (review: SeriesReview) => void;
+  onReviewClick: (review: any) => void;
   navigate: (path: string) => void;
 }
 

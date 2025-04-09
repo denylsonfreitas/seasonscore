@@ -1,35 +1,46 @@
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Container,
+  Grid,
+  GridItem,
   Heading,
-  VStack,
-  HStack,
   Text,
-  Select,
+  Button,
   Flex,
+  HStack,
+  VStack,
   Spinner,
-  useDisclosure,
-  useBreakpointValue,
   Center,
-  IconButton,
+  Image,
+  useColorModeValue,
+  Tabs,
+  TabList,
+  Tab,
+  TabPanels,
+  TabPanel,
   useToast,
+  Link as ChakraLink,
+  Badge,
+  Icon,
   Divider,
+  Select,
+  useBreakpointValue,
 } from "@chakra-ui/react";
-import { useParams, useSearchParams, Link as RouterLink, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { getSeriesDetails } from "../services/tmdb";
-import { getSeriesReviews, toggleReaction } from "../services/reviews";
-import { RatingStars } from "../components/common/RatingStars";
-import { UserName } from "../components/common/UserName";
-import { ReviewDetailsModal } from "../components/reviews/ReviewDetailsModal";
-import { useState, useMemo, useCallback, useEffect } from "react";
-import { useUsersData } from "../hooks/useUsersData";
-import { useAuth } from "../contexts/AuthContext";
-import { useQueryClient } from "@tanstack/react-query";
-import { ReactionButtons } from "../components/reviews/ReactionButtons";
+import { useParams, Link as RouterLink, useNavigate, useSearchParams } from "react-router-dom";
 import { Footer } from "../components/common/Footer";
+import { getSeriesDetails } from "../services/tmdb";
+import { getSeriesReviews, SeriesReview, getUserReview } from "../services/reviews";
+import { RatingStars } from "../components/common/RatingStars";
 import { UserAvatar } from "../components/common/UserAvatar";
-import { FieldValue } from "firebase/firestore";
+import { UserName } from "../components/common/UserName";
+import { ReactionButtons } from "../components/reviews/ReactionButtons";
+import { useAuth } from "../contexts/AuthContext";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Star, ChatCircle, Heart, ArrowLeft } from "@phosphor-icons/react";
+import { PageHeader } from "../components/common/PageHeader";
+import { useQuery } from "@tanstack/react-query";
 
 export function SeriesReviews() {
   const { id } = useParams<{ id: string }>();
@@ -37,129 +48,96 @@ export function SeriesReviews() {
   const [selectedSeason, setSelectedSeason] = useState(
     Number(searchParams.get("season")) || 1
   );
-  const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
-  const { isOpen, onOpen, onClose } = useDisclosure();
   const navigate = useNavigate();
-
+  const toast = useToast();
+  const { currentUser } = useAuth();
+  
   const starSize = useBreakpointValue({ base: 16, md: 20 });
-
+  
   const { data: series, isLoading: isLoadingSeries, isError: isSeriesError } = useQuery({
     queryKey: ["series", id],
     queryFn: () => getSeriesDetails(Number(id)),
   });
-
-  // Adicionar redirecionamento para página 404 quando série não for encontrada
+  
+  const [reviews, setReviews] = useState<SeriesReview[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(true);
+  
+  // Buscar detalhes da série e avaliações
   useEffect(() => {
-    if (!isLoadingSeries && !series && isSeriesError) {
-      navigate('/404', { replace: true });
-    }
-  }, [isLoadingSeries, series, isSeriesError, navigate]);
-
-  const { data: reviews = [], isLoading: isLoadingReviews } = useQuery({
-    queryKey: ["reviews", id],
-    queryFn: () => getSeriesReviews(Number(id)),
-    refetchInterval: 3000,
-    refetchOnWindowFocus: true,
-    staleTime: 0
-  });
-
-  const seasonReviews = reviews.flatMap((review) =>
-    review.seasonReviews
-      .filter((sr) => sr.seasonNumber === selectedSeason)
-      .map((sr) => ({
-        ...sr,
-        id: review.id || "",
-        userId: review.userId,
-        userEmail: review.userEmail,
-        comments: sr.comments || [],
-        createdAt: sr.createdAt || new Date()
-      }))
-  );
-
-  const sortedReviews = [...seasonReviews].sort((a, b) => {
-    // Primeiro por número de likes
-    const likesComparison = (b.reactions?.likes?.length || 0) - (a.reactions?.likes?.length || 0);
-    if (likesComparison !== 0) return likesComparison;
+    if (!id) return;
     
-    // Depois por data de criação (mais recentes primeiro)
-    const dateA = a.createdAt instanceof Date 
-      ? a.createdAt 
-      : 'seconds' in a.createdAt ? new Date(a.createdAt.seconds * 1000) : new Date();
-    const dateB = b.createdAt instanceof Date 
-      ? b.createdAt 
-      : 'seconds' in b.createdAt ? new Date(b.createdAt.seconds * 1000) : new Date();
-    return dateB.getTime() - dateA.getTime();
-  });
-
-  // Buscar dados de todos os usuários de uma vez
-  const userIds = useMemo(() => [...new Set(sortedReviews.map(review => review.userId))], [sortedReviews]);
-  const { usersData, isLoading: isLoadingUsers } = useUsersData(userIds);
-
-  // Usar useMemo para atualizar o selectedReview
-  const selectedReview = useMemo(() => {
-    if (!selectedReviewId || !reviews.length) return null;
-
-    const review = reviews.find(r => r.id === selectedReviewId);
-    if (!review) return null;
-
-    const seasonReview = review.seasonReviews.find(sr => sr.seasonNumber === selectedSeason);
-    if (!seasonReview) return null;
-
-    return {
-      ...seasonReview,
-      id: review.id,
-      userId: review.userId,
-      userEmail: review.userEmail
+    const fetchData = async () => {
+      setIsLoadingReviews(true);
+      try {
+        // Buscar avaliações da série
+        const reviewsData = await getSeriesReviews(parseInt(id));
+        setReviews(reviewsData);
+      } catch (error) {
+        console.error("Erro ao buscar dados:", error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar os dados da série e avaliações",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      } finally {
+        setIsLoadingReviews(false);
+      }
     };
-  }, [selectedReviewId, reviews, selectedSeason]);
-
-  const { currentUser } = useAuth();
-  const toast = useToast();
-  const queryClient = useQueryClient();
-  const [loadingReactions, setLoadingReactions] = useState<Record<string, boolean>>({});
-
-  const handleReaction = useCallback(async (reviewId: string, seasonNumber: number, type: "likes", event: React.MouseEvent) => {
-    event.stopPropagation(); // Impedir que abra o modal
-
-    if (!currentUser) {
-      toast({
-        title: "Erro",
-        description: "Você precisa estar logado para reagir a uma avaliação",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    // Definir que esta reação específica está em carregamento
-    const reactionId = `${reviewId}-${seasonNumber}-${type}`;
-    setLoadingReactions(prev => ({ ...prev, [reactionId]: true }));
-
-    try {
-      await toggleReaction(reviewId, seasonNumber, type);
-      queryClient.invalidateQueries({ queryKey: ["reviews", id] });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível registrar sua reação",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      // Independente do resultado, desativar o loading
-      setLoadingReactions(prev => ({ ...prev, [reactionId]: false }));
-    }
-  }, [currentUser, id, queryClient, toast]);
-
-  if (isLoadingSeries || isLoadingReviews || isLoadingUsers) {
-    return (
-      <Center minH="70vh">
-        <Spinner size="xl" color="primary.500" />
-      </Center>
+    
+    fetchData();
+  }, [id, toast]);
+  
+  // Manipular clique na avaliação
+  const handleReviewClick = (review: SeriesReview, seasonNumber: number) => {
+    navigate(`/reviews/${review.id}/${seasonNumber}`);
+  };
+  
+  // Filtrar avaliações por temporada
+  const filteredReviews = useMemo(() => {
+    return reviews.filter(review => 
+      review.seasonReviews.some(seasonReview => 
+        seasonReview.seasonNumber === selectedSeason
+      )
     );
-  }
+  }, [reviews, selectedSeason]);
+  
+  // Obter temporadas únicas
+  const seasons = useMemo(() => {
+    const allSeasons = reviews.flatMap(review => 
+      review.seasonReviews.map(season => season.seasonNumber)
+    );
+    return [...new Set(allSeasons)].sort((a, b) => a - b);
+  }, [reviews]);
+  
+  // Verificar se o usuário já fez avaliação para esta temporada
+  const userHasReviewed = useMemo(() => {
+    if (!currentUser) return false;
+    
+    return reviews.some(review => 
+      review.userId === currentUser.uid && 
+      review.seasonReviews.some(sr => sr.seasonNumber === selectedSeason)
+    );
+  }, [reviews, currentUser, selectedSeason]);
+  
+  // Ordenar avaliações (mais recentes primeiro)
+  const sortedReviews = useMemo(() => {
+    return [...filteredReviews].sort((a, b) => {
+      const aDate = a.seasonReviews.find(sr => sr.seasonNumber === selectedSeason)?.createdAt;
+      const bDate = b.seasonReviews.find(sr => sr.seasonNumber === selectedSeason)?.createdAt;
+      
+      if (!aDate || !bDate) return 0;
+      
+      // Converter para timestamp se necessário
+      const aTime = aDate instanceof Date ? aDate.getTime() : 
+        ('seconds' in aDate ? aDate.seconds * 1000 : 0);
+      const bTime = bDate instanceof Date ? bDate.getTime() : 
+        ('seconds' in bDate ? bDate.seconds * 1000 : 0);
+      
+      return bTime - aTime;
+    });
+  }, [filteredReviews, selectedSeason]);
 
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
@@ -201,27 +179,27 @@ export function SeriesReviews() {
               <Heading color="white" size="lg">
                 Avaliações de {series?.name || 'Série'}
               </Heading>
-              <Select
-                value={selectedSeason}
-                onChange={(e) => {
-                  const season = Number(e.target.value);
-                  setSelectedSeason(season);
-                  setSearchParams({ season: season.toString() });
-                }}
-                width="auto"
-                bg="gray.700"
-                color="white"
-                borderColor="gray.600"
-                _hover={{ borderColor: "gray.500" }}
-              >
-                {Array.from({ length: series?.number_of_seasons || 1 }, (_, i) => i + 1).map(
-                  (season) => (
+              <HStack spacing={2} mr={6}>
+                <Text color="gray.400" fontWeight="medium">
+                  Temporada:
+                </Text>
+                <Select
+                  value={selectedSeason}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                    const season = Number(e.target.value);
+                    setSelectedSeason(season);
+                  }}
+                  width="auto"
+                  borderColor="gray.600"
+                  _hover={{ borderColor: "gray.500" }}
+                >
+                  {seasons.map((season) => (
                     <option key={season} value={season} style={{ backgroundColor: "#2D3748" }}>
                       Temporada {season}
                     </option>
-                  )
-                )}
-              </Select>
+                  ))}
+                </Select>
+              </HStack>
             </HStack>
 
             <VStack spacing={4} align="stretch">
@@ -234,10 +212,11 @@ export function SeriesReviews() {
                     borderRadius="lg"
                     cursor="pointer"
                     onClick={() => {
-                      setSelectedReviewId(review.id);
-                      onOpen();
+                      // Redirecionar para a página de detalhes da avaliação
+                      navigate(`/reviews/${review.id}/${selectedSeason}`);
                     }}
                     _hover={{ bg: "gray.700" }}
+                    position="relative"
                   >
                     <VStack align="stretch" spacing={4}>
                       <HStack justify="space-between" align="start">
@@ -245,7 +224,7 @@ export function SeriesReviews() {
                           <UserAvatar
                             userId={review.userId}
                             userEmail={review.userEmail}
-                            photoURL={usersData[review.userId]?.photoURL}
+                            photoURL={undefined}
                             size="md"
                           />
                           <VStack align="start" spacing={2} flex={1}>
@@ -259,14 +238,14 @@ export function SeriesReviews() {
                               maxW="100%"
                               overflowWrap="break-word"
                             >
-                              {review.comment}
+                              {review.seasonReviews.find(sr => sr.seasonNumber === selectedSeason)?.comment}
                             </Text>
                           </VStack>
                         </HStack>
                         <Box>
                           <RatingStars
-                            rating={review.rating}
-                            size={starSize}
+                            rating={review.seasonReviews.find(sr => sr.seasonNumber === selectedSeason)?.rating || 0}
+                            size={20}
                             showNumber={false}
                           />
                         </Box>
@@ -276,14 +255,16 @@ export function SeriesReviews() {
                         <ReactionButtons
                           reviewId={review.id}
                           seasonNumber={selectedSeason}
-                          likes={review.reactions?.likes || []}
-                          onReaction={handleReaction}
-                          isLoading={loadingReactions[`${review.id}-${selectedSeason}-likes`] || false}
+                          likes={review.seasonReviews.find(sr => sr.seasonNumber === selectedSeason)?.reactions?.likes || []}
+                          onReaction={async (event) => {
+                            // Implemente a lógica para reagir à avaliação
+                          }}
+                          isLoading={false}
                         />
                         <Divider borderColor="gray.600" orientation="vertical" height="20px" display={{ base: "none", md: "flex" }} />
                         <HStack>
                           <Text color="gray.400" fontSize="sm">
-                            {review.comments?.length || 0} comentários
+                            {review.seasonReviews.find(sr => sr.seasonNumber === selectedSeason)?.comments?.length || 0} comentários
                           </Text>
                         </HStack>
                       </HStack>
@@ -302,31 +283,6 @@ export function SeriesReviews() {
         </Container>
       </Box>
       <Footer />
-
-      {selectedReview && (
-        <ReviewDetailsModal
-          isOpen={isOpen}
-          onClose={() => {
-            onClose();
-            setSelectedReviewId(null);
-          }}
-          review={{
-            id: selectedReview.id!,
-            seriesId: id!,
-            userId: selectedReview.userId!,
-            userEmail: selectedReview.userEmail!,
-            seriesName: series?.name || "Série desconhecida",
-            seriesPoster: series?.poster_path || "",
-            seasonNumber: selectedSeason,
-            rating: selectedReview.rating || 0,
-            comment: selectedReview.comment || "",
-            comments: selectedReview.comments || [],
-            reactions: selectedReview.reactions || { likes: [] },
-            createdAt: selectedReview.createdAt || new Date()
-          }}
-          onReviewUpdated={() => {}}
-        />
-      )}
     </Flex>
   );
 } 

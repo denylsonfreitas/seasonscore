@@ -31,7 +31,6 @@ import {
 import { getUserLists } from "../services/lists";
 import { UserListModal } from "../components/user/UserListModal";
 import { ExtendedUser } from "../types/auth";
-import { ReviewDetailsModal } from "../components/reviews/ReviewDetailsModal";
 import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 
 // Componentes modularizados para perfil
@@ -40,34 +39,6 @@ import { ProfileStats } from "../components/profile/ProfileStats";
 import { ReviewsSection } from "../components/profile/ReviewsSection";
 import { WatchlistSection } from "../components/profile/WatchlistSection";
 import { ListsSection } from "../components/profile/ListsSection";
-
-// Função para adaptar a avaliação para o formato esperado pelo ReviewDetailsModal
-const adaptReviewForDetails = (review: SeriesReview): any => {
-  if (!review) return null;
-  
-  // Verificar se há uma temporada específica selecionada
-  const seasonNumber = review.selectedSeasonNumber || review.seasonReviews[0].seasonNumber;
-  
-  // Encontrar a avaliação da temporada selecionada
-  const selectedSeasonReview = review.seasonReviews.find(
-    sr => sr.seasonNumber === seasonNumber
-  ) || review.seasonReviews[0];
-  
-  return {
-    id: review.id,
-    seriesId: review.seriesId.toString(),
-    userId: review.userId,
-    userEmail: review.userEmail,
-    seriesName: review.series.name,
-    seriesPoster: review.series.poster_path,
-    seasonNumber: selectedSeasonReview.seasonNumber,
-    rating: selectedSeasonReview.rating,
-    comment: selectedSeasonReview.comment || "",
-    comments: selectedSeasonReview.comments || [],
-    reactions: selectedSeasonReview.reactions || { likes: [] },
-    createdAt: selectedSeasonReview.createdAt || new Date()
-  };
-};
 
 export function Profile() {
   const { currentUser } = useAuth() as { currentUser: ExtendedUser | null };
@@ -87,8 +58,6 @@ export function Profile() {
   const [showFollowing, setShowFollowing] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
-  const [selectedReviewForDetails, setSelectedReviewForDetails] = useState<SeriesReview | null>(null);
-  const [isReviewDetailsOpen, setIsReviewDetailsOpen] = useState(false);
   const [showWatchlist, setShowWatchlist] = useState(false);
   const [showLists, setShowLists] = useState(false);
 
@@ -157,36 +126,6 @@ export function Profile() {
     queryFn: () => getUserLists(targetUserId || ''),
     enabled: !!targetUserId
   });
-
-  // Usar useEffect para manter a avaliação selecionada atualizada quando os dados forem buscados novamente
-  useEffect(() => {
-    if (selectedReviewForDetails && reviews.length > 0) {
-      // Encontrar a avaliação atualizada pelo ID
-      const updatedReview = reviews.find(r => r.id === selectedReviewForDetails.id);
-      if (updatedReview) {
-        // Apenas atualizar se houver diferenças nas temporadas (como reações ou comentários)
-        const selectedSeasonNumber = selectedReviewForDetails.selectedSeasonNumber;
-        const currentSeasonInSelected = selectedReviewForDetails.seasonReviews.find(
-          sr => sr.seasonNumber === selectedSeasonNumber
-        );
-        const currentSeasonInUpdated = updatedReview.seasonReviews.find(
-          sr => sr.seasonNumber === selectedSeasonNumber
-        );
-        
-        // Verificar se há diferenças nas reações ou comentários antes de atualizar
-        if (currentSeasonInSelected && currentSeasonInUpdated && (
-          JSON.stringify(currentSeasonInSelected.reactions) !== JSON.stringify(currentSeasonInUpdated.reactions) ||
-          JSON.stringify(currentSeasonInSelected.comments) !== JSON.stringify(currentSeasonInUpdated.comments)
-        )) {
-          // Manter o número da temporada selecionada
-          setSelectedReviewForDetails({
-            ...updatedReview,
-            selectedSeasonNumber
-          });
-        }
-      }
-    }
-  }, [reviews]); // Remover selectedReviewForDetails das dependências
 
   // Manipuladores de eventos
   const handleUpdateProfile = async () => {
@@ -294,16 +233,7 @@ export function Profile() {
   };
 
   const handleReviewClick = (review: SeriesReview) => {
-    setSelectedReviewForDetails(review);
-    setIsReviewDetailsOpen(true);
-    
-    // Invalidar a consulta apenas se não tiver sido atualizada recentemente
-    const queryState = queryClient.getQueryState(["reviews", review.seriesId.toString()]);
-    const isStale = !queryState || queryState.status !== 'success' || queryState.dataUpdatedAt < Date.now() - 30000;
-    
-    if (isStale) {
-      queryClient.invalidateQueries({ queryKey: ["reviews", review.seriesId.toString()] });
-    }
+    navigate(`/reviews/${review.id}/${review.selectedSeasonNumber}`);
   };
 
   if (!currentUser && !username) {
@@ -416,19 +346,6 @@ export function Profile() {
 
             {/* Conteúdo principal - alternando entre Avaliações, Watchlist e Listas */}
             {renderActiveSection()}
-            {selectedReviewForDetails && (
-              <ReviewDetailsModal
-                isOpen={isReviewDetailsOpen}
-                onClose={() => {
-                  setIsReviewDetailsOpen(false);
-                  setSelectedReviewForDetails(null);
-                }}
-                review={adaptReviewForDetails(selectedReviewForDetails)}
-                onReviewUpdated={() => {
-                  queryClient.invalidateQueries({ queryKey: ["userReviews", targetUserId] });
-                }}
-              />
-            )}
             
             {selectedReview && (
               <ReviewEditModal

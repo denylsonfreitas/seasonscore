@@ -19,7 +19,7 @@ import {
 } from 'firebase/firestore';
 import { db } from "../config/firebase";
 import { auth } from "../config/firebase";
-import { Comment } from '../components/comments/CommentSection';
+import { Comment } from '../components/common/CommentSection';
 import { 
   createNotification, 
   NotificationType,
@@ -101,10 +101,16 @@ async function hasExistingComments(
 export async function addComment(
   objectId: string,
   objectType: string,
-  content: string
+  content: string,
+  seasonNumber?: number
 ): Promise<Comment> {
   if (!auth.currentUser) {
     throw new Error('Usuário não autenticado');
+  }
+
+  // Para avaliações, precisamos do número da temporada
+  if (objectType === 'review' && seasonNumber === undefined) {
+    throw new Error('Número da temporada é necessário para comentar em avaliações');
   }
 
   const userId = auth.currentUser.uid;
@@ -130,6 +136,18 @@ export async function addComment(
     const objectData = objectSnap.data();
     const objectOwnerId = objectData.userId;
     
+    // Se for uma avaliação, verificar se a temporada existe
+    if (objectType === 'review' && seasonNumber !== undefined) {
+      const review = objectData as any;
+      const seasonExists = review.seasonReviews?.some(
+        (sr: any) => sr.seasonNumber === seasonNumber
+      );
+      
+      if (!seasonExists) {
+        throw new Error('Temporada não encontrada nesta avaliação');
+      }
+    }
+    
     // Criar o comentário
     const commentsCollectionName = objectType === 'review' ? 'reviewComments' : 'listComments';
     const commentData = {
@@ -142,6 +160,7 @@ export async function addComment(
       userPhotoURL: photoURL,
       content,
       createdAt: serverTimestamp(),
+      seasonNumber: objectType === 'review' ? seasonNumber : undefined
     };
     
     // Adicionar o comentário
@@ -235,15 +254,35 @@ export async function addComment(
 /**
  * Obtém todos os comentários de um objeto (review ou lista)
  */
-export async function getComments(objectId: string, objectType: string): Promise<Comment[]> {
+export async function getComments(
+  objectId: string, 
+  objectType: string,
+  seasonNumber?: number
+): Promise<Comment[]> {
   try {
     const commentsCollectionName = objectType === 'review' ? 'reviewComments' : 'listComments';
-    const commentsQuery = query(
-      collection(db, commentsCollectionName),
-      where('objectId', '==', objectId),
-      where('objectType', '==', objectType),
-      orderBy('createdAt', 'desc')
-    );
+    
+    // Consulta base
+    let commentsQuery;
+    
+    if (objectType === 'review' && seasonNumber !== undefined) {
+      // Para reviews com temporada específica
+      commentsQuery = query(
+        collection(db, commentsCollectionName),
+        where('objectId', '==', objectId),
+        where('objectType', '==', objectType),
+        where('seasonNumber', '==', seasonNumber),
+        orderBy('createdAt', 'desc')
+      );
+    } else {
+      // Para outros tipos ou sem especificar temporada
+      commentsQuery = query(
+        collection(db, commentsCollectionName),
+        where('objectId', '==', objectId),
+        where('objectType', '==', objectType),
+        orderBy('createdAt', 'desc')
+      );
+    }
     
     const querySnapshot = await getDocs(commentsQuery);
     const comments: Comment[] = [];
@@ -364,14 +403,14 @@ export async function deleteComment(
 }
 
 /**
- * Função auxiliar para obter o nome da coleção com base no tipo de objeto
+ * Retorna o nome da coleção para o tipo de objeto
  */
 function getObjectCollectionName(objectType: string): string | null {
   switch (objectType) {
-    case 'review':
-      return 'reviews';
     case 'list':
       return 'lists';
+    case 'review':
+      return 'reviews';
     default:
       return null;
   }

@@ -21,7 +21,6 @@ import {
   Badge,
   Center,
   LinkBox,
-  useDisclosure,
   Skeleton,
   useToast,
   SkeletonCircle,
@@ -33,7 +32,6 @@ import { EnhancedImage } from '../components/common/EnhancedImage';
 import { RatingStars } from '../components/common/RatingStars';
 import { UserAvatar } from '../components/common/UserAvatar';
 import { UserName } from '../components/common/UserName';
-import { ReviewDetailsModal } from '../components/reviews/ReviewDetailsModal';
 import { getSeriesDetails } from '../services/tmdb';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -45,10 +43,8 @@ export function Reviews() {
   const toast = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isOpen, onOpen, onClose } = useDisclosure();
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedReview, setSelectedReview] = useState<PopularReview | null>(null);
 
   // Buscar avaliações populares (com pelo menos 1 curtida)
   const { 
@@ -87,32 +83,6 @@ export function Reviews() {
     staleTime: 0
   });
 
-  // Buscar detalhes da série selecionada
-  const { data: selectedSeries } = useQuery({
-    queryKey: ["series", selectedReview?.seriesId],
-    queryFn: () => getSeriesDetails(selectedReview?.seriesId || 0),
-    enabled: !!selectedReview?.seriesId
-  });
-
-  // Buscar avaliações da série selecionada
-  const { data: seriesReviews = [] } = useQuery({
-    queryKey: ["reviews", selectedReview?.seriesId],
-    queryFn: () => getSeriesReviews(selectedReview?.seriesId || 0),
-    enabled: !!selectedReview?.seriesId,
-    refetchInterval: 3000,
-    refetchOnWindowFocus: true,
-    staleTime: 0
-  });
-
-  // Preparar dados para o modal de detalhes
-  const currentReview = selectedReview && seriesReviews.length > 0
-    ? seriesReviews.find(r => r.id === selectedReview.id)
-    : null;
-
-  const seasonReview = currentReview?.seasonReviews.find(
-    sr => sr.seasonNumber === selectedReview?.seasonNumber
-  );
-
   // Filtrar avaliações com base na busca
   const filteredPopularReviews = popularReviews.filter(review => 
     searchQuery === '' || 
@@ -144,31 +114,12 @@ export function Reviews() {
   };
 
   const handleReviewClick = (review: PopularReview) => {
-    setSelectedReview(review);
-    onOpen();
+    navigate(`/reviews/${review.id}/${review.seasonNumber}`);
   };
 
   const handlePosterClick = (e: React.MouseEvent, seriesId: number) => {
     e.stopPropagation();
     navigate(`/series/${seriesId}`);
-  };
-
-  const handleReviewUpdated = () => {
-    queryClient.invalidateQueries({
-      queryKey: ["reviews", selectedReview?.seriesId],
-    });
-    
-    queryClient.invalidateQueries({
-      queryKey: ["allPopularReviews"],
-    });
-
-    queryClient.invalidateQueries({
-      queryKey: ["allFollowedReviews"],
-    });
-
-    queryClient.invalidateQueries({
-      queryKey: ["allReviews"],
-    });
   };
 
   // Renderizar um card de avaliação
@@ -346,34 +297,6 @@ export function Reviews() {
           )
         )}
       </Container>
-
-      {/* Modal de detalhes da avaliação */}
-      {selectedReview && selectedSeries && (
-        <ReviewDetailsModal
-          isOpen={isOpen}
-          onClose={() => {
-            onClose();
-            setSelectedReview(null);
-          }}
-          review={{
-            id: selectedReview.id,
-            seriesId: selectedReview.seriesId.toString(),
-            userId: selectedReview.userId,
-            userEmail: selectedReview.userName,
-            seriesName: selectedSeries.name,
-            seriesPoster: selectedSeries.poster_path || "",
-            seasonNumber: selectedReview.seasonNumber,
-            rating: seasonReview?.rating || selectedReview.rating,
-            comment: seasonReview?.comment || selectedReview.comment,
-            comments: seasonReview?.comments || [],
-            reactions: { 
-              likes: [],
-            },
-            createdAt: seasonReview?.createdAt || selectedReview.createdAt
-          }}
-          onReviewUpdated={handleReviewUpdated}
-        />
-      )}
 
       <Footer />
     </Flex>

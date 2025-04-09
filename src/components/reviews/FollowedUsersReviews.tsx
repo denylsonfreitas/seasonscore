@@ -1,14 +1,11 @@
-import { Box, VStack, Text, HStack, Grid, Icon, useDisclosure, Badge, Center, LinkBox, Skeleton, SkeletonCircle } from "@chakra-ui/react";
+import { Box, VStack, Text, HStack, Grid, Icon, Badge, Center, LinkBox, Skeleton, SkeletonCircle } from "@chakra-ui/react";
 import { useState } from "react";
-import { getRecentFollowedUsersReviews, PopularReview, getSeriesReviews } from "../../services/reviews";
+import { getRecentFollowedUsersReviews, PopularReview } from "../../services/reviews";
 import { Heart, TelevisionSimple } from "@phosphor-icons/react";
 import { RatingStars } from "../common/RatingStars";
 import { UserAvatar } from "../common/UserAvatar";
-import { ReviewDetailsModal } from "./ReviewDetailsModal";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
-import { getSeriesDetails } from "../../services/tmdb";
 import { UserName } from "../common/UserName";
 import { useAuth } from "../../contexts/AuthContext";
 import { EnhancedImage } from "../common/EnhancedImage";
@@ -19,10 +16,7 @@ import "slick-carousel/slick/slick-theme.css";
 import { carouselStyles, seriesSliderSettings } from "../../styles/carouselStyles";
 
 export function FollowedUsersReviews() {
-  const [selectedReview, setSelectedReview] = useState<PopularReview | null>(null);
-  const { isOpen, onOpen, onClose } = useDisclosure();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { currentUser } = useAuth();
 
   const { data: reviews = [], isLoading } = useQuery({
@@ -34,47 +28,13 @@ export function FollowedUsersReviews() {
     staleTime: 0
   });
 
-  const { data: selectedSeries } = useQuery({
-    queryKey: ["series", selectedReview?.seriesId],
-    queryFn: () => getSeriesDetails(selectedReview?.seriesId || 0),
-    enabled: !!selectedReview?.seriesId
-  });
-
-  const { data: seriesReviews = [] } = useQuery({
-    queryKey: ["reviews", selectedReview?.seriesId],
-    queryFn: () => getSeriesReviews(selectedReview?.seriesId || 0),
-    enabled: !!selectedReview?.seriesId,
-    refetchInterval: 3000,
-    refetchOnWindowFocus: true,
-    staleTime: 0
-  });
-
   const handleReviewClick = (review: PopularReview) => {
-    setSelectedReview(review);
-    onOpen();
+    navigate(`/reviews/${review.id}/${review.seasonNumber}`);
   };
 
   const handlePosterClick = (e: React.MouseEvent, seriesId: number) => {
     e.stopPropagation();
     navigate(`/series/${seriesId}`);
-  };
-
-  const currentReview = selectedReview && seriesReviews.length > 0
-    ? seriesReviews.find(r => r.id === selectedReview.id)
-    : null;
-
-  const seasonReview = currentReview?.seasonReviews.find(
-    sr => sr.seasonNumber === selectedReview?.seasonNumber
-  );
-
-  const handleReviewUpdated = () => {
-    queryClient.invalidateQueries({
-      queryKey: ["reviews", selectedReview?.seriesId],
-    });
-    
-    queryClient.invalidateQueries({
-      queryKey: ["followedUsersReviews"],
-    });
   };
 
   // Componente de carregamento elegante como skeleton
@@ -244,45 +204,16 @@ export function FollowedUsersReviews() {
   };
 
   return (
-    <>
-      <SectionBase
-        title="Quem você segue avaliou"
-        link="/reviews"
-        linkText="Ver todas"
-        isLoading={isLoading}
-        isEmpty={!currentUser || reviews.length === 0}
-        emptyElement={emptyElement}
-        loadingElement={loadingElement}
-        expandable={reviews.length > 6}
-        renderContent={renderContent}
-      />
-
-      {selectedReview && selectedSeries && (
-        <ReviewDetailsModal
-          isOpen={isOpen}
-          onClose={() => {
-            onClose();
-            setSelectedReview(null);
-          }}
-          review={{
-            id: selectedReview.id,
-            seriesId: selectedReview.seriesId.toString(),
-            userId: selectedReview.userId,
-            userEmail: selectedReview.userName,
-            seriesName: selectedSeries.name,
-            seriesPoster: selectedSeries.poster_path || "",
-            seasonNumber: selectedReview.seasonNumber,
-            rating: seasonReview?.rating || selectedReview.rating,
-            comment: seasonReview?.comment || selectedReview.comment,
-            comments: seasonReview?.comments || [],
-            reactions: { 
-              likes: [],
-            },
-            createdAt: seasonReview?.createdAt || selectedReview.createdAt
-          }}
-          onReviewUpdated={handleReviewUpdated}
-        />
-      )}
-    </>
+    <SectionBase
+      title="Quem você segue avaliou"
+      link="/reviews"
+      linkText="Ver todas"
+      isLoading={isLoading}
+      isEmpty={!currentUser || reviews.length === 0}
+      emptyElement={emptyElement}
+      loadingElement={loadingElement}
+      expandable={reviews.length > 6}
+      renderContent={renderContent}
+    />
   );
 } 

@@ -52,7 +52,7 @@ import { Globe, Lock } from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { formatRelativeTime } from '../utils/dateUtils';
 import { SeriesCard } from '../components/series/SeriesCard';
-import { CommentSection } from '../components/comments/CommentSection';
+import { CommentSection } from '../components/common/CommentSection';
 import { ReactionButton } from '../components/common/ReactionButton';
 import { 
   getListById, 

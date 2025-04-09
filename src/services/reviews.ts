@@ -1287,3 +1287,273 @@ export async function getAllReviews(limitCount: number = 30): Promise<PopularRev
     return [];
   }
 }
+
+/**
+ * Obtém detalhes completos de uma avaliação específica
+ * @param reviewId ID da avaliação
+ * @returns Dados completos da avaliação
+ */
+export async function getReviewDetails(reviewId: string) {
+  try {
+    const reviewDoc = await getDoc(doc(reviewsCollection, reviewId));
+    
+    if (!reviewDoc.exists()) {
+      console.warn(`⚠️ Avaliação não encontrada: ${reviewId}`);
+      return null;
+    }
+
+    const reviewData = reviewDoc.data() as SeriesReview;
+    
+    // Buscar detalhes da série associada
+    const seriesDetails = await getSeriesDetails(reviewData.seriesId);
+    
+    // Construir objeto de retorno com dados da série
+    return {
+      ...reviewData,
+      id: reviewDoc.id,
+      series: {
+        name: seriesDetails.name,
+        poster_path: seriesDetails.poster_path
+      }
+    };
+  } catch (error) {
+    console.error("Erro ao buscar detalhes da avaliação:", error);
+    throw error;
+  }
+}
+
+/**
+ * Obtém os comentários de uma avaliação específica
+ * @param reviewId ID da avaliação
+ * @param seasonNumber Número da temporada
+ * @returns Dados da avaliação com foco nos comentários
+ */
+export async function getReviewComments(reviewId: string, seasonNumber: number) {
+  try {
+    const reviewDoc = await getDoc(doc(reviewsCollection, reviewId));
+    
+    if (!reviewDoc.exists()) {
+      console.warn(`⚠️ Avaliação não encontrada: ${reviewId}`);
+      return null;
+    }
+
+    return reviewDoc.data() as SeriesReview;
+  } catch (error) {
+    console.error("Erro ao buscar comentários da avaliação:", error);
+    throw error;
+  }
+}
+
+/**
+ * Adiciona um comentário a uma avaliação
+ * @param reviewId ID da avaliação
+ * @param seasonNumber Número da temporada
+ * @param content Conteúdo do comentário
+ * @returns ID do comentário criado
+ */
+export async function addReviewComment(
+  reviewId: string, 
+  seasonNumber: number, 
+  content: string
+) {
+  if (!auth.currentUser) throw new Error("Usuário não autenticado");
+  
+  const commentId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const reviewRef = doc(reviewsCollection, reviewId);
+  
+  try {
+    const reviewDoc = await getDoc(reviewRef);
+    if (!reviewDoc.exists()) throw new Error("Avaliação não encontrada");
+
+    const review = reviewDoc.data() as SeriesReview;
+    const seasonIndex = review.seasonReviews.findIndex(
+      (sr) => sr.seasonNumber === seasonNumber
+    );
+
+    if (seasonIndex === -1) throw new Error("Temporada não encontrada");
+
+    const newComment = {
+      id: commentId,
+      userId: auth.currentUser.uid,
+      userEmail: auth.currentUser.email || "",
+      content,
+      createdAt: new Date(),
+      reactions: {
+        likes: [],
+      }
+    };
+
+    // Inicializar array de comentários se não existir
+    if (!review.seasonReviews[seasonIndex].comments) {
+      review.seasonReviews[seasonIndex].comments = [];
+    }
+
+    review.seasonReviews[seasonIndex].comments.push(newComment);
+
+    await updateDoc(reviewRef, {
+      seasonReviews: review.seasonReviews
+    });
+
+    // Notificar o autor da avaliação sobre o novo comentário (se não for ele mesmo)
+    if (review.userId !== auth.currentUser.uid) {
+      try {
+        const seriesDetails = await getSeriesDetails(review.seriesId);
+        await createNotification(
+          review.userId,
+          NotificationType.NEW_COMMENT,
+          {
+            senderId: auth.currentUser.uid,
+            seriesId: review.seriesId,
+            seriesName: seriesDetails.name,
+            seriesPoster: seriesDetails.poster_path || undefined,
+            seasonNumber,
+            reviewId,
+            message: `Alguém comentou na sua avaliação de ${seriesDetails.name} (Temporada ${seasonNumber}).`
+          }
+        );
+      } catch (notificationError) {
+        console.error("Erro ao enviar notificação de comentário:", notificationError);
+        // Continuamos mesmo se a notificação falhar
+      }
+    }
+
+    return commentId;
+  } catch (error) {
+    console.error("Erro ao adicionar comentário:", error);
+    throw error;
+  }
+}
+
+/**
+ * Adiciona uma reação a uma avaliação
+ * @param reviewId ID da avaliação
+ * @param seasonNumber Número da temporada
+ * @param reactionType Tipo da reação (ex: "likes")
+ * @returns Objeto com o resultado da ação
+ */
+export async function addReviewReaction(
+  reviewId: string,
+  seasonNumber: number,
+  reactionType: "likes"
+) {
+  if (!auth.currentUser) throw new Error("Usuário não autenticado");
+
+  const userId = auth.currentUser.uid;
+  const reviewRef = doc(reviewsCollection, reviewId);
+  
+  try {
+    const reviewDoc = await getDoc(reviewRef);
+    if (!reviewDoc.exists()) throw new Error("Avaliação não encontrada");
+
+    const review = reviewDoc.data() as SeriesReview;
+    const seasonIndex = review.seasonReviews.findIndex(
+      (sr) => sr.seasonNumber === seasonNumber
+    );
+
+    if (seasonIndex === -1) throw new Error("Temporada não encontrada");
+
+    // Inicializar reactions se necessário
+    if (!review.seasonReviews[seasonIndex].reactions) {
+      review.seasonReviews[seasonIndex].reactions = { likes: [] };
+    }
+
+    const reactions = review.seasonReviews[seasonIndex].reactions!;
+
+    // Verificar se o usuário já reagiu
+    if (reactions[reactionType].includes(userId)) {
+      return { liked: true };
+    }
+
+    // Adicionar a reação
+    reactions[reactionType].push(userId);
+
+    await updateDoc(reviewRef, {
+      seasonReviews: review.seasonReviews
+    });
+
+    // Processar notificação em background
+    if (review.userId !== userId) {
+      setTimeout(async () => {
+        try {
+          const seriesDetails = await getSeriesDetails(review.seriesId);
+          await createNotification(
+            review.userId,
+            NotificationType.NEW_REACTION,
+            {
+              senderId: userId,
+              seriesId: review.seriesId,
+              seriesName: seriesDetails.name,
+              seriesPoster: seriesDetails.poster_path || undefined,
+              seasonNumber,
+              reviewId,
+              message: `Alguém curtiu sua avaliação de ${seriesDetails.name} (Temporada ${seasonNumber}).`
+            }
+          );
+        } catch (error) {
+          console.error("Erro ao enviar notificação de reação:", error);
+          // Silenciar erro
+        }
+      }, 0);
+    }
+
+    return { liked: true };
+  } catch (error) {
+    console.error("Erro ao adicionar reação:", error);
+    throw error;
+  }
+}
+
+/**
+ * Remove uma reação de uma avaliação
+ * @param reviewId ID da avaliação
+ * @param seasonNumber Número da temporada
+ * @param reactionType Tipo da reação (ex: "likes")
+ * @returns Objeto com o resultado da ação
+ */
+export async function removeReviewReaction(
+  reviewId: string,
+  seasonNumber: number,
+  reactionType: "likes"
+) {
+  if (!auth.currentUser) throw new Error("Usuário não autenticado");
+
+  const userId = auth.currentUser.uid;
+  const reviewRef = doc(reviewsCollection, reviewId);
+  
+  try {
+    const reviewDoc = await getDoc(reviewRef);
+    if (!reviewDoc.exists()) throw new Error("Avaliação não encontrada");
+
+    const review = reviewDoc.data() as SeriesReview;
+    const seasonIndex = review.seasonReviews.findIndex(
+      (sr) => sr.seasonNumber === seasonNumber
+    );
+
+    if (seasonIndex === -1) throw new Error("Temporada não encontrada");
+
+    // Verificar se reactions existe
+    if (!review.seasonReviews[seasonIndex].reactions) {
+      return { liked: false };
+    }
+
+    const reactions = review.seasonReviews[seasonIndex].reactions!;
+
+    // Verificar se o usuário já reagiu
+    const userIndex = reactions[reactionType].indexOf(userId);
+    if (userIndex === -1) {
+      return { liked: false };
+    }
+
+    // Remover a reação
+    reactions[reactionType].splice(userIndex, 1);
+
+    await updateDoc(reviewRef, {
+      seasonReviews: review.seasonReviews
+    });
+
+    return { liked: false };
+  } catch (error) {
+    console.error("Erro ao remover reação:", error);
+    throw error;
+  }
+}
