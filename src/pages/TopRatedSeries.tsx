@@ -70,8 +70,14 @@ export function TopRatedSeries() {
       const reviewsArray = Array.isArray(reviews) ? reviews : [];
       
       reviewsArray.forEach((review: SeriesReview) => {
+        if (!review || !review.seasonReviews || !Array.isArray(review.seasonReviews)) return;
+        
         const seriesId = review.seriesId;
-        const seasonRatings = review.seasonReviews.map((sr) => sr.rating);
+        if (!seriesId) return;
+        
+        const seasonRatings = review.seasonReviews.map((sr) => sr?.rating || 0).filter(rating => rating > 0);
+        if (seasonRatings.length === 0) return;
+        
         const averageRating =
           seasonRatings.reduce((a: number, b: number) => a + b, 0) / seasonRatings.length;
 
@@ -91,22 +97,35 @@ export function TopRatedSeries() {
           id: seriesId,
           averageRating: data.total / data.count,
         }))
-        .filter(series => series.averageRating >= 3)
+        .filter(series => series.averageRating >= 3 && !isNaN(series.averageRating))
         .sort((a, b) => b.averageRating - a.averageRating)
         .slice(0, 10);
 
       // Buscar detalhes das séries
-      const seriesDetails = await Promise.all(
-        sortedSeries.map(async (series) => {
-          const details = await getSeriesDetails(series.id);
-          return {
-            ...details,
-            averageRating: series.averageRating,
-          };
-        })
-      );
+      try {
+        const seriesDetails = await Promise.all(
+          sortedSeries.map(async (series) => {
+            try {
+              const details = await getSeriesDetails(series.id);
+              if (!details) return null;
+              
+              return {
+                ...details,
+                averageRating: series.averageRating,
+              };
+            } catch (error) {
+              console.error(`Erro ao buscar detalhes da série ${series.id}:`, error);
+              return null;
+            }
+          })
+        );
 
-      return seriesDetails;
+        // Remover itens nulos ou undefined
+        return seriesDetails.filter(item => item !== null && item !== undefined);
+      } catch (error) {
+        console.error("Erro ao buscar detalhes das séries:", error);
+        return [];
+      }
     },
     enabled: !!reviews,
   });
@@ -166,84 +185,94 @@ export function TopRatedSeries() {
                 my={12}
               >
                 {/* Segundo Lugar */}
-                <GridItem
-                  order={{ base: 1, md: 2 }}
-                  alignSelf={{ base: "end", md: "end" }}
-                  transform={{ base: "none", md: "translateY(-20px)" }}
-                >
-                  <SeriesCard
-                    series={{
-                      ...topSeries[1],
-                      rating: topSeries[1].averageRating,
-                    }}
-                    size={secondThirdSize}
-                    position={2}
-                  />
-                </GridItem>
+                {topSeries.length >= 2 && (
+                  <GridItem
+                    order={{ base: 1, md: 2 }}
+                    alignSelf={{ base: "end", md: "end" }}
+                    transform={{ base: "none", md: "translateY(-20px)" }}
+                  >
+                    <SeriesCard
+                      series={{
+                        ...topSeries[1],
+                        rating: topSeries[1].averageRating,
+                      }}
+                      size={secondThirdSize}
+                      position={2}
+                    />
+                  </GridItem>
+                )}
 
                 {/* Primeiro Lugar */}
-                <GridItem
-                  order={{ base: 2, md: 3 }}
-                  alignSelf="start"
-                  transform={{ base: "translateY(-20px)", md: "translateY(-40px)" }}
-                >
-                  <SeriesCard
-                    series={{
-                      ...topSeries[0],
-                      rating: topSeries[0].averageRating,
-                    }}
-                    size={firstPlaceSize}
-                    position={1}
-                  />
-                </GridItem>
+                {topSeries.length >= 1 && (
+                  <GridItem
+                    order={{ base: 2, md: 3 }}
+                    alignSelf="start"
+                    transform={{ base: "translateY(-20px)", md: "translateY(-40px)" }}
+                  >
+                    <SeriesCard
+                      series={{
+                        ...topSeries[0],
+                        rating: topSeries[0].averageRating,
+                      }}
+                      size={firstPlaceSize}
+                      position={1}
+                    />
+                  </GridItem>
+                )}
 
                 {/* Terceiro Lugar */}
-                <GridItem
-                  order={{ base: 3, md: 4 }}
-                  alignSelf={{ base: "end", md: "end" }}
-                  transform={{ base: "none", md: "translateY(-20px)" }}
-                >
-                  <SeriesCard
-                    series={{
-                      ...topSeries[2],
-                      rating: topSeries[2].averageRating,
-                    }}
-                    size={secondThirdSize}
-                    position={3}
-                  />
-                </GridItem>
+                {topSeries.length >= 3 && (
+                  <GridItem
+                    order={{ base: 3, md: 4 }}
+                    alignSelf={{ base: "end", md: "end" }}
+                    transform={{ base: "none", md: "translateY(-20px)" }}
+                  >
+                    <SeriesCard
+                      series={{
+                        ...topSeries[2],
+                        rating: topSeries[2].averageRating,
+                      }}
+                      size={secondThirdSize}
+                      position={3}
+                    />
+                  </GridItem>
+                )}
 
                 {/* Quarto Lugar */}
-                <GridItem
-                  order={{ base: 4, md: 1 }}
-                  alignSelf={{ base: "start", md: "center" }}
-                  mt={{ base: 0, md: 8 }}
-                >
-                  <SeriesCard
-                    series={{
-                      ...topSeries[3],
-                      rating: topSeries[3].averageRating,
-                    }}
-                    size="sm"
-                    position={4}
-                  />
-                </GridItem>
+                {topSeries.length >= 4 && (
+                  <GridItem
+                    order={{ base: 4, md: 1 }}
+                    alignSelf={{ base: "start", md: "center" }}
+                    mt={{ base: 0, md: 8 }}
+                  >
+                    <SeriesCard
+                      series={{
+                        ...topSeries[3],
+                        rating: topSeries[3].averageRating,
+                      }}
+                      size="sm"
+                      position={4}
+                    />
+                  </GridItem>
+                )}
 
                 {/* Quinto Lugar */}
-                <GridItem
-                  order={{ base: 5, md: 5 }}
-                  alignSelf={{ base: "start", md: "center" }}
-                  mt={{ base: 0, md: 8 }}
-                >
-                  <SeriesCard
-                    series={{
-                      ...topSeries[4],
-                      rating: topSeries[4].averageRating,
-                    }}
-                    size="sm"
-                    position={5}
-                  />
-                </GridItem>
+                {topSeries.length >= 5 && (
+                  <GridItem
+                    order={{ base: 5, md: 5 }}
+                    alignSelf={{ base: "start", md: "center" }}
+                    mt={{ base: 0, md: 8 }}
+                  >
+                    <SeriesCard
+                      series={{
+                        ...topSeries[4],
+                        rating: topSeries[4].averageRating,
+                      }}
+                      size="sm"
+                      position={5}
+                    />
+                  </GridItem>
+                )}
 
                 {/* Sexto Lugar */}
                 {topSeries.length >= 6 && (
@@ -289,29 +318,33 @@ export function TopRatedSeries() {
               >
                 {/* Na versão desktop, mostrar a partir do 6º lugar */}
                 {topSeries.slice(5).map((series, index) => (
-                  <Box key={series.id} display={{ base: "none", md: "block" }}>
-                    <SeriesCard
-                      series={{
-                        ...series,
-                        rating: series.averageRating,
-                      }}
-                      size="sm"
-                      position={index + 6}
-                    />
-                  </Box>
+                  series && (
+                    <Box key={series.id} display={{ base: "none", md: "block" }}>
+                      <SeriesCard
+                        series={{
+                          ...series,
+                          rating: series.averageRating,
+                        }}
+                        size="sm"
+                        position={index + 6}
+                      />
+                    </Box>
+                  )
                 ))}
                 {/* Na versão mobile, mostrar a partir do 7º lugar */}
                 {topSeries.slice(6).map((series, index) => (
-                  <Box key={`mobile-${series.id}`} display={{ base: "block", md: "none" }}>
-                    <SeriesCard
-                      series={{
-                        ...series,
-                        rating: series.averageRating,
-                      }}
-                      size="sm"
-                      position={index + 7}
-                    />
-                  </Box>
+                  series && (
+                    <Box key={`mobile-${series.id}`} display={{ base: "block", md: "none" }}>
+                      <SeriesCard
+                        series={{
+                          ...series,
+                          rating: series.averageRating,
+                        }}
+                        size="sm"
+                        position={index + 7}
+                      />
+                    </Box>
+                  )
                 ))}
               </SimpleGrid>
             )}
