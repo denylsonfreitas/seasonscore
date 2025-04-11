@@ -30,7 +30,7 @@ import {
   Center
 } from '@chakra-ui/react';
 import { FaSearch, FaPlus, FaTimes } from 'react-icons/fa';
-import { CaretDown, CaretUp, Plus, TagSimple, X } from '@phosphor-icons/react';
+import { CaretDown, CaretUp, Plus, TagSimple, X, User } from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { getPopularLists, getFollowedUsersLists, getListsByTag, getPopularTags, searchLists, getAllLists } from '../services/lists';
 import { ListCard } from '../components/lists/ListCard';
@@ -39,6 +39,7 @@ import { ResetScroll } from '../components/common/ResetScroll';
 import { ListWithUserData } from '../types/list';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/common/PageHeader';
+import { Link as RouterLink } from 'react-router-dom';
 
 export default function Lists() {
   const { currentUser } = useAuth();
@@ -70,7 +71,7 @@ export default function Lists() {
     const tabParam = searchParams.get('tab');
     if (tabParam) {
       const tabIndex = parseInt(tabParam, 10);
-      if (!isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 2) {
+      if (!isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 3) {
         setActiveTabIndex(tabIndex);
       }
     }
@@ -82,7 +83,7 @@ export default function Lists() {
       
       // Se não houver um parâmetro 'tab', definir a aba para Tags
       if (!tabParam) {
-        setActiveTabIndex(1); // Selecionar a aba "Tags" (índice 1)
+        setActiveTabIndex(2); // Selecionar a aba "Tags" (agora é o índice 2)
       }
     }
   }, [searchParams]);
@@ -246,8 +247,8 @@ export default function Lists() {
       setSearchParams(searchParams);
       
       // Se não estiver na aba Tags, muda para ela
-      if (activeTabIndex !== 1) {
-        setActiveTabIndex(1);
+      if (activeTabIndex !== 2) {
+        setActiveTabIndex(2);
       } else {
         // Se já estiver na aba Tags, força uma atualização das listas filtradas
         // reconsultando as listas com a tag selecionada
@@ -277,8 +278,8 @@ export default function Lists() {
     // Atualizar o parâmetro tab na URL
     searchParams.set('tab', index.toString());
     
-    // Se não estiver na aba Tags (índice 1), remover o parâmetro tag
-    if (index !== 1) {
+    // Se não estiver na aba Tags (índice 2), remover o parâmetro tag
+    if (index !== 2) {
       searchParams.delete('tag');
     }
     
@@ -389,8 +390,9 @@ export default function Lists() {
         searchValue={searchQuery}
         tabs={[
           { label: "Populares", isSelected: activeTabIndex === 0, onClick: () => handleTabChange(0) },
-          { label: "Tags", isSelected: activeTabIndex === 1, onClick: () => handleTabChange(1) },
-          { label: "Todas", isSelected: activeTabIndex === 2, onClick: () => handleTabChange(2) }
+          { label: "Seguindo", isSelected: activeTabIndex === 1, onClick: () => handleTabChange(1) },
+          { label: "Tags", isSelected: activeTabIndex === 2, onClick: () => handleTabChange(2) },
+          { label: "Todas", isSelected: activeTabIndex === 3, onClick: () => handleTabChange(3) }
         ]}
         actionButton={
           <Button
@@ -433,6 +435,49 @@ export default function Lists() {
             </Center>
           )
         ) : activeTabIndex === 1 ? (
+          showSearchResults ? (
+            <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
+              {searchResults.map((list) => (
+                <ListCard key={list.id} list={list} />
+              ))}
+            </Grid>
+          ) : !currentUser ? (
+            <Center py={8}>
+              <VStack spacing={4}>
+                <Icon as={User} boxSize={12} color="gray.500" weight="thin" />
+                <Text color="gray.400">Faça login para ver listas de usuários que você segue</Text>
+              </VStack>
+            </Center>
+          ) : isLoadingFollowed ? (
+            <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} height="300px" borderRadius="lg" />
+              ))}
+            </Grid>
+          ) : followedLists.length > 0 ? (
+            <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
+              {followedLists.map((list) => (
+                <ListCard key={list.id} list={list} />
+              ))}
+            </Grid>
+          ) : (
+            <Center py={8}>
+              <VStack spacing={4}>
+                <Icon as={User} boxSize={12} color="gray.500" weight="thin" />
+                <Text color="gray.400">Você ainda não segue nenhum usuário com listas públicas</Text>
+                <Button
+                  as={RouterLink}
+                  to="/community"
+                  size="sm"
+                  colorScheme="primary"
+                  variant="outline"
+                >
+                  Explorar Usuários
+                </Button>
+              </VStack>
+            </Center>
+          )
+        ) : activeTabIndex === 2 ? (
           renderTagsContent()
         ) : (
           // Conteúdo da aba "Todas"
@@ -442,12 +487,25 @@ export default function Lists() {
                 <ListCard key={list.id} list={list} />
               ))}
             </Grid>
-          ) : (
+          ) : isLoadingAll ? (
+            <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} height="300px" borderRadius="lg" />
+              ))}
+            </Grid>
+          ) : allLists.length > 0 ? (
             <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
               {allLists.map((list) => (
                 <ListCard key={list.id} list={list} />
               ))}
             </Grid>
+          ) : (
+            <Center py={8}>
+              <VStack spacing={4}>
+                <Icon as={TagSimple} boxSize={12} color="gray.500" weight="thin" />
+                <Text color="gray.400">Nenhuma lista encontrada</Text>
+              </VStack>
+            </Center>
           )
         )}
       </Container>

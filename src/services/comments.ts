@@ -160,7 +160,7 @@ export async function addComment(
       userPhotoURL: photoURL,
       content,
       createdAt: serverTimestamp(),
-      seasonNumber: objectType === 'review' ? seasonNumber : undefined
+      ...(objectType === 'review' && { seasonNumber })
     };
     
     // Adicionar o comentário
@@ -413,5 +413,141 @@ function getObjectCollectionName(objectType: string): string | null {
       return 'reviews';
     default:
       return null;
+  }
+}
+
+/**
+ * Adiciona ou remove uma reação (like) de um comentário de avaliação
+ * @param objectId ID da avaliação
+ * @param commentId ID do comentário
+ * @param seasonNumber Número da temporada
+ * @returns Retorna o novo status da reação e a contagem de likes
+ */
+export async function toggleReviewCommentReaction(
+  objectId: string,
+  commentId: string,
+  seasonNumber: number
+): Promise<{
+  liked: boolean;
+  likesCount: number;
+}> {
+  if (!auth.currentUser) throw new Error("Usuário não autenticado");
+
+  const userId = auth.currentUser.uid;
+  const commentRef = doc(db, 'reviewComments', commentId);
+  
+  try {
+    const result = await runTransaction(db, async (transaction) => {
+      const commentDoc = await transaction.get(commentRef);
+      
+      if (!commentDoc.exists()) {
+        console.error(`Comentário ${commentId} não encontrado na coleção reviewComments`);
+        throw new Error("Comentário não encontrado");
+      }
+
+      const comment = commentDoc.data() as any;
+      if (comment.objectId !== objectId || comment.objectType !== "review" || comment.seasonNumber !== seasonNumber) {
+        console.error(`Comentário não pertence à avaliação ${objectId} ou temporada ${seasonNumber}`, { 
+          commentObjectId: comment.objectId, 
+          objectId,
+          commentObjectType: comment.objectType,
+          commentSeasonNumber: comment.seasonNumber,
+          seasonNumber
+        });
+        throw new Error("Comentário não pertence a esta avaliação ou temporada");
+      }
+
+      // Clonar ou inicializar o objeto de likes para modificação 
+      const likes = comment.likes ? { ...comment.likes } : {};
+      
+      // Verificar se o usuário já curtiu o comentário
+      const userLiked = !!likes[userId];
+      
+      if (userLiked) {
+        // Remover o like
+        delete likes[userId];
+      } else {
+        // Adicionar o like
+        likes[userId] = true;
+      }
+
+      // Aplicar a atualização na transação
+      transaction.update(commentRef, { likes });
+
+      return {
+        isRemoving: userLiked,
+        comment,
+        likes,
+        likesCount: Object.keys(likes).length
+      };
+    });
+
+    const { isRemoving, comment, likesCount } = result;
+    const currentUserId = auth.currentUser.uid;
+
+    // Gerenciar notificações em background
+    setTimeout(async () => {
+      try {
+        if (!auth.currentUser) return;
+        
+        // Somente notificar se for uma adição (não uma remoção) e o comentário não for do usuário atual
+        if (!isRemoving && comment.userId !== currentUserId) {
+          // Verificar se uma notificação foi enviada recentemente
+          const wasNotified = wasCommentNotifiedRecently(
+            objectId,
+            currentUserId,
+            comment.userId
+          );
+          
+          // Se não foi notificado recentemente, enviar notificação
+          if (!wasNotified) {
+            try {
+              // Buscar dados da avaliação
+              const reviewRef = doc(db, 'reviews', objectId);
+              const reviewSnap = await getDoc(reviewRef);
+              
+              if (!reviewSnap.exists()) return;
+              
+              const reviewData = reviewSnap.data();
+              const userData = await getUserData(auth.currentUser.uid);
+              const userName = userData?.username || userData?.displayName || auth.currentUser.email;
+              
+              // Registrar que a notificação está sendo enviada
+              trackCommentNotification(objectId, auth.currentUser.uid, comment.userId);
+              
+              // Usar mensagem genérica para evitar múltiplas notificações específicas
+              const message = `${userName} reagiu ao seu comentário na avaliação`;
+              
+              await createNotification(
+                comment.userId,
+                NotificationType.NEW_REACTION,
+                {
+                  senderId: auth.currentUser.uid,
+                  reviewId: objectId,
+                  seriesId: reviewData.seriesId,
+                  seasonNumber,
+                  message
+                }
+              );
+            } catch (error) {
+              console.error("Erro ao criar notificação:", error);
+              // Silencia erros de notificação
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Erro geral no processamento de notificações:", error);
+        // Silencia erros gerais
+      }
+    }, 0);
+
+    // Retornar imediatamente o novo estado para atualização da UI
+    return {
+      liked: !isRemoving,
+      likesCount
+    };
+  } catch (error) {
+    console.error("Erro ao atualizar reação em comentário de avaliação:", error);
+    throw error;
   }
 } 

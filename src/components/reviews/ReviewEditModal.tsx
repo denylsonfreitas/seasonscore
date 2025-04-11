@@ -222,6 +222,7 @@ export function ReviewEditModal({
                 <Flex direction="row" gap={3} mt={2}>
                   <Button
                     bg="red.500"
+                    _hover={{ bg: "red.600" }}
                     onClick={() => setIsDeleteAlertOpen(true)}
                     isLoading={isDeleting}
                     flex="1"
@@ -267,7 +268,8 @@ export function ReviewEditModal({
                 Cancelar
               </Button>
               <Button
-                colorScheme="red"
+                bg="red.500"
+                _hover={{ bg: "red.600" }}
                 onClick={handleDeleteReview}
                 ml={3}
                 isLoading={isDeleting}

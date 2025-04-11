@@ -34,6 +34,7 @@ import {
   getComments,
   deleteComment,
   updateComment,
+  toggleReviewCommentReaction
 } from '../../services/comments';
 import { UserName } from './UserName';
 import { UserAvatar } from './UserAvatar';
@@ -59,9 +60,16 @@ interface CommentSectionProps {
   objectType: 'review' | 'list';
   commentsCount: number;
   seasonNumber?: number;
+  onCommentsCountChange?: (count: number) => void;
 }
 
-export function CommentSection({ objectId, objectType, commentsCount, seasonNumber }: CommentSectionProps) {
+export function CommentSection({ 
+  objectId, 
+  objectType, 
+  commentsCount, 
+  seasonNumber,
+  onCommentsCountChange 
+}: CommentSectionProps) {
   const { currentUser } = useAuth();
   const toast = useToast();
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -110,11 +118,23 @@ export function CommentSection({ objectId, objectType, commentsCount, seasonNumb
     setCommentReactions(newReactions);
   }, [comments, currentUser]);
 
+  // Adicionar efeito para notificar o componente pai sobre o número atualizado de comentários
+  useEffect(() => {
+    if (onCommentsCountChange && !isLoading && comments.length !== commentsCount) {
+      onCommentsCountChange(comments.length);
+    }
+  }, [comments.length, commentsCount, isLoading, onCommentsCountChange]);
+
   const loadComments = async () => {
     try {
       setIsLoading(true);
       const commentsData = await getComments(objectId, objectType, seasonNumber);
       setComments(commentsData);
+      
+      // Notificar o componente pai sobre a contagem atualizada
+      if (onCommentsCountChange && commentsData.length !== commentsCount) {
+        onCommentsCountChange(commentsData.length);
+      }
     } catch (error) {
       console.error('Erro ao carregar comentários:', error);
       toast({
@@ -156,8 +176,14 @@ export function CommentSection({ objectId, objectType, commentsCount, seasonNumb
       
       const addedComment = await addComment(objectId, objectType, newComment.trim(), seasonNumber);
       
-      setComments([addedComment, ...comments]);
+      const updatedComments = [addedComment, ...comments];
+      setComments(updatedComments);
       setNewComment('');
+      
+      // Notificar o componente pai sobre a contagem atualizada
+      if (onCommentsCountChange) {
+        onCommentsCountChange(updatedComments.length);
+      }
       
       toast({
         title: 'Comentário adicionado',
@@ -189,7 +215,13 @@ export function CommentSection({ objectId, objectType, commentsCount, seasonNumb
     try {
       await deleteComment(commentToDelete, objectId, objectType);
       
-      setComments(comments.filter(comment => comment.id !== commentToDelete));
+      const updatedComments = comments.filter(comment => comment.id !== commentToDelete);
+      setComments(updatedComments);
+      
+      // Notificar o componente pai sobre a contagem atualizada
+      if (onCommentsCountChange) {
+        onCommentsCountChange(updatedComments.length);
+      }
       
       toast({
         title: 'Comentário excluído',
@@ -265,11 +297,6 @@ export function CommentSection({ objectId, objectType, commentsCount, seasonNumb
       return;
     }
 
-    if (objectType !== 'list') {
-      // Somente implementamos reações para comentários de listas por enquanto
-      return;
-    }
-
     // Evitar múltiplos cliques
     if (commentReactions[commentId]?.isToggling) {
       return;
@@ -288,7 +315,15 @@ export function CommentSection({ objectId, objectType, commentsCount, seasonNumb
     }));
 
     try {
-      const result = await toggleListCommentReaction(objectId, commentId);
+      let result;
+      
+      if (objectType === 'list') {
+        result = await toggleListCommentReaction(objectId, commentId);
+      } else if (objectType === 'review' && seasonNumber !== undefined) {
+        result = await toggleReviewCommentReaction(objectId, commentId, seasonNumber);
+      } else {
+        throw new Error('Tipo de objeto inválido ou temporada não especificada');
+      }
       
       // Atualizar com o resultado real da API
       setCommentReactions(prev => ({
@@ -489,7 +524,7 @@ export function CommentSection({ objectId, objectType, commentsCount, seasonNumb
                           
                           <HStack spacing={3}>
                             {/* Botão de reação para comentários de listas */}
-                            {objectType === 'list' && (
+                            {(objectType === 'list' || objectType === 'review') && (
                               <ReactionButton
                                 likes={Object.keys(likesMap)}
                                 onReaction={() => handleCommentReaction(comment.id)}
@@ -502,7 +537,7 @@ export function CommentSection({ objectId, objectType, commentsCount, seasonNumb
                             )}
                             
                             {/* Separador visual entre o botão de reação e o menu de opções */}
-                            {objectType === 'list' && currentUser && currentUser.uid === comment.userId && (
+                            {(objectType === 'list' || objectType === 'review') && currentUser && currentUser.uid === comment.userId && (
                               <Box
                                 h="16px"
                                 borderLeftWidth="1px"
@@ -585,7 +620,7 @@ export function CommentSection({ objectId, objectType, commentsCount, seasonNumb
               <Button ref={cancelRef} onClick={() => setDeleteConfirmOpen(false)}>
                 Cancelar
               </Button>
-              <Button colorScheme="red" onClick={confirmDelete} ml={3}>
+              <Button bg="red.500" _hover={{ bg: "red.600" }} onClick={confirmDelete} ml={3}>
                 Excluir
               </Button>
             </AlertDialogFooter>

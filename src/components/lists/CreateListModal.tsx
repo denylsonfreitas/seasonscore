@@ -74,7 +74,7 @@ export function CreateListModal({
     initialSeries ? [initialSeries] : []
   );
   const [isCreating, setIsCreating] = useState(false);
-  
+
   const toast = useToast();
 
   const handleAddTag = () => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -7,6 +7,7 @@ import {
   Text,
   Flex,
   HStack,
+  VStack,
   Tag,
   TagLabel,
   SimpleGrid,
@@ -22,10 +23,6 @@ import {
   AlertIcon,
   AlertTitle,
   useDisclosure,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -46,11 +43,23 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
   Icon,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  Collapse,
 } from '@chakra-ui/react';
-import { FaHeart, FaRegHeart, FaComment, FaShare, FaEllipsisV, FaTrash, FaEdit, FaPlus, FaSearch } from 'react-icons/fa';
-import { Globe, Lock } from '@phosphor-icons/react';
+import { 
+  Globe, 
+  Lock, 
+  Calendar, 
+  ChatCircle, 
+  NotePencil, 
+  Share, 
+  Plus, 
+  MagnifyingGlass,
+  Trash
+} from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
-import { formatRelativeTime } from '../utils/dateUtils';
 import { SeriesCard } from '../components/series/SeriesCard';
 import { CommentSection } from '../components/common/CommentSection';
 import { ReactionButton } from '../components/common/ReactionButton';
@@ -62,11 +71,13 @@ import {
   addSeriesToList
 } from '../services/lists';
 import { ListWithUserData } from '../types/list';
-import { Link } from 'react-router-dom';
 import { SeriesListItem, searchSeries } from '../services/tmdb';
 import { EditListModal } from '../components/lists/EditListModal';
 import { UserAvatar } from '../components/common/UserAvatar';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { format, formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Timestamp } from 'firebase/firestore';
 
 export default function ListPage() {
   const { listId } = useParams();
@@ -76,10 +87,11 @@ export default function ListPage() {
   const toast = useToast();
   const queryClient = useQueryClient();
   
-  const bgColor = useColorModeValue('secondary.800', 'secondary.700');
-  const borderColor = useColorModeValue('gray.700', 'gray.600');
-  const textColor = useColorModeValue('white', 'white');
-  const subtextColor = useColorModeValue('gray.300', 'gray.300');
+  // Cores e estilos
+  const cardBg = useColorModeValue("gray.800", "gray.800");
+  const textColor = useColorModeValue("white", "white");
+  const mutedTextColor = useColorModeValue("gray.400", "gray.400");
+  const primaryColor = useColorModeValue("primary.500", "primary.400");
   
   const [list, setList] = useState<ListWithUserData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +101,7 @@ export default function ListPage() {
   const [isRemovingSeries, setIsRemovingSeries] = useState<number | null>(null);
   const [isTogglingLike, setIsTogglingLike] = useState(false);
   const [isForceFetchingReaction, setIsForceFetchingReaction] = useState(false);
+  const [localCommentsCount, setLocalCommentsCount] = useState<number | null>(null);
   
   const { isOpen: isSearchModalOpen, onOpen: onSearchModalOpen, onClose: onSearchModalClose } = useDisclosure();
   const [searchQuery, setSearchQuery] = useState('');
@@ -103,6 +116,8 @@ export default function ListPage() {
   const [seriesNameToRemove, setSeriesNameToRemove] = useState<string>('');
   const { isOpen: isRemoveAlertOpen, onOpen: onRemoveAlertOpen, onClose: onRemoveAlertClose } = useDisclosure();
   const cancelRef = React.useRef<HTMLButtonElement>(null);
+
+  const { isOpen: isCommentExpanded, onToggle: toggleComments } = useDisclosure();
 
   // Usar React Query para obter e manter os dados da lista atualizados
   const { data: queryList, refetch, isLoading, isError } = useQuery({
@@ -475,6 +490,27 @@ export default function ListPage() {
     navigate(`/lists?tag=${encodeURIComponent(tag)}&source=listPage`);
   };
 
+  // Função auxiliar para converter Timestamp para Date
+  const convertToDate = (timestamp: Date | Timestamp | number | string | null | undefined): Date => {
+    if (!timestamp) return new Date();
+    if (timestamp instanceof Date) return timestamp;
+    if (timestamp instanceof Timestamp) return timestamp.toDate();
+    if (typeof timestamp === 'number') {
+      return new Date(timestamp * 1000);
+    }
+    return new Date(timestamp);
+  };
+
+  // Função para atualizar a contagem de comentários localmente
+  const handleCommentsCountChange = (count: number) => {
+    setLocalCommentsCount(count);
+  };
+
+  // Resetar a contagem local de comentários quando a lista mudar
+  useEffect(() => {
+    setLocalCommentsCount(null);
+  }, [listId]);
+
   if (isLoading) {
     return (
       <Container maxW="container.lg" py={8}>
@@ -495,38 +531,175 @@ export default function ListPage() {
   }
 
   return (
-    <Container maxW="container.lg" py={8}>
-      <Box
-        bg="gray.800"
-        borderRadius="lg"
-        boxShadow="md"
-        borderWidth="1px"
-        borderColor={borderColor}
+    <Flex direction="column" minH="100vh" bg="gray.900">
+      <Container maxW="container.lg" py={6} flex="1">
+        {/* Breadcrumbs com efeito de hover */}
+        <Breadcrumb 
+          mb={6} 
+          color="gray.400" 
+          separator=">" 
+          fontSize="sm" 
+          fontWeight="medium"
+          spacing={2}
+        >
+          <BreadcrumbItem>
+            <BreadcrumbLink 
+              as={RouterLink} 
+              to="/lists" 
+              _hover={{ color: "primary.300", textDecoration: "none" }}
+              transition="color 0.2s ease"
+            >
+              Listas
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbItem isCurrentPage>
+            <Text color="primary.300">{list?.title}</Text>
+          </BreadcrumbItem>
+        </Breadcrumb>
+
+        {/* Card principal com gradiente e efeitos visuais */}
+        <Box 
+          bg={cardBg} 
+          borderRadius="xl" 
         overflow="hidden"
         mb={8}
-      >
-        <Box p={6}>
-          <Flex justifyContent="space-between" alignItems="flex-start">
-            <Box>
-              <Flex align="center" mb={2}>
-                <Heading as="h1" size="lg" color={textColor}>
-                  {list.title}
-                </Heading>
-                <Badge ml={2} colorScheme={list.isPublic ? "green" : "gray"} fontSize="sm" px={2} py={2} borderRadius="md">
+          boxShadow="lg"
+          position="relative"
+          _before={{
+            content: '""',
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: "8px",
+            borderTopRadius: "xl",
+          }}
+        >
+          <Box p={{ base: 3, md: 8 }}>
+            {/* Informações do usuário e data */}
+            <Grid 
+              templateColumns={{ base: "1fr", md: "auto 1fr auto" }}
+              gap={{ base: 2, md: 4 }} 
+              mb={{ base: 3, md: 6 }}
+              alignItems="center"
+            >
+              <HStack spacing={{ base: 2, md: 4 }}>
+                <UserAvatar 
+                  userId={list?.userId} 
+                  photoURL={list?.userPhotoURL}
+                  size="sm"
+                  showBorder
+                />
+                <VStack align="start" spacing={0}>
+                  <HStack>
+                    <Text 
+                      fontWeight="medium" 
+                      color={textColor}
+                      fontSize={{ base: "xs", md: "md" }}
+                    >
+                      Lista criada por 
+                    </Text>
+                    <Text 
+                      as={RouterLink}
+                      to={`/u/${list?.username || list?.userId}`}
+                      fontWeight="bold" 
+                      color={primaryColor} 
+                      _hover={{ textDecoration: "underline" }}
+                      transition="color 0.2s"
+                      fontSize={{ base: "xs", md: "md" }}
+                    >
+                      @{list?.username || list?.userDisplayName || 'Usuário'}
+                    </Text>
+                  </HStack>
+                  <HStack spacing={1}>
+                    <Icon as={Calendar} color={mutedTextColor} weight="fill" size={12} />
+                    <Tooltip label={format(convertToDate(list?.createdAt), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })} placement="bottom">
+                      <Text 
+                        color={mutedTextColor} 
+                        fontSize={{ base: "xs", md: "sm" }}
+                      >
+                        {formatDistanceToNow(convertToDate(list?.createdAt), { locale: ptBR, addSuffix: true })}
+                      </Text>
+                    </Tooltip>
+                  </HStack>
+                </VStack>
+              </HStack>
+
+              {/* Badge de visibilidade e botão de edição */}
+              <Box 
+                display="flex" 
+                justifyContent={{ base: "flex-start", md: "flex-end" }}
+                position={{ base: "absolute", md: "relative" }}
+                top={{ base: 3, md: 0 }}
+                right={{ base: 3, md: -5 }}
+                gap={2}
+                alignItems="center"
+              >
+                <Badge 
+                  colorScheme={list?.isPublic ? "green" : "gray"} 
+                  fontSize={{ base: "xs", md: "md" }} 
+                  py={1} 
+                  px={2} 
+                  borderRadius="full"
+                >
                   <Flex align="center">
-                    <Icon as={list.isPublic ? Globe : Lock} weight="fill" />
+                    <Icon as={list?.isPublic ? Globe : Lock} weight="fill" mr={1} size={12} />
+                    {list?.isPublic ? "Pública" : "Privada"}
                   </Flex>
                 </Badge>
-              </Flex>
+                
+                {currentUser && list?.userId === currentUser.uid && (
+                  <IconButton
+                    icon={<Icon as={NotePencil} />}
+                    aria-label="Editar lista"
+                    size="sm"
+                    colorScheme="primary"
+                    variant="outline"
+                    onClick={onEditModalOpen}
+                  />
+                )}
+              </Box>
+            </Grid>
 
-              {list.description && (
-                <Text fontSize="md" color={subtextColor} mb={4}>
-                  {list.description}
+            {/* Conteúdo principal da lista */}
+            <Grid 
+              templateColumns="1fr" 
+              gap={{ base: 3, md: 6 }}
+              mb={{ base: 4, md: 6 }}
+            >
+              {/* Detalhes da lista */}
+              <GridItem>
+                <VStack align="start" spacing={{ base: 2, md: 4 }} h="100%">
+                  <Box>
+                    <Heading 
+                      as="h1" 
+                      size={{ base: "sm", md: "lg" }} 
+                      color={textColor}
+                      lineHeight="shorter"
+                      mb={1}
+                    >
+                      {list?.title}
+                    </Heading>
+                    {list?.description && (
+                      <Text 
+                        fontSize={{ base: "xs", md: "md" }} 
+                        color={mutedTextColor}
+                        whiteSpace="pre-wrap"
+                        overflowWrap="break-word"
+                        wordBreak="break-word"
+                        sx={{
+                          hyphens: "auto"
+                        }}
+                      >
+                        {list?.description}
                 </Text>
               )}
-              
-              <HStack spacing={2} mb={4} flexWrap="wrap">
-                {list.tags && list.tags.map((tag, index) => (
+                  </Box>
+
+                  {/* Tags */}
+                  {list?.tags && list.tags.length > 0 && (
+                    <HStack spacing={2} flexWrap="wrap">
+                      {list.tags.map((tag, index) => (
                   <Tag 
                     key={index} 
                     size="sm" 
@@ -540,77 +713,25 @@ export default function ListPage() {
                       color: "white" 
                     }}
                     transition="all 0.2s"
+                          px={3}
+                          py={1}
                   >
                     <TagLabel>{tag}</TagLabel>
                   </Tag>
                 ))}
               </HStack>
+                  )}
 
-              <Flex alignItems="center" mb={4}>
-                <Link to={`/u/${list.username || list.userId}`} style={{ textDecoration: 'none' }}>
-                  <Flex alignItems="center">
-                  <UserAvatar
-                    size="sm"
-                    userId={list.userId}
-                    photoURL={list.userPhotoURL}
-                    mr={2}
-                  />
-                    <Text fontWeight="medium" color={textColor} _hover={{ color: "primary.400" }}>
-                      @{list.username || list.userDisplayName || 'Usuário'}
-                    </Text>
-                  </Flex>
-                </Link>
-                <Text fontSize="sm" color={subtextColor} ml={2}>
-                  • {formatRelativeTime(list.createdAt)}
-                </Text>
-              </Flex>
-
-
-            </Box>
-
-            {currentUser && list.userId === currentUser.uid && (
-              <Menu>
-                <MenuButton
-                  as={IconButton}
-                  icon={<FaEllipsisV />}
-                  variant="ghost"
-                  size="sm"
-                  aria-label="Opções"
-                  color="gray.400"
-                />
-                <MenuList bg="gray.800" borderColor="gray.700">
-                  <MenuItem icon={<FaEdit />} onClick={onEditModalOpen} bg="gray.800" _hover={{ bg: "gray.700" }}>
-                    Editar lista
-                  </MenuItem>
-                  <MenuItem 
-                    icon={<FaTrash />} 
-                    onClick={handleDeleteList}
-                    isDisabled={isDeleting}
-                    color="red.500"
-                    bg="gray.800"
-                    _hover={{ bg: "gray.700" }}
+                  {/* Botões de ação */}
+                  <HStack 
+                    spacing={{ base: 2, md: 4 }} 
+                    w="full"
+                    flexWrap="wrap"
                   >
-                    Excluir lista
-                  </MenuItem>
-                </MenuList>
-              </Menu>
-            )}
-          </Flex>
-
-          <Flex 
-            align="center" 
-            bg="gray.800" 
-            borderRadius="lg" 
-            py={2} 
-            px={4} 
-            mb={4}
-            shadow="sm"
-            borderWidth="1px"
-            borderColor="gray.700"
-          >
+                    <Box onClick={(e) => e.stopPropagation()} mr={{ base: 2, md: 4 }}>
             <ReactionButton 
               likes={
-                Array.isArray(list.reactions) 
+                          Array.isArray(list?.reactions) 
                   ? list.reactions
                       .filter(r => r.type === 'like')
                       .map(r => r.userId) 
@@ -622,61 +743,55 @@ export default function ListPage() {
               isLoading={isTogglingLike}
               forcedLikeState={isLiked}
               forcedLikesCount={likesCount}
-              size="md"
-            />
+                        size="sm"
+                      />
+                    </Box>
+                    
+                    <Button
+                      leftIcon={<Icon as={ChatCircle} />}
+                      variant="ghost"
+                      size="sm"
+                      onClick={toggleComments}
+                      color={isCommentExpanded ? "primary.400" : mutedTextColor}
+                      _hover={{ color: "primary.300" }}
+                    >
+                      {localCommentsCount !== null ? localCommentsCount : (list?.commentsCount || 0)} comentários
+                    </Button>
+                    
+                    <Button
+                      leftIcon={<Icon as={Share} />}
+                      variant="ghost"
+                      size={{ base: "sm", md: "md" }}
+                      onClick={handleShare}
+                      color={mutedTextColor}
+                      _hover={{ color: "primary.300" }}
+                    >
+                      Compartilhar
+                    </Button>
+                  </HStack>
+                </VStack>
+              </GridItem>
 
-            <Box mx={4} h="20px" borderLeftWidth="1px" borderColor="gray.600" />
+              <Divider color="gray.700" />
 
-            <Tooltip label="Comentários">
+              {/* Seção de séries da lista */}
+              <Box>
               <Flex
-                align="center"
-                cursor="pointer"
-                transition="all 0.2s"
-                onClick={() => {
-                  const commentsSection = document.getElementById('comments');
-                  commentsSection?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                _hover={{ color: "primary.400" }}
-              >
-                <Icon as={FaComment} mr={2} />
-                <Text fontWeight="medium">
-                  {list.commentsCount > 0 ? list.commentsCount : "0"}
-                </Text>
-              </Flex>
-            </Tooltip>
-
-            <Box mx={4} h="20px" borderLeftWidth="1px" borderColor="gray.600" />
-
-            <Tooltip label="Compartilhar link da lista">
-              <Flex
-                align="center"
-                cursor="pointer"
-                transition="all 0.2s"
-                onClick={handleShare}
-                _hover={{ color: "primary.400" }}
-              >
-                <Icon as={FaShare} mr={2} />
-                <Text fontWeight="medium">Compartilhar</Text>
-              </Flex>
-            </Tooltip>
-          </Flex>
-        </Box>
-
-        <Divider />
-        
-        <Box p={6}>
-          <Flex justifyContent="space-between" alignItems="center" mb={4}>
-            <Heading as="h2" size="md" color={textColor}>
-              Séries nesta lista ({list.items.length})
-            </Heading>
-            
-            {currentUser && list.userId === currentUser.uid && (
+                  justifyContent="space-between" 
+                  alignItems="center" 
+                  mb={6}
+                  flexDirection={{ base: "column", md: "row" }}
+                  gap={{ base: 4, md: 0 }}
+                >
+                  
+                  {currentUser && list?.userId === currentUser.uid && (
               <Tooltip label="Adicionar séries à lista">
                 <Button
-                  leftIcon={<FaPlus />}
+                        leftIcon={<Icon as={Plus} />}
                   colorScheme="primary"
-                  size="sm"
+                        size={{ base: "sm", md: "md" }}
                   onClick={onSearchModalOpen}
+                        w={{ base: "full", md: "auto" }}
                 >
                   Adicionar séries
                 </Button>
@@ -684,14 +799,17 @@ export default function ListPage() {
             )}
           </Flex>
 
-          {list.items.length === 0 ? (
+                {list?.items.length === 0 ? (
             <Alert status="info" borderRadius="md" bg="gray.700" borderColor="gray.700">
               <AlertIcon />
               <AlertTitle>Esta lista está vazia</AlertTitle>
             </Alert>
           ) : (
-            <SimpleGrid columns={{ base: 3, md: 4, lg: 6, xl: 7 }} spacing={3}>
-              {list.items.map(item => {
+                  <SimpleGrid 
+                    columns={{ base: 5, sm: 7, md: 8, lg: 10, xl: 10 }} 
+                    spacing={{ base: 2, md: 3 }}
+                  >
+                    {list?.items.map(item => {
                 const seriesData = {
                   id: item.seriesId,
                   name: item.name,
@@ -711,20 +829,29 @@ export default function ListPage() {
                 };
                 
                 return (
-                  <Box key={item.seriesId} position="relative">
-                    <SeriesCard series={seriesData as any} size="sm" />
+                        <Box 
+                          key={item.seriesId} 
+                          position="relative"
+                          transform="scale(1)"
+                          transition="transform 0.2s ease"
+                          _hover={{ transform: "scale(1.02)" }}
+                        >
+                          <SeriesCard 
+                            series={seriesData as any} 
+                            size="sm"
+                          />
                     {currentUser && list.userId === currentUser.uid && (
                       <Box 
                         position="absolute"
-                        bottom={2}
-                        right={2}
+                              bottom={1}
+                              right={1}
                         zIndex={10}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <IconButton
-                          icon={<FaTrash size={12} />}
+                                icon={<Icon as={Trash} size={10} />}
                           aria-label="Remover série"
-                          size="sm"
+                                size="xs"
                           colorScheme="red"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -732,7 +859,7 @@ export default function ListPage() {
                             confirmRemoveSeries(item.seriesId, item.name);
                           }}
                           isLoading={isRemovingSeries === item.seriesId}
-                          opacity={1}
+                                opacity={0.9}
                           _hover={{ 
                             transform: "scale(1.1)",
                             boxShadow: "0 0 0 1px var(--chakra-colors-red-500)"
@@ -749,17 +876,33 @@ export default function ListPage() {
               })}
             </SimpleGrid>
           )}
+              </Box>
+            </Grid>
         </Box>
       </Box>
 
-      <Box id="comments" mt={8}>
+        {/* Seção de comentários */}
+        <Collapse in={isCommentExpanded} animateOpacity>
+          <Box 
+            bg={cardBg} 
+            borderRadius="xl" 
+            overflow="hidden" 
+            mb={8}
+            boxShadow="lg"
+            id="comments"
+          >
         <CommentSection
-          objectId={list.id}
+              objectId={list?.id || ""}
           objectType="list"
-          commentsCount={list.commentsCount || 0}
+              commentsCount={list?.commentsCount || 0}
+              seasonNumber={undefined}
+              onCommentsCountChange={handleCommentsCountChange}
         />
       </Box>
+        </Collapse>
+      </Container>
 
+      {/* Modais e diálogos */}
       {list && currentUser && list.userId === currentUser.uid && (
         <EditListModal
           isOpen={isEditModalOpen}
@@ -814,7 +957,7 @@ export default function ListPage() {
                   onClick={handleSearch}
                   isLoading={isSearching}
                 >
-                  <FaSearch />
+                  <Icon as={MagnifyingGlass} />
                 </Button>
               </InputRightElement>
             </InputGroup>
@@ -856,7 +999,7 @@ export default function ListPage() {
                         colorScheme="primary"
                         onClick={() => handleAddSeriesToList(series)}
                         isLoading={isAddingSeries === series.id}
-                        leftIcon={<FaPlus />}
+                        leftIcon={<Icon as={Plus} />}
                       >
                         Adicionar
                       </Button>
@@ -927,6 +1070,6 @@ export default function ListPage() {
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
-    </Container>
+    </Flex>
   );
 } 
