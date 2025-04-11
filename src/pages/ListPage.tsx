@@ -52,7 +52,6 @@ import {
   Globe, 
   Lock, 
   Calendar, 
-  ChatCircle, 
   NotePencil, 
   Share, 
   Plus, 
@@ -78,11 +77,11 @@ import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Timestamp } from 'firebase/firestore';
+import { FaComment } from 'react-icons/fa';
 
 export default function ListPage() {
   const { listId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
   const { currentUser } = useAuth();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -538,7 +537,7 @@ export default function ListPage() {
           mb={6} 
           color="gray.400" 
           separator=">" 
-          fontSize="sm" 
+          fontSize="xs" 
           fontWeight="medium"
           spacing={2}
         >
@@ -748,14 +747,14 @@ export default function ListPage() {
                     </Box>
                     
                     <Button
-                      leftIcon={<Icon as={ChatCircle} />}
+                      leftIcon={<Icon as={FaComment} />}
                       variant="ghost"
                       size="sm"
                       onClick={toggleComments}
-                      color={isCommentExpanded ? "primary.400" : mutedTextColor}
-                      _hover={{ color: "primary.300" }}
+                      color={isCommentExpanded ? "blue.500" : mutedTextColor}
+                      _hover={{ color: "blue.300" }}
                     >
-                      {localCommentsCount !== null ? localCommentsCount : (list?.commentsCount || 0)} comentários
+                      {localCommentsCount !== null ? localCommentsCount : (list?.commentsCount || 0)}
                     </Button>
                     
                     <Button

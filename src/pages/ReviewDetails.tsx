@@ -5,9 +5,7 @@ import {
   HStack,
   Text,
   Button,
-  Avatar,
   Image,
-  Divider,
   useToast,
   Spinner,
   Center,
@@ -27,7 +25,7 @@ import {
 } from "@chakra-ui/react";
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link as RouterLink, useNavigate } from "react-router-dom";
-import { ArrowLeft, ChatCircle, Heart, Star, NotePencil, User, Calendar, Clock, Share } from "@phosphor-icons/react";
+import { ArrowLeft, ChatCircle, NotePencil, Calendar, Share } from "@phosphor-icons/react";
 import { useAuth } from "../contexts/AuthContext";
 import { getReviewDetails, toggleReaction } from "../services/reviews";
 import { getUserData } from "../services/users";
@@ -35,12 +33,11 @@ import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { RatingStars } from "../components/common/RatingStars";
 import { UserAvatar } from "../components/common/UserAvatar";
-import { UserName } from "../components/common/UserName";
 import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 import { CommentSection } from "../components/common/CommentSection";
 import { ReactionButtons } from "../components/reviews/ReactionButtons";
 import { Footer } from "../components/common/Footer";
-import { PageHeader } from "../components/common/PageHeader";
+import { FaComment } from "react-icons/fa";
 
 export function ReviewDetails() {
   const { reviewId, seasonNumber: seasonNumberParam } = useParams<{ reviewId: string; seasonNumber: string }>();
@@ -64,8 +61,6 @@ export function ReviewDetails() {
 
   // Cores e estilos
   const cardBg = useColorModeValue("gray.800", "gray.800");
-  const cardBorderColor = useColorModeValue("gray.700", "gray.700");
-  const cardHoverBg = useColorModeValue("gray.750", "gray.750");
   const primaryColor = useColorModeValue("primary.500", "primary.400");
   const textColor = useColorModeValue("white", "white");
   const mutedTextColor = useColorModeValue("gray.400", "gray.400");
@@ -384,20 +379,10 @@ export function ReviewDetails() {
           mb={6} 
           color="gray.400" 
           separator=">" 
-          fontSize="sm" 
+          fontSize="xs" 
           fontWeight="medium" 
           spacing={2}
         >
-          <BreadcrumbItem>
-            <BreadcrumbLink 
-              as={RouterLink} 
-              to="/series" 
-              _hover={{ color: "primary.300", textDecoration: "none" }}
-              transition="color 0.2s ease"
-            >
-              Séries
-            </BreadcrumbLink>
-          </BreadcrumbItem>
           <BreadcrumbItem>
             <BreadcrumbLink 
               as={RouterLink} 
@@ -638,14 +623,14 @@ export function ReviewDetails() {
               </Box>
               
               <Button
-                leftIcon={<Icon as={ChatCircle} />}
+                leftIcon={<Icon as={FaComment} />}
                 variant="ghost"
                 size="sm"
                 onClick={toggleComments}
-                color={isCommentExpanded ? "primary.400" : mutedTextColor}
-                _hover={{ color: "primary.300" }}
+                color={isCommentExpanded ? "blue.500" : mutedTextColor}
+                _hover={{ color: "blue.300" }}
               >
-                {localCommentsCount !== null ? localCommentsCount : (activeSeasonReview.comments?.length || 0)} comentários
+                {localCommentsCount !== null ? localCommentsCount : (activeSeasonReview.comments?.length || 0)}
               </Button>
               
               <Button
