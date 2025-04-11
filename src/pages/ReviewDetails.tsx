@@ -51,6 +51,7 @@ export function ReviewDetails() {
   const [review, setReview] = useState<any>(null);
   const [userData, setUserData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(
     seasonNumberParam ? parseInt(seasonNumberParam) : 1
   );
@@ -58,6 +59,8 @@ export function ReviewDetails() {
   const [loadingReactions, setLoadingReactions] = useState<{[key: string]: boolean}>({});
   const { isOpen: isCommentExpanded, onToggle: toggleComments } = useDisclosure();
   const [localCommentsCount, setLocalCommentsCount] = useState<number | null>(null);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
 
   // Cores e estilos
   const cardBg = useColorModeValue("gray.800", "gray.800");
@@ -76,7 +79,11 @@ export function ReviewDetails() {
   const fetchReviewDetails = useCallback(async () => {
     if (!reviewId) return;
     
-    setIsLoading(true);
+    // Só exibir o loading na primeira carga
+    if (isInitialLoad) {
+      setIsLoading(true);
+    }
+    
     try {
       const reviewData = await getReviewDetails(reviewId);
       if (!reviewData) {
@@ -107,6 +114,11 @@ export function ReviewDetails() {
       // Buscar dados do usuário que fez a avaliação
       const userDataResult = await getUserData(reviewData.userId);
       setUserData(userDataResult);
+      
+      // Após a primeira carga bem-sucedida, atualizar o estado
+      if (isInitialLoad) {
+        setIsInitialLoad(false);
+      }
     } catch (error) {
       console.error("Erro ao buscar detalhes da avaliação:", error);
       toast({
@@ -117,9 +129,32 @@ export function ReviewDetails() {
         isClosable: true,
       });
     } finally {
-      setIsLoading(false);
+      if (isInitialLoad) {
+        setIsLoading(false);
+      }
     }
-  }, [reviewId, seasonNumberParam, navigate, toast]);
+  }, [reviewId, seasonNumberParam, navigate, toast, isInitialLoad]);
+
+  // Nova função para atualizar em segundo plano sem alterar o estado de loading
+  const updateReviewInBackground = useCallback(async () => {
+    if (!reviewId) return;
+    
+    try {
+      const reviewData = await getReviewDetails(reviewId);
+      if (!reviewData) return;
+      
+      setReview(reviewData);
+      
+      // Atualizar dados do usuário apenas se necessário
+      if (!userData) {
+        const userDataResult = await getUserData(reviewData.userId);
+        setUserData(userDataResult);
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar avaliação em segundo plano:", error);
+      // Não mostrar toast de erro para o usuário durante atualizações em segundo plano
+    }
+  }, [reviewId, userData]);
 
   useEffect(() => {
     fetchReviewDetails();
@@ -130,9 +165,21 @@ export function ReviewDetails() {
     fetchReviewDetails();
   }, [fetchReviewDetails]);
 
-  // Lidar com reações (curtidas)
+  // Efeito para atualizar estados de reação quando a revisão muda
+  useEffect(() => {
+    if (activeSeasonReview?.reactions?.likes) {
+      const userLiked = currentUser ? activeSeasonReview.reactions.likes.includes(currentUser.uid) : false;
+      setIsLiked(userLiked);
+      setLikesCount(activeSeasonReview.reactions.likes.length || 0);
+    } else {
+      setIsLiked(false);
+      setLikesCount(0);
+    }
+  }, [activeSeasonReview, currentUser]);
+
+  // Lidar com reações (curtidas) - Versão com UI otimista
   const handleReaction = useCallback(async (reviewId: string, seasonNumber: number, type: "likes", event: React.MouseEvent) => {
-    if (!currentUser) {
+    if (!currentUser || !review) {
       toast({
         title: "Erro",
         description: "Você precisa estar logado para reagir a uma avaliação",
@@ -144,13 +191,62 @@ export function ReviewDetails() {
     }
     
     const loadingKey = `${reviewId}-${seasonNumber}-${type}`;
+    
+    // Evitar múltiplos cliques
+    if (loadingReactions[loadingKey]) return;
+    
     setLoadingReactions(prev => ({ ...prev, [loadingKey]: true }));
     
     try {
-      await toggleReaction(reviewId, seasonNumber, type);
-      fetchReviewDetails();
+      // Atualizar UI imediatamente (abordagem otimista)
+      setIsLiked(!isLiked);
+      setLikesCount(prevCount => isLiked ? Math.max(0, prevCount - 1) : prevCount + 1);
+      
+      // Atualizar a cópia local do review para refletir a reação
+      const updatedReview = { ...review };
+      const seasonIndex = updatedReview.seasonReviews.findIndex(
+        (sr: any) => sr.seasonNumber === seasonNumber
+      );
+      
+      if (seasonIndex !== -1) {
+        // Garantir que o objeto reactions existe
+        if (!updatedReview.seasonReviews[seasonIndex].reactions) {
+          updatedReview.seasonReviews[seasonIndex].reactions = { likes: [] };
+        }
+        
+        const likes = updatedReview.seasonReviews[seasonIndex].reactions.likes;
+        
+        if (isLiked) {
+          // Remover o like
+          const userIndex = likes.indexOf(currentUser.uid);
+          if (userIndex !== -1) {
+            likes.splice(userIndex, 1);
+          }
+        } else {
+          // Adicionar o like
+          if (!likes.includes(currentUser.uid)) {
+            likes.push(currentUser.uid);
+          }
+        }
+        
+        setReview(updatedReview);
+      }
+      
+      // Chamar API em background
+      const result = await toggleReaction(reviewId, seasonNumber, type);
+      
+      // Atualizar dados em segundo plano sem mostrar carregamento
+      setTimeout(() => {
+        updateReviewInBackground();
+      }, 1000);
+      
     } catch (error) {
       console.error("Erro ao reagir à avaliação:", error);
+      
+      // Reverter a UI em caso de erro
+      setIsLiked(!isLiked);  // Reverte a alteração otimista
+      setLikesCount(prevCount => !isLiked ? Math.max(0, prevCount - 1) : prevCount + 1);  // Reverte a contagem
+      
       toast({
         title: "Erro",
         description: "Não foi possível processar sua reação.",
@@ -161,7 +257,7 @@ export function ReviewDetails() {
     } finally {
       setLoadingReactions(prev => ({ ...prev, [loadingKey]: false }));
     }
-  }, [currentUser, fetchReviewDetails, toast]);
+  }, [currentUser, toast, loadingReactions, isLiked, likesCount, review, updateReviewInBackground]);
 
   const handleShare = async () => {
     if (!review) return;
@@ -198,7 +294,7 @@ export function ReviewDetails() {
     setLocalCommentsCount(null);
   }, [reviewId, selectedSeasonNumber]);
 
-  if (isLoading) {
+  if (isLoading && isInitialLoad) {
     return (
       <Center minH="100vh" bg="gray.900">
         <VStack spacing={4}>
@@ -533,9 +629,11 @@ export function ReviewDetails() {
                 <ReactionButtons 
                   reviewId={reviewId || ""} 
                   seasonNumber={selectedSeasonNumber}
-                  likes={activeSeasonReview.reactions?.likes || []}
+                  likes={isLiked ? [...(activeSeasonReview.reactions?.likes || []), currentUser?.uid].filter(Boolean) : (activeSeasonReview.reactions?.likes || [])}
                   onReaction={handleReaction}
                   isLoading={loadingReactions[`${reviewId}-${selectedSeasonNumber}-likes`] || false}
+                  forcedLikeState={isLiked}
+                  forcedLikesCount={likesCount}
                 />
               </Box>
               

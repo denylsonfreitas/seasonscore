@@ -895,7 +895,6 @@ export default function ListPage() {
               objectId={list?.id || ""}
           objectType="list"
               commentsCount={list?.commentsCount || 0}
-              seasonNumber={undefined}
               onCommentsCountChange={handleCommentsCountChange}
         />
       </Box>

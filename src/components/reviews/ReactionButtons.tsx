@@ -7,6 +7,8 @@ interface ReactionButtonsProps {
   likes: string[];
   onReaction: (reviewId: string, seasonNumber: number, type: "likes", event: React.MouseEvent) => void;
   isLoading?: boolean;
+  forcedLikeState?: boolean;
+  forcedLikesCount?: number;
 }
 
 export function ReactionButtons({ 
@@ -14,7 +16,9 @@ export function ReactionButtons({
   seasonNumber, 
   likes = [], 
   onReaction,
-  isLoading = false
+  isLoading = false,
+  forcedLikeState,
+  forcedLikesCount
 }: ReactionButtonsProps) {
   return (
     <Box>
@@ -23,6 +27,8 @@ export function ReactionButtons({
         onReaction={(e) => onReaction(reviewId, seasonNumber, "likes", e)}
         tooltipText="Curtir essa avaliação"
         isLoading={isLoading}
+        forcedLikeState={forcedLikeState}
+        forcedLikesCount={forcedLikesCount}
       />
     </Box>
   );

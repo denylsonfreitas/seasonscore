@@ -617,7 +617,12 @@ export function CommentSection({
             </AlertDialogBody>
 
             <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={() => setDeleteConfirmOpen(false)}>
+              <Button                 
+              variant="ghost"
+              color="white"
+              _hover={{ bg: "gray.700" }}
+              ref={cancelRef} 
+              onClick={() => setDeleteConfirmOpen(false)}>
                 Cancelar
               </Button>
               <Button bg="red.500" _hover={{ bg: "red.600" }} onClick={confirmDelete} ml={3}>

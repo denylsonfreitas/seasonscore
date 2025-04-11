@@ -7,9 +7,10 @@ interface UserNameProps {
   userId: string;
   color?: string;
   showAt?: boolean;
+  isLink?: boolean;
 }
 
-export function UserName({ userId, color = "white", showAt = true }: UserNameProps) {
+export function UserName({ userId, color = "white", showAt = true, isLink = true }: UserNameProps) {
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const { userData, isLoading, error } = useUserData(userId);
@@ -51,6 +52,19 @@ export function UserName({ userId, color = "white", showAt = true }: UserNamePro
         fontStyle="italic"
       >
         Usuário excluído
+      </Text>
+    );
+  }
+
+  // Se não for para renderizar como link, retornar apenas o texto
+  if (!isLink) {
+    return (
+      <Text
+        color={color}
+        fontSize={{ base: "sm", md: "xs" }}
+        fontWeight="bold"
+      >
+        {showAt && username ? "@" : ""}{displayName}
       </Text>
     );
   }

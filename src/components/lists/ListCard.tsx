@@ -24,6 +24,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getListById } from '../../services/lists';
 import { useAuth } from '../../contexts/AuthContext';
 import { EnhancedImage } from '../common/EnhancedImage';
+import { UserName } from '../common/UserName';
 
 interface ListCardProps {
   list: ListWithUserData;
@@ -193,9 +194,7 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
               name={displayList.userDisplayName}
               userId={displayList.userId}
             />
-            <Text fontSize="xs" color="white" fontWeight="medium">
-              {displayList.userDisplayName}
-            </Text>
+            <UserName userId={displayList.userId} isLink={false} />
           </HStack>
         )}
       </Box>
