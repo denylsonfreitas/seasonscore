@@ -15,6 +15,12 @@ functions/
 dist
 dist-ssr
 *.local
+firebase.json
+firestore.rules
+firestore.indexes.json
+tsconfig.json
+tsconfig.node.json
+tsconfig.app.json
 
 # Editor directories and files
 .vscode/*
