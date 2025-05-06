@@ -7,21 +7,41 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
-.firebase/
+.pnp
+.pnp.js
+
+# Environment files
 .env
-dataconnect/
-dataconnect-generated/
-functions/
+.env.*
+!.env.example
+
+# Build outputs
 dist
 dist-ssr
 *.local
-firebase.json
-firestore.rules
-firestore.indexes.json
-tsconfig.json
-tsconfig.node.json
-tsconfig.app.json
+build
+coverage
+
+# Firebase
+.firebase/
+firebase-debug.log
+ui-debug.log
+.firebaserc
+
+# Generated files
+dataconnect/
+dataconnect-generated/
+functions/
+*.generated.*
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+/coverage
+/.nyc_output
 
 # Editor directories and files
 .vscode/*
@@ -34,4 +54,10 @@ tsconfig.app.json
 *.sln
 *.sw?
 
+# Vercel
 .vercel
+
+# Cache
+.cache
+.temp
+.tmp
