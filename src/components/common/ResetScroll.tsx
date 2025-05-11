@@ -6,20 +6,28 @@ export function ResetScroll() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    // Implementação simples e direta
+    // Função para resetar o scroll
     const resetScroll = () => {
-      // Usar método direto para evitar problemas com a função global
+      // Tenta diferentes métodos para garantir que funcione em todos os navegadores
       window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
     };
-    
-    // Executar imediatamente
+
+    // Executa imediatamente
     resetScroll();
-    
-    // Retry com um pequeno delay
+
+    // Tenta novamente com um pequeno delay para garantir
     const timeoutId = setTimeout(resetScroll, 100);
 
-    return () => clearTimeout(timeoutId);
+    // Tenta uma última vez com um delay maior para casos de carregamento assíncrono
+    const finalTimeoutId = setTimeout(resetScroll, 500);
+
+    return () => {
+      clearTimeout(timeoutId);
+      clearTimeout(finalTimeoutId);
+    };
   }, [pathname]);
 
   return null;
-} 
+}

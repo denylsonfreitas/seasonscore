@@ -5,17 +5,17 @@ import { ResetScroll } from "../common/ResetScroll";
 
 export function Layout() {
   const location = useLocation();
-  const isAuthPage = location.pathname === "/login" || location.pathname === "/signup";
+  const isAuthPage =
+    location.pathname === "/login" || location.pathname === "/signup";
 
   return (
     <Box minH="100vh" position="relative">
-      {/* Âncora invisível para o topo da página */}
       <div id="top" style={{ position: "absolute", top: 0, left: 0 }}></div>
-      
+
       <ResetScroll />
-      
+
       {!isAuthPage && <Navbar />}
-      
+
       <Box w="100%">
         <Outlet />
       </Box>

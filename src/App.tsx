@@ -16,7 +16,7 @@ const queryClient = new QueryClient({
       gcTime: 1000 * 60 * 30,
       refetchOnWindowFocus: false,
       retry: 1,
-      refetchOnMount: 'always',
+      refetchOnMount: "always",
       refetchOnReconnect: true,
     },
   },
@@ -24,30 +24,30 @@ const queryClient = new QueryClient({
 
 function GlobalEventHandler() {
   const { closeAllAuth } = useAuthUIStore();
-  
+
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      
-      const isModalContent = 
-        target.closest('.chakra-modal__content') ||
-        target.closest('[data-ignore-outside-click]');
-      
+
+      const isModalContent =
+        target.closest(".chakra-modal__content") ||
+        target.closest("[data-ignore-outside-click]");
+
       if (!isModalContent) {
         closeAllAuth();
       }
     };
-    
+
     const timeoutId = setTimeout(() => {
-      document.addEventListener('mousedown', handleGlobalClick);
+      document.addEventListener("mousedown", handleGlobalClick);
     }, 200);
-    
+
     return () => {
       clearTimeout(timeoutId);
-      document.removeEventListener('mousedown', handleGlobalClick);
+      document.removeEventListener("mousedown", handleGlobalClick);
     };
   }, [closeAllAuth]);
-  
+
   return null;
 }
 

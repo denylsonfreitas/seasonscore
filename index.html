@@ -4,32 +4,48 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="SeasonScore - Avalie e acompanhe suas séries favoritas por temporada" />
+    <meta
+      name="description"
+      content="SeasonScore - Avalie e acompanhe suas séries favoritas por temporada"
+    />
     <meta name="theme-color" content="#1A202C" />
     <title>SeasonScore</title>
-    
+
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/icon.svg" />
-    
+
     <meta property="og:title" content="SeasonScore" />
-    <meta property="og:description" content="Avalie e acompanhe suas séries favoritas por temporada" />
+    <meta
+      property="og:description"
+      content="Avalie e acompanhe suas séries favoritas por temporada"
+    />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    
+
     <link rel="preconnect" href="https://image.tmdb.org" crossorigin />
     <link rel="preconnect" href="https://api.themoviedb.org" crossorigin />
     <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
-    
+
+    <link
+      rel="preload"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      as="style"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript
+      ><link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    /></noscript>
+
     <style>
       body {
-        background-color: #1A202C;
+        background-color: #1a202c;
         color: white;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, sans-serif;
         margin: 0;
         padding: 0;
       }
@@ -50,54 +66,76 @@
   <body>
     <div id="root">
       <div class="app-loading">
-        <svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="25" cy="25" r="20" fill="none" stroke="#805AD5" stroke-width="4" stroke-dasharray="70 30">
-            <animateTransform 
-              attributeName="transform" 
-              type="rotate" 
-              from="0 25 25" 
-              to="360 25 25" 
-              dur="1s" 
-              repeatCount="indefinite" />
+        <svg
+          width="50"
+          height="50"
+          viewBox="0 0 50 50"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <circle
+            cx="25"
+            cy="25"
+            r="20"
+            fill="none"
+            stroke="#805AD5"
+            stroke-width="4"
+            stroke-dasharray="70 30"
+          >
+            <animateTransform
+              attributeName="transform"
+              type="rotate"
+              from="0 25 25"
+              to="360 25 25"
+              dur="1s"
+              repeatCount="indefinite"
+            />
           </circle>
         </svg>
       </div>
     </div>
-    
+
     <script type="module" src="/src/main.tsx"></script>
-    
+
     <script>
-      window.scrollToTop = function() {
+      window.scrollToTop = function () {
         window.scrollTo({
           top: 0,
-          behavior: 'smooth'
+          behavior: "smooth",
         });
-        
+
         setTimeout(() => {
           window.scrollTo(0, 0);
           document.documentElement.scrollTop = 0;
           document.body.scrollTop = 0;
         }, 100);
       };
-      
-      if (!('IntersectionObserver' in window)) {
-        const script = document.createElement('script');
-        script.src = 'https://polyfill.io/v3/polyfill.min.js?features=IntersectionObserver';
+
+      if (!("IntersectionObserver" in window)) {
+        const script = document.createElement("script");
+        script.src =
+          "https://polyfill.io/v3/polyfill.min.js?features=IntersectionObserver";
         document.head.appendChild(script);
       }
-      
-      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-      if (connection && (connection.saveData || connection.effectiveType.includes('2g'))) {
-        document.documentElement.classList.add('slow-connection');
+
+      const connection =
+        navigator.connection ||
+        navigator.mozConnection ||
+        navigator.webkitConnection;
+      if (
+        connection &&
+        (connection.saveData || connection.effectiveType.includes("2g"))
+      ) {
+        document.documentElement.classList.add("slow-connection");
       }
-      
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/service-worker.js')
-            .then(registration => {
+
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/service-worker.js")
+            .then((registration) => {
               // Service Worker registrado com sucesso
             })
-            .catch(error => {
+            .catch((error) => {
               // Erro ao registrar Service Worker
             });
         });
