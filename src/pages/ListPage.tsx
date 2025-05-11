@@ -1,5 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  useParams,
+  useNavigate,
+  useLocation,
+  Link as RouterLink,
+} from "react-router-dom";
 import {
   Box,
   Container,
@@ -47,37 +52,37 @@ import {
   BreadcrumbItem,
   BreadcrumbLink,
   Collapse,
-} from '@chakra-ui/react';
-import { 
-  Globe, 
-  Lock, 
-  Calendar, 
-  NotePencil, 
-  Share, 
-  Plus, 
+} from "@chakra-ui/react";
+import {
+  Globe,
+  Lock,
+  Calendar,
+  NotePencil,
+  Share,
+  Plus,
   MagnifyingGlass,
-  Trash
-} from '@phosphor-icons/react';
-import { useAuth } from '../contexts/AuthContext';
-import { SeriesCard } from '../components/series/SeriesCard';
-import { CommentSection } from '../components/common/CommentSection';
-import { ReactionButton } from '../components/common/ReactionButton';
-import { 
-  getListById, 
-  toggleListReaction, 
+  Trash,
+} from "@phosphor-icons/react";
+import { useAuth } from "../contexts/AuthContext";
+import { SeriesCard } from "../components/series/SeriesCard";
+import { CommentSection } from "../components/common/CommentSection";
+import { ReactionButton } from "../components/common/ReactionButton";
+import {
+  getListById,
+  toggleListReaction,
   deleteList,
   removeSeriesFromList,
-  addSeriesToList
-} from '../services/lists';
-import { ListWithUserData } from '../types/list';
-import { SeriesListItem, searchSeries } from '../services/tmdb';
-import { EditListModal } from '../components/lists/EditListModal';
-import { UserAvatar } from '../components/common/UserAvatar';
-import { useQueryClient, useQuery } from '@tanstack/react-query';
-import { format, formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Timestamp } from 'firebase/firestore';
-import { FaComment } from 'react-icons/fa';
+  addSeriesToList,
+} from "../services/lists";
+import { ListWithUserData } from "../types/list";
+import { SeriesListItem, searchSeries } from "../services/tmdb";
+import { EditListModal } from "../components/lists/EditListModal";
+import { UserAvatar } from "../components/common/UserAvatar";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { format, formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Timestamp } from "firebase/firestore";
+import { FaComment } from "react-icons/fa";
 
 export default function ListPage() {
   const { listId } = useParams();
@@ -85,13 +90,13 @@ export default function ListPage() {
   const { currentUser } = useAuth();
   const toast = useToast();
   const queryClient = useQueryClient();
-  
+
   // Cores e estilos
   const cardBg = useColorModeValue("gray.800", "gray.800");
   const textColor = useColorModeValue("white", "white");
   const mutedTextColor = useColorModeValue("gray.400", "gray.400");
   const primaryColor = useColorModeValue("primary.500", "primary.400");
-  
+
   const [list, setList] = useState<ListWithUserData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
@@ -100,30 +105,50 @@ export default function ListPage() {
   const [isRemovingSeries, setIsRemovingSeries] = useState<number | null>(null);
   const [isTogglingLike, setIsTogglingLike] = useState(false);
   const [isForceFetchingReaction, setIsForceFetchingReaction] = useState(false);
-  const [localCommentsCount, setLocalCommentsCount] = useState<number | null>(null);
-  
-  const { isOpen: isSearchModalOpen, onOpen: onSearchModalOpen, onClose: onSearchModalClose } = useDisclosure();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [localCommentsCount, setLocalCommentsCount] = useState<number | null>(
+    null
+  );
+
+  const {
+    isOpen: isSearchModalOpen,
+    onOpen: onSearchModalOpen,
+    onClose: onSearchModalClose,
+  } = useDisclosure();
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SeriesListItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isAddingSeries, setIsAddingSeries] = useState<number | null>(null);
   const [searchPerformed, setSearchPerformed] = useState(false);
-  
-  const { isOpen: isEditModalOpen, onOpen: onEditModalOpen, onClose: onEditModalClose } = useDisclosure();
+
+  const {
+    isOpen: isEditModalOpen,
+    onOpen: onEditModalOpen,
+    onClose: onEditModalClose,
+  } = useDisclosure();
 
   const [seriesIdToRemove, setSeriesIdToRemove] = useState<number | null>(null);
-  const [seriesNameToRemove, setSeriesNameToRemove] = useState<string>('');
-  const { isOpen: isRemoveAlertOpen, onOpen: onRemoveAlertOpen, onClose: onRemoveAlertClose } = useDisclosure();
+  const [seriesNameToRemove, setSeriesNameToRemove] = useState<string>("");
+  const {
+    isOpen: isRemoveAlertOpen,
+    onOpen: onRemoveAlertOpen,
+    onClose: onRemoveAlertClose,
+  } = useDisclosure();
   const cancelRef = React.useRef<HTMLButtonElement>(null);
 
-  const { isOpen: isCommentExpanded, onToggle: toggleComments } = useDisclosure();
+  const { isOpen: isCommentExpanded, onToggle: toggleComments } =
+    useDisclosure();
 
   // Usar React Query para obter e manter os dados da lista atualizados
-  const { data: queryList, refetch, isLoading, isError } = useQuery({
-    queryKey: ['list', listId],
+  const {
+    data: queryList,
+    refetch,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["list", listId],
     queryFn: async () => {
       if (!listId) return null;
-      
+
       try {
         const data = await getListById(listId);
         if (!data) {
@@ -131,8 +156,10 @@ export default function ListPage() {
         }
         return data;
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erro ao carregar a lista');
-        navigate('/404', { replace: true });
+        setError(
+          err instanceof Error ? err.message : "Erro ao carregar a lista"
+        );
+        navigate("/404", { replace: true });
         throw err;
       }
     },
@@ -141,16 +168,17 @@ export default function ListPage() {
     refetchInterval: 5000, // Refetch a cada 5 segundos
     refetchOnWindowFocus: true,
   });
-  
+
   // Sincronizar o estado local com os dados do React Query
   useEffect(() => {
     if (queryList) {
       setList(queryList);
       setLikesCount(queryList.likesCount || 0);
-      
+
       if (currentUser && queryList.reactions) {
         const userReaction = queryList.reactions.find(
-          reaction => reaction.userId === currentUser.uid && reaction.type === 'like'
+          (reaction) =>
+            reaction.userId === currentUser.uid && reaction.type === "like"
         );
         setIsLiked(!!userReaction);
       } else {
@@ -158,38 +186,39 @@ export default function ListPage() {
       }
     }
   }, [queryList, currentUser]);
-  
+
   // Configurar um polling ativo para o estado da reação
   useEffect(() => {
     if (!listId || !currentUser) return;
-    
+
     const intervalId = setInterval(() => {
       if (!document.hidden) {
         // Forçar um refetch dos dados da lista a cada 3 segundos quando a página estiver visível
         refetch();
       }
     }, 3000);
-    
+
     return () => clearInterval(intervalId);
   }, [listId, currentUser, refetch]);
 
   useEffect(() => {
-    document.title = 'SeasonScore';
+    document.title = "SeasonScore";
   }, [list]);
 
   // Função para buscar o estado atual da reação do usuário diretamente do banco de dados
   const fetchUserReactionState = useCallback(async () => {
     if (!currentUser || !listId) return;
-    
+
     try {
       setIsForceFetchingReaction(true);
       const listData = await getListById(listId);
-      
+
       if (listData && listData.reactions) {
         const userReaction = listData.reactions.find(
-          reaction => reaction.userId === currentUser.uid && reaction.type === 'like'
+          (reaction) =>
+            reaction.userId === currentUser.uid && reaction.type === "like"
         );
-        
+
         setIsLiked(!!userReaction);
         setLikesCount(listData.likesCount || 0);
       }
@@ -203,17 +232,17 @@ export default function ListPage() {
   // Efeito para forçar a atualização do estado de curtida periodicamente
   useEffect(() => {
     if (!currentUser || !listId) return;
-    
+
     // Buscar inicialmente
     fetchUserReactionState();
-    
+
     // Configurar um intervalo para buscar atualizações a cada 10 segundos
     const intervalId = setInterval(() => {
       if (!document.hidden) {
         fetchUserReactionState();
       }
     }, 10000);
-    
+
     // Limpar intervalo ao desmontar
     return () => clearInterval(intervalId);
   }, [currentUser, listId, fetchUserReactionState]);
@@ -221,9 +250,9 @@ export default function ListPage() {
   const handleLikeToggle = async () => {
     if (!currentUser || !list) {
       toast({
-        title: 'Faça login',
-        description: 'Você precisa estar logado para curtir listas',
-        status: 'warning',
+        title: "Faça login",
+        description: "Você precisa estar logado para curtir listas",
+        status: "warning",
         duration: 3000,
         isClosable: true,
       });
@@ -231,32 +260,34 @@ export default function ListPage() {
     }
 
     if (isTogglingLike) return;
-    
+
     try {
       setIsTogglingLike(true);
-      
+
       // Atualizar UI imediatamente para feedback instantâneo
       setIsLiked(!isLiked);
-      setLikesCount(prevCount => isLiked ? Math.max(0, prevCount - 1) : prevCount + 1);
-      
+      setLikesCount((prevCount) =>
+        isLiked ? Math.max(0, prevCount - 1) : prevCount + 1
+      );
+
       // Chamar API para persistir a mudança
-      const result = await toggleListReaction(list.id, 'like');
-      
+      const result = await toggleListReaction(list.id, "like");
+
       // Atualizar estado com dados do servidor
       setIsLiked(result.liked);
       setLikesCount(result.likesCount);
-      
+
       // Invalidar consultas relacionadas
-      queryClient.invalidateQueries({ queryKey: ['list', listId] });
-      queryClient.invalidateQueries({ queryKey: ['lists'] });
-      queryClient.invalidateQueries({ queryKey: ['popularLists'] });
-      queryClient.invalidateQueries({ queryKey: ['userLists'] });
-      
+      queryClient.invalidateQueries({ queryKey: ["list", listId] });
+      queryClient.invalidateQueries({ queryKey: ["lists"] });
+      queryClient.invalidateQueries({ queryKey: ["popularLists"] });
+      queryClient.invalidateQueries({ queryKey: ["userLists"] });
+
       // Forçar um refetch imediato para atualizar todos os componentes
       refetch();
-      
+
       setIsTogglingLike(false);
-      
+
       // Programar refetches adicionais para garantir que todos os componentes estejam atualizados
       setTimeout(() => refetch(), 500);
       setTimeout(() => refetch(), 1500);
@@ -265,11 +296,11 @@ export default function ListPage() {
       setIsLiked(isLiked);
       setLikesCount(likesCount);
       setIsTogglingLike(false);
-      
+
       toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível processar sua reação',
-        status: 'error',
+        title: "Erro",
+        description: error.message || "Não foi possível processar sua reação",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -278,12 +309,12 @@ export default function ListPage() {
 
   const handleDeleteList = async () => {
     if (!list || !currentUser) return;
-    
+
     if (list.userId !== currentUser.uid) {
       toast({
-        title: 'Permissão negada',
-        description: 'Você não tem permissão para excluir esta lista',
-        status: 'error',
+        title: "Permissão negada",
+        description: "Você não tem permissão para excluir esta lista",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -293,21 +324,21 @@ export default function ListPage() {
     try {
       setIsDeleting(true);
       await deleteList(list.id);
-      
+
       toast({
-        title: 'Lista excluída',
-        description: 'Sua lista foi excluída com sucesso',
-        status: 'success',
+        title: "Lista excluída",
+        description: "Sua lista foi excluída com sucesso",
+        status: "success",
         duration: 3000,
         isClosable: true,
       });
-      
-      navigate('/profile');
+
+      navigate("/profile");
     } catch (error: any) {
       toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível excluir a lista',
-        status: 'error',
+        title: "Erro",
+        description: error.message || "Não foi possível excluir a lista",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -325,12 +356,12 @@ export default function ListPage() {
 
   const handleRemoveSeriesFromList = async (seriesId: number) => {
     if (!list || !currentUser) return;
-    
+
     if (list.userId !== currentUser.uid) {
       toast({
-        title: 'Permissão negada',
-        description: 'Você não tem permissão para editar esta lista',
-        status: 'error',
+        title: "Permissão negada",
+        description: "Você não tem permissão para editar esta lista",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -340,28 +371,29 @@ export default function ListPage() {
     try {
       setIsRemovingSeries(seriesId);
       await removeSeriesFromList(list.id, seriesId);
-      
-      setList(prevList => {
+
+      setList((prevList) => {
         if (!prevList) return null;
-        
+
         return {
           ...prevList,
-          items: prevList.items.filter(item => item.seriesId !== seriesId),
+          items: prevList.items.filter((item) => item.seriesId !== seriesId),
         };
       });
-      
+
       toast({
-        title: 'Série removida',
-        description: 'A série foi removida da lista com sucesso',
-        status: 'success',
+        title: "Série removida",
+        description: "A série foi removida da lista com sucesso",
+        status: "success",
         duration: 2000,
         isClosable: true,
       });
     } catch (error: any) {
       toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível remover a série da lista',
-        status: 'error',
+        title: "Erro",
+        description:
+          error.message || "Não foi possível remover a série da lista",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -377,19 +409,20 @@ export default function ListPage() {
     try {
       const url = window.location.href;
       await navigator.clipboard.writeText(url);
-      
+
       toast({
-        title: 'Link copiado!',
-        description: 'O link para esta lista foi copiado para sua área de transferência',
-        status: 'success',
+        title: "Link copiado!",
+        description:
+          "O link para esta lista foi copiado para sua área de transferência",
+        status: "success",
         duration: 3000,
         isClosable: true,
       });
     } catch (error) {
       toast({
-        title: 'Erro',
-        description: 'Não foi possível copiar o link',
-        status: 'error',
+        title: "Erro",
+        description: "Não foi possível copiar o link",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -398,26 +431,26 @@ export default function ListPage() {
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
-    
+
     setIsSearching(true);
     setSearchPerformed(true);
     try {
       const response = await searchSeries(searchQuery, 1);
-      const seriesResults = response.results.map(item => ({
+      const seriesResults = response.results.map((item) => ({
         id: item.id,
         name: item.name,
         overview: item.overview,
         poster_path: item.poster_path,
         backdrop_path: item.backdrop_path,
         first_air_date: item.first_air_date,
-        vote_average: item.vote_average
+        vote_average: item.vote_average,
       }));
       setSearchResults(seriesResults);
     } catch (error) {
       toast({
-        title: 'Erro na busca',
-        description: 'Não foi possível buscar séries',
-        status: 'error',
+        title: "Erro na busca",
+        description: "Não foi possível buscar séries",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -425,21 +458,35 @@ export default function ListPage() {
       setIsSearching(false);
     }
   };
-  
+
+  // Adicionar useEffect para busca automática
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (searchQuery.trim().length >= 1) {
+        handleSearch();
+      } else {
+        setSearchResults([]);
+        setSearchPerformed(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
   const handleAddSeriesToList = async (series: SeriesListItem) => {
     if (!listId || !currentUser) return;
-    
-    if (list?.items.some(item => item.seriesId === series.id)) {
+
+    if (list?.items.some((item) => item.seriesId === series.id)) {
       toast({
-        title: 'Série já adicionada',
-        description: 'Esta série já está na sua lista',
-        status: 'info',
+        title: "Série já adicionada",
+        description: "Esta série já está na sua lista",
+        status: "info",
         duration: 2000,
         isClosable: true,
       });
       return;
     }
-    
+
     setIsAddingSeries(series.id);
     try {
       await addSeriesToList(listId, {
@@ -447,10 +494,10 @@ export default function ListPage() {
         name: series.name,
         poster_path: series.poster_path,
       });
-      
-      setList(prevList => {
+
+      setList((prevList) => {
         if (!prevList) return null;
-        
+
         return {
           ...prevList,
           items: [
@@ -464,19 +511,20 @@ export default function ListPage() {
           ],
         };
       });
-      
+
       toast({
-        title: 'Série adicionada',
-        description: 'A série foi adicionada à lista com sucesso',
-        status: 'success',
+        title: "Série adicionada",
+        description: "A série foi adicionada à lista com sucesso",
+        status: "success",
         duration: 2000,
         isClosable: true,
       });
     } catch (error: any) {
       toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível adicionar a série à lista',
-        status: 'error',
+        title: "Erro",
+        description:
+          error.message || "Não foi possível adicionar a série à lista",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -490,11 +538,13 @@ export default function ListPage() {
   };
 
   // Função auxiliar para converter Timestamp para Date
-  const convertToDate = (timestamp: Date | Timestamp | number | string | null | undefined): Date => {
+  const convertToDate = (
+    timestamp: Date | Timestamp | number | string | null | undefined
+  ): Date => {
     if (!timestamp) return new Date();
     if (timestamp instanceof Date) return timestamp;
     if (timestamp instanceof Timestamp) return timestamp.toDate();
-    if (typeof timestamp === 'number') {
+    if (typeof timestamp === "number") {
       return new Date(timestamp * 1000);
     }
     return new Date(timestamp);
@@ -517,7 +567,7 @@ export default function ListPage() {
         <Skeleton height="20px" width="30%" mb={6} />
         <Skeleton height="200px" mb={8} />
         <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={6}>
-          {[1, 2, 3, 4, 5, 6].map(i => (
+          {[1, 2, 3, 4, 5, 6].map((i) => (
             <Skeleton key={i} height="250px" borderRadius="md" />
           ))}
         </SimpleGrid>
@@ -533,18 +583,18 @@ export default function ListPage() {
     <Flex direction="column" minH="100vh" bg="gray.900">
       <Container maxW="container.lg" py={6} flex="1">
         {/* Breadcrumbs com efeito de hover */}
-        <Breadcrumb 
-          mb={6} 
-          color="gray.400" 
-          separator=">" 
-          fontSize="xs" 
+        <Breadcrumb
+          mb={6}
+          color="gray.400"
+          separator=">"
+          fontSize="xs"
           fontWeight="medium"
           spacing={2}
         >
           <BreadcrumbItem>
-            <BreadcrumbLink 
-              as={RouterLink} 
-              to="/lists" 
+            <BreadcrumbLink
+              as={RouterLink}
+              to="/lists"
               _hover={{ color: "primary.300", textDecoration: "none" }}
               transition="color 0.2s ease"
             >
@@ -557,11 +607,11 @@ export default function ListPage() {
         </Breadcrumb>
 
         {/* Card principal com gradiente e efeitos visuais */}
-        <Box 
-          bg={cardBg} 
-          borderRadius="xl" 
-        overflow="hidden"
-        mb={8}
+        <Box
+          bg={cardBg}
+          borderRadius="xl"
+          overflow="hidden"
+          mb={8}
           boxShadow="lg"
           position="relative"
           _before={{
@@ -576,48 +626,63 @@ export default function ListPage() {
         >
           <Box p={{ base: 3, md: 8 }}>
             {/* Informações do usuário e data */}
-            <Grid 
+            <Grid
               templateColumns={{ base: "1fr", md: "auto 1fr auto" }}
-              gap={{ base: 2, md: 4 }} 
+              gap={{ base: 2, md: 4 }}
               mb={{ base: 3, md: 6 }}
               alignItems="center"
             >
               <HStack spacing={{ base: 2, md: 4 }}>
-                <UserAvatar 
-                  userId={list?.userId} 
+                <UserAvatar
+                  userId={list?.userId}
                   photoURL={list?.userPhotoURL}
                   size="sm"
                   showBorder
                 />
                 <VStack align="start" spacing={0}>
                   <HStack>
-                    <Text 
-                      fontWeight="medium" 
+                    <Text
+                      fontWeight="medium"
                       color={textColor}
                       fontSize={{ base: "xs", md: "md" }}
                     >
-                      Lista criada por 
+                      Lista criada por
                     </Text>
-                    <Text 
+                    <Text
                       as={RouterLink}
                       to={`/u/${list?.username || list?.userId}`}
-                      fontWeight="bold" 
-                      color={primaryColor} 
+                      fontWeight="bold"
+                      color={primaryColor}
                       _hover={{ textDecoration: "underline" }}
                       transition="color 0.2s"
                       fontSize={{ base: "xs", md: "md" }}
                     >
-                      @{list?.username || list?.userDisplayName || 'Usuário'}
+                      @{list?.username || list?.userDisplayName || "Usuário"}
                     </Text>
                   </HStack>
                   <HStack spacing={1}>
-                    <Icon as={Calendar} color={mutedTextColor} weight="fill" size={12} />
-                    <Tooltip label={format(convertToDate(list?.createdAt), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })} placement="bottom">
-                      <Text 
-                        color={mutedTextColor} 
+                    <Icon
+                      as={Calendar}
+                      color={mutedTextColor}
+                      weight="fill"
+                      size={12}
+                    />
+                    <Tooltip
+                      label={format(
+                        convertToDate(list?.createdAt),
+                        "dd 'de' MMMM 'de' yyyy",
+                        { locale: ptBR }
+                      )}
+                      placement="bottom"
+                    >
+                      <Text
+                        color={mutedTextColor}
                         fontSize={{ base: "xs", md: "sm" }}
                       >
-                        {formatDistanceToNow(convertToDate(list?.createdAt), { locale: ptBR, addSuffix: true })}
+                        {formatDistanceToNow(convertToDate(list?.createdAt), {
+                          locale: ptBR,
+                          addSuffix: true,
+                        })}
                       </Text>
                     </Tooltip>
                   </HStack>
@@ -625,8 +690,8 @@ export default function ListPage() {
               </HStack>
 
               {/* Badge de visibilidade e botão de edição */}
-              <Box 
-                display="flex" 
+              <Box
+                display="flex"
                 justifyContent={{ base: "flex-start", md: "flex-end" }}
                 position={{ base: "absolute", md: "relative" }}
                 top={{ base: 3, md: 0 }}
@@ -634,19 +699,24 @@ export default function ListPage() {
                 gap={2}
                 alignItems="center"
               >
-                <Badge 
-                  colorScheme={list?.isPublic ? "green" : "gray"} 
-                  fontSize={{ base: "xs", md: "md" }} 
-                  py={1} 
-                  px={2} 
+                <Badge
+                  colorScheme={list?.isPublic ? "green" : "gray"}
+                  fontSize={{ base: "xs", md: "md" }}
+                  py={1}
+                  px={2}
                   borderRadius="full"
                 >
                   <Flex align="center">
-                    <Icon as={list?.isPublic ? Globe : Lock} weight="fill" mr={1} size={12} />
+                    <Icon
+                      as={list?.isPublic ? Globe : Lock}
+                      weight="fill"
+                      mr={1}
+                      size={12}
+                    />
                     {list?.isPublic ? "Pública" : "Privada"}
                   </Flex>
                 </Badge>
-                
+
                 {currentUser && list?.userId === currentUser.uid && (
                   <IconButton
                     icon={<Icon as={NotePencil} />}
@@ -661,8 +731,8 @@ export default function ListPage() {
             </Grid>
 
             {/* Conteúdo principal da lista */}
-            <Grid 
-              templateColumns="1fr" 
+            <Grid
+              templateColumns="1fr"
               gap={{ base: 3, md: 6 }}
               mb={{ base: 4, md: 6 }}
             >
@@ -670,9 +740,9 @@ export default function ListPage() {
               <GridItem>
                 <VStack align="start" spacing={{ base: 2, md: 4 }} h="100%">
                   <Box>
-                    <Heading 
-                      as="h1" 
-                      size={{ base: "sm", md: "lg" }} 
+                    <Heading
+                      as="h1"
+                      size={{ base: "sm", md: "lg" }}
                       color={textColor}
                       lineHeight="shorter"
                       mb={1}
@@ -680,72 +750,71 @@ export default function ListPage() {
                       {list?.title}
                     </Heading>
                     {list?.description && (
-                      <Text 
-                        fontSize={{ base: "xs", md: "md" }} 
+                      <Text
+                        fontSize={{ base: "xs", md: "md" }}
                         color={mutedTextColor}
                         whiteSpace="pre-wrap"
                         overflowWrap="break-word"
                         wordBreak="break-word"
                         sx={{
-                          hyphens: "auto"
+                          hyphens: "auto",
                         }}
                       >
                         {list?.description}
-                </Text>
-              )}
+                      </Text>
+                    )}
                   </Box>
 
                   {/* Tags */}
                   {list?.tags && list.tags.length > 0 && (
                     <HStack spacing={2} flexWrap="wrap">
                       {list.tags.map((tag, index) => (
-                  <Tag 
-                    key={index} 
-                    size="sm" 
-                    colorScheme="primary" 
-                    borderRadius="full"
-                    cursor="pointer"
-                    onClick={() => handleTagClick(tag)}
-                    _hover={{ 
-                      transform: "scale(1.05)", 
-                      bg: "primary.600", 
-                      color: "white" 
-                    }}
-                    transition="all 0.2s"
+                        <Tag
+                          key={index}
+                          size="sm"
+                          colorScheme="primary"
+                          borderRadius="full"
+                          cursor="pointer"
+                          onClick={() => handleTagClick(tag)}
+                          _hover={{
+                            transform: "scale(1.05)",
+                            bg: "primary.600",
+                            color: "white",
+                          }}
+                          transition="all 0.2s"
                           px={3}
                           py={1}
-                  >
-                    <TagLabel>{tag}</TagLabel>
-                  </Tag>
-                ))}
-              </HStack>
+                        >
+                          <TagLabel>{tag}</TagLabel>
+                        </Tag>
+                      ))}
+                    </HStack>
                   )}
 
                   {/* Botões de ação */}
-                  <HStack 
-                    spacing={{ base: 2, md: 4 }} 
-                    w="full"
-                    flexWrap="wrap"
-                  >
-                    <Box onClick={(e) => e.stopPropagation()} mr={{ base: 2, md: 4 }}>
-            <ReactionButton 
-              likes={
-                          Array.isArray(list?.reactions) 
-                  ? list.reactions
-                      .filter(r => r.type === 'like')
-                      .map(r => r.userId) 
-                  : []
-              }
-              onReaction={handleLikeToggle}
-              tooltipText={isLiked ? "Descurtir" : "Curtir"}
-              showCount={true}
-              isLoading={isTogglingLike}
-              forcedLikeState={isLiked}
-              forcedLikesCount={likesCount}
+                  <HStack spacing={{ base: 2, md: 4 }} w="full" flexWrap="wrap">
+                    <Box
+                      onClick={(e) => e.stopPropagation()}
+                      mr={{ base: 2, md: 4 }}
+                    >
+                      <ReactionButton
+                        likes={
+                          Array.isArray(list?.reactions)
+                            ? list.reactions
+                                .filter((r) => r.type === "like")
+                                .map((r) => r.userId)
+                            : []
+                        }
+                        onReaction={handleLikeToggle}
+                        tooltipText={isLiked ? "Descurtir" : "Curtir"}
+                        showCount={true}
+                        isLoading={isTogglingLike}
+                        forcedLikeState={isLiked}
+                        forcedLikesCount={likesCount}
                         size="sm"
                       />
                     </Box>
-                    
+
                     <Button
                       leftIcon={<Icon as={FaComment} />}
                       variant="ghost"
@@ -754,9 +823,11 @@ export default function ListPage() {
                       color={isCommentExpanded ? "blue.500" : mutedTextColor}
                       _hover={{ color: "blue.300" }}
                     >
-                      {localCommentsCount !== null ? localCommentsCount : (list?.commentsCount || 0)}
+                      {localCommentsCount !== null
+                        ? localCommentsCount
+                        : list?.commentsCount || 0}
                     </Button>
-                    
+
                     <Button
                       leftIcon={<Icon as={Share} />}
                       variant="ghost"
@@ -775,128 +846,130 @@ export default function ListPage() {
 
               {/* Seção de séries da lista */}
               <Box>
-              <Flex
-                  justifyContent="space-between" 
-                  alignItems="center" 
+                <Flex
+                  justifyContent="space-between"
+                  alignItems="center"
                   mb={6}
                   flexDirection={{ base: "column", md: "row" }}
                   gap={{ base: 4, md: 0 }}
                 >
-                  
                   {currentUser && list?.userId === currentUser.uid && (
-              <Tooltip label="Adicionar séries à lista">
-                <Button
+                    <Tooltip label="Adicionar séries à lista">
+                      <Button
                         leftIcon={<Icon as={Plus} />}
-                  colorScheme="primary"
+                        colorScheme="primary"
                         size={{ base: "sm", md: "md" }}
-                  onClick={onSearchModalOpen}
+                        onClick={onSearchModalOpen}
                         w={{ base: "full", md: "auto" }}
-                >
-                  Adicionar séries
-                </Button>
-              </Tooltip>
-            )}
-          </Flex>
+                      >
+                        Adicionar séries
+                      </Button>
+                    </Tooltip>
+                  )}
+                </Flex>
 
                 {list?.items.length === 0 ? (
-            <Alert status="info" borderRadius="md" bg="gray.700" borderColor="gray.700">
-              <AlertIcon />
-              <AlertTitle>Esta lista está vazia</AlertTitle>
-            </Alert>
-          ) : (
-                  <SimpleGrid 
-                    columns={{ base: 5, sm: 7, md: 8, lg: 10, xl: 10 }} 
+                  <Alert
+                    status="info"
+                    borderRadius="md"
+                    bg="gray.700"
+                    borderColor="gray.700"
+                  >
+                    <AlertIcon />
+                    <AlertTitle>Esta lista está vazia</AlertTitle>
+                  </Alert>
+                ) : (
+                  <SimpleGrid
+                    columns={{ base: 5, sm: 7, md: 8, lg: 10, xl: 10 }}
                     spacing={{ base: 2, md: 3 }}
                   >
-                    {list?.items.map(item => {
-                const seriesData = {
-                  id: item.seriesId,
-                  name: item.name,
-                  poster_path: item.poster_path,
-                  backdrop_path: '',
-                  overview: '',
-                  vote_average: 0,
-                  first_air_date: '',
-                  number_of_seasons: 0,
-                  genres: [],
-                  networks: [],
-                  status: '',
-                  popularity: 0,
-                  in_production: false,
-                  homepage: '',
-                  last_air_date: ''
-                };
-                
-                return (
-                        <Box 
-                          key={item.seriesId} 
+                    {list?.items.map((item) => {
+                      const seriesData = {
+                        id: item.seriesId,
+                        name: item.name,
+                        poster_path: item.poster_path,
+                        backdrop_path: "",
+                        overview: "",
+                        vote_average: 0,
+                        first_air_date: "",
+                        number_of_seasons: 0,
+                        genres: [],
+                        networks: [],
+                        status: "",
+                        popularity: 0,
+                        in_production: false,
+                        homepage: "",
+                        last_air_date: "",
+                      };
+
+                      return (
+                        <Box
+                          key={item.seriesId}
                           position="relative"
                           transform="scale(1)"
                           transition="transform 0.2s ease"
                           _hover={{ transform: "scale(1.02)" }}
                         >
-                          <SeriesCard 
-                            series={seriesData as any} 
-                            size="sm"
-                          />
-                    {currentUser && list.userId === currentUser.uid && (
-                      <Box 
-                        position="absolute"
+                          <SeriesCard series={seriesData as any} size="sm" />
+                          {currentUser && list.userId === currentUser.uid && (
+                            <Box
+                              position="absolute"
                               bottom={1}
                               right={1}
-                        zIndex={10}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <IconButton
+                              zIndex={10}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <IconButton
                                 icon={<Icon as={Trash} size={10} />}
-                          aria-label="Remover série"
+                                aria-label="Remover série"
                                 size="xs"
-                          colorScheme="red"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            confirmRemoveSeries(item.seriesId, item.name);
-                          }}
-                          isLoading={isRemovingSeries === item.seriesId}
+                                colorScheme="red"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  confirmRemoveSeries(item.seriesId, item.name);
+                                }}
+                                isLoading={isRemovingSeries === item.seriesId}
                                 opacity={0.9}
-                          _hover={{ 
-                            transform: "scale(1.1)",
-                            boxShadow: "0 0 0 1px var(--chakra-colors-red-500)"
-                          }}
-                          transition="all 0.2s"
-                          borderRadius="full"
-                          bg="rgba(229, 62, 62, 0.85)"
-                          boxShadow="0 0 4px rgba(0,0,0,0.3)"
-                        />
-                      </Box>
-                    )}
-                  </Box>
-                );
-              })}
-            </SimpleGrid>
-          )}
+                                _hover={{
+                                  transform: "scale(1.1)",
+                                  boxShadow:
+                                    "0 0 0 1px var(--chakra-colors-red-500)",
+                                }}
+                                transition="all 0.2s"
+                                borderRadius="full"
+                                bg="rgba(229, 62, 62, 0.85)"
+                                boxShadow="0 0 4px rgba(0,0,0,0.3)"
+                              />
+                            </Box>
+                          )}
+                        </Box>
+                      );
+                    })}
+                  </SimpleGrid>
+                )}
               </Box>
             </Grid>
+          </Box>
         </Box>
-      </Box>
 
         {/* Seção de comentários */}
         <Collapse in={isCommentExpanded} animateOpacity>
-          <Box 
-            bg={cardBg} 
-            borderRadius="xl" 
-            overflow="hidden" 
+          <Box
+            bg={cardBg}
+            borderRadius="xl"
+            overflow="hidden"
             mb={8}
             boxShadow="lg"
             id="comments"
           >
-        <CommentSection
+            <CommentSection
               objectId={list?.id || ""}
-          objectType="list"
+              objectType="list"
               commentsCount={list?.commentsCount || 0}
               onCommentsCountChange={handleCommentsCountChange}
-        />
-      </Box>
+            />
+          </Box>
         </Collapse>
       </Container>
 
@@ -907,7 +980,7 @@ export default function ListPage() {
           onClose={onEditModalClose}
           list={list}
           onListUpdated={(updatedList) => {
-            setList(prevList => {
+            setList((prevList) => {
               if (!prevList) return null;
               return {
                 ...prevList,
@@ -922,11 +995,11 @@ export default function ListPage() {
       )}
 
       {/* Modal de pesquisa de séries */}
-      <Modal 
-        isOpen={isSearchModalOpen} 
+      <Modal
+        isOpen={isSearchModalOpen}
         onClose={() => {
           onSearchModalClose();
-          setSearchQuery('');
+          setSearchQuery("");
           setSearchResults([]);
           setSearchPerformed(false);
         }}
@@ -936,71 +1009,94 @@ export default function ListPage() {
         <ModalContent bg="gray.800" color="white">
           <ModalHeader>Adicionar Séries à Lista</ModalHeader>
           <ModalCloseButton />
-          
+
           <ModalBody>
             <InputGroup mb={4}>
-              <Input 
-                placeholder="Buscar séries..."
+              <Input
+                placeholder="Digite o nome de uma série"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 bg="gray.700"
                 borderColor="gray.600"
               />
               <InputRightElement width="4.5rem">
-                <Button 
-                  h="1.75rem" 
-                  size="sm" 
+                <Button
+                  h="1.75rem"
+                  size="sm"
                   colorScheme="primary"
                   onClick={handleSearch}
                   isLoading={isSearching}
                 >
-                  <Icon as={MagnifyingGlass} />
+                  <Icon as={MagnifyingGlass} weight="bold" />
                 </Button>
               </InputRightElement>
             </InputGroup>
-            
+
             {searchResults.length > 0 ? (
-              <Grid templateColumns="repeat(3, 1fr)" gap={4} maxH="400px" overflowY="auto">
-                {searchResults.map(series => (
-                  <GridItem key={series.id}>
-                    <Box 
-                      position="relative" 
+              <Grid
+                templateColumns="repeat(3, 1fr)"
+                gap={2}
+                maxH="300px"
+                overflowY="auto"
+              >
+                {searchResults.map((series) => (
+                  <GridItem key={series.id} position="relative">
+                    <Box
+                      position="relative"
                       borderRadius="md"
                       overflow="hidden"
                       cursor="pointer"
-                      borderWidth="1px"
-                      borderColor="gray.700"
-                      _hover={{ borderColor: "primary.500" }}
+                      onClick={() => handleAddSeriesToList(series)}
+                      _hover={{ opacity: 0.8 }}
+                      transition="all 0.2s"
                     >
-                      <Image 
-                        src={series.poster_path 
-                          ? `https://image.tmdb.org/t/p/w200${series.poster_path}` 
-                          : 'https://placehold.co/200x300/222222/FFFFFF?text=Sem+Imagem'
+                      <Image
+                        src={
+                          series.poster_path
+                            ? `https://image.tmdb.org/t/p/w200${series.poster_path}`
+                            : "https://placehold.co/200x300/222222/FFFFFF?text=Sem+Imagem"
                         }
                         alt={series.name}
-                        objectFit="cover"
-                        h="150px"
+                        h="120px"
                         w="100%"
+                        objectFit="cover"
                       />
-                      <Box p={2}>
-                        <Text fontSize="sm" fontWeight="bold" noOfLines={1}>{series.name}</Text>
-                        <Text fontSize="xs" color="gray.400" noOfLines={1}>
-                          {series.first_air_date ? new Date(series.first_air_date).getFullYear() : 'Sem data'}
+                      <Box
+                        position="absolute"
+                        bottom={0}
+                        left={0}
+                        right={0}
+                        bg="blackAlpha.700"
+                        p={1}
+                      >
+                        <Text fontSize="xs" noOfLines={2}>
+                          {series.name}
                         </Text>
                       </Box>
-                      <Button
-                        position="absolute"
-                        top={2}
-                        right={2}
-                        size="xs"
-                        colorScheme="primary"
-                        onClick={() => handleAddSeriesToList(series)}
-                        isLoading={isAddingSeries === series.id}
-                        leftIcon={<Icon as={Plus} />}
-                      >
-                        Adicionar
-                      </Button>
+                      {list?.items.some(
+                        (item) => item.seriesId === series.id
+                      ) && (
+                        <Box
+                          position="absolute"
+                          top={1}
+                          right={1}
+                          bg="red.500"
+                          borderRadius="full"
+                          p={2}
+                          pr={3}
+                          pl={3}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            confirmRemoveSeries(series.id, series.name);
+                          }}
+                          cursor="pointer"
+                          _hover={{ bg: "red.600" }}
+                        >
+                          <Text fontSize="xs" color="white">
+                            Remover
+                          </Text>
+                        </Box>
+                      )}
                     </Box>
                   </GridItem>
                 ))}
@@ -1014,24 +1110,11 @@ export default function ListPage() {
                     Nenhum resultado encontrado. Tente outra busca.
                   </Text>
                 ) : (
-                  <Text color="gray.400">
-                    Digite o nome de uma série e clique na lupa para buscar.
-                  </Text>
+                  <Text color="gray.400">Esperando por uma série...</Text>
                 )}
               </Box>
             )}
           </ModalBody>
-          
-          <ModalFooter>
-            <Button onClick={() => {
-              onSearchModalClose();
-              setSearchQuery('');
-              setSearchResults([]);
-              setSearchPerformed(false);
-            }}>
-              Fechar
-            </Button>
-          </ModalFooter>
         </ModalContent>
       </Modal>
 
@@ -1053,12 +1136,22 @@ export default function ListPage() {
             </AlertDialogBody>
 
             <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onRemoveAlertClose}>
+              <Button
+                variant="ghost"
+                color="gray.400"
+                _hover={{ bg: "gray.700" }}
+                ref={cancelRef}
+                onClick={onRemoveAlertClose}
+              >
                 Cancelar
               </Button>
-              <Button 
-                colorScheme="red" 
-                onClick={() => seriesIdToRemove && handleRemoveSeriesFromList(seriesIdToRemove)} 
+              <Button
+                bg="red.500"
+                _hover={{ bg: "red.600" }}
+                onClick={() =>
+                  seriesIdToRemove &&
+                  handleRemoveSeriesFromList(seriesIdToRemove)
+                }
                 ml={3}
                 isLoading={isRemovingSeries === seriesIdToRemove}
               >
@@ -1070,4 +1163,4 @@ export default function ListPage() {
       </AlertDialog>
     </Flex>
   );
-} 
+}
