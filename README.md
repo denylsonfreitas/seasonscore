@@ -12,11 +12,20 @@ SeasonScore é uma aplicação web inspirada no Letterboxd, mas focada em série
 
 ## Tecnologias Utilizadas
 
-- React
-- TypeScript
-- Chakra UI
-- React Router DOM
-- Phosphor Icons
+- React + TypeScript
+- Vite (bundler)
+- Chakra UI (biblioteca de componentes)
+- Firebase (backend)
+- React Query (gerenciamento de dados)
+- React Router (navegação)
+- Framer Motion (animações)
+- React Slick (carrossel)
+- Zustand (gerenciamento de estado)
+- Axios (requisições HTTP)
+- Date-fns (manipulação de datas)
+- Lodash (utilitários)
+- ESLint (linting)
+- Vercel (deploy)
 
 ## Acessar a aplicação
 
