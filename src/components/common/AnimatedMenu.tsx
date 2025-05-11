@@ -9,13 +9,11 @@ export function useAnimatedMenu(options = {}) {
 
   const handleOpen = useCallback(() => {
     setIsOpen(true);
-    // Pequeno atraso para permitir animação
     setTimeout(() => setIsVisible(true), 10);
   }, []);
 
   const handleClose = useCallback(() => {
     setIsVisible(false);
-    // Esperar a animação terminar antes de fechar realmente
     setTimeout(() => setIsOpen(false), 300);
   }, []);
 
