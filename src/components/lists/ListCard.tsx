@@ -32,8 +32,6 @@ interface ListCardProps {
 export function ListCard({ list, showUser = true }: ListCardProps) {
   const coverBg = useColorModeValue('gray.700', 'gray.700');
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
-  
   // Usar React Query para obter atualizações em tempo real
   const { data: updatedList, refetch } = useQuery({
     queryKey: ['list', list.id],

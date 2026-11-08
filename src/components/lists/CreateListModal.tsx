@@ -67,7 +67,6 @@ export function CreateListModal({
   const [accessByLink, setAccessByLink] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
 
   // Estados para busca e seleção de séries

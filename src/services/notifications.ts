@@ -276,7 +276,7 @@ export async function sanitizeNotifications(notifications: Notification[]): Prom
     
     // Aplicar atualizações em segundo plano
     if (updates.length > 0) {
-      Promise.all(updates).catch(err => {
+      Promise.all(updates).catch(_err => {
       });
     }
     
@@ -801,8 +801,6 @@ export async function deleteAllUserNotifications(userId: string): Promise<number
 
         // Excluir este lote
         const batch = writeBatch(db);
-        const lastItem = querySnapshot.docs[querySnapshot.docs.length - 1];
-        
         querySnapshot.forEach(doc => {
           batch.delete(doc.ref);
         });

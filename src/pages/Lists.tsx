@@ -34,7 +34,7 @@ export default function Lists() {
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
+  const [, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<ListWithUserData[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [popularLists, setPopularLists] = useState<ListWithUserData[]>([]);

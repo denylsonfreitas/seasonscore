@@ -25,23 +25,20 @@ import { useQuery } from "@tanstack/react-query";
 
 export function SeriesReviews() {
   const { id } = useParams<{ id: string }>();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [selectedSeason, setSelectedSeason] = useState(
     Number(searchParams.get("season")) || 1
   );
   const navigate = useNavigate();
   const toast = useToast();
   const { currentUser } = useAuth();
-  
-  const starSize = useBreakpointValue({ base: 16, md: 20 });
-  
-  const { data: series, isLoading: isLoadingSeries, isError: isSeriesError } = useQuery({
+  const { data: series } = useQuery({
     queryKey: ["series", id],
     queryFn: () => getSeriesDetails(Number(id)),
   });
   
   const [reviews, setReviews] = useState<SeriesReview[]>([]);
-  const [isLoadingReviews, setIsLoadingReviews] = useState(true);
+  const [, setIsLoadingReviews] = useState(true);
   
   // Buscar detalhes da série e avaliações
   useEffect(() => {
@@ -71,10 +68,6 @@ export function SeriesReviews() {
   }, [id, toast]);
   
   // Manipular clique na avaliação
-  const handleReviewClick = (review: SeriesReview, seasonNumber: number) => {
-    navigate(`/reviews/${review.id}/${seasonNumber}`);
-  };
-  
   // Filtrar avaliações por temporada
   const filteredReviews = useMemo(() => {
     return reviews.filter(review => 
@@ -93,15 +86,6 @@ export function SeriesReviews() {
   }, [reviews]);
   
   // Verificar se o usuário já fez avaliação para esta temporada
-  const userHasReviewed = useMemo(() => {
-    if (!currentUser) return false;
-    
-    return reviews.some(review => 
-      review.userId === currentUser.uid && 
-      review.seasonReviews.some(sr => sr.seasonNumber === selectedSeason)
-    );
-  }, [reviews, currentUser, selectedSeason]);
-  
   // Ordenar avaliações (mais recentes primeiro)
   const sortedReviews = useMemo(() => {
     return [...filteredReviews].sort((a, b) => {
@@ -237,7 +221,7 @@ export function SeriesReviews() {
                           reviewId={review.id}
                           seasonNumber={selectedSeason}
                           likes={review.seasonReviews.find(sr => sr.seasonNumber === selectedSeason)?.reactions?.likes || []}
-                          onReaction={async (event) => {
+                          onReaction={async (_event) => {
                             // Implemente a lógica para reagir à avaliação
                           }}
                           isLoading={false}

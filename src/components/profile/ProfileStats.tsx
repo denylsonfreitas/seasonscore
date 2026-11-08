@@ -18,16 +18,7 @@ export interface ProfileStatsProps {
   activeSection?: "reviews" | "watchlist" | "lists";
 }
 
-export function ProfileStats({
-  reviewsCount,
-  watchlistCount,
-  listsCount,
-  onShowReviews,
-  onShowWatchlist,
-  onShowLists,
-  isOwnProfile,
-  activeSection = "reviews"
-}: ProfileStatsProps) {
+export function ProfileStats({ reviewsCount, watchlistCount, listsCount, onShowReviews, onShowWatchlist, onShowLists, activeSection = "reviews" }: ProfileStatsProps) {
 
   const menuItems = [
     {
@@ -55,7 +46,7 @@ export function ProfileStats({
       w="100%"
     >
       <HStack spacing={6} align="center" justify="flex-start" py={2}>
-        {menuItems.map((item, index) => (
+        {menuItems.map((item, _index) => (
           <React.Fragment key={item.key}>
             <Flex 
               align="center" 

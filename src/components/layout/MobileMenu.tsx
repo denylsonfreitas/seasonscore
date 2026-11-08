@@ -42,9 +42,6 @@ export function MobileMenu({
 }: MobileMenuProps) {
   // Usar estado local para gerenciar a animação em vez do hook completo
   const [isVisible, setIsVisible] = useState(false);
-  const toast = useToast();
-  const navigate = useNavigate();
-
   // Função para criar estilos de animação para itens de menu
   const getItemAnimationStyle = (index: number) => ({
     opacity: isVisible ? 1 : 0,

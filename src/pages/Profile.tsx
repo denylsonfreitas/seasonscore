@@ -43,15 +43,15 @@ import { ListsSection } from "../components/profile/ListsSection";
 export function Profile() {
   const { currentUser } = useAuth() as { currentUser: ExtendedUser | null };
   const { username } = useParams();
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { onClose } = useDisclosure();
   const navigate = useNavigate();
   const toast = useToast();
   const queryClient = useQueryClient();
 
-  const [displayName, setDisplayName] = useState(
+  const [displayName] = useState(
     currentUser?.displayName || ""
   );
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [, setIsUpdating] = useState(false);
   const [selectedReview, setSelectedReview] = useState<any>(null);
   const [profileUser, setProfileUser] = useState<UserData | null>(null);
   const [showFollowers, setShowFollowers] = useState(false);
@@ -60,10 +60,6 @@ export function Profile() {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [showWatchlist, setShowWatchlist] = useState(false);
   const [showLists, setShowLists] = useState(false);
-
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const coverInputRef = useRef<HTMLInputElement>(null);
-
   const isOwnProfile =
     !username || (currentUser && profileUser?.id === currentUser.uid);
   const targetUserId = profileUser?.id || currentUser?.uid;
@@ -109,13 +105,13 @@ export function Profile() {
     enabled: !!targetUserId,
   });
 
-  const { data: followers = [], isLoading: isLoadingFollowers } = useQuery({
+  const { data: followers = [] } = useQuery({
     queryKey: ["followers", targetUserId],
     queryFn: () => getFollowers(targetUserId!),
     enabled: !!targetUserId,
   });
 
-  const { data: following = [], isLoading: isLoadingFollowing } = useQuery({
+  const { data: following = [] } = useQuery({
     queryKey: ["following", targetUserId],
     queryFn: () => getFollowing(targetUserId!),
     enabled: !!targetUserId,
@@ -128,44 +124,6 @@ export function Profile() {
   });
 
   // Manipuladores de eventos
-  const handleUpdateProfile = async () => {
-    if (!currentUser) return;
-
-    setIsUpdating(true);
-    try {
-      const userRef = doc(db, "users", currentUser.uid);
-      await updateDoc(userRef, {
-        displayName,
-      });
-
-      await updateProfile(currentUser, {
-        displayName,
-      });
-
-      await createOrUpdateUser(currentUser);
-
-      toast({
-        title: "Perfil atualizado",
-        description: "Seu nome foi atualizado com sucesso!",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-
-      onClose();
-    } catch (error) {
-      toast({
-        title: "Erro ao atualizar perfil",
-        description: "Ocorreu um erro ao atualizar seu nome. Tente novamente.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
   const handlePhotoUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {

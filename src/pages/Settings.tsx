@@ -40,9 +40,6 @@ import { isUsernameAvailable, updateUsername, deleteUserData } from "../services
 export function Settings() {
   const { currentUser, logout } = useAuth() as { currentUser: ExtendedUser | null, logout: () => Promise<void> };
   const [showPassword, setShowPassword] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [email, setEmail] = useState(currentUser?.email || "");
   const [emailSent, setEmailSent] = useState(false);
@@ -55,7 +52,7 @@ export function Settings() {
   const [passwordCurrentPassword, setPasswordCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [, setIsUpdatingPassword] = useState(false);
   
   // Estados para deletar conta
   const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
@@ -67,9 +64,9 @@ export function Settings() {
   const navigate = useNavigate();
 
   const [newUsername, setNewUsername] = useState("");
-  const [usernameError, setUsernameError] = useState("");
-  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setUsernameError] = useState("");
+  const [, setIsCheckingUsername] = useState(false);
+  const [, setIsLoading] = useState(false);
 
   const handleUpdateEmail = async () => {
     if (!auth.currentUser || !emailCurrentPassword) return;
@@ -108,53 +105,6 @@ export function Settings() {
       setIsUpdatingEmail(false);
     }
   };
-
-  const handleUpdatePassword = async () => {
-    if (!auth.currentUser || !passwordCurrentPassword || newPassword !== confirmPassword) {
-      toast({
-        title: "Erro na validação",
-        description: "Verifique se as senhas coincidem.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    setIsUpdatingPassword(true);
-    try {
-      const credential = EmailAuthProvider.credential(
-        auth.currentUser.email!,
-        passwordCurrentPassword
-      );
-      await reauthenticateWithCredential(auth.currentUser, credential);
-      await updatePassword(auth.currentUser, newPassword);
-
-      toast({
-        title: "Senha atualizada",
-        description: "Sua senha foi atualizada com sucesso!",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-
-      // Limpar campos
-      setPasswordCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (error) {
-      toast({
-        title: "Erro ao atualizar senha",
-        description: "Verifique sua senha atual e tente novamente.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setIsUpdatingPassword(false);
-    }
-  };
-
   const handleDeleteAccount = async () => {
     setIsDeletingAccount(true);
     try {
@@ -209,7 +159,7 @@ export function Settings() {
             .then(() => {
               navigate("/");
             })
-            .catch((error) => {
+            .catch((_error) => {
               navigate("/");
             });
         } catch (error) {
@@ -272,67 +222,6 @@ export function Settings() {
       });
     }
   };
-
-  const handleUsernameChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setUsernameError("");
-
-    try {
-      if (!passwordCurrentPassword) {
-        throw new Error("A senha atual é necessária para alterar o nome de usuário");
-      }
-
-      if (newUsername.length < 3) {
-        throw new Error("O nome de usuário deve ter pelo menos 3 caracteres");
-      }
-
-      if (!/^[a-zA-Z0-9_]+$/.test(newUsername)) {
-        throw new Error("O nome de usuário pode conter apenas letras, números e underscore");
-      }
-
-      // Verificar se o username está disponível
-      const isAvailable = await isUsernameAvailable(newUsername.toLowerCase());
-      if (!isAvailable) {
-        throw new Error("Este nome de usuário já está em uso");
-      }
-
-      // Reautenticar usuário
-      if (currentUser && currentUser.email) {
-        const credential = EmailAuthProvider.credential(
-          currentUser.email,
-          passwordCurrentPassword
-        );
-        await reauthenticateWithCredential(currentUser, credential);
-      }
-
-      // Atualizar username
-      if (currentUser) {
-        await updateUsername(currentUser.uid, newUsername.toLowerCase());
-        toast({
-          title: "Nome de usuário atualizado",
-          description: "Seu nome de usuário foi alterado com sucesso.",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-        setNewUsername("");
-        setPasswordCurrentPassword("");
-      }
-    } catch (error: any) {
-      setUsernameError(error.message || "Erro ao atualizar nome de usuário");
-      toast({
-        title: "Erro",
-        description: error.message || "Erro ao atualizar nome de usuário",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const checkUsername = async (username: string) => {
     if (username.length >= 3) {
       setIsCheckingUsername(true);

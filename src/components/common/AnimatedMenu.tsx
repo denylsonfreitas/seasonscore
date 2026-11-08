@@ -3,7 +3,7 @@ import { Box, useBreakpointValue } from "@chakra-ui/react";
 import { createPortal } from "react-dom";
 
 // Hook para gerenciar estado do menu animado
-export function useAnimatedMenu(options = {}) {
+export function useAnimatedMenu(_options = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 

@@ -87,13 +87,13 @@ export default function ListPage() {
   const primaryColor = useColorModeValue("primary.500", "primary.400");
 
   const [list, setList] = useState<ListWithUserData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [, setIsDeleting] = useState(false);
   const [isRemovingSeries, setIsRemovingSeries] = useState<number | null>(null);
   const [isTogglingLike, setIsTogglingLike] = useState(false);
-  const [isForceFetchingReaction, setIsForceFetchingReaction] = useState(false);
+  const [, setIsForceFetchingReaction] = useState(false);
   const [localCommentsCount, setLocalCommentsCount] = useState<number | null>(
     null
   );
@@ -106,7 +106,7 @@ export default function ListPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SeriesListItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [isAddingSeries, setIsAddingSeries] = useState<number | null>(null);
+  const [, setIsAddingSeries] = useState<number | null>(null);
   const [searchPerformed, setSearchPerformed] = useState(false);
 
   const {
@@ -295,47 +295,6 @@ export default function ListPage() {
       });
     }
   };
-
-  const handleDeleteList = async () => {
-    if (!list || !currentUser) return;
-
-    if (list.userId !== currentUser.uid) {
-      toast({
-        title: "Permissão negada",
-        description: "Você não tem permissão para excluir esta lista",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    try {
-      setIsDeleting(true);
-      await deleteList(list.id);
-
-      toast({
-        title: "Lista excluída",
-        description: "Sua lista foi excluída com sucesso",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-
-      navigate("/profile");
-    } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível excluir a lista",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   // Função para confirmar remoção de série
   const confirmRemoveSeries = (seriesId: number, seriesName: string) => {
     setSeriesIdToRemove(seriesId);

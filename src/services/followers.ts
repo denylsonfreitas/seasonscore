@@ -46,8 +46,6 @@ export async function followUser(userId: string) {
   // Verificar se já seguiu este usuário antes (para evitar spam de notificações)
   // Em vez de usar uma coleção separada, vamos verificar o histórico de follows
   // usando a própria coleção de followers com uma consulta mais ampla
-  let hasFollowedBefore = false;
-  
   try {
     // Buscar todos os documentos de followers que foram excluídos (histórico)
     // Isso não é possível diretamente, então vamos usar uma abordagem diferente

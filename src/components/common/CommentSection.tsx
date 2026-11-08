@@ -71,8 +71,6 @@ export function CommentSection({
   const { currentUser } = useAuth();
   const toast = useToast();
   const cancelRef = useRef<HTMLButtonElement>(null);
-  const queryClient = useQueryClient();
-  
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
@@ -90,8 +88,6 @@ export function CommentSection({
   }>>({});
   
   const bgColor = 'gray.800';
-  const borderColor = 'gray.700';
-
   useEffect(() => {
     loadComments();
   }, [objectId, objectType]);

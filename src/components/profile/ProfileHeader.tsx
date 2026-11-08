@@ -47,7 +47,6 @@ export function ProfileHeader({
   onShowFollowers,
   onShowFollowing,
 }: ProfileHeaderProps) {
-  const photoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 

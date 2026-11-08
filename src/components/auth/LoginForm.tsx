@@ -31,7 +31,6 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
   const [resetEmail, setResetEmail] = useState("");
   const [isResetting, setIsResetting] = useState(false);
   const { login, resetPassword } = useAuth();
-  const navigate = useNavigate();
   const toast = useToast();
 
   // Referência para o primeiro input

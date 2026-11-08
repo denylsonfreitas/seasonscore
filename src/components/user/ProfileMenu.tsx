@@ -27,17 +27,7 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
   const navigate = useNavigate();
   const toast = useToast();
   
-  const {
-    isOpen,
-    isVisible,
-    isRippling,
-    handleOpen,
-    handleClose,
-    handleRippleEffect,
-    getItemAnimationStyle,
-    onOpen,
-    onClose
-  } = useAnimatedMenu();
+  const { isOpen, isVisible, isRippling, handleClose, handleRippleEffect, getItemAnimationStyle, onOpen, onClose } = useAnimatedMenu();
 
   const handleLogout = useCallback(async () => {
     try {
@@ -67,7 +57,7 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
 
   // Se for mobile, retorna apenas o ícone que abre o menu mobile
   if (isMobile && onMobileMenuOpen) {
-    const mobileIcon = useMemo(() => (
+    return (
       <IconButton
         aria-label="Menu"
         icon={
@@ -82,20 +72,18 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
         }
         variant="unstyled"
         color="white"
-        onClick={(e) => {
+        onClick={() => {
           handleRippleEffect();
           onMobileMenuOpen();
         }}
         position="relative"
         overflow="hidden"
       />
-    ), [size, currentUser, isRippling, handleRippleEffect, onMobileMenuOpen]);
-    
-    return mobileIcon;
+    );
   }
 
   // Avatar que serve como trigger para o menu
-  const trigger = useMemo(() => (
+  const trigger = (
     <IconButton
       aria-label="Opções do usuário"
       icon={
@@ -113,7 +101,7 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
       position="relative"
       overflow="hidden"
     />
-  ), [size, currentUser, isRippling, toggleMenu]);
+  );
 
   return (
     <AnimatedMenu

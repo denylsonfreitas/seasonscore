@@ -28,7 +28,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   userEmail,
   ...props
 }) => {
-  const { displayName, ...filteredProps } = props as { 
+  const { ...filteredProps } = props as { 
     displayName?: string
   } & AvatarProps;
   
@@ -40,21 +40,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   
   const bg = useColorModeValue('gray.300', 'gray.600');
   const iconColor = useColorModeValue('gray.600', 'gray.300');
-  
-  const FallbackAvatar = () => (
-    <Box
-      width="100%"
-      height="100%"
-      borderRadius="full"
-      bg={bg}
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-    >
-      <User weight="fill" color={iconColor} size={size === 'xs' ? '10px' : size === 'sm' ? '14px' : '18px'} />
-    </Box>
-  );
-  
+  const badgeBorderColor = useColorModeValue('white', 'gray.800');
   return (
     <Avatar
       size={size}
@@ -73,7 +59,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
           boxSize="1em"
           bg={isOnline ? 'green.400' : 'gray.400'}
           borderWidth="2px"
-          borderColor={useColorModeValue('white', 'gray.800')}
+          borderColor={badgeBorderColor}
         />
       )}
     </Avatar>

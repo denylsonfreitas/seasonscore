@@ -42,21 +42,7 @@ interface SeasonAccordionItemProps {
   navigate: (path: string) => void;
 }
 
-export function SeasonAccordionItem({
-  season,
-  averageRating,
-  seasonReviews,
-  userReview,
-  currentUser,
-  userData,
-  seriesId,
-  onSeasonSelect,
-  onOpenReviewModal,
-  onEditReview,
-  onDeleteReview,
-  onReviewClick,
-  navigate,
-}: SeasonAccordionItemProps) {
+export function SeasonAccordionItem({ season, averageRating, seasonReviews, userReview, currentUser, userData, seriesId, onSeasonSelect, onOpenReviewModal, onEditReview, onDeleteReview, onReviewClick }: SeasonAccordionItemProps) {
   // Verificar se o usuário tem uma avaliação para esta temporada
   const hasUserReview = userReview !== undefined && userReview.seasonReviews.some(
     (sr) => sr.seasonNumber === season

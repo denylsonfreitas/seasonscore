@@ -42,10 +42,9 @@ export function ProfileSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [displayName, setDisplayName] = useState("");
-  const [coverURL, setCoverURL] = useState("");
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [uploadingCover, setUploadingCover] = useState(false);
+  const [, setCoverURL] = useState("");
+  const [, setUploadingPhoto] = useState(false);
+  const [, setUploadingCover] = useState(false);
   const [isRemovingPhoto, setIsRemovingPhoto] = useState(false);
   const [isRemovingCover, setIsRemovingCover] = useState(false);
   const [tempPhotoURL, setTempPhotoURL] = useState<string | null>(null);
@@ -57,7 +56,7 @@ export function ProfileSettings() {
   const MAX_NAME_LENGTH = 15;
   const [newUsername, setNewUsername] = useState("");
   const [usernameError, setUsernameError] = useState("");
-  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [, setIsCheckingUsername] = useState(false);
   const [isCurrentUsername, setIsCurrentUsername] = useState(false);
 
   useEffect(() => {

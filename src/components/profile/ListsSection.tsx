@@ -23,7 +23,6 @@ interface ListsSectionProps {
 }
 
 export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
-  const { currentUser } = useAuth();
   const [lists, setLists] = useState<ListWithUserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { isOpen, onOpen, onClose } = useDisclosure();

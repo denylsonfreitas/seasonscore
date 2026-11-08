@@ -498,7 +498,6 @@ export function AddToListButton({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(true);
-  const [accessByLink, setAccessByLink] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [isCreating, setIsCreating] = useState(false);

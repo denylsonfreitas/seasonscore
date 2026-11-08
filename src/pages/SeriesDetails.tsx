@@ -84,29 +84,6 @@ export function SeriesDetails() {
     reviews.find((review) => review.userId === currentUser?.uid),
     [reviews, currentUser?.uid]
   );
-
-  const currentUserReview = useMemo(() => {
-    if (!userReview || !series) return null;
-
-    const seasonReview = userReview.seasonReviews.find(sr => sr.seasonNumber === selectedSeason);
-    if (!seasonReview) return null;
-
-    return {
-      id: userReview.id!,
-      seriesId: id!,
-      userId: userReview.userId!,
-      userEmail: userReview.userEmail!,
-      seriesName: series.name || "",
-      seriesPoster: series.poster_path || "",
-      seasonNumber: selectedSeason,
-      rating: seasonReview.rating,
-      comment: seasonReview.comment || "",
-      comments: seasonReview.comments || [],
-      reactions: seasonReview.reactions || { likes: [] },
-      createdAt: seasonReview.createdAt || new Date()
-    };
-  }, [userReview, series, selectedSeason, id]);
-
   // Memoizar dados do SEO para evitar recálculos
   const seoData = useMemo(() => ({
     title: series ? `${series.name} | SeasonScore` : 'Carregando série | SeasonScore',
@@ -160,18 +137,6 @@ export function SeriesDetails() {
   const handleReviewClick = useCallback((review: any) => {
     navigate(`/reviews/${review.id}/${review.seasonNumber}`);
   }, [navigate]);
-
-  const handleEditReview = useCallback((seasonNumber: number) => {
-    navigate(`/series/${id}/season/${seasonNumber}/review`);
-  }, [navigate, id]);
-
-  const handleDeleteClick = useCallback((seasonNumber: number) => {
-    setDeleteState({
-      isOpen: true,
-      seasonToDelete: seasonNumber
-    });
-  }, []);
-
   const handleCancelDelete = useCallback(() => {
     setDeleteState({
       isOpen: false,

@@ -38,35 +38,8 @@ export interface SectionBaseProps {
   children?: ReactNode;
 }
 
-export function SectionBase({
-  title,
-  link,
-  linkText = "Ver todas",
-  isLoading = false,
-  error = null,
-  isEmpty = false,
-  emptyMessage = "Nenhum conteúdo encontrado",
-  loadingElement,
-  errorElement,
-  emptyElement,
-  expandable = false,
-  initialExpanded = false,
-  expandThreshold = 6,
-  containerProps,
-  gridProps,
-  headerProps,
-  titleProps,
-  linkButtonProps,
-  renderExpandButton,
-  renderContent,
-  children,
-}: SectionBaseProps) {
+export function SectionBase({ title, link, linkText = "Ver todas", isLoading = false, error = null, isEmpty = false, emptyMessage = "Nenhum conteúdo encontrado", loadingElement, errorElement, emptyElement, expandable = false, initialExpanded = false, containerProps, headerProps, titleProps, linkButtonProps, renderContent, children }: SectionBaseProps) {
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
-
-  const toggleExpand = () => {
-    setIsExpanded(!isExpanded);
-  };
-
   // Renderização personalizada ou padrão de elementos de estado
   const renderLoadingState = () => {
     if (loadingElement) return loadingElement;

@@ -172,7 +172,7 @@ export function ReviewDetails() {
   }, [activeSeasonReview, currentUser]);
 
   // Lidar com reações (curtidas) - Versão com UI otimista
-  const handleReaction = useCallback(async (reviewId: string, seasonNumber: number, type: "likes", event: React.MouseEvent) => {
+  const handleReaction = useCallback(async (reviewId: string, seasonNumber: number, type: "likes", _event: React.MouseEvent) => {
     if (!currentUser || !review) {
       toast({
         title: "Erro",

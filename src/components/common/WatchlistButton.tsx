@@ -44,6 +44,17 @@ export function WatchlistButton({ series, size = "md", variant = "ghost", menuAs
     toggleWatchlist 
   } = useWatchlist(series.id);
 
+  // Auto-close tooltip on mobile after action
+  useEffect(() => {
+    if (isMobile && isOpen) {
+      const timer = setTimeout(() => {
+        setIsOpen(false);
+      }, 1500); // Fechar após 1.5 segundos
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isMobile, isOpen]);
+
   // Se temos um list_id na URL, devemos mostrar o botão de adicionar à lista específica
   if (listId) {
     // Criar um objeto que atenda à interface Series esperada pelo AddToListButton
@@ -66,16 +77,6 @@ export function WatchlistButton({ series, size = "md", variant = "ghost", menuAs
     return <AddToListButton series={seriesForList as any} size={size as any} variant={variant as any} iconOnly useButtonElement={!menuAsBox} />;
   }
 
-  // Auto-close tooltip on mobile after action
-  useEffect(() => {
-    if (isMobile && isOpen) {
-      const timer = setTimeout(() => {
-        setIsOpen(false);
-      }, 1500); // Fechar após 1.5 segundos
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isMobile, isOpen]);
 
   async function handleWatchlistClick() {
     if (!currentUser) {

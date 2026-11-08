@@ -51,13 +51,10 @@ export function Series() {
   const [genreName, setGenreName] = useState(searchParams.get("name") || "");
   const { isOpen, onOpen, onClose } = useDisclosure();
   const filterPopoverRef = useRef<HTMLButtonElement>(null);
-  
-  const navigate = useNavigate();
-  
   // Verificar se estamos adicionando a uma lista específica
   const [listId, setListId] = useState<string | null>(searchParams.get("list_id"));
   const [listInfo, setListInfo] = useState<any>(null);
-  const [isLoadingList, setIsLoadingList] = useState(false);
+  const [, setIsLoadingList] = useState(false);
 
   // Efeito que sincroniza os parâmetros da URL com o estado local
   // Este efeito só é executado uma vez na montagem do componente
@@ -175,53 +172,13 @@ export function Series() {
   }, [seriesWithRatings]);
   
   // Estatísticas
-  const stats = useMemo(() => {
-    const totalSeries = sortedSeriesWithRatings.length;
-    
-    // Séries com avaliações
-    const seriesWithRatingsCount = sortedSeriesWithRatings.filter(s => s.rating !== undefined).length;
-    
-    // Média de avaliações
-    const ratings = sortedSeriesWithRatings
-      .filter(s => s.rating !== undefined)
-      .map(s => s.rating as number);
-    
-    const averageRating = ratings.length > 0
-      ? ratings.reduce((a, b) => a + b, 0) / ratings.length
-      : 0;
-    
-    // Séries por gênero (simulado - em um app real poderia buscar de uma API)
-    const genresCount = {
-      drama: Math.floor(totalSeries * 0.4),
-      comedia: Math.floor(totalSeries * 0.25),
-      acao: Math.floor(totalSeries * 0.2),
-      outros: Math.floor(totalSeries * 0.15),
-    };
-    
-    return {
-      totalSeries,
-      seriesWithRatingsCount,
-      averageRating,
-      genresCount,
-    };
-  }, [sortedSeriesWithRatings]);
-
   // Cores para o modo escuro do site
-  const statBgColor = useColorModeValue("gray.700", "gray.800");
-  const statBorderColor = useColorModeValue("gray.600", "gray.700");
-
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       setActiveSearch(searchQuery);
       updateSearchParams();
     }
   };
-
-  const handleSearchClick = () => {
-    setActiveSearch(searchQuery);
-    updateSearchParams();
-  };
-  
   const clearSearch = () => {
     setSearchQuery("");
     setActiveSearch("");

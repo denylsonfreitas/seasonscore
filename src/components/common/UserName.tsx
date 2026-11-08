@@ -13,7 +13,7 @@ interface UserNameProps {
 export function UserName({ userId, color = "white", showAt = true, isLink = true }: UserNameProps) {
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
-  const { userData, isLoading, error } = useUserData(userId);
+  const { userData, isLoading } = useUserData(userId);
 
   useEffect(() => {
     // Se o hook indica que o usuário foi excluído, mostrar "Usuário excluído"

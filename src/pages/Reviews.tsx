@@ -29,9 +29,7 @@ import { PageHeader } from '../components/common/PageHeader';
 
 export function Reviews() {
   const { currentUser } = useAuth();
-  const toast = useToast();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
 

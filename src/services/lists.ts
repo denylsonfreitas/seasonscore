@@ -744,7 +744,7 @@ export async function toggleListCommentReaction(
       };
     });
 
-    const { isRemoving, comment, likes, likesCount } = result;
+    const { isRemoving, comment, likesCount } = result;
     const currentUserId = auth.currentUser.uid;
 
     // Gerenciar notificações em background

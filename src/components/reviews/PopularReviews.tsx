@@ -16,8 +16,6 @@ import { EnhancedImage } from "../common/EnhancedImage";
 
 export function PopularReviews() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ["popularReviews"],
     queryFn: getPopularReviews,

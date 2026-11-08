@@ -34,8 +34,6 @@ interface SeriesCastTabProps {
 export function SeriesCastTab({ series }: SeriesCastTabProps) {
   // Verificar se credits e cast existem para evitar erros
   const cast = series?.credits?.cast || [];
-  const highlightBg = useColorModeValue("primary.500", "primary.400");
-
   if (!cast || cast.length === 0) {
     return (
       <Text color="gray.400" textAlign="center">
