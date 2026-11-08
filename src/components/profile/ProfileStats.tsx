@@ -1,5 +1,4 @@
-import React from "react";
-import { Flex, Box, Text, HStack, Divider } from "@chakra-ui/react";
+import { Box, Flex, Text } from "@chakra-ui/react";
 
 export interface ProfileStatsProps {
   reviewsCount: number;
@@ -12,6 +11,7 @@ export interface ProfileStatsProps {
   activeSection?: "reviews" | "watchlist" | "lists";
 }
 
+/** Abas do perfil com a contagem de cada seção. */
 export function ProfileStats({
   reviewsCount,
   watchlistCount,
@@ -21,79 +21,47 @@ export function ProfileStats({
   onShowLists,
   activeSection = "reviews",
 }: ProfileStatsProps) {
-  const menuItems = [
-    {
-      key: "reviews",
-      label: "Avaliações",
-      count: reviewsCount,
-      onClick: onShowReviews,
-    },
-    {
-      key: "watchlist",
-      label: "Watchlist",
-      count: watchlistCount,
-      onClick: onShowWatchlist,
-    },
-    {
-      key: "lists",
-      label: "Listas",
-      count: listsCount,
-      onClick: onShowLists,
-    },
-  ];
+  const tabs = [
+    { key: "reviews", label: "Avaliações", count: reviewsCount, onClick: onShowReviews },
+    { key: "watchlist", label: "Watchlist", count: watchlistCount, onClick: onShowWatchlist },
+    { key: "lists", label: "Listas", count: listsCount, onClick: onShowLists },
+  ] as const;
 
   return (
-    <Box w="100%">
-      <HStack spacing={6} align="center" justify="flex-start" py={2}>
-        {menuItems.map((item, _index) => (
-          <React.Fragment key={item.key}>
-            <Flex
-              align="center"
-              onClick={item.onClick}
-              cursor="pointer"
-              position="relative"
-              py={2}
-              _after={
-                activeSection === item.key
-                  ? {
-                      content: '""',
-                      position: "absolute",
-                      bottom: "0",
-                      left: "0",
-                      right: "0",
-                      height: "2px",
-                      bg: "primary.500",
-                      borderRadius: "2px",
-                    }
-                  : {}
-              }
+    <Flex role="tablist" gap={{ base: 5, md: 7 }} borderBottom="1px solid" borderColor="ink.800">
+      {tabs.map((tab) => {
+        const active = activeSection === tab.key;
+        return (
+          <Box
+            as="button"
+            type="button"
+            role="tab"
+            aria-selected={active}
+            key={tab.key}
+            onClick={tab.onClick}
+            py={3}
+            mb="-1px"
+            borderBottom="2px solid"
+            borderColor={active ? "signal.400" : "transparent"}
+            color={active ? "ink.50" : "ink.300"}
+            fontWeight={active ? 600 : 500}
+            fontSize="sm"
+            _hover={{ color: "ink.50" }}
+            transition="color 120ms ease"
+          >
+            {tab.label}
+            <Text
+              as="span"
+              ml={2}
+              fontFamily="mono"
+              fontSize="xs"
+              color={active ? "signal.300" : "ink.400"}
             >
-              <Text
-                fontWeight={activeSection === item.key ? "bold" : "medium"}
-                color={activeSection === item.key ? "primary.300" : "gray.300"}
-                mr={2}
-                transition="all 0.2s"
-                _hover={{ color: "white" }}
-              >
-                {item.label}
-              </Text>
-              <Box
-                bg={activeSection === item.key ? "primary.500" : "gray.700"}
-                color={activeSection === item.key ? "white" : "gray.400"}
-                px={2}
-                py={0.5}
-                borderRadius="full"
-                fontSize="xs"
-                minW="24px"
-                textAlign="center"
-              >
-                {item.count}
-              </Box>
-            </Flex>
-          </React.Fragment>
-        ))}
-      </HStack>
-      <Divider borderColor="gray.700" />
-    </Box>
+              {tab.count}
+            </Text>
+          </Box>
+        );
+      })}
+    </Flex>
   );
 }

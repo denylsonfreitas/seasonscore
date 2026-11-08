@@ -1,194 +1,157 @@
-import {
-  VStack,
-  Flex,
-  Button,
-  Spinner,
-  Text,
-  Box,
-  Image,
-  SlideFade,
-  Wrap,
-  WrapItem,
-  Center,
-} from "@chakra-ui/react";
-import { useState, useMemo } from "react";
-import { CaretUp, CaretDown, Star } from "@phosphor-icons/react";
-import { SeriesReview } from "../../services/reviews";
-import { formatRating } from "../../utils/format";
+import { Box, Button, Flex, Image, Link, Skeleton, Text, VStack } from "@chakra-ui/react";
+import { Star } from "@phosphor-icons/react";
+import { useMemo, useState } from "react";
+import { Link as RouterLink } from "react-router-dom";
+import type { SeriesReview } from "../../services/reviews";
+import { SeasonStrip } from "../series/SeasonStrip";
+import { ScoreBadge } from "../common/ScoreBadge";
+import { EmptyState } from "../common/EmptyState";
 
 interface ReviewsSectionProps {
   reviews: SeriesReview[];
   isLoading: boolean;
   onReviewClick: (review: SeriesReview) => void;
+  isOwnProfile?: boolean;
 }
 
-export function ReviewsSection({ reviews, isLoading, onReviewClick }: ReviewsSectionProps) {
-  const [showAllReviews, setShowAllReviews] = useState(false);
+const PAGE = 8;
 
-  // Ordenar avaliações por data (mais recentes primeiro)
-  const sortedReviews = useMemo(() => {
-    return [...reviews].sort((a, b) => {
-      // Se não houver data de criação em algum dos reviews, colocar no final
-      if (!a.createdAt) return 1;
-      if (!b.createdAt) return -1;
+/** Séries avaliadas pelo usuário, cada uma com a faixa das notas dele por temporada. */
+export function ReviewsSection({
+  reviews,
+  isLoading,
+  onReviewClick,
+  isOwnProfile,
+}: ReviewsSectionProps) {
+  const [visible, setVisible] = useState(PAGE);
 
-      const dateA = new Date(a.createdAt).getTime();
-      const dateB = new Date(b.createdAt).getTime();
-
-      return dateB - dateA; // Mais recentes primeiro
-    });
-  }, [reviews]);
+  const sorted = useMemo(
+    () =>
+      [...reviews].sort(
+        (a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
+      ),
+    [reviews]
+  );
 
   if (isLoading) {
     return (
-      <Flex justify="center" py={8}>
-        <Spinner color="primary.500" />
-      </Flex>
+      <VStack align="stretch" spacing={3}>
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} h="112px" borderRadius="md" startColor="ink.900" endColor="ink.850" />
+        ))}
+      </VStack>
     );
   }
 
   if (reviews.length === 0) {
     return (
-      <Center py={8} flexDirection="column">
-        <Star size={40} weight="light" color="#718096" />
-        <Text color="gray.400" fontSize={{ base: "sm", md: "md" }} mt={3}>
-          Nenhuma avaliação ainda.
-        </Text>
-      </Center>
+      <EmptyState
+        icon={Star}
+        title={
+          isOwnProfile ? "Você ainda não avaliou nenhuma temporada." : "Nenhuma avaliação ainda."
+        }
+        description={
+          isOwnProfile ? "Abra uma série e dê nota às temporadas que você viu." : undefined
+        }
+        action={
+          isOwnProfile ? (
+            <Button as={RouterLink} to="/series" size="sm" variant="outline">
+              Explorar séries
+            </Button>
+          ) : undefined
+        }
+      />
     );
   }
 
   return (
-    <VStack spacing={6} align="stretch">
-      {/* Lista de Avaliações */}
-      <VStack spacing={3} align="stretch">
-        {sortedReviews.slice(0, showAllReviews ? undefined : 6).map((review, index) => (
-          <SlideFade
+    <VStack align="stretch" spacing={3}>
+      {sorted.slice(0, visible).map((review) => {
+        const seasons = [...review.seasonReviews].sort((a, b) => a.seasonNumber - b.seasonNumber);
+        const average = seasons.reduce((sum, s) => sum + s.rating, 0) / (seasons.length || 1);
+        const latestComment = [...seasons].reverse().find((s) => s.comment)?.comment;
+
+        return (
+          <Flex
+            as="article"
             key={review.id}
-            in={true}
-            offsetY="20px"
-            transition={{ enter: { duration: 0.3, delay: index * 0.1 } }}
+            gap={4}
+            p={4}
+            bg="ink.900"
+            border="1px solid"
+            borderColor="ink.800"
+            borderRadius="md"
+            align="flex-start"
           >
-            <Box
-              borderWidth="1px"
-              borderColor="gray.700"
-              borderRadius="md"
-              overflow="hidden"
-              bg="gray.800"
-              transition="all 0.2s"
-              _hover={{
-                borderColor: "primary.500",
-                boxShadow: "0 0 0 1px var(--chakra-colors-primary-500)",
-              }}
-            >
-              <Flex direction={{ base: "column", md: "row" }} h={{ md: "100px" }}>
-                {/* Poster da série */}
-                <Box
-                  w={{ base: "100%", md: "100px" }}
-                  h={{ base: "150px", md: "100px" }}
-                  flexShrink={0}
-                  position="relative"
-                  overflow="hidden"
-                >
+            <Link as={RouterLink} to={`/series/${review.seriesId}`} flexShrink={0}>
+              <Box
+                w={{ base: "56px", md: "64px" }}
+                aspectRatio={2 / 3}
+                borderRadius="sm"
+                overflow="hidden"
+                bg="ink.850"
+              >
+                {review.series.poster_path && (
                   <Image
-                    src={
-                      review.series.poster_path
-                        ? `https://image.tmdb.org/t/p/w342${review.series.poster_path}`
-                        : "https://dummyimage.com/342x513/ffffff/000000.png&text=Poster"
-                    }
-                    alt={review.series.name}
-                    objectFit="cover"
-                    objectPosition="center"
+                    src={`https://image.tmdb.org/t/p/w154${review.series.poster_path}`}
+                    alt=""
                     w="100%"
                     h="100%"
-                    cursor="pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.location.href = `/series/${review.seriesId}`;
-                    }}
+                    objectFit="cover"
+                    loading="lazy"
                   />
+                )}
+              </Box>
+            </Link>
+
+            <Box flex={1} minW={0}>
+              <Flex justify="space-between" align="flex-start" gap={3}>
+                <Box minW={0}>
+                  <Link
+                    as={RouterLink}
+                    to={`/series/${review.seriesId}`}
+                    fontWeight={600}
+                    color="ink.50"
+                    noOfLines={1}
+                    _hover={{ color: "signal.300", textDecoration: "none" }}
+                  >
+                    {review.series.name}
+                  </Link>
+                  <Text fontFamily="mono" fontSize="xs" color="ink.400" mt={0.5}>
+                    {seasons.length}{" "}
+                    {seasons.length === 1 ? "temporada avaliada" : "temporadas avaliadas"}
+                  </Text>
                 </Box>
-
-                {/* Conteúdo da avaliação */}
-                <Box flex="1" p={3} overflow="hidden">
-                  <Flex justifyContent="space-between" alignItems="flex-start" mb={2}>
-                    <Text
-                      fontSize="md"
-                      fontWeight="bold"
-                      color="white"
-                      cursor="pointer"
-                      noOfLines={1}
-                      _hover={{ color: "primary.400" }}
-                      onClick={() => (window.location.href = `/series/${review.seriesId}`)}
-                    >
-                      {review.series.name}
-                    </Text>
-
-                    <Text fontWeight="bold" color="primary.400" fontSize="sm">
-                      {formatRating(
-                        review.seasonReviews.reduce((acc, s) => acc + s.rating, 0) /
-                          review.seasonReviews.length
-                      )}
-                    </Text>
-                  </Flex>
-
-                  <Wrap spacing={{ base: 1, md: 1.5 }} align="left" mt={1}>
-                    {review.seasonReviews.map((seasonReview) => (
-                      <WrapItem
-                        key={seasonReview.seasonNumber}
-                        bg="gray.700"
-                        px={{ base: 5, md: 2 }}
-                        py={1}
-                        borderRadius="sm"
-                        fontSize={{ base: "2xs", md: "xs" }}
-                        cursor="pointer"
-                        onClick={() =>
-                          onReviewClick({
-                            ...review,
-                            selectedSeasonNumber: seasonReview.seasonNumber,
-                          })
-                        }
-                        transition="all 0.2s"
-                        _hover={{
-                          bg: "primary.900",
-                        }}
-                      >
-                        <Flex align="center" justify="center">
-                          <Text>T{seasonReview.seasonNumber}</Text>
-                          <Text fontWeight="bold" color="primary.300" ml={{ base: 1, md: 2 }}>
-                            {formatRating(seasonReview.rating)}
-                          </Text>
-                        </Flex>
-                      </WrapItem>
-                    ))}
-                  </Wrap>
-                </Box>
+                <ScoreBadge score={average} size="sm" flexShrink={0} />
               </Flex>
-            </Box>
-          </SlideFade>
-        ))}
-      </VStack>
 
-      {sortedReviews.length > 6 && (
-        <Flex justify="center" mt={4}>
-          <Button
-            variant="ghost"
-            colorScheme="primary"
-            size="sm"
-            onClick={() => setShowAllReviews(!showAllReviews)}
-            rightIcon={
-              showAllReviews ? (
-                <CaretUp weight="bold" size={16} />
-              ) : (
-                <CaretDown weight="bold" size={16} />
-              )
-            }
-            transition="all 0.2s ease"
-            _hover={{ transform: showAllReviews ? "translateY(-2px)" : "translateY(2px)" }}
-          >
-            {showAllReviews ? "Ver Menos" : `Ver Mais (${sortedReviews.length - 6})`}
-          </Button>
-        </Flex>
+              {latestComment && (
+                <Text mt={2} fontSize="sm" color="ink.300" noOfLines={2}>
+                  {latestComment}
+                </Text>
+              )}
+
+              <Box mt={3}>
+                <SeasonStrip
+                  seasons={seasons.map((s) => ({ season: s.seasonNumber, score: s.rating }))}
+                  height={32}
+                  onSelect={(season) => onReviewClick({ ...review, selectedSeasonNumber: season })}
+                />
+              </Box>
+            </Box>
+          </Flex>
+        );
+      })}
+
+      {sorted.length > visible && (
+        <Button
+          variant="ghost"
+          size="sm"
+          alignSelf="flex-start"
+          onClick={() => setVisible((v) => v + PAGE)}
+        >
+          Mostrar mais ({sorted.length - visible})
+        </Button>
       )}
     </VStack>
   );
