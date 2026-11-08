@@ -52,6 +52,13 @@ export interface SeriesListItem {
 // Interface para detalhes completos da série
 export interface Series extends SeriesListItem {
   number_of_seasons: number;
+  number_of_episodes?: number;
+  last_air_date?: string;
+  in_production?: boolean;
+  tagline?: string;
+  episode_run_time?: number[];
+  popularity?: number;
+  seasons?: Season[];
   genres: { id: number; name: string }[];
   networks: { id: number; name: string; logo_path: string }[];
   status: string;

@@ -1,3 +1,6 @@
+import type { User } from "firebase/auth";
+import type { ReviewClickHandler } from "../../types/review";
+import type { Series } from "../../services/tmdb";
 import { VStack, Accordion, Button } from "@chakra-ui/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CaretDown, CaretUp } from "@phosphor-icons/react";
@@ -6,10 +9,10 @@ import { SeriesReview } from "../../services/reviews";
 import { SeasonAccordionItem } from "./SeasonAccordionItem";
 
 interface SeasonsTabsProps {
-  series: any; // Tipo completo seria melhor
+  series: Series;
   reviews: SeriesReview[];
   userReview?: SeriesReview;
-  currentUser: any | null;
+  currentUser: User | null;
   userData: { photoURL?: string | null } | null;
   seriesId: string;
   onSeasonSelect: (season: number) => void;
@@ -17,7 +20,7 @@ interface SeasonsTabsProps {
   onSetExistingReview: (review: SeriesReview) => void;
   onSetDeleteAlertOpen: (isOpen: boolean) => void;
   onSetSeasonToDelete: (season: number | null) => void;
-  onReviewClick: (review: any) => void;
+  onReviewClick: ReviewClickHandler;
   navigate: (path: string) => void;
 }
 

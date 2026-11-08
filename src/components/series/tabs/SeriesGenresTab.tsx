@@ -10,7 +10,6 @@ interface Genre {
 interface SeriesGenresTabProps {
   series: {
     genres?: Genre[];
-    [key: string]: any;
   };
 }
 

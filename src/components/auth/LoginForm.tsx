@@ -15,6 +15,7 @@ import {
   FocusLock,
 } from "@chakra-ui/react";
 import { useAuth } from "../../contexts/AuthContext";
+import { getErrorCode, getErrorMessage } from "../../utils/errors";
 
 interface LoginFormProps {
   onSignUpClick: () => void;
@@ -117,22 +118,22 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
       if (onClose) {
         onClose();
       }
-    } catch (error: any) {
+    } catch (error) {
       let errorMessage = "Email/nome de usuário ou senha incorretos.";
 
       if (
-        error.code === "auth/user-not-found" ||
-        error.message.includes("Usuário não encontrado")
+        getErrorCode(error) === "auth/user-not-found" ||
+        getErrorMessage(error).includes("Usuário não encontrado")
       ) {
         errorMessage = "Usuário não encontrado. Verifique seu nome de usuário ou email.";
-      } else if (error.code === "auth/wrong-password") {
+      } else if (getErrorCode(error) === "auth/wrong-password") {
         errorMessage = "Senha incorreta. Tente novamente.";
-      } else if (error.code === "auth/too-many-requests") {
+      } else if (getErrorCode(error) === "auth/too-many-requests") {
         errorMessage = "Muitas tentativas de login. Tente novamente mais tarde.";
-      } else if (error.code === "auth/invalid-credential") {
+      } else if (getErrorCode(error) === "auth/invalid-credential") {
         errorMessage = "Credenciais inválidas. Verifique seu nome de usuário ou email e senha.";
-      } else if (error.message) {
-        errorMessage = error.message;
+      } else if (getErrorMessage(error)) {
+        errorMessage = getErrorMessage(error);
       }
 
       toast({
@@ -171,15 +172,15 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
       });
       setShowResetForm(false);
       setResetEmail("");
-    } catch (error: any) {
+    } catch (error) {
       let errorMessage = "Não foi possível enviar o email de redefinição.";
 
-      if (error.code === "auth/user-not-found") {
+      if (getErrorCode(error) === "auth/user-not-found") {
         errorMessage = "Email não encontrado.";
-      } else if (error.code === "auth/invalid-email") {
+      } else if (getErrorCode(error) === "auth/invalid-email") {
         errorMessage = "Endereço de email inválido.";
-      } else if (error.message) {
-        errorMessage = error.message;
+      } else if (getErrorMessage(error)) {
+        errorMessage = getErrorMessage(error);
       }
 
       toast({

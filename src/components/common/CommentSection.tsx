@@ -25,6 +25,7 @@ import {
   Textarea,
 } from "@chakra-ui/react";
 import { useAuth } from "../../contexts/AuthContext";
+import type { Comment } from "../../types/comment";
 import { formatRelativeTime } from "../../utils/dateUtils";
 import { Link } from "react-router-dom";
 import {
@@ -38,19 +39,7 @@ import { UserName } from "./UserName";
 import { UserAvatar } from "./UserAvatar";
 import { ReactionButton } from "./ReactionButton";
 import { toggleListCommentReaction } from "../../services/lists";
-
-export interface Comment {
-  id: string;
-  objectId: string;
-  objectType: string;
-  userId: string;
-  username: string;
-  userDisplayName?: string;
-  userPhotoURL?: string;
-  content: string;
-  createdAt: Date;
-  updatedAt?: Date;
-}
+import { getErrorMessage } from "../../utils/errors";
 
 interface CommentSectionProps {
   objectId: string;
@@ -100,8 +89,7 @@ export function CommentSection({
     > = {};
 
     comments.forEach((comment) => {
-      const likes = comment as any as { likes?: Record<string, boolean> };
-      const likesMap = likes.likes || {};
+      const likesMap = comment.likes || {};
       const likesCount = Object.keys(likesMap).length;
       const isLiked = currentUser ? !!likesMap[currentUser.uid] : false;
 
@@ -191,10 +179,10 @@ export function CommentSection({
         duration: 2000,
         isClosable: true,
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Erro ao comentar",
-        description: error.message || "Não foi possível adicionar o comentário",
+        description: getErrorMessage(error) || "Não foi possível adicionar o comentário",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -229,10 +217,10 @@ export function CommentSection({
         duration: 2000,
         isClosable: true,
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Erro ao excluir",
-        description: error.message || "Não foi possível excluir o comentário",
+        description: getErrorMessage(error) || "Não foi possível excluir o comentário",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -273,10 +261,10 @@ export function CommentSection({
 
       setEditingComment(null);
       setEditContent("");
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Erro ao atualizar",
-        description: error.message || "Não foi possível atualizar o comentário",
+        description: getErrorMessage(error) || "Não foi possível atualizar o comentário",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -341,7 +329,7 @@ export function CommentSection({
       setComments((prev) =>
         prev.map((comment) => {
           if (comment.id === commentId) {
-            const commentWithLikes = comment as any;
+            const commentWithLikes = comment;
             // Inicializar o objeto likes se não existir
             const currentLikes = commentWithLikes.likes || {};
 
@@ -495,7 +483,7 @@ export function CommentSection({
         ) : comments.length > 0 ? (
           <VStack spacing={4} align="stretch">
             {comments.map((comment) => {
-              const likes = comment as any as { likes?: Record<string, boolean> };
+              const likes = comment;
               const likesMap = likes.likes || {};
               const reaction = commentReactions[comment.id] || {
                 isLiked: false,

@@ -1,8 +1,15 @@
-import { getSeriesDetails, SeriesListItem, getFilteredSeries, getPopularSeries } from "./tmdb";
-import { getUserWatchlist } from "./watchlist";
+import {
+  getSeriesDetails,
+  Series,
+  SeriesListItem,
+  getFilteredSeries,
+  getPopularSeries,
+} from "./tmdb";
+import { getUserWatchlist, type WatchlistItem } from "./watchlist";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { logError } from "../utils/logger";
+import type { SeasonReview } from "../types/review";
 
 // Interface para os gêneros preferidos do usuário
 interface UserPreference {
@@ -42,42 +49,47 @@ export async function getPersonalizedRecommendations(userId: string): Promise<Re
   }
 }
 
+interface UserReviewWithSeries {
+  seriesId: number;
+  seasonReviews: SeasonReview[];
+  seriesDetails: Series;
+}
+
 /**
- * Busca todas as avaliações feitas pelo usuário
+ * Busca todas as avaliações feitas pelo usuário, com os detalhes de cada série
  */
-async function getUserReviews(userId: string) {
+async function getUserReviews(userId: string): Promise<UserReviewWithSeries[]> {
   const reviewsRef = collection(db, "reviews");
   const q = query(reviewsRef, where("userId", "==", userId));
   const querySnapshot = await getDocs(q);
 
-  const reviews = [];
-  for (const doc of querySnapshot.docs) {
-    const reviewData = doc.data();
-
-    // Buscar detalhes da série para cada avaliação
-    try {
-      const seriesDetails = await getSeriesDetails(Number(reviewData.seriesId));
-
-      if (!seriesDetails) {
-        continue;
+  const results = await Promise.all(
+    querySnapshot.docs.map(async (doc) => {
+      const reviewData = doc.data();
+      try {
+        const seriesDetails = await getSeriesDetails(Number(reviewData.seriesId));
+        if (!seriesDetails) return null;
+        return {
+          seriesId: Number(reviewData.seriesId),
+          seasonReviews: (reviewData.seasonReviews ?? []) as SeasonReview[],
+          seriesDetails,
+        };
+      } catch (error) {
+        logError("getUserReviews", error);
+        return null;
       }
+    })
+  );
 
-      reviews.push({
-        ...reviewData,
-        seriesDetails,
-      });
-    } catch (error) {
-      logError("getUserReviews", error);
-    }
-  }
-
-  return reviews;
+  return results.filter((r): r is UserReviewWithSeries => r !== null);
 }
 
 /**
  * Analisa as preferências do usuário com base nas avaliações
  */
-async function analyzeUserPreferences(userReviews: any[]): Promise<UserPreference[]> {
+async function analyzeUserPreferences(
+  userReviews: UserReviewWithSeries[]
+): Promise<UserPreference[]> {
   // Mapear os gêneros que o usuário gosta
   const genrePreferences: Record<
     number,
@@ -91,7 +103,7 @@ async function analyzeUserPreferences(userReviews: any[]): Promise<UserPreferenc
   // Analisar avaliações por gênero
   userReviews.forEach((review) => {
     // Pegar a nota média dada pelo usuário para esta série
-    const ratings = review.seasonReviews.map((sr: any) => sr.rating);
+    const ratings = review.seasonReviews.map((sr) => sr.rating);
     const averageRating =
       ratings.reduce((sum: number, rating: number) => sum + rating, 0) / ratings.length;
 
@@ -163,8 +175,8 @@ async function analyzeUserPreferences(userReviews: any[]): Promise<UserPreferenc
  */
 async function fetchRecommendedSeries(
   preferences: UserPreference[],
-  userReviews: any[],
-  watchlist: SeriesListItem[]
+  userReviews: UserReviewWithSeries[],
+  watchlist: WatchlistItem[]
 ): Promise<RecommendedSeries[]> {
   // Obter os top 3 gêneros preferidos
   const topPreferences = [...preferences]
@@ -180,8 +192,8 @@ async function fetchRecommendedSeries(
   });
 
   // Adicionar séries da watchlist
-  watchlist.forEach((series) => {
-    processedSeriesIds.add(series.id);
+  watchlist.forEach((item) => {
+    processedSeriesIds.add(Number(item.seriesId));
   });
 
   const recommendations: RecommendedSeries[] = [];

@@ -13,7 +13,8 @@ import {
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { auth } from "../config/firebase";
-import { Comment } from "../components/common/CommentSection";
+import type { Comment } from "../types/comment";
+import type { SeasonReview } from "../types/review";
 import { createNotification, NotificationType } from "./notifications";
 import { getUserData } from "./users";
 
@@ -125,10 +126,8 @@ export async function addComment(
 
     // Se for uma avaliação, verificar se a temporada existe
     if (objectType === "review" && seasonNumber !== undefined) {
-      const review = objectData as any;
-      const seasonExists = review.seasonReviews?.some(
-        (sr: any) => sr.seasonNumber === seasonNumber
-      );
+      const seasonReviews = (objectData.seasonReviews ?? []) as SeasonReview[];
+      const seasonExists = seasonReviews.some((sr) => sr.seasonNumber === seasonNumber);
 
       if (!seasonExists) {
         throw new Error("Temporada não encontrada nesta avaliação");
@@ -424,7 +423,7 @@ export async function toggleReviewCommentReaction(
         throw new Error("Comentário não encontrado");
       }
 
-      const comment = commentDoc.data() as any;
+      const comment = commentDoc.data() as Comment;
       if (
         comment.objectId !== objectId ||
         comment.objectType !== "review" ||

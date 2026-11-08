@@ -38,6 +38,7 @@ import { List } from "../../types/list";
 import { updateList, deleteList } from "../../services/lists";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { getErrorMessage } from "../../utils/errors";
 
 interface EditListModalProps {
   isOpen: boolean;
@@ -148,10 +149,10 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
       });
 
       onClose();
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Erro ao atualizar",
-        description: error.message || "Não foi possível atualizar a lista",
+        description: getErrorMessage(error) || "Não foi possível atualizar a lista",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -178,10 +179,10 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
 
       onClose();
       navigate("/profile");
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Erro",
-        description: error.message || "Não foi possível excluir a lista",
+        description: getErrorMessage(error) || "Não foi possível excluir a lista",
         status: "error",
         duration: 3000,
         isClosable: true,

@@ -23,6 +23,7 @@ import { ExtendedUser } from "../types/auth";
 import { cleanupNotifications } from "../services/notifications";
 import { useToast } from "@chakra-ui/react";
 import { useAuthUIStore } from "../services/uiState";
+import { getErrorCode, getErrorMessage } from "../utils/errors";
 
 interface AuthContextType {
   currentUser: ExtendedUser | null;
@@ -107,8 +108,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const userData = await getUserData(result.user.uid);
 
       return userData;
-    } catch (error: any) {
-      if (error.code === "auth/email-already-in-use") {
+    } catch (error) {
+      if (getErrorCode(error) === "auth/email-already-in-use") {
         toast({
           title: "Email em uso",
           description: "Este email já está em uso. Por favor, faça login ou use outro email.",
@@ -119,7 +120,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw new Error("Este email já está em uso. Por favor, faça login ou use outro email.", {
           cause: error,
         });
-      } else if (error.code === "auth/weak-password") {
+      } else if (getErrorCode(error) === "auth/weak-password") {
         toast({
           title: "Senha fraca",
           description: "A senha deve ter pelo menos 6 caracteres.",
@@ -128,7 +129,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           isClosable: true,
         });
         throw new Error("A senha deve ter pelo menos 6 caracteres.", { cause: error });
-      } else if (error.code === "auth/invalid-email") {
+      } else if (getErrorCode(error) === "auth/invalid-email") {
         toast({
           title: "Email inválido",
           description: "Por favor, forneça um endereço de email válido.",
@@ -181,17 +182,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setCurrentUser(extendedUser);
 
       await cleanupNotifications(result.user.uid);
-    } catch (error: any) {
-      if (error.code === "auth/wrong-password") {
+    } catch (error) {
+      if (getErrorCode(error) === "auth/wrong-password") {
         throw new Error("Senha incorreta. Tente novamente.", { cause: error });
       } else if (
-        error.code === "auth/user-not-found" ||
-        error.message.includes("Usuário não encontrado")
+        getErrorCode(error) === "auth/user-not-found" ||
+        getErrorMessage(error).includes("Usuário não encontrado")
       ) {
         throw new Error("Usuário não encontrado. Verifique seu nome de usuário ou email.", {
           cause: error,
         });
-      } else if (error.code === "auth/invalid-credential") {
+      } else if (getErrorCode(error) === "auth/invalid-credential") {
         throw new Error("Credenciais inválidas. Verifique seu nome de usuário ou email e senha.", {
           cause: error,
         });
@@ -232,8 +233,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         duration: 5000,
         isClosable: true,
       });
-    } catch (error: any) {
-      if (error.code === "auth/provider-already-linked") {
+    } catch (error) {
+      if (getErrorCode(error) === "auth/provider-already-linked") {
         toast({
           title: "Provedor já vinculado",
           description: "Este método de login já está vinculado à sua conta",
@@ -241,7 +242,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           duration: 5000,
           isClosable: true,
         });
-      } else if (error.code === "auth/invalid-email") {
+      } else if (getErrorCode(error) === "auth/invalid-email") {
         toast({
           title: "Email inválido",
           description: "Por favor, forneça um endereço de email válido",
@@ -249,7 +250,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           duration: 5000,
           isClosable: true,
         });
-      } else if (error.code === "auth/weak-password") {
+      } else if (getErrorCode(error) === "auth/weak-password") {
         toast({
           title: "Senha fraca",
           description: "A senha deve ter pelo menos 6 caracteres",
@@ -257,7 +258,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           duration: 5000,
           isClosable: true,
         });
-      } else if (error.message === "Este email já está associado a outra conta") {
+      } else if (getErrorMessage(error) === "Este email já está associado a outra conta") {
         toast({
           title: "Email já em uso",
           description: "Este email já está associado a outra conta",
@@ -288,8 +289,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         duration: 5000,
         isClosable: true,
       });
-    } catch (error: any) {
-      if (error.code === "auth/user-not-found") {
+    } catch (error) {
+      if (getErrorCode(error) === "auth/user-not-found") {
         toast({
           title: "Usuário não encontrado",
           description: "Não há usuário registrado com este email",
@@ -297,7 +298,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           duration: 5000,
           isClosable: true,
         });
-      } else if (error.code === "auth/invalid-email") {
+      } else if (getErrorCode(error) === "auth/invalid-email") {
         toast({
           title: "Email inválido",
           description: "Por favor, forneça um endereço de email válido",

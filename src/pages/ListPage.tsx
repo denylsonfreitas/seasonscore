@@ -76,6 +76,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Timestamp } from "firebase/firestore";
+import { getErrorMessage } from "../utils/errors";
 
 export default function ListPage() {
   const { listId } = useParams();
@@ -274,7 +275,7 @@ export default function ListPage() {
       // Programar refetches adicionais para garantir que todos os componentes estejam atualizados
       setTimeout(() => refetch(), 500);
       setTimeout(() => refetch(), 1500);
-    } catch (error: any) {
+    } catch (error) {
       // Reverter alterações em caso de erro
       setIsLiked(isLiked);
       setLikesCount(likesCount);
@@ -282,7 +283,7 @@ export default function ListPage() {
 
       toast({
         title: "Erro",
-        description: error.message || "Não foi possível processar sua reação",
+        description: getErrorMessage(error) || "Não foi possível processar sua reação",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -330,10 +331,10 @@ export default function ListPage() {
         duration: 2000,
         isClosable: true,
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Erro",
-        description: error.message || "Não foi possível remover a série da lista",
+        description: getErrorMessage(error) || "Não foi possível remover a série da lista",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -459,10 +460,10 @@ export default function ListPage() {
         duration: 2000,
         isClosable: true,
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Erro",
-        description: error.message || "Não foi possível adicionar a série à lista",
+        description: getErrorMessage(error) || "Não foi possível adicionar a série à lista",
         status: "error",
         duration: 3000,
         isClosable: true,

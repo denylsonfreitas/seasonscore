@@ -23,3 +23,11 @@ export interface SeasonReview {
     likes: string[];
   };
 }
+
+/** Dados mínimos para navegar até os detalhes de uma avaliação de temporada. */
+export interface ReviewTarget {
+  id: string;
+  seasonNumber: number;
+}
+
+export type ReviewClickHandler = (review: ReviewTarget) => void;

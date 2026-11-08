@@ -1,9 +1,10 @@
+import type { SeriesResponse } from "../../services/tmdb";
 import { Box, Container, Heading, Skeleton, Text } from "@chakra-ui/react";
 import { SeriesCard } from "./SeriesCard";
 import { Carousel } from "../common/Carousel";
 
 interface RelatedSeriesProps {
-  relatedSeries: any;
+  relatedSeries: SeriesResponse | undefined;
   isLoading: boolean;
   currentSeriesId: string | number;
 }
@@ -35,7 +36,7 @@ export function RelatedSeries({ relatedSeries, isLoading, currentSeriesId }: Rel
   }
 
   const filteredSeries = relatedSeries?.results
-    ? relatedSeries.results.filter((series: any) => series.id !== Number(currentSeriesId))
+    ? relatedSeries.results.filter((series) => series.id !== Number(currentSeriesId))
     : [];
 
   if (filteredSeries.length === 0) {
@@ -58,7 +59,7 @@ export function RelatedSeries({ relatedSeries, isLoading, currentSeriesId }: Rel
       </Heading>
       <Box pb={8}>
         <Carousel preset="series">
-          {filteredSeries.map((series: any) => (
+          {filteredSeries.map((series) => (
             <Box key={series.id}>
               <SeriesCard series={series} size="lg" />
             </Box>

@@ -21,6 +21,7 @@ import {
 import { useAuth } from "../../contexts/AuthContext";
 import { isUsernameAvailable, isEmailAvailable } from "../../services/users";
 import { logError } from "../../utils/logger";
+import { getErrorCode, getErrorMessage } from "../../utils/errors";
 
 interface SignUpModalProps {
   isOpen: boolean;
@@ -115,21 +116,21 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
 
       resetForm();
       onClose();
-    } catch (error: any) {
+    } catch (error) {
       let errorMessage = "Não foi possível criar sua conta. Tente novamente.";
 
-      if (error.code === "auth/email-already-in-use") {
+      if (getErrorCode(error) === "auth/email-already-in-use") {
         errorMessage = "Este email já está em uso.";
         setEmailError(errorMessage);
-      } else if (error.code === "auth/invalid-email") {
+      } else if (getErrorCode(error) === "auth/invalid-email") {
         errorMessage = "Email inválido. Verifique o formato do email.";
         setEmailError(errorMessage);
-      } else if (error.code === "auth/weak-password") {
+      } else if (getErrorCode(error) === "auth/weak-password") {
         errorMessage = "Senha muito fraca. Use uma senha mais forte.";
-      } else if (error.code === "auth/network-request-failed") {
+      } else if (getErrorCode(error) === "auth/network-request-failed") {
         errorMessage = "Erro de conexão. Verifique sua internet e tente novamente.";
-      } else if (error.message) {
-        errorMessage = error.message;
+      } else if (getErrorMessage(error)) {
+        errorMessage = getErrorMessage(error);
       }
 
       toast({

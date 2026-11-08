@@ -1,3 +1,6 @@
+import type { User } from "firebase/auth";
+import type { ReviewClickHandler } from "../../types/review";
+import type { SeasonReview } from "../../types/review";
 import {
   AccordionItem,
   AccordionButton,
@@ -29,16 +32,16 @@ import { getGlobalLoginPopover } from "../layout/Navbar";
 interface SeasonAccordionItemProps {
   season: number;
   averageRating: number;
-  seasonReviews: any[];
+  seasonReviews: SeasonReview[];
   userReview?: SeriesReview;
-  currentUser: any | null;
+  currentUser: User | null;
   userData: { photoURL?: string | null } | null;
   seriesId: string;
   onSeasonSelect: (season: number) => void;
   onOpenReviewModal: () => void;
   onEditReview: (review: SeriesReview) => void;
   onDeleteReview: (season: number) => void;
-  onReviewClick: (review: any) => void;
+  onReviewClick: ReviewClickHandler;
   navigate: (path: string) => void;
 }
 

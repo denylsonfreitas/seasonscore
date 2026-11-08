@@ -36,6 +36,7 @@ import { ExtendedUser } from "../types/auth";
 import { auth } from "../config/firebase";
 import { isUsernameAvailable, deleteUserData } from "../services/users";
 import { logError } from "../utils/logger";
+import { getErrorCode } from "../utils/errors";
 
 export function Settings() {
   const { currentUser, logout } = useAuth() as {
@@ -161,14 +162,14 @@ export function Settings() {
           navigate("/");
         }
       }, 1500);
-    } catch (error: any) {
+    } catch (error) {
       let errorMessage: string;
 
-      if (error.code === "auth/wrong-password") {
+      if (getErrorCode(error) === "auth/wrong-password") {
         errorMessage = "Senha incorreta. Por favor, verifique e tente novamente.";
-      } else if (error.code === "auth/requires-recent-login") {
+      } else if (getErrorCode(error) === "auth/requires-recent-login") {
         errorMessage = "Por motivos de segurança, faça login novamente antes de excluir sua conta.";
-      } else if (error.code === "auth/too-many-requests") {
+      } else if (getErrorCode(error) === "auth/too-many-requests") {
         errorMessage = "Muitas tentativas. Por favor, aguarde alguns minutos e tente novamente.";
       } else {
         // Se for um erro durante a exclusão dos dados e não autenticação

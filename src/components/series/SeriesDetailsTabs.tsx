@@ -1,3 +1,6 @@
+import type { Series } from "../../services/tmdb";
+import type { User } from "firebase/auth";
+import type { ReviewClickHandler } from "../../types/review";
 import {
   Tabs,
   TabList,
@@ -19,10 +22,10 @@ import { useRef, useEffect, useState } from "react";
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 
 interface SeriesDetailsTabsProps {
-  series: any;
+  series: Series;
   reviews: SeriesReview[];
   userReview?: SeriesReview;
-  currentUser: any | null;
+  currentUser: User | null;
   userData: { photoURL?: string | null } | null;
   seriesId: string;
   onSeasonSelect: (season: number) => void;
@@ -30,7 +33,7 @@ interface SeriesDetailsTabsProps {
   onSetExistingReview: (review: SeriesReview) => void;
   onSetDeleteAlertOpen: (isOpen: boolean) => void;
   onSetSeasonToDelete: (season: number | null) => void;
-  onReviewClick: (review: any) => void;
+  onReviewClick: ReviewClickHandler;
   navigate: (path: string) => void;
 }
 

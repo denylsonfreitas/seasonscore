@@ -14,9 +14,12 @@ import {
   serverTimestamp,
   Timestamp,
   runTransaction,
+  type DocumentData,
+  type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { List, ListItem, ListReaction, ListReactionType, ListWithUserData } from "../types/list";
 import { getUserData } from "./users";
+import type { Comment } from "../types/comment";
 import {
   createNotification,
   NotificationType,
@@ -468,7 +471,7 @@ export async function getUserLists(
         accessByLink,
         createdAt: convertTimestampToDate(data.createdAt),
         updatedAt: convertTimestampToDate(data.updatedAt),
-        items: data.items.map((item: any) => ({
+        items: data.items.map((item: ListItem) => ({
           ...item,
           addedAt: convertTimestampToDate(item.addedAt),
         })),
@@ -640,7 +643,7 @@ export async function getListsContainingSeries(userId: string, seriesId: number)
       const data = doc.data() as List;
 
       // Verificar se a série está na lista
-      const hasSeriesInItems = data.items.some((item: any) => item.seriesId === seriesId);
+      const hasSeriesInItems = data.items.some((item: ListItem) => item.seriesId === seriesId);
 
       if (hasSeriesInItems) {
         lists.push({
@@ -648,7 +651,7 @@ export async function getListsContainingSeries(userId: string, seriesId: number)
           id: doc.id,
           createdAt: convertTimestampToDate(data.createdAt),
           updatedAt: convertTimestampToDate(data.updatedAt),
-          items: data.items.map((item: any) => ({
+          items: data.items.map((item: ListItem) => ({
             ...item,
             addedAt: convertTimestampToDate(item.addedAt),
           })),
@@ -692,7 +695,7 @@ export async function toggleListCommentReaction(
         throw new Error("Comentário não encontrado");
       }
 
-      const comment = commentDoc.data() as any;
+      const comment = commentDoc.data() as Comment;
       if (comment.objectId !== listId || comment.objectType !== "list") {
         console.error(`Comentário não pertence à lista ${listId}`, {
           commentObjectId: comment.objectId,
@@ -1114,7 +1117,7 @@ export async function searchLists(
   }
 }
 
-function listFromDoc(doc: any): List {
+function listFromDoc(doc: QueryDocumentSnapshot<DocumentData>): List {
   const data = doc.data();
   return {
     id: doc.id,

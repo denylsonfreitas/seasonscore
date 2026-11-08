@@ -13,6 +13,7 @@ import { checkNewEpisodeForSeries } from "./episodeNotifications";
 import { logError } from "../utils/logger";
 
 export interface WatchlistItem {
+  id?: string;
   userId: string;
   seriesId: number;
   addedAt: Date;
@@ -94,13 +95,13 @@ export async function getUserWatchlist(userId: string) {
     const q = query(watchlistRef, where("userId", "==", userId));
     const querySnapshot = await getDocs(q);
 
-    const watchlistItems: any[] = [];
+    const watchlistItems: WatchlistItem[] = [];
 
     querySnapshot.forEach((doc) => {
       // Incluir o ID do documento junto com os dados
       watchlistItems.push({
         id: doc.id, // Incluir o ID do documento
-        ...doc.data(),
+        ...(doc.data() as WatchlistItem),
       });
     });
 

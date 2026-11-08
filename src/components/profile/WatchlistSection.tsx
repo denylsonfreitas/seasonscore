@@ -16,14 +16,7 @@ import { Bookmark, BookmarkSimple } from "@phosphor-icons/react";
 import { removeFromWatchlist } from "../../services/watchlist";
 import { useQueryClient } from "@tanstack/react-query";
 import { ExtendedUser } from "../../types/auth";
-
-interface WatchlistItem {
-  seriesId: number;
-  seriesData: {
-    name: string;
-    poster_path: string;
-  };
-}
+import type { WatchlistItem } from "../../services/watchlist";
 
 interface WatchlistSectionProps {
   watchlist: WatchlistItem[];

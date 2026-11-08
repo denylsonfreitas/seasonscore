@@ -1,9 +1,17 @@
-import { doc, setDoc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { getErrorCode, getErrorMessage } from "../utils/errors";
+import { doc, setDoc, getDoc, updateDoc, deleteDoc, type Timestamp } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { User } from "firebase/auth";
 import { collection, query, where, getDocs, writeBatch, limit } from "firebase/firestore";
 import { serverTimestamp, increment } from "firebase/firestore";
 import { removeCurrentUserNotifications } from "./notifications";
+
+/** Converte Date/Timestamp do Firestore em milissegundos. */
+function toMillis(value: Date | Timestamp | null | undefined): number {
+  if (!value) return 0;
+  if (value instanceof Date) return value.getTime();
+  return typeof value.toMillis === "function" ? value.toMillis() : 0;
+}
 
 export interface UserData {
   id: string;
@@ -37,7 +45,7 @@ export interface UserData {
     listReaction: boolean;
   };
   watchedSeriesIds?: number[]; // Array de IDs de séries que o usuário acompanha
-  createdAt?: any; // Timestamp da criação do usuário
+  createdAt?: Timestamp | Date | null; // Data de criação do usuário
 }
 
 // Interface estendida com estatísticas do usuário para exibição em páginas como Community
@@ -136,8 +144,8 @@ export async function createOrUpdateUser(user: User, additionalData?: Partial<Us
   const userRef = doc(db, "users", user.uid);
 
   // Remover campos undefined ou vazios, mas manter valores null explícitos
-  const cleanData = (data: any) => {
-    const cleaned: any = {};
+  const cleanData = (data: Record<string, unknown>) => {
+    const cleaned: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {
       // Preservar valores null, remover apenas undefined e strings vazias
       if (value !== undefined && (value !== "" || value === null)) {
@@ -256,7 +264,7 @@ export async function createOrUpdateUser(user: User, additionalData?: Partial<Us
   const cleanedAdditionalData = additionalData ? cleanData(additionalData) : {};
 
   // Combinar os dados
-  const userData = {
+  const userData: Record<string, unknown> = {
     ...baseUserData,
     ...cleanedAdditionalData,
     updatedAt: new Date(),
@@ -338,11 +346,11 @@ export async function deleteUserData(userId: string) {
       await operation();
       results.success.push(name);
       return true;
-    } catch (error: any) {
+    } catch (error) {
       // Verificar se é um erro de permissão
       if (
-        error.code === "permission-denied" ||
-        error.message?.includes("Missing or insufficient permissions")
+        getErrorCode(error) === "permission-denied" ||
+        getErrorMessage(error, "").includes("Missing or insufficient permissions")
       ) {
         results.permissionIssues.push(name);
         // Retornar true para indicar que o processo deve continuar
@@ -351,11 +359,11 @@ export async function deleteUserData(userId: string) {
 
       // Verificar se é um erro de rede ou bloqueio por extensão
       if (
-        error.name === "AbortError" ||
-        error.message?.includes("ERR_BLOCKED_BY_CLIENT") ||
-        error.message?.includes("network error") ||
-        error.code === "failed-precondition" ||
-        error.code === "unavailable"
+        (error instanceof Error && error.name === "AbortError") ||
+        getErrorMessage(error, "").includes("ERR_BLOCKED_BY_CLIENT") ||
+        getErrorMessage(error, "").includes("network error") ||
+        getErrorCode(error) === "failed-precondition" ||
+        getErrorCode(error) === "unavailable"
       ) {
         results.permissionIssues.push(`${name} (erro de rede)`);
         // Retornar true para continuar o processo
@@ -407,7 +415,7 @@ export async function deleteUserData(userId: string) {
             // Encontrar e remover comentários do usuário
             const initialCommentsCount = seasonReview.comments.length;
             seasonReview.comments = seasonReview.comments.filter(
-              (comment: any) => comment.userId !== userId
+              (comment: { userId: string }) => comment.userId !== userId
             );
 
             if (initialCommentsCount !== seasonReview.comments.length) {
@@ -844,8 +852,8 @@ export async function getPopularUsers(
         });
         // Ordenar por data de criação (mais recentes primeiro)
         filteredUsers.sort((a, b) => {
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          const dateA = toMillis(a.createdAt);
+          const dateB = toMillis(b.createdAt);
           return dateB - dateA;
         });
         break;
@@ -969,8 +977,8 @@ export async function searchUsers(
         });
         // Ordenar por data de criação (mais recentes primeiro)
         filteredUsers.sort((a, b) => {
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          const dateA = toMillis(a.createdAt);
+          const dateB = toMillis(b.createdAt);
           return dateB - dateA;
         });
         break;

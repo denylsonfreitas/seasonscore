@@ -17,7 +17,7 @@ export const DEFAULT_CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutos em ms
 /** Classe que gerencia o cache global */
 class CacheService {
   /** Armazenamento de cache */
-  private cache: Record<string, CacheItem<any>> = {};
+  private cache: Record<string, CacheItem<unknown>> = {};
 
   /**
    * Obtém um item do cache se existir e não estiver expirado
@@ -36,7 +36,7 @@ class CacheService {
       return null;
     }
 
-    return item.data;
+    return item.data as T;
   }
 
   /**

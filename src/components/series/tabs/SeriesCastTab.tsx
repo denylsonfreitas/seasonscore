@@ -26,7 +26,6 @@ interface SeriesCastTabProps {
     credits?: {
       cast?: CastMember[];
     };
-    [key: string]: any;
   };
 }
 
