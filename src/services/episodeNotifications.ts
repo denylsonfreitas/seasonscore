@@ -1,8 +1,7 @@
-import { collection, getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "../config/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { getLatestEpisode } from "./tmdb";
 import { createNotification, NotificationType } from "./notifications";
-const db = getFirestore();
-const lastNotifiedEpisodesCollection = collection(db, "lastNotifiedEpisodes");
 
 // Verificar novos episódios para um usuário específico
 // Verificar novos episódios para uma série específica

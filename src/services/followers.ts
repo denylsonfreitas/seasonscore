@@ -5,11 +5,9 @@ import {
   getDocs,
   addDoc,
   deleteDoc,
-  getFirestore,
   serverTimestamp,
-  Timestamp,
 } from "firebase/firestore";
-import { auth } from "../config/firebase";
+import { auth, db } from "../config/firebase";
 import { 
   createNotification, 
   NotificationType, 
@@ -17,7 +15,6 @@ import {
 } from "./notifications";
 import { getUserData } from "./users";
 
-const db = getFirestore();
 const followersCollection = collection(db, "followers");
 
 export interface Follower {
@@ -101,17 +98,12 @@ export async function unfollowUser(userId: string) {
 
     // Processar cada relação encontrada (normalmente deve ser apenas uma)
     for (const followerDoc of querySnapshot.docs) {
-      const followerData = followerDoc.data();
       
       // Excluir a relação de seguidor
       await deleteDoc(followerDoc.ref);
       
       // Remover notificações relacionadas
       try {
-        const followDate = followerData.createdAt instanceof Timestamp 
-          ? followerData.createdAt.toDate() 
-          : followerData.createdAt;
-          
         // Sempre tentar remover a notificação, independentemente da data
         // Isso garante que não fiquem notificações órfãs
         await deleteNotificationsOfType(

@@ -25,7 +25,6 @@ import {
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { 
-  updatePassword, 
   deleteUser, 
   EmailAuthProvider, 
   reauthenticateWithCredential,
@@ -35,7 +34,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { ExtendedUser } from "../types/auth";
 import { auth } from "../config/firebase";
-import { isUsernameAvailable, updateUsername, deleteUserData } from "../services/users";
+import { isUsernameAvailable, deleteUserData } from "../services/users";
 
 export function Settings() {
   const { currentUser, logout } = useAuth() as { currentUser: ExtendedUser | null, logout: () => Promise<void> };
@@ -49,11 +48,6 @@ export function Settings() {
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
   
   // Estados para alterar senha
-  const [passwordCurrentPassword, setPasswordCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [, setIsUpdatingPassword] = useState(false);
-  
   // Estados para deletar conta
   const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
@@ -63,11 +57,9 @@ export function Settings() {
   const toast = useToast();
   const navigate = useNavigate();
 
-  const [newUsername, setNewUsername] = useState("");
+  const [newUsername] = useState("");
   const [, setUsernameError] = useState("");
   const [, setIsCheckingUsername] = useState(false);
-  const [, setIsLoading] = useState(false);
-
   const handleUpdateEmail = async () => {
     if (!auth.currentUser || !emailCurrentPassword) return;
 

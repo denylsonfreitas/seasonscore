@@ -33,7 +33,6 @@ import {
   ModalHeader,
   ModalBody,
   ModalCloseButton,
-  ModalFooter,
   Input,
   InputGroup,
   InputRightElement,
@@ -60,7 +59,6 @@ import { ReactionButton } from "../components/common/ReactionButton";
 import {
   getListById,
   toggleListReaction,
-  deleteList,
   removeSeriesFromList,
   addSeriesToList,
 } from "../services/lists";
@@ -90,7 +88,6 @@ export default function ListPage() {
   const [, setError] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
-  const [, setIsDeleting] = useState(false);
   const [isRemovingSeries, setIsRemovingSeries] = useState<number | null>(null);
   const [isTogglingLike, setIsTogglingLike] = useState(false);
   const [, setIsForceFetchingReaction] = useState(false);

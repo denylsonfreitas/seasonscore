@@ -37,7 +37,6 @@ import {
 import { UserName } from './UserName';
 import { UserAvatar } from './UserAvatar';
 import { ReactionButton } from './ReactionButton';
-import { useQueryClient } from '@tanstack/react-query';
 import { toggleListCommentReaction } from '../../services/lists';
 
 export interface Comment {

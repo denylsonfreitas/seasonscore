@@ -10,7 +10,7 @@ import { UserAvatar } from "../common/UserAvatar";
 import { UserName } from "../common/UserName";
 import { getPopularReviews, PopularReview } from "../../services/reviews";
 import { SectionBase } from "../common/SectionBase";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Carousel } from "../common/Carousel";
 import { EnhancedImage } from "../common/EnhancedImage";
 

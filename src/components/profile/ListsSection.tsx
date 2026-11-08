@@ -12,7 +12,6 @@ import {
 import { Plus } from '@phosphor-icons/react';
 import { ListCard } from '../lists/ListCard';
 import { getUserLists } from '../../services/lists';
-import { useAuth } from '../../contexts/AuthContext';
 import { ListWithUserData } from '../../types/list';
 import { useNavigate } from 'react-router-dom';
 import { CreateListModal } from '../lists/CreateListModal';

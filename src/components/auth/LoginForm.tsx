@@ -15,7 +15,6 @@ import {
   FocusLock,
 } from "@chakra-ui/react";
 import { useAuth } from "../../contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
 
 interface LoginFormProps {
   onSignUpClick: () => void;

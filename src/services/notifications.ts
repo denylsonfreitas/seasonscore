@@ -4,7 +4,6 @@ import {
   query,
   where,
   getDocs,
-  getFirestore,
   orderBy,
   serverTimestamp,
   updateDoc,
@@ -16,12 +15,11 @@ import {
   getDoc,
   writeBatch,
 } from "firebase/firestore";
-import { auth } from "../config/firebase";
+import { auth, db } from "../config/firebase";
 import { getUserData } from "./users";
 import { getSeriesDetails } from "./tmdb";
 
 // Configurações
-const db = getFirestore();
 const notificationsCollection = collection(db, "notifications");
 export const DEFAULT_NOTIFICATION_LIMIT = 50;
 

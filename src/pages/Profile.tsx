@@ -5,16 +5,13 @@ import {
   VStack,
   Flex,
   useToast,
-  useDisclosure,
   Center,
   Spinner,
 } from "@chakra-ui/react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import { doc, updateDoc } from "firebase/firestore";
 import { updateProfile } from "firebase/auth";
-import { db } from "../config/firebase";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
@@ -43,15 +40,9 @@ import { ListsSection } from "../components/profile/ListsSection";
 export function Profile() {
   const { currentUser } = useAuth() as { currentUser: ExtendedUser | null };
   const { username } = useParams();
-  const { onClose } = useDisclosure();
   const navigate = useNavigate();
   const toast = useToast();
   const queryClient = useQueryClient();
-
-  const [displayName] = useState(
-    currentUser?.displayName || ""
-  );
-  const [, setIsUpdating] = useState(false);
   const [selectedReview, setSelectedReview] = useState<any>(null);
   const [profileUser, setProfileUser] = useState<UserData | null>(null);
   const [showFollowers, setShowFollowers] = useState(false);

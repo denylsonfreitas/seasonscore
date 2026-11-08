@@ -9,8 +9,7 @@ import {
   VStack,
   useToast,
   Divider,
-  Select,
-  useBreakpointValue,
+  Select
 } from "@chakra-ui/react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Footer } from "../components/common/Footer";
@@ -20,7 +19,6 @@ import { RatingStars } from "../components/common/RatingStars";
 import { UserAvatar } from "../components/common/UserAvatar";
 import { UserName } from "../components/common/UserName";
 import { ReactionButtons } from "../components/reviews/ReactionButtons";
-import { useAuth } from "../contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 
 export function SeriesReviews() {
@@ -31,7 +29,6 @@ export function SeriesReviews() {
   );
   const navigate = useNavigate();
   const toast = useToast();
-  const { currentUser } = useAuth();
   const { data: series } = useQuery({
     queryKey: ["series", id],
     queryFn: () => getSeriesDetails(Number(id)),

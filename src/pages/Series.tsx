@@ -16,7 +16,6 @@ import {
   AlertDescription,
   Icon,
   Divider,
-  useColorModeValue,
   Popover,
   PopoverTrigger,
   PopoverContent,
@@ -35,7 +34,7 @@ import {
 import { useState, useEffect, useMemo, useRef } from "react";
 import { SeriesFilter } from "../components/series/SeriesFilter";
 import { Footer } from "../components/common/Footer";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { 
   Funnel,
 } from "@phosphor-icons/react";

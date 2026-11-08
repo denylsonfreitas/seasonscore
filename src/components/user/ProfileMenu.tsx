@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { UserCircle, Gear, SignOut } from "@phosphor-icons/react";
 import { Link as RouterLink } from "react-router-dom";
 import { UserAvatar } from "../common/UserAvatar";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { useAnimatedMenu } from "../../hooks/useAnimatedMenu";
 import { RippleEffect } from "../common/RippleEffect";
 import { AnimatedMenu } from "../common/AnimatedMenu";

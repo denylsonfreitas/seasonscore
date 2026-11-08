@@ -2,7 +2,6 @@ import { doc, setDoc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { User } from "firebase/auth";
 import { collection, query, where, getDocs, writeBatch, limit } from "firebase/firestore";
-import { getFirestore } from "firebase/firestore";
 import {
   serverTimestamp,
   increment
@@ -339,7 +338,6 @@ export async function getUserByUsernameOrEmail(usernameOrEmail: string): Promise
 
 export async function deleteUserData(userId: string) {
   try {
-    const db = getFirestore();
     
     // Rastrear operações bem-sucedidas e falhas
     const results = {

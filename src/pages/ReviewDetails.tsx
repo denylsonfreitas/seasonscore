@@ -227,7 +227,7 @@ export function ReviewDetails() {
       }
       
       // Chamar API em background
-      const result = await toggleReaction(reviewId, seasonNumber, type);
+      await toggleReaction(reviewId, seasonNumber, type);
       
       // Atualizar dados em segundo plano sem mostrar carregamento
       setTimeout(() => {

@@ -1,6 +1,6 @@
 import { User } from "@phosphor-icons/react";
 import React from 'react';
-import { Avatar, AvatarBadge, AvatarProps, Box, useColorModeValue } from '@chakra-ui/react';
+import { Avatar, AvatarBadge, AvatarProps, useColorModeValue } from '@chakra-ui/react';
 
 interface UserAvatarProps extends Omit<AvatarProps, 'src' | 'name' | 'icon'> {
   userId?: string;
@@ -39,7 +39,6 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
                        (name && name.toLowerCase().includes('excluído'));
   
   const bg = useColorModeValue('gray.300', 'gray.600');
-  const iconColor = useColorModeValue('gray.600', 'gray.300');
   const badgeBorderColor = useColorModeValue('white', 'gray.800');
   return (
     <Avatar

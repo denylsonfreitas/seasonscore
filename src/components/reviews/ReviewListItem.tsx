@@ -53,6 +53,12 @@ export function ReviewListItem({ userId, userEmail, rating, comment, onClick }: 
               <UserName userId={userId} />
             )}
             <Box>
+              {displayedComment && (
+                <Text fontSize="sm" color="gray.300" whiteSpace="pre-wrap">
+                  {displayedComment}
+                  {shouldShowExpandButton && !isExpanded && "…"}
+                </Text>
+              )}
               {shouldShowExpandButton && (
                 <Button
                   variant="ghost"

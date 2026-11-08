@@ -7,7 +7,6 @@ import {
   Flex,
   Heading,
   Image,
-  useColorModeValue,
   LinkBox,
   LinkOverlay,
 } from "@chakra-ui/react";

@@ -20,7 +20,6 @@ import { UserAvatar } from '../common/UserAvatar';
 import { ListWithUserData } from '../../types/list';
 import { useQuery } from '@tanstack/react-query';
 import { getListById } from '../../services/lists';
-import { useAuth } from '../../contexts/AuthContext';
 import { EnhancedImage } from '../common/EnhancedImage';
 import { UserName } from '../common/UserName';
 

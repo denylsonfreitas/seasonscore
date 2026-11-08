@@ -4,14 +4,12 @@ import {
   Flex,
   Button,
   Portal,
-  Divider,
-  useToast,
+  Divider
 } from "@chakra-ui/react";
 import { Gear, Note, NumberCircleOne, SignOut, Star, TelevisionSimple, UserCircle, UsersThree } from "@phosphor-icons/react";
 import { Link as RouterLink } from "react-router-dom";
 import { ExtendedUser } from "../../types/auth";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 interface MobileMenuProps {
   isOpen: boolean;
