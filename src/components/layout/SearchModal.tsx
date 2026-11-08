@@ -42,7 +42,7 @@ export function SearchModal({
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<SeriesSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

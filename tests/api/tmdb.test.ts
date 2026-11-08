@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildTmdbUrl } from "./tmdb";
+import { buildTmdbUrl } from "../../api/tmdb";
 
 describe("proxy do TMDB", () => {
   it("monta a URL com a chave do servidor e os parâmetros recebidos", () => {
