@@ -1,7 +1,8 @@
 import type { SeriesResponse } from "../../services/tmdb";
-import { Box, Container, Heading, Skeleton, Text } from "@chakra-ui/react";
+import { Box } from "@chakra-ui/react";
 import { SeriesCard } from "./SeriesCard";
 import { Carousel } from "../common/Carousel";
+import { SectionBase } from "../common/SectionBase";
 
 interface RelatedSeriesProps {
   relatedSeries: SeriesResponse | undefined;
@@ -9,63 +10,26 @@ interface RelatedSeriesProps {
   currentSeriesId: string | number;
 }
 
+/** Séries parecidas. A seção some quando o TMDB não sugere nenhuma. */
 export function RelatedSeries({ relatedSeries, isLoading, currentSeriesId }: RelatedSeriesProps) {
-  if (isLoading) {
-    return (
-      <Container maxW="container.lg">
-        <Heading color="white" size="xl" mb={8}>
-          Séries Relacionadas
-        </Heading>
-        <Box
-          display="grid"
-          gridTemplateColumns={{
-            base: "repeat(3, 1fr)",
-            md: "repeat(4, 1fr)",
-            lg: "repeat(6, 1fr)",
-          }}
-          gap={4}
-        >
-          {[...Array(6)].map((_, i) => (
-            <Box key={i}>
-              <Skeleton height="300px" borderRadius="lg" />
-            </Box>
-          ))}
-        </Box>
-      </Container>
-    );
-  }
-
-  const filteredSeries = relatedSeries?.results
-    ? relatedSeries.results.filter((series) => series.id !== Number(currentSeriesId))
-    : [];
-
-  if (filteredSeries.length === 0) {
-    return (
-      <Container maxW="container.lg">
-        <Heading color="white" size="xl" mb={8}>
-          Séries Relacionadas
-        </Heading>
-        <Text color="primary.400" textAlign="center">
-          Não há séries relacionadas disponíveis.
-        </Text>
-      </Container>
-    );
-  }
+  const related = (relatedSeries?.results ?? []).filter((s) => s.id !== Number(currentSeriesId));
+  if (!isLoading && related.length === 0) return null;
 
   return (
-    <Container maxW="container.lg">
-      <Heading color="white" size="xl" mb={8}>
-        Séries Relacionadas
-      </Heading>
-      <Box pb={8}>
-        <Carousel preset="series">
-          {filteredSeries.map((series) => (
+    <SectionBase
+      eyebrow="Se você gostou"
+      title="Séries parecidas"
+      isLoading={isLoading}
+      containerProps={{ borderTop: "1px solid", borderColor: "ink.800" }}
+      renderContent={() => (
+        <Carousel preset="series" gap={4} label="Séries parecidas">
+          {related.map((series) => (
             <Box key={series.id}>
-              <SeriesCard series={series} size="lg" />
+              <SeriesCard series={series} />
             </Box>
           ))}
         </Carousel>
-      </Box>
-    </Container>
+      )}
+    />
   );
 }

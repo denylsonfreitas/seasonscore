@@ -44,7 +44,7 @@ export function SeasonStrip({
     >
       {seasons.map(({ season, score, count }) => {
         const hasScore = score != null && score > 0;
-        const pct = hasScore ? Math.max(8, (score / 5) * 100) : 100;
+        const pct = hasScore ? Math.max(8, (score / 5) * 100) : 6;
         const isSelected = selected === season;
         const label = hasScore
           ? `Temporada ${season}: ${formatScore(score)}${count ? ` (${count} ${count === 1 ? "avaliação" : "avaliações"})` : ""}`
@@ -85,9 +85,7 @@ export function SeasonStrip({
                 className="bar"
                 w="100%"
                 h={`${pct}%`}
-                bg={hasScore ? scoreColor(score) : "transparent"}
-                border={hasScore ? undefined : "1px dashed"}
-                borderColor="ink.700"
+                bg={hasScore ? scoreColor(score) : "ink.800"}
                 borderRadius="2px"
                 opacity={selected == null || isSelected ? 1 : 0.45}
                 outline={isSelected ? "2px solid" : undefined}

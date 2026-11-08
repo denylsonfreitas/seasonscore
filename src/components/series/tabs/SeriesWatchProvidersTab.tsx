@@ -53,10 +53,10 @@ export function SeriesWatchProvidersTab({ series }: SeriesWatchProvidersTabProps
           borderRadius="lg"
         >
           <Icon as={Info} boxSize={12} color="gray.500" mb={4} />
-          <Heading size="md" color="white" mb={2}>
+          <Heading as="h3" size="h3" mb={2}>
             Informações não disponíveis
           </Heading>
-          <Text color="gray.400">
+          <Text color="ink.400">
             Não encontramos informações sobre onde assistir esta série no Brasil.
           </Text>
         </Flex>
@@ -78,7 +78,7 @@ export function SeriesWatchProvidersTab({ series }: SeriesWatchProvidersTabProps
 
       {watchProviders.flatrate && (
         <Box>
-          <Heading size="md" color="white" mb={4}>
+          <Heading as="h3" size="h3" mb={4}>
             Streaming
           </Heading>
           <Wrap spacing={4}>
@@ -92,7 +92,7 @@ export function SeriesWatchProvidersTab({ series }: SeriesWatchProvidersTabProps
                       tmdbWidth="w200"
                     />
                   </Box>
-                  <Text color="white" fontSize="sm" mt={2}>
+                  <Text color="ink.100" fontSize="sm" mt={2}>
                     {provider.provider_name}
                   </Text>
                 </Box>
@@ -104,7 +104,7 @@ export function SeriesWatchProvidersTab({ series }: SeriesWatchProvidersTabProps
 
       {watchProviders.rent && (
         <Box>
-          <Heading size="md" color="white" mb={4}>
+          <Heading as="h3" size="h3" mb={4}>
             Alugar
           </Heading>
           <Wrap spacing={4}>
@@ -118,7 +118,7 @@ export function SeriesWatchProvidersTab({ series }: SeriesWatchProvidersTabProps
                       tmdbWidth="w200"
                     />
                   </Box>
-                  <Text color="white" fontSize="sm" mt={2}>
+                  <Text color="ink.100" fontSize="sm" mt={2}>
                     {provider.provider_name}
                   </Text>
                 </Box>
@@ -130,7 +130,7 @@ export function SeriesWatchProvidersTab({ series }: SeriesWatchProvidersTabProps
 
       {watchProviders.buy && (
         <Box>
-          <Heading size="md" color="white" mb={4}>
+          <Heading as="h3" size="h3" mb={4}>
             Comprar
           </Heading>
           <Wrap spacing={4}>
@@ -144,7 +144,7 @@ export function SeriesWatchProvidersTab({ series }: SeriesWatchProvidersTabProps
                       tmdbWidth="w200"
                     />
                   </Box>
-                  <Text color="white" fontSize="sm" mt={2}>
+                  <Text color="ink.100" fontSize="sm" mt={2}>
                     {provider.provider_name}
                   </Text>
                 </Box>

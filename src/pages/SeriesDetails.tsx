@@ -2,8 +2,6 @@ import type { ReviewTarget } from "../types/review";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
-  Container,
-  Flex,
   Spinner,
   useDisclosure,
   AlertDialog,
@@ -24,8 +22,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { SeriesReview, getSeriesReviews, deleteReview } from "../services/reviews";
 import { ReviewModal } from "../components/reviews/ReviewModal";
 import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
-import { getUserData } from "../services/users";
 import { SeriesHeader } from "../components/series/SeriesHeader";
+import { SeasonsSection } from "../components/series/SeasonsSection";
+import { SeriesDetailsTabs } from "../components/series/SeriesDetailsTabs";
+import { PageContainer } from "../components/layout/PageContainer";
 import { RelatedSeries } from "../components/series/RelatedSeries";
 import { SEO } from "../components/common/SEO";
 
@@ -42,13 +42,10 @@ export function SeriesDetails() {
     seasonToDelete: null as number | null,
   });
 
-  const [userData, setUserData] = useState<{ photoURL?: string | null } | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const toast = useToast();
-  const seriesDetailsRef = useRef<HTMLDivElement>(null);
-  const userDataFetched = useRef(false);
 
   // Queries
   const {
@@ -64,9 +61,8 @@ export function SeriesDetails() {
   const { data: reviews = [] } = useQuery({
     queryKey: ["reviews", id],
     queryFn: () => getSeriesReviews(Number(id)),
-    refetchInterval: 10000,
     refetchOnWindowFocus: true,
-    staleTime: 5000,
+    staleTime: 30000,
     enabled: !!series,
   });
 
@@ -163,38 +159,11 @@ export function SeriesDetails() {
   }, [queryClient, id]);
 
   // Memoizar handlers para componentes filhos
-  const handleSetDeleteAlertOpen = useCallback((isOpen: boolean) => {
-    setDeleteState((prev) => ({ ...prev, isOpen }));
-  }, []);
-
-  const handleSetSeasonToDelete = useCallback((seasonToDelete: number | null) => {
-    setDeleteState((prev) => ({ ...prev, seasonToDelete }));
-  }, []);
-
-  // Buscar dados do usuário
-  useEffect(() => {
-    if (!currentUser || userDataFetched.current) return;
-
-    const fetchUserData = async () => {
-      try {
-        const userDoc = await getUserData(currentUser.uid);
-        if (userDoc) {
-          setUserData(userDoc);
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
-    };
-
-    fetchUserData();
-    userDataFetched.current = true;
-  }, [currentUser]);
-
   // Memoizar componentes que podem ser caros de renderizar
   const LoadingComponent = useMemo(
     () => (
       <Center minH="70vh">
-        <Spinner size="xl" color="primary.500" />
+        <Spinner size="lg" color="signal.400" />
       </Center>
     ),
     []
@@ -202,14 +171,18 @@ export function SeriesDetails() {
 
   const NotFoundComponent = useMemo(
     () => (
-      <Box bg="gray.900" minH="100vh" pt="80px">
-        <Container maxW="container.lg" py={8}>
-          <Box>Série não encontrada</Box>
-        </Container>
-      </Box>
+      <PageContainer py={16}>
+        <Box color="ink.300">Série não encontrada.</Box>
+      </PageContainer>
     ),
     []
   );
+
+  const communityScore = useMemo(() => {
+    const ratings = reviews.flatMap((r) => r.seasonReviews.map((sr) => sr.rating));
+    if (!ratings.length) return undefined;
+    return { average: ratings.reduce((a, b) => a + b, 0) / ratings.length, count: ratings.length };
+  }, [reviews]);
 
   if (isLoading) return LoadingComponent;
   if (!series) return NotFoundComponent;
@@ -223,31 +196,31 @@ export function SeriesDetails() {
         type="article"
       />
 
-      <Flex direction="column" minH="100vh" bg="gray.900" ref={seriesDetailsRef}>
-        <Box flex="1">
-          <SeriesHeader
+      <Box>
+        <SeriesHeader series={series} communityScore={communityScore} onRate={onOpen} />
+
+        <PageContainer pb={{ base: 12, md: 16 }}>
+          <SeasonsSection
             series={series}
-            isLoading={isLoading}
             reviews={reviews}
             userReview={userReview}
             currentUser={currentUser}
-            userData={userData}
-            seriesId={id!}
+            selectedSeason={selectedSeason}
             onSeasonSelect={setSelectedSeason}
             onOpenReviewModal={onOpen}
-            onSetExistingReview={setExistingReview}
-            onSetDeleteAlertOpen={handleSetDeleteAlertOpen}
-            onSetSeasonToDelete={handleSetSeasonToDelete}
+            onEditReview={setExistingReview}
+            onDeleteReview={(season) => setDeleteState({ isOpen: true, seasonToDelete: season })}
             onReviewClick={handleReviewClick}
-            navigate={navigate}
           />
+
+          <SeriesDetailsTabs series={series} />
 
           <RelatedSeries
             relatedSeries={relatedSeries}
             isLoading={isLoadingRelated}
             currentSeriesId={id!}
           />
-        </Box>
+        </PageContainer>
 
         {isOpen && (
           <ReviewModal
@@ -288,32 +261,26 @@ export function SeriesDetails() {
           onClose={handleCancelDelete}
         >
           <AlertDialogOverlay>
-            <AlertDialogContent bg="gray.800">
-              <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white">
+            <AlertDialogContent>
+              <AlertDialogHeader fontSize="lg" fontWeight="bold">
                 Excluir avaliação
               </AlertDialogHeader>
-              <AlertDialogBody color="white">
+              <AlertDialogBody color="ink.200">
                 Tem certeza que deseja excluir sua avaliação da temporada{" "}
                 {deleteState.seasonToDelete}? Esta ação não pode ser desfeita.
               </AlertDialogBody>
               <AlertDialogFooter>
-                <Button
-                  ref={cancelRef}
-                  onClick={handleCancelDelete}
-                  variant="ghost"
-                  color="white"
-                  _hover={{ bg: "gray.700" }}
-                >
+                <Button ref={cancelRef} onClick={handleCancelDelete} variant="ghost">
                   Cancelar
                 </Button>
-                <Button bg="red.500" _hover={{ bg: "red.600" }} onClick={handleDeleteReview} ml={3}>
+                <Button colorScheme="red" onClick={handleDeleteReview} ml={3}>
                   Excluir
                 </Button>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialogOverlay>
         </AlertDialog>
-      </Flex>
+      </Box>
     </>
   );
 }

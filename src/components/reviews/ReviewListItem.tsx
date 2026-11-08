@@ -1,9 +1,8 @@
-import { Box, HStack, VStack, Text, Button } from "@chakra-ui/react";
+import { Box, Flex, HStack, Text, Button } from "@chakra-ui/react";
+import { useState } from "react";
 import { useUserData } from "../../hooks/useUserData";
 import { UserName } from "../common/UserName";
 import { RatingStars } from "../common/RatingStars";
-import { useState } from "react";
-import { CaretDown, CaretUp } from "@phosphor-icons/react";
 import { UserAvatar } from "../common/UserAvatar";
 
 interface ReviewListItemProps {
@@ -14,8 +13,9 @@ interface ReviewListItemProps {
   onClick: () => void;
 }
 
-const COMMENT_MAX_LENGTH = 200;
+const COMMENT_MAX_LENGTH = 220;
 
+/** Linha de avaliação: autor, estrelas e texto (expandível). */
 export function ReviewListItem({
   userId,
   userEmail,
@@ -25,26 +25,24 @@ export function ReviewListItem({
 }: ReviewListItemProps) {
   const { userData } = useUserData(userId);
   const [isExpanded, setIsExpanded] = useState(false);
-  const shouldShowExpandButton = comment.length > COMMENT_MAX_LENGTH;
-
-  const displayedComment = isExpanded ? comment : comment.slice(0, COMMENT_MAX_LENGTH);
-
-  const handleExpandClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsExpanded(!isExpanded);
-  };
+  const isLong = comment.length > COMMENT_MAX_LENGTH;
+  const shown = isExpanded ? comment : comment.slice(0, COMMENT_MAX_LENGTH);
 
   return (
     <Box
-      bg="gray.700"
-      p={2}
-      borderRadius="lg"
+      as="article"
+      p={4}
+      bg="ink.900"
+      border="1px solid"
+      borderColor="ink.800"
+      borderRadius="md"
       cursor="pointer"
       onClick={onClick}
-      _hover={{ bg: "gray.600" }}
+      transition="border-color 120ms ease"
+      _hover={{ borderColor: "ink.600" }}
     >
-      <HStack justify="space-between" align="center" pr={2}>
-        <HStack spacing={3} pl={1}>
+      <Flex justify="space-between" align="center" gap={3}>
+        <HStack spacing={2.5} minW={0}>
           <UserAvatar
             userId={userId}
             userEmail={userEmail}
@@ -52,38 +50,38 @@ export function ReviewListItem({
             size="sm"
             isDeletedExtra={userData?.isDeleted}
           />
-          <VStack align="start" spacing={1}>
-            {userData?.isDeleted ? (
-              <Text fontSize="sm" fontStyle="italic" color="gray.400">
-                Usuário excluído
-              </Text>
-            ) : (
-              <UserName userId={userId} />
-            )}
-            <Box>
-              {displayedComment && (
-                <Text fontSize="sm" color="gray.300" whiteSpace="pre-wrap">
-                  {displayedComment}
-                  {shouldShowExpandButton && !isExpanded && "…"}
-                </Text>
-              )}
-              {shouldShowExpandButton && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  color="primary.500"
-                  rightIcon={isExpanded ? <CaretUp /> : <CaretDown />}
-                  onClick={handleExpandClick}
-                  mt={1}
-                >
-                  {isExpanded ? "Ver menos" : "Ver mais"}
-                </Button>
-              )}
-            </Box>
-          </VStack>
+          {userData?.isDeleted ? (
+            <Text fontSize="sm" fontStyle="italic" color="ink.400">
+              Usuário excluído
+            </Text>
+          ) : (
+            <UserName userId={userId} color="ink.100" />
+          )}
         </HStack>
-        <RatingStars rating={rating} size={16} showNumber={false} />
-      </HStack>
+        <RatingStars rating={rating} size={14} showNumber={false} />
+      </Flex>
+
+      {shown && (
+        <Text mt={2.5} fontSize="sm" color="ink.200" whiteSpace="pre-wrap">
+          {shown}
+          {isLong && !isExpanded && "…"}
+        </Text>
+      )}
+      {isLong && (
+        <Button
+          variant="link"
+          size="sm"
+          mt={1.5}
+          color="ink.300"
+          fontWeight={500}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsExpanded((v) => !v);
+          }}
+        >
+          {isExpanded ? "Mostrar menos" : "Ler tudo"}
+        </Button>
+      )}
     </Box>
   );
 }

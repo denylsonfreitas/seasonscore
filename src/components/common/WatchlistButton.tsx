@@ -120,14 +120,13 @@ export function WatchlistButton({
         ) : (
           <MenuButton
             as={IconButton}
-            aria-label="Opções"
+            aria-label="Mais opções"
             icon={<DotsThree weight="bold" />}
             size={size}
             variant={variant}
-            colorScheme="primary"
-            color="white"
-            bg="blackAlpha.600"
-            _hover={{ bg: "blackAlpha.700" }}
+            color="ink.100"
+            bg={variant === "ghost" ? undefined : "blackAlpha.600"}
+            _hover={{ bg: variant === "ghost" ? "ink.850" : "blackAlpha.700" }}
           />
         )}
         <Portal>
@@ -196,14 +195,13 @@ export function WatchlistButton({
       ) : (
         <MenuButton
           as={IconButton}
-          aria-label="Opções"
+          aria-label="Mais opções"
           icon={<DotsThree weight="bold" />}
           size={size}
           variant={variant}
-          colorScheme="primary"
-          color="white"
-          bg="blackAlpha.600"
-          _hover={{ bg: "blackAlpha.700" }}
+          color="ink.100"
+          bg={variant === "ghost" ? undefined : "blackAlpha.600"}
+          _hover={{ bg: variant === "ghost" ? "ink.850" : "blackAlpha.700" }}
         />
       )}
       <Portal>
