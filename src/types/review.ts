@@ -15,6 +15,8 @@ export interface SeasonReview {
   userEmail: string;
   rating: number;
   comment: string;
+  /** O autor marcou que o texto revela acontecimentos da temporada. */
+  hasSpoiler?: boolean;
   comments?: Comment[];
   createdAt: Date | { seconds: number };
   reactions?: {

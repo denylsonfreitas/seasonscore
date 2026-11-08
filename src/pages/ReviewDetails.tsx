@@ -30,6 +30,7 @@ import { ReactionButtons } from "../components/reviews/ReactionButtons";
 import { PageContainer } from "../components/layout/PageContainer";
 import { EmptyState } from "../components/common/EmptyState";
 import { SeasonStrip } from "../components/series/SeasonStrip";
+import { SpoilerText } from "../components/reviews/SpoilerText";
 
 type ReviewDetails = NonNullable<Awaited<ReturnType<typeof getReviewDetails>>>;
 
@@ -448,15 +449,16 @@ export function ReviewDetails() {
 
           <Box gridColumn="1 / -1" maxW="720px">
             {activeSeasonReview.comment ? (
-              <Text
+              <SpoilerText
+                text={activeSeasonReview.comment}
+                hasSpoiler={activeSeasonReview.hasSpoiler}
+                isOwn={currentUser?.uid === review.userId}
                 fontSize={{ base: "md", md: "lg" }}
                 lineHeight="tall"
                 color="ink.100"
                 whiteSpace="pre-wrap"
                 overflowWrap="anywhere"
-              >
-                {activeSeasonReview.comment}
-              </Text>
+              />
             ) : (
               <Text color="ink.400" fontStyle="italic">
                 Avaliou sem comentar.

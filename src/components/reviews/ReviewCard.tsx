@@ -5,9 +5,12 @@ import type { PopularReview } from "../../services/reviews";
 import { RatingStars } from "../common/RatingStars";
 import { UserAvatar } from "../common/UserAvatar";
 import { EnhancedImage } from "../common/EnhancedImage";
+import { SpoilerText } from "./SpoilerText";
+import { useAuth } from "../../contexts/AuthContext";
 
 /** Avaliação de uma temporada: pôster, série, nota, trecho do texto e autor. */
 export function ReviewCard({ review }: { review: PopularReview }) {
+  const { currentUser } = useAuth();
   return (
     <LinkBox
       as="article"
@@ -63,15 +66,22 @@ export function ReviewCard({ review }: { review: PopularReview }) {
         </Box>
       </Flex>
 
-      <Text
-        flex={1}
-        fontSize="sm"
-        color={review.comment ? "ink.200" : "ink.400"}
-        fontStyle={review.comment ? undefined : "italic"}
-        noOfLines={3}
-      >
-        {review.comment || "Avaliou sem comentar."}
-      </Text>
+      <Box flex={1}>
+        {review.comment ? (
+          <SpoilerText
+            text={review.comment}
+            hasSpoiler={review.hasSpoiler}
+            isOwn={currentUser?.uid === review.userId}
+            fontSize="sm"
+            color="ink.200"
+            noOfLines={3}
+          />
+        ) : (
+          <Text fontSize="sm" color="ink.400" fontStyle="italic">
+            Avaliou sem comentar.
+          </Text>
+        )}
+      </Box>
 
       <Flex
         justify="space-between"

@@ -4,12 +4,15 @@ import { useUserData } from "../../hooks/useUserData";
 import { UserName } from "../common/UserName";
 import { RatingStars } from "../common/RatingStars";
 import { UserAvatar } from "../common/UserAvatar";
+import { SpoilerText } from "./SpoilerText";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface ReviewListItemProps {
   userId: string;
   userEmail: string;
   rating: number;
   comment: string;
+  hasSpoiler?: boolean;
   onClick: () => void;
 }
 
@@ -21,8 +24,10 @@ export function ReviewListItem({
   userEmail,
   rating,
   comment,
+  hasSpoiler = false,
   onClick,
 }: ReviewListItemProps) {
+  const { currentUser } = useAuth();
   const { userData } = useUserData(userId);
   const [isExpanded, setIsExpanded] = useState(false);
   const isLong = comment.length > COMMENT_MAX_LENGTH;
@@ -62,10 +67,16 @@ export function ReviewListItem({
       </Flex>
 
       {shown && (
-        <Text mt={2.5} fontSize="sm" color="ink.200" whiteSpace="pre-wrap">
-          {shown}
-          {isLong && !isExpanded && "…"}
-        </Text>
+        <Box mt={2.5}>
+          <SpoilerText
+            text={isLong && !isExpanded ? `${shown}…` : shown}
+            hasSpoiler={hasSpoiler}
+            isOwn={currentUser?.uid === userId}
+            fontSize="sm"
+            color="ink.200"
+            whiteSpace="pre-wrap"
+          />
+        </Box>
       )}
       {isLong && (
         <Button

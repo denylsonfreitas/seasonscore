@@ -6,6 +6,7 @@ import type { SeriesReview } from "../../services/reviews";
 import { SeasonStrip } from "../series/SeasonStrip";
 import { ScoreBadge } from "../common/ScoreBadge";
 import { EmptyState } from "../common/EmptyState";
+import { SpoilerText } from "../reviews/SpoilerText";
 
 interface ReviewsSectionProps {
   reviews: SeriesReview[];
@@ -69,7 +70,7 @@ export function ReviewsSection({
       {sorted.slice(0, visible).map((review) => {
         const seasons = [...review.seasonReviews].sort((a, b) => a.seasonNumber - b.seasonNumber);
         const average = seasons.reduce((sum, s) => sum + s.rating, 0) / (seasons.length || 1);
-        const latestComment = [...seasons].reverse().find((s) => s.comment)?.comment;
+        const latest = [...seasons].reverse().find((s) => s.comment);
 
         return (
           <Flex
@@ -125,10 +126,17 @@ export function ReviewsSection({
                 <ScoreBadge score={average} size="sm" flexShrink={0} />
               </Flex>
 
-              {latestComment && (
-                <Text mt={2} fontSize="sm" color="ink.300" noOfLines={2}>
-                  {latestComment}
-                </Text>
+              {latest && (
+                <Box mt={2}>
+                  <SpoilerText
+                    text={latest.comment}
+                    hasSpoiler={latest.hasSpoiler}
+                    isOwn={isOwnProfile}
+                    fontSize="sm"
+                    color="ink.300"
+                    noOfLines={2}
+                  />
+                </Box>
               )}
 
               <Box mt={3}>
