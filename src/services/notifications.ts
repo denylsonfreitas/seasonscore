@@ -870,22 +870,14 @@ export async function removeReactionNotification(
     // Construir a query base com o tipo apropriado de notificação
     const notificationType = isListReaction ? NotificationType.LIST_REACTION : NotificationType.NEW_REACTION;
     
-    let query_ = query(
+    // O filtro por remetente é obrigatório para a consulta ser aceita pelas regras.
+    const targetId = commentId ? `${reviewId}_${commentId}` : reviewId;
+    const query_ = query(
       notificationsRef,
+      where("senderId", "==", auth.currentUser.uid),
       where("type", "==", notificationType),
-      where("reviewId", "==", reviewId)
+      where("reviewId", "==", targetId)
     );
-    
-    // Se comentId for fornecido, adicionar à query
-    if (commentId) {
-      // No caso dos comentários, o reviewId é armazenado como `${reviewId}_${commentId}`
-      const formattedReviewId = `${reviewId}_${commentId}`;
-      query_ = query(
-        notificationsRef,
-        where("type", "==", notificationType),
-        where("reviewId", "==", formattedReviewId)
-      );
-    }
     
     // Executar a consulta
     const querySnapshot = await getDocs(query_);

@@ -1,176 +1,274 @@
 rules_version = '2';
 
+// Regras do Firestore do SeasonScore.
+// Princípio geral: qualquer um pode ler o conteúdo público, mas cada usuário
+// só altera os próprios dados. Interações de terceiros (curtidas e contadores)
+// são limitadas aos campos estritamente necessários.
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isUsernameUnique(username) {
-      let existingUsers = getAfter(/databases/$(database)/documents/users)
-        .where("username", "==", username).limit(1);
-      return existingUsers.size() == 0 || 
-        (existingUsers.size() == 1 && existingUsers[0].id == request.auth.uid);
-    }
 
-    function isAuthenticated() {
+    // ---------- Helpers ----------
+
+    function signedIn() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+    function uid() {
+      return request.auth.uid;
     }
+
+    function isOwner(userId) {
+      return signedIn() && uid() == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function changedKeys() {
+      return incoming().diff(existing()).affectedKeys();
+    }
+
+    function onlyChanged(keys) {
+      return changedKeys().hasOnly(keys);
+    }
+
+    // Garante que o contador mudou em no máximo uma unidade (ou foi zerado).
+    function counterStep(field) {
+      let before = existing().get(field, 0);
+      let after = incoming().get(field, 0);
+      return after is int && after >= 0 && (after - before <= 1 && before - after <= 1);
+    }
+
+    // Em mapas de curtidas ({ uid: true }), só a chave do próprio usuário pode mudar.
+    function onlyOwnLikeChanged() {
+      let before = existing().get('likes', {});
+      let after = incoming().get('likes', {});
+      return after is map && after.diff(before).affectedKeys().hasOnly([uid()]);
+    }
+
+    // Em arrays de uids, só o próprio uid pode entrar ou sair.
+    function onlyOwnUidToggled(before, after) {
+      return after is list
+        && after.toSet().difference(before.toSet()).hasOnly([uid()])
+        && before.toSet().difference(after.toSet()).hasOnly([uid()]);
+    }
+
+    // ---------- Usuários ----------
 
     match /users/{userId} {
-      allow read;
-      allow create: if request.auth != null && 
-        request.auth.uid == userId && 
-        request.resource.data.username is string &&
-        request.resource.data.username.size() > 0;
-      allow update: if request.auth != null && 
-        request.auth.uid == userId;
-      allow delete: if request.auth != null && 
-        request.auth.uid == userId;
+      allow read: if true;
+      allow create: if isOwner(userId)
+        && incoming().username is string
+        && incoming().username.size() > 0
+        && incoming().username.size() <= 30;
+      allow update: if isOwner(userId)
+        && (!('username' in incoming()) || (incoming().username is string && incoming().username.size() > 0));
+      allow delete: if isOwner(userId);
     }
-    
+
+    // ---------- Avaliações ----------
+
+    // Terceiros só podem curtir/descurtir: nota, texto, número da temporada e
+    // autor de cada avaliação de temporada precisam continuar iguais.
+    function sameSeason(before, after) {
+      return after.seasonNumber == before.seasonNumber
+        && after.rating == before.rating
+        && after.get('comment', '') == before.get('comment', '')
+        && after.get('userId', null) == before.get('userId', null)
+        && onlyOwnUidToggled(
+             before.get('reactions', {}).get('likes', []),
+             after.get('reactions', {}).get('likes', []));
+    }
+
+    function sp(b, a, i) {
+      return i >= b.size() || a[i] == b[i] || sameSeason(b[i], a[i]);
+    }
+
+    // Suporta até 40 temporadas por série (limite prático das regras do Firestore).
+    function seasonsPreserved(b, a) {
+      return a.size() == b.size()
+        && sp(b, a, 0) && sp(b, a, 1) && sp(b, a, 2) && sp(b, a, 3)
+        && sp(b, a, 4) && sp(b, a, 5) && sp(b, a, 6) && sp(b, a, 7)
+        && sp(b, a, 8) && sp(b, a, 9) && sp(b, a, 10) && sp(b, a, 11)
+        && sp(b, a, 12) && sp(b, a, 13) && sp(b, a, 14) && sp(b, a, 15)
+        && sp(b, a, 16) && sp(b, a, 17) && sp(b, a, 18) && sp(b, a, 19)
+        && sp(b, a, 20) && sp(b, a, 21) && sp(b, a, 22) && sp(b, a, 23)
+        && sp(b, a, 24) && sp(b, a, 25) && sp(b, a, 26) && sp(b, a, 27)
+        && sp(b, a, 28) && sp(b, a, 29) && sp(b, a, 30) && sp(b, a, 31)
+        && sp(b, a, 32) && sp(b, a, 33) && sp(b, a, 34) && sp(b, a, 35)
+        && sp(b, a, 36) && sp(b, a, 37) && sp(b, a, 38) && sp(b, a, 39);
+    }
+
     match /reviews/{reviewId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && (
-        resource.data.userId == request.auth.uid ||
-        (
-          request.resource.data.seriesId == resource.data.seriesId &&
-          request.resource.data.userId == resource.data.userId &&
-          request.resource.data.seasonReviews.size() == resource.data.seasonReviews.size()
-        )
-      );
-      allow delete: if request.auth != null && 
-        resource.data.userId == request.auth.uid;
-    }
-    
-    match /watchlist/{docId} {
-      allow read;
-      allow create: if request.auth != null && 
-        docId.matches(request.auth.uid + '_.*');
-      allow delete: if request.auth != null && 
-        (docId.matches(request.auth.uid + '_.*') || 
-        resource.data.userId == request.auth.uid);
+
+      allow create: if signedIn()
+        && incoming().userId == uid()
+        && incoming().seriesId is int
+        && incoming().seasonReviews is list
+        && incoming().seasonReviews.size() > 0;
+
+      // Dono: pode editar livremente, mas não transferir a autoria.
+      allow update: if isOwner(existing().userId)
+        && incoming().userId == existing().userId
+        && incoming().seriesId == existing().seriesId;
+
+      // Outros usuários: curtir/descurtir temporadas ou ajustar o contador de comentários.
+      allow update: if signedIn()
+        && uid() != existing().userId
+        && onlyChanged(['seasonReviews', 'commentsCount'])
+        && counterStep('commentsCount')
+        && seasonsPreserved(existing().seasonReviews, incoming().seasonReviews);
+
+      allow delete: if isOwner(existing().userId);
     }
 
-    match /followers/{followerId} {
-      allow read;
-      allow create: if request.auth != null;
-      allow delete: if request.auth != null && 
-        (resource.data.followerId == request.auth.uid || 
-        resource.data.followingId == request.auth.uid);
+    match /reviewComments/{commentId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && incoming().userId == uid()
+        && incoming().content is string
+        && incoming().content.size() > 0
+        && incoming().content.size() <= 1000
+        && exists(/databases/$(database)/documents/reviews/$(incoming().objectId));
+      allow update: if isOwner(existing().userId)
+        && onlyChanged(['content', 'updatedAt', 'likes']);
+      allow update: if signedIn()
+        && onlyChanged(['likes'])
+        && onlyOwnLikeChanged();
+      allow delete: if signedIn() && (
+        existing().userId == uid()
+        || get(/databases/$(database)/documents/reviews/$(existing().objectId)).data.userId == uid()
+      );
     }
-    
+
+    // ---------- Listas ----------
+
+    match /lists/{listId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && incoming().userId == uid()
+        && incoming().title is string
+        && incoming().title.size() > 0
+        && incoming().title.size() <= 100;
+
+      allow update: if isOwner(existing().userId)
+        && incoming().userId == existing().userId;
+
+      // Outros usuários: apenas contadores de curtidas e comentários.
+      allow update: if signedIn()
+        && onlyChanged(['likesCount', 'commentsCount'])
+        && counterStep('likesCount')
+        && counterStep('commentsCount');
+
+      allow delete: if isOwner(existing().userId);
+    }
+
+    match /listReactions/{reactionId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && incoming().userId == uid()
+        && exists(/databases/$(database)/documents/lists/$(incoming().listId));
+      allow update: if isOwner(existing().userId)
+        && incoming().userId == existing().userId
+        && incoming().listId == existing().listId;
+      allow delete: if signedIn() && (
+        existing().userId == uid()
+        || !exists(/databases/$(database)/documents/lists/$(existing().listId))
+        || get(/databases/$(database)/documents/lists/$(existing().listId)).data.userId == uid()
+      );
+    }
+
+    match /listComments/{commentId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && incoming().userId == uid()
+        && incoming().content is string
+        && incoming().content.size() > 0
+        && incoming().content.size() <= 1000
+        && exists(/databases/$(database)/documents/lists/$(incoming().objectId));
+      allow update: if isOwner(existing().userId)
+        && onlyChanged(['content', 'updatedAt', 'likes']);
+      allow update: if signedIn()
+        && onlyChanged(['likes'])
+        && onlyOwnLikeChanged();
+      allow delete: if signedIn() && (
+        existing().userId == uid()
+        || !exists(/databases/$(database)/documents/lists/$(existing().objectId))
+        || get(/databases/$(database)/documents/lists/$(existing().objectId)).data.userId == uid()
+      );
+    }
+
+    // Coleção antiga de comentários de listas (mantida apenas para leitura e limpeza).
+    match /comments/{commentId} {
+      allow read: if true;
+      allow update: if isOwner(existing().userId);
+      allow delete: if signedIn() && (
+        existing().userId == uid()
+        || get(/databases/$(database)/documents/lists/$(existing().listId)).data.userId == uid()
+      );
+    }
+
+    // ---------- Social ----------
+
+    match /followers/{followId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && incoming().followerId == uid()
+        && incoming().userId is string
+        && incoming().userId != uid();
+      allow delete: if signedIn()
+        && (existing().followerId == uid() || existing().userId == uid());
+    }
+
+    match /watchlist/{docId} {
+      allow read: if true;
+      allow create, update: if signedIn()
+        && docId == uid() + '_' + string(incoming().seriesId)
+        && incoming().userId == uid();
+      allow delete: if signedIn()
+        && (docId.matches(uid() + '_.*') || existing().userId == uid());
+    }
+
+    // ---------- Notificações ----------
+
     match /notifications/{notificationId} {
-      allow read: if request.auth != null && 
-        resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && 
-        (resource.data.userId == request.auth.uid || 
-         resource.data.senderId == request.auth.uid);
-      allow delete: if request.auth != null && 
-        (resource.data.userId == request.auth.uid || 
-         resource.data.senderId == request.auth.uid);
-      allow list: if request.auth != null && 
-        request.query.limit <= 500 &&
-        request.query.filters[0].field == "userId" && 
-        request.query.filters[0].op == "==" && 
-        request.query.filters[0].value == request.auth.uid;
+      allow get: if signedIn()
+        && (existing().userId == uid() || existing().senderId == uid());
+      allow list: if signedIn()
+        && (existing().userId == uid() || existing().senderId == uid());
+
+      // Quem envia precisa ser o próprio usuário (ou o sistema notificando a si mesmo,
+      // como nos avisos de novos episódios).
+      allow create: if signedIn()
+        && incoming().userId is string
+        && (incoming().senderId == uid() || (incoming().senderId == null && incoming().userId == uid()))
+        && incoming().message is string
+        && incoming().message.size() <= 500;
+
+      // O destinatário pode marcar como lida; o remetente pode atualizar a própria notificação.
+      allow update: if signedIn() && (
+        (existing().userId == uid() && onlyChanged(['read', 'readAt', 'isDeleted', 'senderName', 'senderPhoto', 'message']))
+        || (existing().senderId == uid() && incoming().senderId == uid() && incoming().userId == existing().userId)
+      );
+      allow delete: if signedIn()
+        && (existing().userId == uid() || existing().senderId == uid());
     }
-    
+
+    match /lastNotifiedEpisodes/{docId} {
+      allow read, write: if signedIn() && docId.matches(uid() + '_.*');
+    }
+
+    // ---------- Somente leitura ----------
+
     match /series_by_genre/{docId} {
       allow read: if true;
-    }
-    
-    match /lastNotifiedEpisodes/{docId} {
-      allow read: if request.auth != null && 
-        docId.startsWith(request.auth.uid + '_');
-      allow create, write: if request.auth != null && 
-        docId.startsWith(request.auth.uid + '_');
-      allow delete: if request.auth != null && 
-        docId.startsWith(request.auth.uid + '_');
-    }
-    
-    // Regras para contadores (followers, reviews, lists)
-    match /counters/{counterId} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    
-    // Regras para listas
-    match /lists/{listId} {
-      allow read;
-      allow create: if request.auth != null && 
-                     request.resource.data.userId == request.auth.uid;
-      allow update: if request.auth != null;
-      allow delete: if request.auth != null && 
-                     resource.data.userId == request.auth.uid;
-    }
-    
-    // Regras para reações em listas
-    match /listReactions/{reactionId} {
-      allow read;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && 
-                     resource.data.userId == request.auth.uid;
-      allow delete: if request.auth != null &&
-                     (resource.data.userId == request.auth.uid || 
-                      exists(/databases/$(database)/documents/lists/$(resource.data.listId)) && 
-                      get(/databases/$(database)/documents/lists/$(resource.data.listId)).data.userId == request.auth.uid);
-    }
-    
-    // Regras para comentários
-    match /comments/{commentId} {
-      allow read;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && 
-                     resource.data.userId == request.auth.uid;
-      allow delete: if request.auth != null && (
-                     resource.data.userId == request.auth.uid || 
-                     // Permite que o dono da lista também exclua comentários
-                     exists(/databases/$(database)/documents/lists/$(resource.data.listId)) && 
-                     get(/databases/$(database)/documents/lists/$(resource.data.listId)).data.userId == request.auth.uid
-                   );
-    }
-    
-    // Regras para comentários de reviews
-    match /reviewComments/{commentId} {
-      allow read;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && 
-                     resource.data.userId == request.auth.uid;
-      allow delete: if request.auth != null && (
-                     resource.data.userId == request.auth.uid ||
-                     // Permite que o dono da review também exclua comentários
-                     exists(/databases/$(database)/documents/reviews/$(resource.data.objectId)) && 
-                     get(/databases/$(database)/documents/reviews/$(resource.data.objectId)).data.userId == request.auth.uid
-                   );
-    }
-    
-    // Regras para comentários de listas
-    match /listComments/{commentId} {
-      allow read;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && (
-                     resource.data.userId == request.auth.uid ||
-                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
-                   );
-      allow delete: if request.auth != null && (
-                     resource.data.userId == request.auth.uid ||
-                     // Permite que o dono da lista também exclua comentários
-                     exists(/databases/$(database)/documents/lists/$(resource.data.objectId)) && 
-                     get(/databases/$(database)/documents/lists/$(resource.data.objectId)).data.userId == request.auth.uid
-                   );
-    }
-
-    match /{collection}/{document=**} {
-      allow delete: if request.auth != null && (
-        resource.data.userId == request.auth.uid || 
-        resource.data.followerId == request.auth.uid || 
-        resource.data.followingId == request.auth.uid ||
-        document.startsWith(request.auth.uid + '_') ||
-        (collection == "lastNotifiedEpisodes" && document.startsWith(request.auth.uid + '_'))
-      );
     }
   }
 }
