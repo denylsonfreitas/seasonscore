@@ -34,6 +34,7 @@ import { EmptyState } from "../common/EmptyState";
 import { ReviewListItem } from "../reviews/ReviewListItem";
 import { getGlobalLoginPopover } from "../layout/Navbar";
 import { yearOf } from "../../utils/score";
+import { SpoilerText } from "../reviews/SpoilerText";
 
 interface SeasonsSectionProps {
   series: Series;
@@ -189,9 +190,16 @@ export function SeasonsSection({
                   <RatingStars rating={mine.rating} size={16} showNumber={false} />
                 </HStack>
                 {mine.comment && (
-                  <Text mt={1.5} fontSize="sm" color="ink.300" noOfLines={2}>
-                    {mine.comment}
-                  </Text>
+                  <Box mt={1.5}>
+                    <SpoilerText
+                      text={mine.comment}
+                      hasSpoiler={mine.hasSpoiler}
+                      isOwn
+                      fontSize="sm"
+                      color="ink.300"
+                      noOfLines={2}
+                    />
+                  </Box>
                 )}
               </Box>
               <Menu placement="bottom-end">
@@ -258,6 +266,7 @@ export function SeasonsSection({
                   userEmail={entry.userEmail}
                   rating={entry.rating}
                   comment={entry.comment}
+                  hasSpoiler={entry.hasSpoiler}
                   onClick={() => onReviewClick({ id: entry.id, seasonNumber: entry.seasonNumber })}
                 />
               ))}

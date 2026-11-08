@@ -242,6 +242,14 @@ Wordmark "SeasonScore" em Archivo 800 (largura 115), `ink.50`, precedido de um s
 - **Avaliação** (`ReviewCard`): miniatura do pôster, série, temporada, estrelas, trecho do texto (3 linhas) e autor. A avaliação é sobre texto, então o texto aparece.
 - **Lista** (`ListCard`): até 5 pôsteres sobrepostos na capa, título, autor, descrição e números em mono (séries, curtidas, comentários).
 
+### Spoiler
+
+- O autor marca "Contém spoiler" ao avaliar ou editar; só vale quando há texto.
+- Para os outros, o texto aparece desfocado com o botão "Contém spoiler · Mostrar"; a nota e as estrelas continuam visíveis.
+- O próprio autor sempre vê o texto, com o aviso "Contém spoiler" em `score.mid` acima.
+- Dentro de cards clicáveis, mostrar o spoiler não abre a avaliação.
+- Componentes: `SpoilerText` (leitura) e `SpoilerToggle` (formulário).
+
 ### Fotos de perfil e capa
 
 - Antes do envio, toda imagem passa pelo ajuste (`ImageCropModal`): arrastar, zoom e recomeçar.

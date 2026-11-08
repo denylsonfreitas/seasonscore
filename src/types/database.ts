@@ -353,6 +353,7 @@ export type Database = {
         Row: {
           comment: string;
           created_at: string;
+          has_spoiler: boolean;
           rating: number;
           review_id: string;
           season_number: number;
@@ -361,6 +362,7 @@ export type Database = {
         Insert: {
           comment?: string;
           created_at?: string;
+          has_spoiler?: boolean;
           rating: number;
           review_id: string;
           season_number: number;
@@ -369,6 +371,7 @@ export type Database = {
         Update: {
           comment?: string;
           created_at?: string;
+          has_spoiler?: boolean;
           rating?: number;
           review_id?: string;
           season_number?: number;
@@ -455,6 +458,7 @@ export type Database = {
           comments_count: number | null;
           created_at: string | null;
           display_name: string | null;
+          has_spoiler: boolean | null;
           likes_count: number | null;
           photo_url: string | null;
           rating: number | null;

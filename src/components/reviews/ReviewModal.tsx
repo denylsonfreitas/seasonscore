@@ -29,6 +29,7 @@ import { getSeriesReviews } from "../../services/reviews";
 import { getSeriesDetails } from "../../services/tmdb";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { logError } from "../../utils/logger";
+import { SpoilerToggle } from "./SpoilerToggle";
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -56,6 +57,7 @@ export function ReviewModal({
   const [selectedSeason, setSelectedSeason] = useState<number>(initialSeason);
   const [rating, setRating] = useState<number>(0);
   const [comment, setComment] = useState("");
+  const [hasSpoiler, setHasSpoiler] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [seriesDetails, setSeriesDetails] = useState<{
@@ -112,9 +114,11 @@ export function ReviewModal({
           if (seasonReview) {
             setRating(seasonReview.rating);
             setComment(seasonReview.comment || "");
+            setHasSpoiler(!!seasonReview.hasSpoiler);
           } else {
             setRating(0);
             setComment("");
+            setHasSpoiler(false);
           }
         }
       } catch (error) {
@@ -128,6 +132,7 @@ export function ReviewModal({
     if (!isOpen) {
       setRating(0);
       setComment("");
+      setHasSpoiler(false);
     }
   }, [isOpen]);
 
@@ -167,7 +172,7 @@ export function ReviewModal({
 
     setIsSubmitting(true);
     try {
-      await addSeasonReview(seriesId, selectedSeason, rating, comment);
+      await addSeasonReview(seriesId, selectedSeason, rating, comment, hasSpoiler);
       queryClient.invalidateQueries({ queryKey: ["reviews", seriesId] });
       toast({
         title: "Avaliação enviada",
@@ -288,21 +293,21 @@ export function ReviewModal({
               </Box>
 
               <FormControl mt={4}>
-                <FormLabel color="white">Comentário (opcional)</FormLabel>
+                <FormLabel>Comentário (opcional)</FormLabel>
                 <Textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  placeholder="Escreva um comentário sobre a temporada..."
-                  bg="gray.800"
-                  color="white"
-                  borderColor="gray.600"
-                  _hover={{ borderColor: "gray.500" }}
-                  _focus={{ borderColor: "primary.400", boxShadow: "none" }}
+                  placeholder="O que você achou desta temporada?"
                   maxLength={COMMENT_MAX_LENGTH}
                 />
-                <Text color="gray.400" fontSize="sm" mt={1} textAlign="right">
-                  {comment.length}/{COMMENT_MAX_LENGTH} caracteres
+                <Text color="ink.400" fontSize="xs" mt={1} textAlign="right" fontFamily="mono">
+                  {comment.length}/{COMMENT_MAX_LENGTH}
                 </Text>
+                <SpoilerToggle
+                  isChecked={hasSpoiler}
+                  onChange={setHasSpoiler}
+                  isDisabled={!comment.trim()}
+                />
               </FormControl>
 
               <Button

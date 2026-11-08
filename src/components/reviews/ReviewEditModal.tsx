@@ -28,6 +28,7 @@ import { useState, useRef } from "react";
 import { updateReview, deleteReview, SeriesReview } from "../../services/reviews";
 import { RatingStars } from "../common/RatingStars";
 import { useAuth } from "../../contexts/AuthContext";
+import { SpoilerToggle } from "./SpoilerToggle";
 
 interface ReviewEditModalProps {
   isOpen: boolean;
@@ -60,6 +61,7 @@ export function ReviewEditModal({
 
   const [rating, setRating] = useState(initialSeasonReview?.rating || 0);
   const [comment, setComment] = useState(initialSeasonReview?.comment || "");
+  const [hasSpoiler, setHasSpoiler] = useState(!!initialSeasonReview?.hasSpoiler);
   const [seasonNumber, setSeasonNumber] = useState(initialSeasonReview?.seasonNumber || 1);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -78,7 +80,7 @@ export function ReviewEditModal({
 
     setIsUpdating(true);
     try {
-      await updateReview(review.id!, seasonNumber, rating, comment);
+      await updateReview(review.id!, seasonNumber, rating, comment, hasSpoiler);
       toast({
         title: "Avaliação atualizada",
         description: "Sua avaliação foi atualizada com sucesso!",
@@ -169,21 +171,16 @@ export function ReviewEditModal({
                       const newSeasonNumber = Number(e.target.value);
                       setSeasonNumber(newSeasonNumber);
                       const seasonReview = review.seasonReviews.find(
-                        (sr: { seasonNumber: number; rating: number; comment?: string }) =>
-                          sr.seasonNumber === newSeasonNumber
+                        (sr: {
+                          seasonNumber: number;
+                          rating: number;
+                          comment?: string;
+                          hasSpoiler?: boolean;
+                        }) => sr.seasonNumber === newSeasonNumber
                       );
                       setRating(seasonReview?.rating || 0);
                       setComment(seasonReview?.comment || "");
-                    }}
-                    bg="gray.800"
-                    color="white"
-                    borderColor="gray.600"
-                    _hover={{ borderColor: "gray.500" }}
-                    sx={{
-                      "& option": {
-                        bg: "gray.800",
-                        color: "white",
-                      },
+                      setHasSpoiler(!!seasonReview?.hasSpoiler);
                     }}
                   >
                     {review.seasonReviews.map((sr: { seasonNumber: number }) => (
@@ -200,21 +197,21 @@ export function ReviewEditModal({
                   <RatingStars rating={rating} onChange={setRating} size={32} isEditable />
                 </Box>
                 <FormControl mt={4}>
-                  <FormLabel color="white">Comentário (opcional)</FormLabel>
+                  <FormLabel>Comentário (opcional)</FormLabel>
                   <Textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    placeholder="Escreva um comentário sobre a temporada..."
-                    bg="gray.800"
-                    color="white"
-                    borderColor="gray.600"
-                    _hover={{ borderColor: "gray.500" }}
-                    _focus={{ borderColor: "primary.400", boxShadow: "none" }}
+                    placeholder="O que você achou desta temporada?"
                     maxLength={COMMENT_MAX_LENGTH}
                   />
-                  <Text color="gray.400" fontSize="sm" mt={1} textAlign="right">
-                    {comment.length}/{COMMENT_MAX_LENGTH} caracteres
+                  <Text color="ink.400" fontSize="xs" mt={1} textAlign="right" fontFamily="mono">
+                    {comment.length}/{COMMENT_MAX_LENGTH}
                   </Text>
+                  <SpoilerToggle
+                    isChecked={hasSpoiler}
+                    onChange={setHasSpoiler}
+                    isDisabled={!comment.trim()}
+                  />
                 </FormControl>
 
                 <Flex direction="row" gap={3} mt={2}>

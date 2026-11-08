@@ -29,6 +29,7 @@ export interface PopularReview {
   seasonNumber: number;
   rating: number;
   comment: string;
+  hasSpoiler: boolean;
   userName: string;
   userAvatar: string;
   createdAt: Date;
@@ -63,6 +64,7 @@ function reviewFromRow(row: ReviewRow): SeriesReview {
         userEmail: username,
         rating: Number(sr.rating),
         comment: sr.comment,
+        hasSpoiler: sr.has_spoiler,
         comments: [],
         createdAt: new Date(sr.created_at),
         reactions: { likes: sr.season_review_likes.map((l) => l.user_id) },
@@ -82,6 +84,7 @@ function popularFromRow(row: FeedRow): PopularReview {
     seasonNumber: row.season_number ?? 1,
     rating: row.rating ?? 0,
     comment: row.comment ?? "",
+    hasSpoiler: row.has_spoiler ?? false,
     userName: row.display_name || row.username || "",
     userAvatar: row.photo_url ?? "",
     createdAt: row.created_at ? new Date(row.created_at) : new Date(),
@@ -103,7 +106,8 @@ export async function addSeasonReview(
   seriesId: number,
   seasonNumber: number,
   rating: number,
-  comment: string
+  comment: string,
+  hasSpoiler = false
 ): Promise<void> {
   const userId = requireUserId();
   validateSeasonReview(rating, comment);
@@ -138,6 +142,8 @@ export async function addSeasonReview(
         season_number: seasonNumber,
         rating,
         comment: comment || "",
+        // Sem texto não há o que esconder
+        has_spoiler: !!comment && hasSpoiler,
       })
     );
     // Seguidores que têm a série na watchlist são notificados por trigger no banco.
@@ -194,14 +200,15 @@ export async function updateReview(
   reviewId: string,
   seasonNumber: number,
   rating: number,
-  comment: string
+  comment: string,
+  hasSpoiler = false
 ): Promise<void> {
   requireUserId();
   validateSeasonReview(rating, comment);
   unwrap(
     await supabase
       .from("season_reviews")
-      .update({ rating, comment })
+      .update({ rating, comment, has_spoiler: !!comment && hasSpoiler })
       .eq("review_id", reviewId)
       .eq("season_number", seasonNumber)
   );
