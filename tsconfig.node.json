@@ -3,7 +3,8 @@
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "target": "ES2022",
-    "lib": ["ES2023"],
+    "lib": ["ES2023", "DOM"],
+    "types": ["node", "vite/client"],
     "module": "ESNext",
     "skipLibCheck": true,
 
@@ -20,5 +21,12 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "vitest.config.ts", "vitest.integration.config.ts", "api", "tests"]
+  "include": [
+    "vite.config.ts",
+    "vitest.config.ts",
+    "vitest.integration.config.ts",
+    "api",
+    "tests",
+    "src/integration"
+  ]
 }

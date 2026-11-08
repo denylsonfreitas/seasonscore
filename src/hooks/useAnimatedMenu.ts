@@ -22,9 +22,9 @@ export function useAnimatedMenu(options: UseAnimatedMenuOptions = {}) {
   const [isVisible, setIsVisible] = useState(false);
   const [isRippling, setIsRippling] = useState(false);
 
-  const visibilityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const rippleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const visibilityTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rippleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isOpen = isControlled ? controlledOpen : disclosure.isOpen;
 
