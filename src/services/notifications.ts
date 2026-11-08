@@ -160,7 +160,8 @@ export function subscribeToNotifications(
   };
 
   const channel = supabase
-    .channel(`notifications:${userId}`)
+    // nome único: o menu pode se inscrever mais de uma vez (desktop e mobile)
+    .channel(`notifications:${userId}:${crypto.randomUUID()}`)
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
