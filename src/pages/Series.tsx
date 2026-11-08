@@ -1,7 +1,6 @@
 import type { ListWithUserData } from "../types/list";
 import {
   Box,
-  Container,
   Flex,
   Spinner,
   Button,
@@ -16,7 +15,6 @@ import {
   AlertTitle,
   AlertDescription,
   Icon,
-  Divider,
   Popover,
   PopoverTrigger,
   PopoverContent,
@@ -36,6 +34,7 @@ import { Funnel } from "@phosphor-icons/react";
 import { getSeriesAverageRating } from "../services/reviews";
 import { getListById } from "../services/lists";
 import { PageHeader } from "../components/common/PageHeader";
+import { PageContainer } from "../components/layout/PageContainer";
 
 export function Series() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -224,12 +223,12 @@ export function Series() {
   }
 
   return (
-    <Flex direction="column" minH="100vh" bg="gray.900">
+    <Flex direction="column">
       <PageHeader
         title="Séries"
-        subtitle="Explore e descubra novas séries para assistir"
+        subtitle="Explore o catálogo e encontre a próxima série para avaliar."
         showSearch={true}
-        searchPlaceholder="Buscar séries..."
+        searchPlaceholder="Buscar séries"
         searchValue={searchQuery}
         onSearch={setSearchQuery}
         onSearchSubmit={handleSearch}
@@ -244,9 +243,8 @@ export function Series() {
             <PopoverTrigger>
               <Button
                 ref={filterPopoverRef}
-                leftIcon={<Icon as={Funnel} weight="bold" />}
-                colorScheme="primary"
-                variant="solid"
+                leftIcon={<Icon as={Funnel} />}
+                variant="outline"
                 onClick={onOpen}
                 size="md"
               >
@@ -284,7 +282,7 @@ export function Series() {
         }
       />
 
-      <Container maxW="container.lg" flex="1" py={8}>
+      <PageContainer flex="1" py={8}>
         {listId && listInfo && (
           <Alert status="info" mb={6} borderRadius="md">
             <AlertIcon />
@@ -305,7 +303,7 @@ export function Series() {
             </Text>
             <HStack spacing={2} flexWrap="wrap">
               {activeSearch && (
-                <Tag colorScheme="primary" size="md">
+                <Tag size="md">
                   <HStack spacing={2}>
                     <Text>Busca: {activeSearch}</Text>
                     <CloseButton size="sm" onClick={clearSearch} />
@@ -313,7 +311,7 @@ export function Series() {
                 </Tag>
               )}
               {genreFilter && genreName && (
-                <Tag colorScheme="purple" size="md">
+                <Tag size="md">
                   <HStack spacing={2}>
                     <Text>Gênero: {genreName}</Text>
                     <CloseButton size="sm" onClick={clearGenreFilter} />
@@ -324,8 +322,6 @@ export function Series() {
           </Box>
         )}
 
-        <Divider mb={6} borderColor="gray.700" />
-
         <SeriesGrid
           series={sortedSeriesWithRatings}
           isLoading={isLoading && sortedSeriesWithRatings.length === 0}
@@ -333,7 +329,7 @@ export function Series() {
           isFetchingNextPage={isFetchingNextPage}
           onLoadMore={fetchNextPage}
         />
-      </Container>
+      </PageContainer>
     </Flex>
   );
 }

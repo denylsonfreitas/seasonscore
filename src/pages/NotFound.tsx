@@ -1,45 +1,40 @@
-import { House, Warning } from "@phosphor-icons/react";
-import React from "react";
-import { Box, Button, Heading, Text, VStack, Flex, Icon } from "@chakra-ui/react";
+import { Box, Button, Heading, HStack, Text } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
+import { PageContainer } from "../components/layout/PageContainer";
+import { SeasonStrip } from "../components/series/SeasonStrip";
+
+const STRIP = [
+  { season: 1, score: 4.2 },
+  { season: 2, score: 3.8 },
+  { season: 3, score: 4.5 },
+  { season: 4, score: null },
+];
 
 export function NotFound() {
   return (
-    <Flex minHeight="75vh" direction="column" align="center" justify="center" px={4} py={10}>
-      <VStack spacing={8} textAlign="center" maxW="600px">
-        <Icon as={Warning} weight="fill" w={20} h={20} color="primary.500" />
-
-        <Heading as="h1" size="2xl" color="primary.500">
-          404
+    <PageContainer py={{ base: 16, md: 24 }}>
+      <Box maxW="560px">
+        <Text textStyle="label" color="ink.400">
+          Erro 404
+        </Text>
+        <Heading as="h1" size="h1" mt={2}>
+          Essa página foi cancelada antes de estrear.
         </Heading>
-
-        <VStack spacing={4}>
-          <Heading as="h2" size="xl">
-            Página não encontrada
-          </Heading>
-
-          <Text fontSize="lg" color="gray.300">
-            Oops! A página que você está procurando parece não existir ou foi movida para outro
-            lugar.
-          </Text>
-
-          <Text color="gray.400">
-            Talvez a URL esteja incorreta ou a página tenha sido removida.
-          </Text>
-        </VStack>
-
-        <Box pt={6}>
-          <Button
-            as={Link}
-            to="/"
-            size="lg"
-            colorScheme="primary"
-            leftIcon={<House weight="fill" />}
-          >
-            Voltar para a página inicial
-          </Button>
+        <Text mt={4} color="ink.300" fontSize="lg">
+          O endereço pode estar errado ou o conteúdo foi removido.
+        </Text>
+        <Box mt={8} aria-hidden="true">
+          <SeasonStrip seasons={STRIP} height={64} />
         </Box>
-      </VStack>
-    </Flex>
+        <HStack mt={8} spacing={3}>
+          <Button as={Link} to="/">
+            Ir para o início
+          </Button>
+          <Button as={Link} to="/series" variant="outline">
+            Explorar séries
+          </Button>
+        </HStack>
+      </Box>
+    </PageContainer>
   );
 }

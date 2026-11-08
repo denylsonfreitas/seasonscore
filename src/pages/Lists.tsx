@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import {
   Box,
-  Container,
   Text,
   Grid,
   Button,
-  VStack,
   Flex,
   Tag,
   TagLabel,
@@ -35,6 +33,8 @@ import { ListWithUserData } from "../types/list";
 import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "../components/common/PageHeader";
 import { Link as RouterLink } from "react-router-dom";
+import { PageContainer } from "../components/layout/PageContainer";
+import { EmptyState } from "../components/common/EmptyState";
 
 export default function Lists() {
   const { currentUser } = useAuth();
@@ -360,12 +360,7 @@ export default function Lists() {
               ))}
             </Grid>
           ) : (
-            <Center py={8}>
-              <VStack spacing={4}>
-                <Icon as={TagSimple} boxSize={12} color="gray.500" weight="thin" />
-                <Text color="gray.400">Nenhuma lista encontrada com a tag "{selectedTag}"</Text>
-              </VStack>
-            </Center>
+            <EmptyState icon={TagSimple} title={`Nenhuma lista com a tag "${selectedTag}".`} />
           )
         ) : (
           <Center py={8}>
@@ -377,7 +372,7 @@ export default function Lists() {
   };
 
   return (
-    <Flex direction="column" minH="100vh" bg="gray.900">
+    <Flex direction="column">
       <PageHeader
         title="Listas"
         subtitle="Navegue pelas listas da comunidade ou crie a sua própria"
@@ -411,12 +406,12 @@ export default function Lists() {
             onClick={onCreateModalOpen}
             size="md"
           >
-            Lista
+            Nova lista
           </Button>
         }
       />
 
-      <Container maxW="container.lg" flex="1" py={8}>
+      <PageContainer flex="1" py={8}>
         {activeTabIndex === 0 ? (
           showSearchResults ? (
             <Grid
@@ -446,12 +441,11 @@ export default function Lists() {
               ))}
             </Grid>
           ) : (
-            <Center py={8}>
-              <VStack spacing={4}>
-                <Icon as={TagSimple} boxSize={12} color="gray.500" weight="thin" />
-                <Text color="gray.400">Nenhuma lista popular encontrada</Text>
-              </VStack>
-            </Center>
+            <EmptyState
+              icon={TagSimple}
+              title="Nenhuma lista popular ainda."
+              description="Listas curtidas pela comunidade aparecem aqui."
+            />
           )
         ) : activeTabIndex === 1 ? (
           showSearchResults ? (
@@ -464,12 +458,7 @@ export default function Lists() {
               ))}
             </Grid>
           ) : !currentUser ? (
-            <Center py={8}>
-              <VStack spacing={4}>
-                <Icon as={User} boxSize={12} color="gray.500" weight="thin" />
-                <Text color="gray.400">Faça login para ver listas de usuários que você segue</Text>
-              </VStack>
-            </Center>
+            <EmptyState icon={User} title="Entre para ver as listas de quem você segue." />
           ) : isLoadingFollowed ? (
             <Grid
               templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }}
@@ -489,23 +478,16 @@ export default function Lists() {
               ))}
             </Grid>
           ) : (
-            <Center py={8}>
-              <VStack spacing={4}>
-                <Icon as={User} boxSize={12} color="gray.500" weight="thin" />
-                <Text color="gray.400">
-                  Você ainda não segue nenhum usuário com listas públicas
-                </Text>
-                <Button
-                  as={RouterLink}
-                  to="/community"
-                  size="sm"
-                  colorScheme="primary"
-                  variant="outline"
-                >
-                  Explorar Usuários
+            <EmptyState
+              icon={User}
+              title="Quem você segue ainda não tem listas públicas."
+              description="Siga mais pessoas para ver as listas delas aqui."
+              action={
+                <Button as={RouterLink} to="/community" size="sm" variant="outline">
+                  Explorar a comunidade
                 </Button>
-              </VStack>
-            </Center>
+              }
+            />
           )
         ) : activeTabIndex === 2 ? (
           renderTagsContent()
@@ -538,14 +520,9 @@ export default function Lists() {
             ))}
           </Grid>
         ) : (
-          <Center py={8}>
-            <VStack spacing={4}>
-              <Icon as={TagSimple} boxSize={12} color="gray.500" weight="thin" />
-              <Text color="gray.400">Nenhuma lista encontrada</Text>
-            </VStack>
-          </Center>
+          <EmptyState icon={TagSimple} title="Nenhuma lista encontrada." />
         )}
-      </Container>
+      </PageContainer>
 
       <CreateListModal isOpen={isCreateModalOpen} onClose={onCreateModalClose} />
 

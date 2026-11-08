@@ -242,8 +242,12 @@ export function SeasonsSection({
           {entries.length === 0 ? (
             <EmptyState
               icon={ChatCircleText}
-              title={`Ninguém avaliou a temporada ${current.season} ainda.`}
-              description="Sua avaliação pode ser a primeira."
+              title={
+                mine
+                  ? `Ninguém mais avaliou a temporada ${current.season} ainda.`
+                  : `Ninguém avaliou a temporada ${current.season} ainda.`
+              }
+              description={mine ? undefined : "Sua avaliação pode ser a primeira."}
             />
           ) : (
             <VStack align="stretch" spacing={2}>

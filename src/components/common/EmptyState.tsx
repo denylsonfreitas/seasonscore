@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 interface EmptyStateProps {
   icon?: PhosphorIcon;
   /** O fato: "Nenhuma avaliação ainda." */
-  title: string;
+  title: ReactNode;
   /** A próxima ação: "Avalie uma temporada para ela aparecer aqui." */
   description?: ReactNode;
   action?: ReactNode;

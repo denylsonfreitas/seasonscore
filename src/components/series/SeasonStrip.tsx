@@ -34,7 +34,7 @@ export function SeasonStrip({
 
   return (
     <Flex
-      role="list"
+      role={onSelect ? "group" : "list"}
       aria-label="Nota média por temporada"
       align="flex-end"
       gap={compact ? "2px" : many ? 1 : 1.5}
@@ -52,7 +52,7 @@ export function SeasonStrip({
 
         const bar = (
           <Box
-            role="listitem"
+            role={onSelect ? undefined : "listitem"}
             as={onSelect ? "button" : "div"}
             {...(onSelect ? { type: "button" } : {})}
             aria-label={label}

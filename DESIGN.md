@@ -66,6 +66,8 @@ Usada em barras da faixa de temporadas e no selo de nota. A cor acompanha o valo
 | 2,5 a 3,5 | `score.mid`  | `#E0A43B` |
 | 4,0 a 5,0 | `score.high` | `#2BC48A` |
 
+Médias (que não são múltiplos de 0,5) seguem os limites `< 2,25` → low, `< 3,75` → mid, senão high. A regra está em `src/utils/score.ts`.
+
 Estrelas de avaliação usam `star` `#F2B53D`.
 
 ### Feedback
@@ -111,7 +113,8 @@ Três famílias com papéis bem separados, todas servidas localmente via `@fonts
 - Títulos com espaçamento negativo leve (`-0.02em`); texto corrido sem ajuste.
 - Caixa alta **só** no estilo `label`. Navegação e botões usam caixa normal.
 - Texto corrido com no máximo ~68 caracteres por linha.
-- Nota sempre com uma casa decimal e vírgula: `4,0`, `3,5`.
+- Nota sempre com uma casa decimal e vírgula: `4,0`, `3,5` (use `formatScore`).
+- Em `Heading`, aplique a escala por `size` (`display`, `h1`, `h2`, `h3`), não por `textStyle`: o tamanho padrão do Chakra sobrescreveria o estilo.
 - Não usar itálico decorativo nem fontes serifadas.
 
 ---
@@ -192,8 +195,10 @@ Base de **4 px**. Use os tokens do Chakra (1 = 4 px).
 
 O elemento que identifica o SeasonScore. Uma linha de barras verticais, uma por temporada, com altura proporcional à nota média da comunidade e cor da escala de nota. Abaixo de cada barra, o rótulo `T1`, `T2`… em `label`. Temporadas sem nota aparecem como barra vazia (trilho `ink.800`).
 
-- Na página da série: no cabeçalho, mostrando a "curva" da série.
+- Na página da série: abre a seção "Temporadas". Cada barra é um botão; a escolhida ganha contorno `ink.50` e abre o painel da temporada logo abaixo (sua nota, botão de avaliar e avaliações da comunidade).
+- Na home (visitantes) e na 404: como ilustração do conceito, marcada como "Exemplo".
 - Em cards de lista/ranking: versão compacta (altura 24 px, sem rótulos).
+- Implementação: `src/components/series/SeasonStrip.tsx`.
 
 ### Selo de nota (`ScoreBadge`)
 
@@ -229,7 +234,19 @@ Só onde o usuário dá ou lê a nota de uma avaliação individual. Cor `star`,
 
 ### Logo
 
-Wordmark "SeasonScore" em Archivo 800 (largura 115), `ink.50`, precedido de um símbolo de três barras verticais crescentes (uma mini faixa de temporadas) em `signal.400`. Sem slogan junto ao logo.
+Wordmark "SeasonScore" em Archivo 800 (largura 115), `ink.50`, precedido de um símbolo de três barras verticais crescentes (uma mini faixa de temporadas) em `signal.500`, `signal.400` e `signal.300`, da menor para a maior. Sem slogan junto ao logo. Implementação: `src/components/common/Logo.tsx`.
+
+### Cards
+
+- **Série** (`SeriesCard`): pôster 2:3, título em uma linha abaixo, ano em mono e `ScoreBadge` pequeno quando há nota. Posição de ranking como número mono `01` no canto do pôster.
+- **Avaliação** (`ReviewCard`): miniatura do pôster, série, temporada, estrelas, trecho do texto (3 linhas) e autor. A avaliação é sobre texto, então o texto aparece.
+- **Lista** (`ListCard`): até 5 pôsteres sobrepostos na capa, título, autor, descrição e números em mono (séries, curtidas, comentários).
+
+### Layout das páginas
+
+- Todas as páginas usam `PageContainer` (1200 px, margens 16/24/32).
+- Cabeçalho, rodapé e "voltar ao topo" ficam no `Layout`; páginas não repetem o rodapé.
+- Destaques com fundo (home e série) começam atrás da barra de navegação translúcida.
 
 ---
 

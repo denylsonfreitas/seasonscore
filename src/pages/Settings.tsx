@@ -197,7 +197,7 @@ export function Settings() {
   }, [newUsername]);
 
   return (
-    <Box bg="gray.900" minH="100vh">
+    <Box>
       <Container maxW="container.md" py={8}>
         <VStack spacing={8} align="stretch">
           <Heading color="white">Configurações</Heading>

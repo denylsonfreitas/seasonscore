@@ -2,7 +2,6 @@ import type { SeasonReview } from "../types/review";
 import type { UserData } from "../services/users";
 import {
   Box,
-  Container,
   VStack,
   HStack,
   Text,
@@ -38,6 +37,7 @@ import { UserAvatar } from "../components/common/UserAvatar";
 import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 import { CommentSection } from "../components/common/CommentSection";
 import { ReactionButtons } from "../components/reviews/ReactionButtons";
+import { PageContainer } from "../components/layout/PageContainer";
 
 type ReviewDetails = NonNullable<Awaited<ReturnType<typeof getReviewDetails>>>;
 
@@ -300,7 +300,7 @@ export function ReviewDetails() {
 
   if (isLoading && isInitialLoad) {
     return (
-      <Center minH="100vh" bg="gray.900">
+      <Center minH="60vh">
         <VStack spacing={4}>
           <Spinner size="xl" color="primary.500" thickness="4px" speed="0.65s" />
           <Text color="gray.400" fontWeight="medium">
@@ -313,7 +313,7 @@ export function ReviewDetails() {
 
   if (!review || !activeSeasonReview) {
     return (
-      <Center minH="100vh" bg="gray.900">
+      <Center minH="60vh">
         <VStack
           spacing={6}
           p={8}
@@ -394,8 +394,8 @@ export function ReviewDetails() {
     : "Data desconhecida";
 
   return (
-    <Flex direction="column" minH="100vh" bg="gray.900">
-      <Container maxW="container.lg" py={6} flex="1">
+    <Flex direction="column">
+      <PageContainer py={6} flex="1">
         {/* Breadcrumbs com efeito de hover */}
         <Breadcrumb
           mb={6}
@@ -726,7 +726,7 @@ export function ReviewDetails() {
             Ver {activeSeasonReview?.comments?.length} comentários
           </Button>
         )}
-      </Container>
+      </PageContainer>
 
       {/* Modal de edição */}
       {isEditModalOpen && (

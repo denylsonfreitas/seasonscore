@@ -52,7 +52,7 @@ export function ResetPassword() {
   };
 
   return (
-    <Box bg="gray.900" minH="100vh" pt="100px">
+    <Box pt={12}>
       <Container maxW="sm">
         <VStack as="form" onSubmit={handleSubmit} spacing={5} align="stretch">
           <Heading size="lg" color="white">
