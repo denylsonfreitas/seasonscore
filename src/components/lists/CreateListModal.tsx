@@ -34,13 +34,7 @@ import {
   Image,
   Spinner,
 } from "@chakra-ui/react";
-import {
-  Globe,
-  Lock,
-  MagnifyingGlass,
-  CaretRight,
-  CaretLeft,
-} from "@phosphor-icons/react";
+import { Globe, Lock, MagnifyingGlass, CaretRight, CaretLeft } from "@phosphor-icons/react";
 import { createList } from "../../services/lists";
 import { searchSeries } from "../../services/tmdb";
 
@@ -67,7 +61,6 @@ export function CreateListModal({
   const [accessByLink, setAccessByLink] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
 
   // Estados para busca e seleção de séries
@@ -151,11 +144,7 @@ export function CreateListModal({
     return () => clearTimeout(delayDebounceFn);
   }, [seriesSearchQuery]);
 
-  const handleAddSeries = (series: {
-    id: number;
-    name: string;
-    poster_path: string | null;
-  }) => {
+  const handleAddSeries = (series: { id: number; name: string; poster_path: string | null }) => {
     if (!selectedSeries.some((s) => s.id === series.id)) {
       setSelectedSeries([...selectedSeries, series]);
     } else {
@@ -276,8 +265,7 @@ export function CreateListModal({
                 if (title.trim().length < 3) {
                   toast({
                     title: "Título muito curto",
-                    description:
-                      "O título da lista deve ter pelo menos 3 caracteres",
+                    description: "O título da lista deve ter pelo menos 3 caracteres",
                     status: "warning",
                     duration: 3000,
                     isClosable: true,
@@ -339,9 +327,7 @@ export function CreateListModal({
                       {tags.map((tag) => (
                         <Tag key={tag} colorScheme="primary" size="md">
                           <TagLabel>{tag}</TagLabel>
-                          <TagCloseButton
-                            onClick={() => handleRemoveTag(tag)}
-                          />
+                          <TagCloseButton onClick={() => handleRemoveTag(tag)} />
                         </Tag>
                       ))}
                     </Flex>
@@ -375,12 +361,7 @@ export function CreateListModal({
 
                   {/* Opção de acesso por link - aparece apenas quando a lista é privada */}
                   {!isPublic && (
-                    <FormControl
-                      display="flex"
-                      alignItems="center"
-                      mt={2}
-                      pl={6}
-                    >
+                    <FormControl display="flex" alignItems="center" mt={2} pl={6}>
                       <FormLabel htmlFor="access-by-link" mb="0" fontSize="sm">
                         <Flex align="center">
                           <Icon
@@ -409,8 +390,8 @@ export function CreateListModal({
                 <VStack spacing={4} align="stretch">
                   <Box bg="gray.700" p={3} borderRadius="md" mb={2}>
                     <Text fontSize="sm" color="gray.300">
-                      Adicione séries à sua lista (opcional). Você pode
-                      adicionar mais séries depois de criar a lista.
+                      Adicione séries à sua lista (opcional). Você pode adicionar mais séries depois
+                      de criar a lista.
                     </Text>
                   </Box>
 
@@ -492,9 +473,7 @@ export function CreateListModal({
                                       {series.name}
                                     </Text>
                                   </Box>
-                                  {selectedSeries.some(
-                                    (s) => s.id === series.id
-                                  ) && (
+                                  {selectedSeries.some((s) => s.id === series.id) && (
                                     <Box
                                       position="absolute"
                                       top={1}
@@ -522,21 +501,14 @@ export function CreateListModal({
                           </Grid>
                         </Box>
                       ) : searchPerformed ? (
-                        <Box
-                          textAlign="center"
-                          py={4}
-                          bg="gray.700"
-                          borderRadius="md"
-                        >
+                        <Box textAlign="center" py={4} bg="gray.700" borderRadius="md">
                           <Text color="gray.400">
                             Nenhum resultado encontrado. Tente outra busca.
                           </Text>
                         </Box>
                       ) : (
                         <Box textAlign="center" py={4} borderRadius="md">
-                          <Text color="gray.400">
-                            Esperando por uma série...
-                          </Text>
+                          <Text color="gray.400">Esperando por uma série...</Text>
                         </Box>
                       )}
                     </>
@@ -573,8 +545,7 @@ export function CreateListModal({
                 if (title.trim().length < 3) {
                   toast({
                     title: "Título muito curto",
-                    description:
-                      "O título da lista deve ter pelo menos 3 caracteres",
+                    description: "O título da lista deve ter pelo menos 3 caracteres",
                     status: "warning",
                     duration: 3000,
                     isClosable: true,

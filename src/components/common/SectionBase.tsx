@@ -5,14 +5,13 @@ import {
   Button,
   Text,
   Spinner,
-  Grid,
   BoxProps,
   HeadingProps,
   ButtonProps,
   GridProps,
 } from "@chakra-ui/react";
-import React, { ReactNode, useState } from "react";
-import { CaretRight, CaretDown, CaretUp } from "@phosphor-icons/react";
+import React, { ReactNode } from "react";
+import { CaretRight } from "@phosphor-icons/react";
 import { Link as RouterLink } from "react-router-dom";
 
 export interface SectionBaseProps {
@@ -51,23 +50,13 @@ export function SectionBase({
   errorElement,
   emptyElement,
   expandable = false,
-  initialExpanded = false,
-  expandThreshold = 6,
   containerProps,
-  gridProps,
   headerProps,
   titleProps,
   linkButtonProps,
-  renderExpandButton,
   renderContent,
   children,
 }: SectionBaseProps) {
-  const [isExpanded, setIsExpanded] = useState(initialExpanded);
-
-  const toggleExpand = () => {
-    setIsExpanded(!isExpanded);
-  };
-
   // Renderização personalizada ou padrão de elementos de estado
   const renderLoadingState = () => {
     if (loadingElement) return loadingElement;
@@ -129,12 +118,10 @@ export function SectionBase({
       ) : isEmpty ? (
         renderEmptyState()
       ) : (
-        <>
-          {renderContent(expandable)}
-        </>
+        <>{renderContent(expandable)}</>
       )}
-      
+
       {children}
     </Box>
   );
-} 
+}

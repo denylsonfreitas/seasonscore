@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useCallback } from "react";
-import { Box, Spinner, Center, Text, Flex } from "@chakra-ui/react";
+import { Box, Spinner, Center, Text } from "@chakra-ui/react";
 
 interface InfiniteScrollProps {
   loadMore: () => void;
@@ -67,7 +67,7 @@ export function InfiniteScroll({
         </Center>
       );
     }
-    
+
     if (!hasMore) {
       return (
         <Text color="gray.500" fontSize="sm">
@@ -75,7 +75,7 @@ export function InfiniteScroll({
         </Text>
       );
     }
-    
+
     return null;
   }, [isLoading, hasMore]);
 
@@ -87,4 +87,4 @@ export function InfiniteScroll({
       </Box>
     </>
   );
-} 
+}

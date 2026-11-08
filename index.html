@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
@@ -23,8 +23,7 @@
     <meta name="twitter:card" content="summary_large_image" />
 
     <link rel="preconnect" href="https://image.tmdb.org" crossorigin />
-    <link rel="preconnect" href="https://api.themoviedb.org" crossorigin />
-    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
+    <link rel="preconnect" href="https://jitudssddqheithrduij.supabase.co" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
@@ -32,7 +31,10 @@
       rel="preload"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       as="style"
-      onload="this.onload=null;this.rel='stylesheet'"
+      onload="
+        this.onload = null;
+        this.rel = 'stylesheet';
+      "
     />
     <noscript
       ><link
@@ -44,8 +46,13 @@
       body {
         background-color: #1a202c;
         color: white;
-        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
-          Roboto, sans-serif;
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
         margin: 0;
         padding: 0;
       }
@@ -66,12 +73,7 @@
   <body>
     <div id="root">
       <div class="app-loading">
-        <svg
-          width="50"
-          height="50"
-          viewBox="0 0 50 50"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+        <svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
           <circle
             cx="25"
             cy="25"
@@ -110,34 +112,17 @@
         }, 100);
       };
 
-      if (!("IntersectionObserver" in window)) {
-        const script = document.createElement("script");
-        script.src =
-          "https://polyfill.io/v3/polyfill.min.js?features=IntersectionObserver";
-        document.head.appendChild(script);
-      }
-
       const connection =
-        navigator.connection ||
-        navigator.mozConnection ||
-        navigator.webkitConnection;
-      if (
-        connection &&
-        (connection.saveData || connection.effectiveType.includes("2g"))
-      ) {
+        navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      if (connection && (connection.saveData || (connection.effectiveType || "").includes("2g"))) {
         document.documentElement.classList.add("slow-connection");
       }
 
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("/service-worker.js")
-            .then((registration) => {
-              // Service Worker registrado com sucesso
-            })
-            .catch((error) => {
-              // Erro ao registrar Service Worker
-            });
+          navigator.serviceWorker.register("/service-worker.js").catch(() => {
+            // Falha ao registrar o Service Worker não impede o uso do app
+          });
         });
       }
     </script>

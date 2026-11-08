@@ -32,10 +32,10 @@ export function RippleEffect({
       borderRadius="full"
       bg={color}
       opacity={isRippling ? 1 : 0}
-      transition={`all ${duration/1000}s cubic-bezier(0.25, 0.8, 0.25, 1)`}
+      transition={`all ${duration / 1000}s cubic-bezier(0.25, 0.8, 0.25, 1)`}
       pointerEvents="none"
       zIndex={zIndex}
       {...rest}
     />
   );
-} 
+}

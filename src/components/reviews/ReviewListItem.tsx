@@ -16,7 +16,13 @@ interface ReviewListItemProps {
 
 const COMMENT_MAX_LENGTH = 200;
 
-export function ReviewListItem({ userId, userEmail, rating, comment, onClick }: ReviewListItemProps) {
+export function ReviewListItem({
+  userId,
+  userEmail,
+  rating,
+  comment,
+  onClick,
+}: ReviewListItemProps) {
   const { userData } = useUserData(userId);
   const [isExpanded, setIsExpanded] = useState(false);
   const shouldShowExpandButton = comment.length > COMMENT_MAX_LENGTH;
@@ -48,11 +54,19 @@ export function ReviewListItem({ userId, userEmail, rating, comment, onClick }: 
           />
           <VStack align="start" spacing={1}>
             {userData?.isDeleted ? (
-              <Text fontSize="sm" fontStyle="italic" color="gray.400">Usuário excluído</Text>
+              <Text fontSize="sm" fontStyle="italic" color="gray.400">
+                Usuário excluído
+              </Text>
             ) : (
               <UserName userId={userId} />
             )}
             <Box>
+              {displayedComment && (
+                <Text fontSize="sm" color="gray.300" whiteSpace="pre-wrap">
+                  {displayedComment}
+                  {shouldShowExpandButton && !isExpanded && "…"}
+                </Text>
+              )}
               {shouldShowExpandButton && (
                 <Button
                   variant="ghost"
@@ -68,12 +82,8 @@ export function ReviewListItem({ userId, userEmail, rating, comment, onClick }: 
             </Box>
           </VStack>
         </HStack>
-        <RatingStars
-          rating={rating}
-          size={16}
-          showNumber={false}
-        />
+        <RatingStars rating={rating} size={16} showNumber={false} />
       </HStack>
     </Box>
   );
-} 
+}

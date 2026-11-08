@@ -4,7 +4,6 @@ import {
   VStack,
   Badge,
   LinkBox,
-  LinkOverlay,
   Flex,
   Center,
   Icon,
@@ -27,45 +26,45 @@ interface SeriesCardProps {
 
 const sizeStyles = {
   sm: {
-    container: { 
+    container: {
       maxW: "150px",
-      aspectRatio: "2/3"
+      aspectRatio: "2/3",
     },
     title: { fontSize: "md" },
     overview: { fontSize: "xs" },
     rating: { fontSize: "sm" },
     badge: { fontSize: "md" },
-    ratingBox: { 
+    ratingBox: {
       p: 2,
       minW: "45px",
       height: "45px",
     },
   },
   md: {
-    container: { 
+    container: {
       maxW: "200px",
-      aspectRatio: "2/3"
+      aspectRatio: "2/3",
     },
     title: { fontSize: "lg" },
     overview: { fontSize: "sm" },
     rating: { fontSize: "md" },
     badge: { fontSize: "lg" },
-    ratingBox: { 
+    ratingBox: {
       p: 2,
       minW: "50px",
       height: "50px",
     },
   },
   lg: {
-    container: { 
+    container: {
       maxW: "250px",
-      aspectRatio: "2/3"
+      aspectRatio: "2/3",
     },
     title: { fontSize: "xl" },
     overview: { fontSize: "md" },
     rating: { fontSize: "lg" },
     badge: { fontSize: "xl" },
-    ratingBox: { 
+    ratingBox: {
       p: 2,
       minW: "55px",
       height: "55px",
@@ -114,9 +113,9 @@ const getBadgeStyle = (position: number) => {
  */
 export function SeriesCardSkeleton({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const styles = sizeStyles[size];
-  
+
   return (
-    <Box 
+    <Box
       bg="gray.800"
       borderRadius="lg"
       overflow="hidden"
@@ -124,33 +123,45 @@ export function SeriesCardSkeleton({ size = "md" }: { size?: "sm" | "md" | "lg" 
       {...styles.container}
       mx="auto"
     >
-      <Skeleton 
-        height="100%" 
-        width="100%" 
-        startColor="gray.700" 
-        endColor="gray.600" 
-        speed={1.2}
-      />
-      
+      <Skeleton height="100%" width="100%" startColor="gray.700" endColor="gray.600" speed={1.2} />
+
       {/* Simular o badge de posição */}
       <Box position="absolute" top={3} left={3} zIndex={2}>
-        <Skeleton height="24px" width="35px" borderRadius="lg" startColor="gray.600" endColor="gray.500" />
+        <Skeleton
+          height="24px"
+          width="35px"
+          borderRadius="lg"
+          startColor="gray.600"
+          endColor="gray.500"
+        />
       </Box>
-      
+
       {/* Simular o botão de watchlist */}
       <Box position="absolute" top={3} right={3} zIndex={2}>
         <SkeletonCircle size="8" startColor="gray.600" endColor="gray.500" />
       </Box>
-      
+
       {/* Simular a classificação */}
       <Box position="absolute" bottom={3} left={3} zIndex={2}>
-        <Skeleton height="16px" width="40px" borderRadius="md" startColor="primary.300" endColor="primary.200" />
+        <Skeleton
+          height="16px"
+          width="40px"
+          borderRadius="md"
+          startColor="primary.300"
+          endColor="primary.200"
+        />
       </Box>
     </Box>
   );
 }
 
-export function SeriesCard({ series, size = "md", position, highlightAddToList = false, showCharacter }: SeriesCardProps) {
+export function SeriesCard({
+  series,
+  size = "md",
+  position,
+  highlightAddToList = false,
+  showCharacter,
+}: SeriesCardProps) {
   const styles = sizeStyles[size];
   const badgeStyle = position ? getBadgeStyle(position) : null;
 
@@ -181,7 +192,13 @@ export function SeriesCard({ series, size = "md", position, highlightAddToList =
             <Center height="100%" py={4} px={2} bg="gray.700" position="relative">
               <VStack spacing={2} align="center" justify="center">
                 <Icon as={TelevisionSimple} boxSize={12} color="gray.500" weight="thin" />
-                <Text color="white" fontSize={styles.title.fontSize} fontWeight="bold" textAlign="center" noOfLines={2}>
+                <Text
+                  color="white"
+                  fontSize={styles.title.fontSize}
+                  fontWeight="bold"
+                  textAlign="center"
+                  noOfLines={2}
+                >
                   {series.name}
                 </Text>
                 <Text color="gray.400" fontSize="xs" textAlign="center" noOfLines={3}>
@@ -206,8 +223,7 @@ export function SeriesCard({ series, size = "md", position, highlightAddToList =
               zIndex={1}
             >
               <Flex align="center" gap={2}>
-                {badgeStyle?.icon}
-                #{position}
+                {badgeStyle?.icon}#{position}
               </Flex>
             </Badge>
           )}
@@ -223,10 +239,10 @@ export function SeriesCard({ series, size = "md", position, highlightAddToList =
             zIndex={1}
             onClick={(e) => e.preventDefault()}
           >
-            <WatchlistButton 
-              series={series} 
-              variant={highlightAddToList ? "solid" : "ghost"} 
-              size={size === "sm" ? "sm" : "md"} 
+            <WatchlistButton
+              series={series}
+              variant={highlightAddToList ? "solid" : "ghost"}
+              size={size === "sm" ? "sm" : "md"}
               menuAsBox={true}
             />
           </Box>
@@ -253,21 +269,8 @@ export function SeriesCard({ series, size = "md", position, highlightAddToList =
 
           {/* Character information when in actor profile */}
           {showCharacter && (
-            <Box 
-              position="absolute" 
-              bottom={0} 
-              left={0} 
-              right={0} 
-              bg="blackAlpha.800" 
-              p={2}
-              px={3}
-            >
-              <Text 
-                color="white" 
-                fontSize="sm" 
-                fontWeight="bold"
-                noOfLines={1}
-              >
+            <Box position="absolute" bottom={0} left={0} right={0} bg="blackAlpha.800" p={2} px={3}>
+              <Text color="white" fontSize="sm" fontWeight="bold" noOfLines={1}>
                 {showCharacter}
               </Text>
             </Box>

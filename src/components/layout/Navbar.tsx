@@ -7,7 +7,6 @@ import {
   IconButton,
   useDisclosure,
   Text,
-  Flex,
   Divider,
   useToken,
 } from "@chakra-ui/react";
@@ -22,10 +21,11 @@ import { LoginForm } from "../auth/LoginForm";
 import { SignUpModal } from "../auth/SignUpModal";
 import { useAuthUIStore } from "../../services/uiState";
 import { MobileMenu } from "./MobileMenu";
-import { useRef, useEffect } from "react";
+import { useEffect } from "react";
 import { AnimatedMenu } from "../common/AnimatedMenu";
 import { useAnimatedMenu } from "../../hooks/useAnimatedMenu";
 import { RippleEffect } from "../common/RippleEffect";
+import { logError } from "../../utils/logger";
 
 let globalOpenLoginPopover: (() => void) | null = null;
 
@@ -42,12 +42,8 @@ export function Navbar() {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   // Obtém o estado da UI de autenticação do store
-  const {
-    isSignUpModalOpen,
-    openSignUpModal,
-    closeSignUpModal,
-    openSignUpFromLogin,
-  } = useAuthUIStore();
+  const { isSignUpModalOpen, openSignUpModal, closeSignUpModal, openSignUpFromLogin } =
+    useAuthUIStore();
 
   // Estados e funções para o menu animado de login desktop
   const {
@@ -72,16 +68,21 @@ export function Navbar() {
   } = useAnimatedMenu();
 
   // Adicionar uso do useToken para obter as cores do tema
-  const [seriesColor, top10Color, reviewsColor, listsColor, communityColor] = useToken(
-    "colors",
-    ["linkhome.series", "linkhome.top10", "linkhome.reviews", "linkhome.lists", "linkhome.community"]
-  );
+  const [seriesColor, top10Color, reviewsColor, listsColor, communityColor] = useToken("colors", [
+    "linkhome.series",
+    "linkhome.top10",
+    "linkhome.reviews",
+    "linkhome.lists",
+    "linkhome.community",
+  ]);
 
   const handleLogout = async () => {
     try {
       await logout();
       navigate("/");
-    } catch (error) {}
+    } catch (error) {
+      logError("handleLogout", error);
+    }
   };
 
   // Trigger para o login desktop
@@ -128,15 +129,11 @@ export function Navbar() {
 
   useEffect(() => {
     const isMobile = window.innerWidth < 768;
-    globalOpenLoginPopover = isMobile
-      ? handleMobileLoginOpen
-      : handleDesktopLoginOpen;
+    globalOpenLoginPopover = isMobile ? handleMobileLoginOpen : handleDesktopLoginOpen;
 
     const handleResize = () => {
       const isMobile = window.innerWidth < 768;
-      globalOpenLoginPopover = isMobile
-        ? handleMobileLoginOpen
-        : handleDesktopLoginOpen;
+      globalOpenLoginPopover = isMobile ? handleMobileLoginOpen : handleDesktopLoginOpen;
     };
 
     window.addEventListener("resize", handleResize);

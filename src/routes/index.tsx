@@ -1,8 +1,8 @@
 import { Navigate } from "react-router-dom";
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect } from "react";
 import { Layout } from "../components/layout/Layout";
 import { useAuth } from "../contexts/AuthContext";
-import { Box, Spinner, Center } from "@chakra-ui/react";
+import { Spinner, Center } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 import { getUserData } from "../services/users";
 import { ReviewDetails } from "../pages/ReviewDetails";
@@ -19,10 +19,7 @@ const PrefetchRoutes = () => {
     const prefetchRoutes = async () => {
       try {
         // Prefetch imediato para rotas críticas
-        await Promise.all([
-          import("../pages/Home"),
-          import("../pages/Series")
-        ]);
+        await Promise.all([import("../pages/Home"), import("../pages/Series")]);
 
         // Prefetch com delay para rotas secundárias
         setTimeout(() => {
@@ -63,14 +60,14 @@ function ProfileRedirect() {
       navigate("/");
       return;
     }
-    
+
     if (currentUser.username) {
       navigate(`/u/${currentUser.username}`);
       return;
     }
-    
+
     const userId = currentUser.uid;
-    
+
     async function fetchUserData() {
       try {
         const userData = await getUserData(userId);
@@ -83,84 +80,101 @@ function ProfileRedirect() {
         navigate("/settings");
       }
     }
-    
+
     fetchUserData();
   }, [currentUser, navigate]);
-  
+
   return <PageLoader />;
 }
 
-const HomeLazy = React.lazy(() => 
-  import(/* webpackChunkName: "home" */ "../pages/Home")
-    .then(module => ({ default: module.Home }))
+const HomeLazy = React.lazy(() =>
+  import(/* webpackChunkName: "home" */ "../pages/Home").then((module) => ({
+    default: module.Home,
+  }))
 );
 
-const SeriesDetailsLazy = React.lazy(() => 
-  import(/* webpackChunkName: "series-details" */ "../pages/SeriesDetails")
-    .then(module => ({ default: module.SeriesDetails }))
+const SeriesDetailsLazy = React.lazy(() =>
+  import(/* webpackChunkName: "series-details" */ "../pages/SeriesDetails").then((module) => ({
+    default: module.SeriesDetails,
+  }))
 );
 
-const SeriesLazy = React.lazy(() => 
-  import(/* webpackChunkName: "series" */ "../pages/Series")
-    .then(module => ({ default: module.Series }))
+const SeriesLazy = React.lazy(() =>
+  import(/* webpackChunkName: "series" */ "../pages/Series").then((module) => ({
+    default: module.Series,
+  }))
 );
 
-const ProfileLazy = React.lazy(() => 
-  import(/* webpackChunkName: "profile" */ "../pages/Profile")
-    .then(module => ({ default: module.Profile }))
+const ProfileLazy = React.lazy(() =>
+  import(/* webpackChunkName: "profile" */ "../pages/Profile").then((module) => ({
+    default: module.Profile,
+  }))
 );
 
-const TopRatedSeriesLazy = React.lazy(() => 
-  import(/* webpackChunkName: "top-rated-series" */ "../pages/TopRatedSeries")
-    .then(module => ({ default: module.TopRatedSeries }))
+const TopRatedSeriesLazy = React.lazy(() =>
+  import(/* webpackChunkName: "top-rated-series" */ "../pages/TopRatedSeries").then((module) => ({
+    default: module.TopRatedSeries,
+  }))
 );
 
-const SettingsLazy = React.lazy(() => 
-  import(/* webpackChunkName: "settings" */ "../pages/Settings")
-    .then(module => ({ default: module.Settings }))
+const SettingsLazy = React.lazy(() =>
+  import(/* webpackChunkName: "settings" */ "../pages/Settings").then((module) => ({
+    default: module.Settings,
+  }))
 );
 
-const ProfileSettingsLazy = React.lazy(() => 
-  import(/* webpackChunkName: "profile-settings" */ "../pages/ProfileSettings")
-    .then(module => ({ default: module.ProfileSettings }))
+const ResetPasswordLazy = React.lazy(() =>
+  import("../pages/ResetPassword").then((module) => ({
+    default: module.ResetPassword,
+  }))
 );
 
-const SeriesReviewsLazy = React.lazy(() => 
-  import(/* webpackChunkName: "series-reviews" */ "../pages/SeriesReviews")
-    .then(module => ({ default: module.SeriesReviews }))
+const ProfileSettingsLazy = React.lazy(() =>
+  import(/* webpackChunkName: "profile-settings" */ "../pages/ProfileSettings").then((module) => ({
+    default: module.ProfileSettings,
+  }))
 );
 
-const ReviewsLazy = React.lazy(() => 
-  import(/* webpackChunkName: "reviews" */ "../pages/Reviews")
-    .then(module => ({ default: module.Reviews }))
+const SeriesReviewsLazy = React.lazy(() =>
+  import(/* webpackChunkName: "series-reviews" */ "../pages/SeriesReviews").then((module) => ({
+    default: module.SeriesReviews,
+  }))
 );
 
-const SearchLazy = React.lazy(() => 
-  import(/* webpackChunkName: "search" */ "../pages/Series")
-    .then(module => ({ default: module.Series }))
+const ReviewsLazy = React.lazy(() =>
+  import(/* webpackChunkName: "reviews" */ "../pages/Reviews").then((module) => ({
+    default: module.Reviews,
+  }))
 );
 
-const ListPageLazy = React.lazy(() => 
-  import(/* webpackChunkName: "list-page" */ "../pages/ListPage")
+const SearchLazy = React.lazy(() =>
+  import(/* webpackChunkName: "search" */ "../pages/Series").then((module) => ({
+    default: module.Series,
+  }))
 );
 
-const NotFoundLazy = React.lazy(() => 
-  import(/* webpackChunkName: "not-found" */ "../pages/NotFound")
-    .then(module => ({ default: module.NotFound }))
+const ListPageLazy = React.lazy(
+  () => import(/* webpackChunkName: "list-page" */ "../pages/ListPage")
 );
 
-const ListsLazy = React.lazy(() => 
-  import(/* webpackChunkName: "lists" */ "../pages/Lists")
+const NotFoundLazy = React.lazy(() =>
+  import(/* webpackChunkName: "not-found" */ "../pages/NotFound").then((module) => ({
+    default: module.NotFound,
+  }))
 );
 
-const ActorDetailsLazy = React.lazy(() => 
-  import(/* webpackChunkName: "actor-details" */ "../pages/ActorDetails")
-    .then(module => ({ default: module.ActorDetails }))
+const ListsLazy = React.lazy(() => import(/* webpackChunkName: "lists" */ "../pages/Lists"));
+
+const ActorDetailsLazy = React.lazy(() =>
+  import(/* webpackChunkName: "actor-details" */ "../pages/ActorDetails").then((module) => ({
+    default: module.ActorDetails,
+  }))
 );
 
-const CommunityLazy = React.lazy(() => 
-  import(/* webpackChunkName: "community" */ "../pages/Community")
-    .then(module => ({ default: module.Community }))
+const CommunityLazy = React.lazy(() =>
+  import(/* webpackChunkName: "community" */ "../pages/Community").then((module) => ({
+    default: module.Community,
+  }))
 );
 
 export const routes = [
@@ -326,6 +340,10 @@ export const routes = [
       {
         path: "/reviews/:reviewId",
         element: <ReviewDetails />,
+      },
+      {
+        path: "/reset-password",
+        element: <ResetPasswordLazy />,
       },
       {
         path: "*",

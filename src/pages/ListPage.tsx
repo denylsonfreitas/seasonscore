@@ -1,10 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  useParams,
-  useNavigate,
-  useLocation,
-  Link as RouterLink,
-} from "react-router-dom";
+import { useParams, useNavigate, Link as RouterLink } from "react-router-dom";
 import {
   Box,
   Container,
@@ -34,7 +29,6 @@ import {
   ModalHeader,
   ModalBody,
   ModalCloseButton,
-  ModalFooter,
   Input,
   InputGroup,
   InputRightElement,
@@ -54,13 +48,14 @@ import {
   Collapse,
 } from "@chakra-ui/react";
 import {
+  Calendar,
+  ChatCircle,
   Globe,
   Lock,
-  Calendar,
-  NotePencil,
-  Share,
-  Plus,
   MagnifyingGlass,
+  NotePencil,
+  Plus,
+  Share,
   Trash,
 } from "@phosphor-icons/react";
 import { useAuth } from "../contexts/AuthContext";
@@ -70,7 +65,6 @@ import { ReactionButton } from "../components/common/ReactionButton";
 import {
   getListById,
   toggleListReaction,
-  deleteList,
   removeSeriesFromList,
   addSeriesToList,
 } from "../services/lists";
@@ -81,8 +75,7 @@ import { UserAvatar } from "../components/common/UserAvatar";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Timestamp } from "firebase/firestore";
-import { FaComment } from "react-icons/fa";
+import { getErrorMessage } from "../utils/errors";
 
 export default function ListPage() {
   const { listId } = useParams();
@@ -98,16 +91,13 @@ export default function ListPage() {
   const primaryColor = useColorModeValue("primary.500", "primary.400");
 
   const [list, setList] = useState<ListWithUserData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isRemovingSeries, setIsRemovingSeries] = useState<number | null>(null);
   const [isTogglingLike, setIsTogglingLike] = useState(false);
-  const [isForceFetchingReaction, setIsForceFetchingReaction] = useState(false);
-  const [localCommentsCount, setLocalCommentsCount] = useState<number | null>(
-    null
-  );
+  const [, setIsForceFetchingReaction] = useState(false);
+  const [localCommentsCount, setLocalCommentsCount] = useState<number | null>(null);
 
   const {
     isOpen: isSearchModalOpen,
@@ -117,7 +107,7 @@ export default function ListPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SeriesListItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [isAddingSeries, setIsAddingSeries] = useState<number | null>(null);
+  const [, setIsAddingSeries] = useState<number | null>(null);
   const [searchPerformed, setSearchPerformed] = useState(false);
 
   const {
@@ -135,8 +125,7 @@ export default function ListPage() {
   } = useDisclosure();
   const cancelRef = React.useRef<HTMLButtonElement>(null);
 
-  const { isOpen: isCommentExpanded, onToggle: toggleComments } =
-    useDisclosure();
+  const { isOpen: isCommentExpanded, onToggle: toggleComments } = useDisclosure();
 
   // Usar React Query para obter e manter os dados da lista atualizados
   const {
@@ -156,9 +145,7 @@ export default function ListPage() {
         }
         return data;
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Erro ao carregar a lista"
-        );
+        setError(err instanceof Error ? err.message : "Erro ao carregar a lista");
         navigate("/404", { replace: true });
         throw err;
       }
@@ -177,8 +164,7 @@ export default function ListPage() {
 
       if (currentUser && queryList.reactions) {
         const userReaction = queryList.reactions.find(
-          (reaction) =>
-            reaction.userId === currentUser.uid && reaction.type === "like"
+          (reaction) => reaction.userId === currentUser.uid && reaction.type === "like"
         );
         setIsLiked(!!userReaction);
       } else {
@@ -215,8 +201,7 @@ export default function ListPage() {
 
       if (listData && listData.reactions) {
         const userReaction = listData.reactions.find(
-          (reaction) =>
-            reaction.userId === currentUser.uid && reaction.type === "like"
+          (reaction) => reaction.userId === currentUser.uid && reaction.type === "like"
         );
 
         setIsLiked(!!userReaction);
@@ -266,9 +251,7 @@ export default function ListPage() {
 
       // Atualizar UI imediatamente para feedback instantâneo
       setIsLiked(!isLiked);
-      setLikesCount((prevCount) =>
-        isLiked ? Math.max(0, prevCount - 1) : prevCount + 1
-      );
+      setLikesCount((prevCount) => (isLiked ? Math.max(0, prevCount - 1) : prevCount + 1));
 
       // Chamar API para persistir a mudança
       const result = await toggleListReaction(list.id, "like");
@@ -291,7 +274,7 @@ export default function ListPage() {
       // Programar refetches adicionais para garantir que todos os componentes estejam atualizados
       setTimeout(() => refetch(), 500);
       setTimeout(() => refetch(), 1500);
-    } catch (error: any) {
+    } catch (error) {
       // Reverter alterações em caso de erro
       setIsLiked(isLiked);
       setLikesCount(likesCount);
@@ -299,54 +282,13 @@ export default function ListPage() {
 
       toast({
         title: "Erro",
-        description: error.message || "Não foi possível processar sua reação",
+        description: getErrorMessage(error) || "Não foi possível processar sua reação",
         status: "error",
         duration: 3000,
         isClosable: true,
       });
     }
   };
-
-  const handleDeleteList = async () => {
-    if (!list || !currentUser) return;
-
-    if (list.userId !== currentUser.uid) {
-      toast({
-        title: "Permissão negada",
-        description: "Você não tem permissão para excluir esta lista",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    try {
-      setIsDeleting(true);
-      await deleteList(list.id);
-
-      toast({
-        title: "Lista excluída",
-        description: "Sua lista foi excluída com sucesso",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-
-      navigate("/profile");
-    } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível excluir a lista",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   // Função para confirmar remoção de série
   const confirmRemoveSeries = (seriesId: number, seriesName: string) => {
     setSeriesIdToRemove(seriesId);
@@ -388,11 +330,10 @@ export default function ListPage() {
         duration: 2000,
         isClosable: true,
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Erro",
-        description:
-          error.message || "Não foi possível remover a série da lista",
+        description: getErrorMessage(error) || "Não foi possível remover a série da lista",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -412,8 +353,7 @@ export default function ListPage() {
 
       toast({
         title: "Link copiado!",
-        description:
-          "O link para esta lista foi copiado para sua área de transferência",
+        description: "O link para esta lista foi copiado para sua área de transferência",
         status: "success",
         duration: 3000,
         isClosable: true,
@@ -519,11 +459,10 @@ export default function ListPage() {
         duration: 2000,
         isClosable: true,
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Erro",
-        description:
-          error.message || "Não foi possível adicionar a série à lista",
+        description: getErrorMessage(error) || "Não foi possível adicionar a série à lista",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -537,13 +476,10 @@ export default function ListPage() {
     navigate(`/lists?tag=${encodeURIComponent(tag)}&source=listPage`);
   };
 
-  // Função auxiliar para converter Timestamp para Date
-  const convertToDate = (
-    timestamp: Date | Timestamp | number | string | null | undefined
-  ): Date => {
+  // Função auxiliar para converter datas
+  const convertToDate = (timestamp: Date | number | string | null | undefined): Date => {
     if (!timestamp) return new Date();
     if (timestamp instanceof Date) return timestamp;
-    if (timestamp instanceof Timestamp) return timestamp.toDate();
     if (typeof timestamp === "number") {
       return new Date(timestamp * 1000);
     }
@@ -641,11 +577,7 @@ export default function ListPage() {
                 />
                 <VStack align="start" spacing={0}>
                   <HStack>
-                    <Text
-                      fontWeight="medium"
-                      color={textColor}
-                      fontSize={{ base: "xs", md: "md" }}
-                    >
+                    <Text fontWeight="medium" color={textColor} fontSize={{ base: "xs", md: "md" }}>
                       Lista criada por
                     </Text>
                     <Text
@@ -661,24 +593,14 @@ export default function ListPage() {
                     </Text>
                   </HStack>
                   <HStack spacing={1}>
-                    <Icon
-                      as={Calendar}
-                      color={mutedTextColor}
-                      weight="fill"
-                      size={12}
-                    />
+                    <Icon as={Calendar} color={mutedTextColor} weight="fill" size={12} />
                     <Tooltip
-                      label={format(
-                        convertToDate(list?.createdAt),
-                        "dd 'de' MMMM 'de' yyyy",
-                        { locale: ptBR }
-                      )}
+                      label={format(convertToDate(list?.createdAt), "dd 'de' MMMM 'de' yyyy", {
+                        locale: ptBR,
+                      })}
                       placement="bottom"
                     >
-                      <Text
-                        color={mutedTextColor}
-                        fontSize={{ base: "xs", md: "sm" }}
-                      >
+                      <Text color={mutedTextColor} fontSize={{ base: "xs", md: "sm" }}>
                         {formatDistanceToNow(convertToDate(list?.createdAt), {
                           locale: ptBR,
                           addSuffix: true,
@@ -707,12 +629,7 @@ export default function ListPage() {
                   borderRadius="full"
                 >
                   <Flex align="center">
-                    <Icon
-                      as={list?.isPublic ? Globe : Lock}
-                      weight="fill"
-                      mr={1}
-                      size={12}
-                    />
+                    <Icon as={list?.isPublic ? Globe : Lock} weight="fill" mr={1} size={12} />
                     {list?.isPublic ? "Pública" : "Privada"}
                   </Flex>
                 </Badge>
@@ -731,11 +648,7 @@ export default function ListPage() {
             </Grid>
 
             {/* Conteúdo principal da lista */}
-            <Grid
-              templateColumns="1fr"
-              gap={{ base: 3, md: 6 }}
-              mb={{ base: 4, md: 6 }}
-            >
+            <Grid templateColumns="1fr" gap={{ base: 3, md: 6 }} mb={{ base: 4, md: 6 }}>
               {/* Detalhes da lista */}
               <GridItem>
                 <VStack align="start" spacing={{ base: 2, md: 4 }} h="100%">
@@ -793,16 +706,11 @@ export default function ListPage() {
 
                   {/* Botões de ação */}
                   <HStack spacing={{ base: 2, md: 4 }} w="full" flexWrap="wrap">
-                    <Box
-                      onClick={(e) => e.stopPropagation()}
-                      mr={{ base: 2, md: 4 }}
-                    >
+                    <Box onClick={(e) => e.stopPropagation()} mr={{ base: 2, md: 4 }}>
                       <ReactionButton
                         likes={
                           Array.isArray(list?.reactions)
-                            ? list.reactions
-                                .filter((r) => r.type === "like")
-                                .map((r) => r.userId)
+                            ? list.reactions.filter((r) => r.type === "like").map((r) => r.userId)
                             : []
                         }
                         onReaction={handleLikeToggle}
@@ -816,16 +724,14 @@ export default function ListPage() {
                     </Box>
 
                     <Button
-                      leftIcon={<Icon as={FaComment} />}
+                      leftIcon={<Icon as={ChatCircle} weight="fill" />}
                       variant="ghost"
                       size="sm"
                       onClick={toggleComments}
                       color={isCommentExpanded ? "blue.500" : mutedTextColor}
                       _hover={{ color: "blue.300" }}
                     >
-                      {localCommentsCount !== null
-                        ? localCommentsCount
-                        : list?.commentsCount || 0}
+                      {localCommentsCount !== null ? localCommentsCount : list?.commentsCount || 0}
                     </Button>
 
                     <Button
@@ -869,12 +775,7 @@ export default function ListPage() {
                 </Flex>
 
                 {list?.items.length === 0 ? (
-                  <Alert
-                    status="info"
-                    borderRadius="md"
-                    bg="gray.700"
-                    borderColor="gray.700"
-                  >
+                  <Alert status="info" borderRadius="md" bg="gray.700" borderColor="gray.700">
                     <AlertIcon />
                     <AlertTitle>Esta lista está vazia</AlertTitle>
                   </Alert>
@@ -884,22 +785,14 @@ export default function ListPage() {
                     spacing={{ base: 2, md: 3 }}
                   >
                     {list?.items.map((item) => {
-                      const seriesData = {
+                      const seriesData: SeriesListItem = {
                         id: item.seriesId,
                         name: item.name,
                         poster_path: item.poster_path,
-                        backdrop_path: "",
+                        backdrop_path: null,
                         overview: "",
                         vote_average: 0,
                         first_air_date: "",
-                        number_of_seasons: 0,
-                        genres: [],
-                        networks: [],
-                        status: "",
-                        popularity: 0,
-                        in_production: false,
-                        homepage: "",
-                        last_air_date: "",
                       };
 
                       return (
@@ -910,7 +803,7 @@ export default function ListPage() {
                           transition="transform 0.2s ease"
                           _hover={{ transform: "scale(1.02)" }}
                         >
-                          <SeriesCard series={seriesData as any} size="sm" />
+                          <SeriesCard series={seriesData} size="sm" />
                           {currentUser && list.userId === currentUser.uid && (
                             <Box
                               position="absolute"
@@ -933,8 +826,7 @@ export default function ListPage() {
                                 opacity={0.9}
                                 _hover={{
                                   transform: "scale(1.1)",
-                                  boxShadow:
-                                    "0 0 0 1px var(--chakra-colors-red-500)",
+                                  boxShadow: "0 0 0 1px var(--chakra-colors-red-500)",
                                 }}
                                 transition="all 0.2s"
                                 borderRadius="full"
@@ -955,14 +847,7 @@ export default function ListPage() {
 
         {/* Seção de comentários */}
         <Collapse in={isCommentExpanded} animateOpacity>
-          <Box
-            bg={cardBg}
-            borderRadius="xl"
-            overflow="hidden"
-            mb={8}
-            boxShadow="lg"
-            id="comments"
-          >
+          <Box bg={cardBg} borderRadius="xl" overflow="hidden" mb={8} boxShadow="lg" id="comments">
             <CommentSection
               objectId={list?.id || ""}
               objectType="list"
@@ -1033,12 +918,7 @@ export default function ListPage() {
             </InputGroup>
 
             {searchResults.length > 0 ? (
-              <Grid
-                templateColumns="repeat(3, 1fr)"
-                gap={2}
-                maxH="300px"
-                overflowY="auto"
-              >
+              <Grid templateColumns="repeat(3, 1fr)" gap={2} maxH="300px" overflowY="auto">
                 {searchResults.map((series) => (
                   <GridItem key={series.id} position="relative">
                     <Box
@@ -1073,9 +953,7 @@ export default function ListPage() {
                           {series.name}
                         </Text>
                       </Box>
-                      {list?.items.some(
-                        (item) => item.seriesId === series.id
-                      ) && (
+                      {list?.items.some((item) => item.seriesId === series.id) && (
                         <Box
                           position="absolute"
                           top={1}
@@ -1106,9 +984,7 @@ export default function ListPage() {
                 {isSearching ? (
                   <Skeleton height="100px" />
                 ) : searchPerformed ? (
-                  <Text color="gray.400">
-                    Nenhum resultado encontrado. Tente outra busca.
-                  </Text>
+                  <Text color="gray.400">Nenhum resultado encontrado. Tente outra busca.</Text>
                 ) : (
                   <Text color="gray.400">Esperando por uma série...</Text>
                 )}
@@ -1131,8 +1007,8 @@ export default function ListPage() {
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              Tem certeza que deseja remover "{seriesNameToRemove}" da lista?
-              Esta ação não pode ser desfeita.
+              Tem certeza que deseja remover "{seriesNameToRemove}" da lista? Esta ação não pode ser
+              desfeita.
             </AlertDialogBody>
 
             <AlertDialogFooter>
@@ -1148,10 +1024,7 @@ export default function ListPage() {
               <Button
                 bg="red.500"
                 _hover={{ bg: "red.600" }}
-                onClick={() =>
-                  seriesIdToRemove &&
-                  handleRemoveSeriesFromList(seriesIdToRemove)
-                }
+                onClick={() => seriesIdToRemove && handleRemoveSeriesFromList(seriesIdToRemove)}
                 ml={3}
                 isLoading={isRemovingSeries === seriesIdToRemove}
               >

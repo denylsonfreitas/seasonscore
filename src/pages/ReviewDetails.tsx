@@ -1,3 +1,5 @@
+import type { SeasonReview } from "../types/review";
+import type { UserData } from "../services/users";
 import {
   Box,
   Container,
@@ -25,7 +27,7 @@ import {
 } from "@chakra-ui/react";
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link as RouterLink, useNavigate } from "react-router-dom";
-import { ArrowLeft, ChatCircle, NotePencil, Calendar, Share } from "@phosphor-icons/react";
+import { ArrowLeft, Calendar, ChatCircle, NotePencil, Share } from "@phosphor-icons/react";
 import { useAuth } from "../contexts/AuthContext";
 import { getReviewDetails, toggleReaction } from "../services/reviews";
 import { getUserData } from "../services/users";
@@ -37,23 +39,27 @@ import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 import { CommentSection } from "../components/common/CommentSection";
 import { ReactionButtons } from "../components/reviews/ReactionButtons";
 import { Footer } from "../components/common/Footer";
-import { FaComment } from "react-icons/fa";
+
+type ReviewDetails = NonNullable<Awaited<ReturnType<typeof getReviewDetails>>>;
 
 export function ReviewDetails() {
-  const { reviewId, seasonNumber: seasonNumberParam } = useParams<{ reviewId: string; seasonNumber: string }>();
+  const { reviewId, seasonNumber: seasonNumberParam } = useParams<{
+    reviewId: string;
+    seasonNumber: string;
+  }>();
   const navigate = useNavigate();
   const toast = useToast();
   const { currentUser } = useAuth();
-  
-  const [review, setReview] = useState<any>(null);
-  const [userData, setUserData] = useState<any>(null);
+
+  const [review, setReview] = useState<ReviewDetails | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(
     seasonNumberParam ? parseInt(seasonNumberParam) : 1
   );
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [loadingReactions, setLoadingReactions] = useState<{[key: string]: boolean}>({});
+  const [loadingReactions, setLoadingReactions] = useState<{ [key: string]: boolean }>({});
   const { isOpen: isCommentExpanded, onToggle: toggleComments } = useDisclosure();
   const [localCommentsCount, setLocalCommentsCount] = useState<number | null>(null);
   const [isLiked, setIsLiked] = useState(false);
@@ -67,18 +73,18 @@ export function ReviewDetails() {
 
   // Seleção da temporada atual para exibição
   const activeSeasonReview = review?.seasonReviews?.find(
-    (sr: any) => sr.seasonNumber === selectedSeasonNumber
+    (sr: SeasonReview) => sr.seasonNumber === selectedSeasonNumber
   );
 
   // Buscar detalhes da avaliação
   const fetchReviewDetails = useCallback(async () => {
     if (!reviewId) return;
-    
+
     // Só exibir o loading na primeira carga
     if (isInitialLoad) {
       setIsLoading(true);
     }
-    
+
     try {
       const reviewData = await getReviewDetails(reviewId);
       if (!reviewData) {
@@ -95,21 +101,21 @@ export function ReviewDetails() {
       // Se temos um número de temporada na URL, verificar se existe
       if (seasonNumberParam) {
         const seasonExists = reviewData.seasonReviews.some(
-          (sr: any) => sr.seasonNumber === parseInt(seasonNumberParam)
+          (sr: SeasonReview) => sr.seasonNumber === parseInt(seasonNumberParam)
         );
-        
+
         if (!seasonExists) {
           // Se a temporada não existe, usar a primeira temporada disponível
           setSelectedSeasonNumber(reviewData.seasonReviews[0]?.seasonNumber || 1);
         }
       }
-      
+
       setReview(reviewData);
-      
+
       // Buscar dados do usuário que fez a avaliação
       const userDataResult = await getUserData(reviewData.userId);
       setUserData(userDataResult);
-      
+
       // Após a primeira carga bem-sucedida, atualizar o estado
       if (isInitialLoad) {
         setIsInitialLoad(false);
@@ -133,13 +139,13 @@ export function ReviewDetails() {
   // Nova função para atualizar em segundo plano sem alterar o estado de loading
   const updateReviewInBackground = useCallback(async () => {
     if (!reviewId) return;
-    
+
     try {
       const reviewData = await getReviewDetails(reviewId);
       if (!reviewData) return;
-      
+
       setReview(reviewData);
-      
+
       // Atualizar dados do usuário apenas se necessário
       if (!userData) {
         const userDataResult = await getUserData(reviewData.userId);
@@ -163,7 +169,9 @@ export function ReviewDetails() {
   // Efeito para atualizar estados de reação quando a revisão muda
   useEffect(() => {
     if (activeSeasonReview?.reactions?.likes) {
-      const userLiked = currentUser ? activeSeasonReview.reactions.likes.includes(currentUser.uid) : false;
+      const userLiked = currentUser
+        ? activeSeasonReview.reactions.likes.includes(currentUser.uid)
+        : false;
       setIsLiked(userLiked);
       setLikesCount(activeSeasonReview.reactions.likes.length || 0);
     } else {
@@ -173,86 +181,88 @@ export function ReviewDetails() {
   }, [activeSeasonReview, currentUser]);
 
   // Lidar com reações (curtidas) - Versão com UI otimista
-  const handleReaction = useCallback(async (reviewId: string, seasonNumber: number, type: "likes", event: React.MouseEvent) => {
-    if (!currentUser || !review) {
-      toast({
-        title: "Erro",
-        description: "Você precisa estar logado para reagir a uma avaliação",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-    
-    const loadingKey = `${reviewId}-${seasonNumber}-${type}`;
-    
-    // Evitar múltiplos cliques
-    if (loadingReactions[loadingKey]) return;
-    
-    setLoadingReactions(prev => ({ ...prev, [loadingKey]: true }));
-    
-    try {
-      // Atualizar UI imediatamente (abordagem otimista)
-      setIsLiked(!isLiked);
-      setLikesCount(prevCount => isLiked ? Math.max(0, prevCount - 1) : prevCount + 1);
-      
-      // Atualizar a cópia local do review para refletir a reação
-      const updatedReview = { ...review };
-      const seasonIndex = updatedReview.seasonReviews.findIndex(
-        (sr: any) => sr.seasonNumber === seasonNumber
-      );
-      
-      if (seasonIndex !== -1) {
-        // Garantir que o objeto reactions existe
-        if (!updatedReview.seasonReviews[seasonIndex].reactions) {
-          updatedReview.seasonReviews[seasonIndex].reactions = { likes: [] };
-        }
-        
-        const likes = updatedReview.seasonReviews[seasonIndex].reactions.likes;
-        
-        if (isLiked) {
-          // Remover o like
-          const userIndex = likes.indexOf(currentUser.uid);
-          if (userIndex !== -1) {
-            likes.splice(userIndex, 1);
-          }
-        } else {
-          // Adicionar o like
-          if (!likes.includes(currentUser.uid)) {
-            likes.push(currentUser.uid);
-          }
-        }
-        
-        setReview(updatedReview);
+  const handleReaction = useCallback(
+    async (reviewId: string, seasonNumber: number, type: "likes", _event: React.MouseEvent) => {
+      if (!currentUser || !review) {
+        toast({
+          title: "Erro",
+          description: "Você precisa estar logado para reagir a uma avaliação",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
       }
-      
-      // Chamar API em background
-      const result = await toggleReaction(reviewId, seasonNumber, type);
-      
-      // Atualizar dados em segundo plano sem mostrar carregamento
-      setTimeout(() => {
-        updateReviewInBackground();
-      }, 1000);
-      
-    } catch (error) {
-      console.error("Erro ao reagir à avaliação:", error);
-      
-      // Reverter a UI em caso de erro
-      setIsLiked(!isLiked);  // Reverte a alteração otimista
-      setLikesCount(prevCount => !isLiked ? Math.max(0, prevCount - 1) : prevCount + 1);  // Reverte a contagem
-      
-      toast({
-        title: "Erro",
-        description: "Não foi possível processar sua reação.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setLoadingReactions(prev => ({ ...prev, [loadingKey]: false }));
-    }
-  }, [currentUser, toast, loadingReactions, isLiked, likesCount, review, updateReviewInBackground]);
+
+      const loadingKey = `${reviewId}-${seasonNumber}-${type}`;
+
+      // Evitar múltiplos cliques
+      if (loadingReactions[loadingKey]) return;
+
+      setLoadingReactions((prev) => ({ ...prev, [loadingKey]: true }));
+
+      try {
+        // Atualizar UI imediatamente (abordagem otimista)
+        setIsLiked(!isLiked);
+        setLikesCount((prevCount) => (isLiked ? Math.max(0, prevCount - 1) : prevCount + 1));
+
+        // Atualizar a cópia local do review para refletir a reação
+        const updatedReview = { ...review };
+        const seasonIndex = updatedReview.seasonReviews.findIndex(
+          (sr: SeasonReview) => sr.seasonNumber === seasonNumber
+        );
+
+        if (seasonIndex !== -1) {
+          // Garantir que o objeto reactions existe
+          if (!updatedReview.seasonReviews[seasonIndex].reactions) {
+            updatedReview.seasonReviews[seasonIndex].reactions = { likes: [] };
+          }
+
+          const likes = updatedReview.seasonReviews[seasonIndex].reactions.likes;
+
+          if (isLiked) {
+            // Remover o like
+            const userIndex = likes.indexOf(currentUser.uid);
+            if (userIndex !== -1) {
+              likes.splice(userIndex, 1);
+            }
+          } else {
+            // Adicionar o like
+            if (!likes.includes(currentUser.uid)) {
+              likes.push(currentUser.uid);
+            }
+          }
+
+          setReview(updatedReview);
+        }
+
+        // Chamar API em background
+        await toggleReaction(reviewId, seasonNumber, type);
+
+        // Atualizar dados em segundo plano sem mostrar carregamento
+        setTimeout(() => {
+          updateReviewInBackground();
+        }, 1000);
+      } catch (error) {
+        console.error("Erro ao reagir à avaliação:", error);
+
+        // Reverter a UI em caso de erro
+        setIsLiked(!isLiked); // Reverte a alteração otimista
+        setLikesCount((prevCount) => (!isLiked ? Math.max(0, prevCount - 1) : prevCount + 1)); // Reverte a contagem
+
+        toast({
+          title: "Erro",
+          description: "Não foi possível processar sua reação.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      } finally {
+        setLoadingReactions((prev) => ({ ...prev, [loadingKey]: false }));
+      }
+    },
+    [currentUser, toast, loadingReactions, isLiked, likesCount, review, updateReviewInBackground]
+  );
 
   const handleShare = async () => {
     if (!review) return;
@@ -260,19 +270,19 @@ export function ReviewDetails() {
     try {
       const url = window.location.href;
       await navigator.clipboard.writeText(url);
-      
+
       toast({
-        title: 'Link copiado!',
-        description: 'O link para esta avaliação foi copiado para sua área de transferência',
-        status: 'success',
+        title: "Link copiado!",
+        description: "O link para esta avaliação foi copiado para sua área de transferência",
+        status: "success",
         duration: 3000,
         isClosable: true,
       });
     } catch (error) {
       toast({
-        title: 'Erro',
-        description: 'Não foi possível copiar o link',
-        status: 'error',
+        title: "Erro",
+        description: "Não foi possível copiar o link",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -294,7 +304,9 @@ export function ReviewDetails() {
       <Center minH="100vh" bg="gray.900">
         <VStack spacing={4}>
           <Spinner size="xl" color="primary.500" thickness="4px" speed="0.65s" />
-          <Text color="gray.400" fontWeight="medium">Carregando avaliação...</Text>
+          <Text color="gray.400" fontWeight="medium">
+            Carregando avaliação...
+          </Text>
         </VStack>
       </Center>
     );
@@ -303,12 +315,22 @@ export function ReviewDetails() {
   if (!review || !activeSeasonReview) {
     return (
       <Center minH="100vh" bg="gray.900">
-        <VStack spacing={6} p={8} bg="gray.800" borderRadius="xl" boxShadow="lg" maxW="md" textAlign="center">
-          <Icon as={ChatCircle} boxSize={16} color="gray.500" />
-          <Text color="gray.400" fontSize="lg">Avaliação não encontrada</Text>
-          <Button 
-            as={RouterLink} 
-            to="/reviews" 
+        <VStack
+          spacing={6}
+          p={8}
+          bg="gray.800"
+          borderRadius="xl"
+          boxShadow="lg"
+          maxW="md"
+          textAlign="center"
+        >
+          <Icon as={ChatCircle} weight="fill" boxSize={16} color="gray.500" />
+          <Text color="gray.400" fontSize="lg">
+            Avaliação não encontrada
+          </Text>
+          <Button
+            as={RouterLink}
+            to="/reviews"
             leftIcon={<ArrowLeft />}
             colorScheme="primary"
             size="lg"
@@ -324,69 +346,70 @@ export function ReviewDetails() {
 
   // Formatação das datas
   let createdAtDate;
-  
+
   try {
     // Verificar o tipo de dado
     if (activeSeasonReview.createdAt instanceof Date) {
       createdAtDate = activeSeasonReview.createdAt;
     }
     // Verificar se é um objeto Firestore Timestamp
-    else if (activeSeasonReview.createdAt && 
-             typeof activeSeasonReview.createdAt === 'object' && 
-             'toDate' in activeSeasonReview.createdAt && 
-             typeof activeSeasonReview.createdAt.toDate === 'function') {
+    else if (
+      activeSeasonReview.createdAt &&
+      typeof activeSeasonReview.createdAt === "object" &&
+      "toDate" in activeSeasonReview.createdAt &&
+      typeof activeSeasonReview.createdAt.toDate === "function"
+    ) {
       createdAtDate = activeSeasonReview.createdAt.toDate();
     }
     // Verificar se é um timestamp numérico (em segundos ou milissegundos)
-    else if (typeof activeSeasonReview.createdAt === 'number') {
+    else if (typeof activeSeasonReview.createdAt === "number") {
       // Se for em segundos (timestamp do Firestore), converter para milissegundos
-      const timestamp = activeSeasonReview.createdAt < 1000000000000 
-        ? activeSeasonReview.createdAt * 1000 // É em segundos, converter para milissegundos
-        : activeSeasonReview.createdAt; // Já está em milissegundos
+      const timestamp =
+        activeSeasonReview.createdAt < 1000000000000
+          ? activeSeasonReview.createdAt * 1000 // É em segundos, converter para milissegundos
+          : activeSeasonReview.createdAt; // Já está em milissegundos
       createdAtDate = new Date(timestamp);
     }
     // Se for uma string, tentar parseá-la
-    else if (typeof activeSeasonReview.createdAt === 'string') {
+    else if (typeof activeSeasonReview.createdAt === "string") {
       createdAtDate = new Date(activeSeasonReview.createdAt);
     }
     // Caso não seja nenhum dos formatos reconhecidos
     else {
-      console.warn('Formato de data não reconhecido:', activeSeasonReview.createdAt);
+      console.warn("Formato de data não reconhecido:", activeSeasonReview.createdAt);
       createdAtDate = new Date(); // Usar data atual como fallback
     }
   } catch (error) {
-    console.error('Erro ao processar data:', error);
+    console.error("Erro ao processar data:", error);
     createdAtDate = new Date(); // Usar data atual como fallback
   }
-  
+
   // Verificar se a data é válida
   const isValidDate = createdAtDate && !isNaN(createdAtDate.getTime());
 
-  
-  const formattedDateDistance = isValidDate 
+  const formattedDateDistance = isValidDate
     ? formatDistanceToNow(createdAtDate, { locale: ptBR, addSuffix: true })
     : "Data desconhecida";
-  const formattedDate = isValidDate 
+  const formattedDate = isValidDate
     ? format(createdAtDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
     : "Data desconhecida";
 
   return (
     <Flex direction="column" minH="100vh" bg="gray.900">
-
       <Container maxW="container.lg" py={6} flex="1">
         {/* Breadcrumbs com efeito de hover */}
-        <Breadcrumb 
-          mb={6} 
-          color="gray.400" 
-          separator=">" 
-          fontSize="xs" 
-          fontWeight="medium" 
+        <Breadcrumb
+          mb={6}
+          color="gray.400"
+          separator=">"
+          fontSize="xs"
+          fontWeight="medium"
           spacing={2}
         >
           <BreadcrumbItem>
-            <BreadcrumbLink 
-              as={RouterLink} 
-              to={`/series/${review.seriesId}`} 
+            <BreadcrumbLink
+              as={RouterLink}
+              to={`/series/${review.seriesId}`}
               _hover={{ color: "primary.300", textDecoration: "none" }}
               transition="color 0.2s ease"
             >
@@ -394,9 +417,9 @@ export function ReviewDetails() {
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbItem>
-            <BreadcrumbLink 
-              as={RouterLink} 
-              to={`/series/${review.seriesId}/reviews`} 
+            <BreadcrumbLink
+              as={RouterLink}
+              to={`/series/${review.seriesId}/reviews`}
               _hover={{ color: "primary.300", textDecoration: "none" }}
               transition="color 0.2s ease"
             >
@@ -409,27 +432,26 @@ export function ReviewDetails() {
         </Breadcrumb>
 
         {/* Card principal com gradiente e efeitos visuais */}
-        <Box 
-          bg={cardBg} 
-          borderRadius="xl" 
-          overflow="hidden" 
+        <Box
+          bg={cardBg}
+          borderRadius="xl"
+          overflow="hidden"
           mb={8}
           boxShadow="lg"
           position="relative"
-
         >
           <Box p={{ base: 4, md: 8 }}>
             {/* Informações do usuário e data */}
-            <Grid 
+            <Grid
               templateColumns={{ base: "1fr", md: "auto 1fr auto" }}
-              gap={4} 
+              gap={4}
               mb={6}
               alignItems="center"
             >
               <HStack spacing={4}>
-                <UserAvatar 
-                  userId={review.userId} 
-                  userEmail={review.userEmail} 
+                <UserAvatar
+                  userId={review.userId}
+                  userEmail={review.userEmail}
                   photoURL={userData?.photoURL}
                   size="md"
                   showBorder
@@ -437,17 +459,17 @@ export function ReviewDetails() {
                 <VStack align="start" spacing={1}>
                   <HStack>
                     <Text fontWeight="medium" color={textColor}>
-                      Avaliação de 
+                      Avaliação de
                     </Text>
-                    <Text 
+                    <Text
                       as={RouterLink}
                       to={`/u/${userData?.username || review.userId}`}
-                      fontWeight="bold" 
-                      color={primaryColor} 
+                      fontWeight="bold"
+                      color={primaryColor}
                       _hover={{ textDecoration: "underline" }}
                       transition="color 0.2s"
                     >
-                      @{userData?.username || userData?.displayName || 'Usuário'}
+                      @{userData?.username || userData?.displayName || "Usuário"}
                     </Text>
                   </HStack>
                   <HStack spacing={2}>
@@ -463,20 +485,14 @@ export function ReviewDetails() {
 
               {/* Badge da temporada em telas grandes */}
               <Box display={{ base: "none", md: "flex" }} justifyContent="flex-end">
-                <Badge 
-                  colorScheme="primary" 
-                  fontSize="md" 
-                  py={1} 
-                  px={3}
-                  borderRadius="full"
-                >
+                <Badge colorScheme="primary" fontSize="md" py={1} px={3} borderRadius="full">
                   Temporada {selectedSeasonNumber}
                 </Badge>
               </Box>
 
               {/* Botão de editar */}
               {currentUser?.uid === review.userId && (
-                <Box 
+                <Box
                   position={{ base: "absolute", md: "relative" }}
                   top={{ base: 4, md: 0 }}
                   right={{ base: 4, md: 0 }}
@@ -494,17 +510,17 @@ export function ReviewDetails() {
             </Grid>
 
             {/* Conteúdo principal da avaliação */}
-            <Grid 
-              templateColumns={{ base: "auto 1fr", md: "auto 1fr" }} 
+            <Grid
+              templateColumns={{ base: "auto 1fr", md: "auto 1fr" }}
               gap={{ base: 3, md: 6 }}
               mb={6}
             >
               {/* Poster com efeito de sombra */}
               {review.series.poster_path && (
                 <GridItem>
-                  <Box 
-                    width={{ base: "100px", md: "180px" }} 
-                    borderRadius="lg" 
+                  <Box
+                    width={{ base: "100px", md: "180px" }}
+                    borderRadius="lg"
                     overflow="hidden"
                     boxShadow="md"
                     transition="transform 0.3s ease, box-shadow 0.3s ease"
@@ -527,26 +543,26 @@ export function ReviewDetails() {
               <GridItem>
                 <VStack align="start" spacing={4} h="100%">
                   <Box w="full">
-                    <Text 
+                    <Text
                       as={RouterLink}
                       to={`/series/${review.seriesId}`}
-                      fontSize={{ base: "md", md: "2xl" }} 
-                      fontWeight="bold" 
+                      fontSize={{ base: "md", md: "2xl" }}
+                      fontWeight="bold"
                       color={textColor}
                       lineHeight="shorter"
                       mb={1}
                       display="inline-block"
-                      _hover={{ 
+                      _hover={{
                         color: primaryColor,
-                        textDecoration: "none" 
+                        textDecoration: "none",
                       }}
                       transition="color 0.2s"
                     >
                       {review.series.name}
                     </Text>
-                    <Text 
-                      fontSize={{ base: "sm", md: "lg" }} 
-                      fontWeight="medium" 
+                    <Text
+                      fontSize={{ base: "sm", md: "lg" }}
+                      fontWeight="medium"
                       color={mutedTextColor}
                       display={{ base: "block", md: "none" }}
                     >
@@ -555,16 +571,16 @@ export function ReviewDetails() {
                   </Box>
 
                   {/* Estrelas de avaliação */}
-                  <Box 
-                    p={2} 
-                    bg="gray.700" 
-                    borderRadius="lg" 
+                  <Box
+                    p={2}
+                    bg="gray.700"
+                    borderRadius="lg"
                     alignSelf="flex-start"
                     display={{ base: "inline-block", md: "block" }}
                   >
-                    <RatingStars 
-                      rating={activeSeasonReview.rating || 0} 
-                      size={24} 
+                    <RatingStars
+                      rating={activeSeasonReview.rating || 0}
+                      size={24}
                       showNumber={true}
                     />
                   </Box>
@@ -574,26 +590,26 @@ export function ReviewDetails() {
 
             {/* Comentário em uma nova linha */}
             {activeSeasonReview.comment && (
-              <Box 
-                w="full" 
-                p={4} 
-                bg="gray.850" 
-                borderRadius="lg" 
-                borderLeftWidth="4px" 
+              <Box
+                w="full"
+                p={4}
+                bg="gray.850"
+                borderRadius="lg"
+                borderLeftWidth="4px"
                 borderLeftColor="primary.500"
                 overflowWrap="break-word"
                 wordBreak="break-word"
                 mb={6}
               >
-                <Text 
-                  color={textColor} 
-                  fontSize="md" 
+                <Text
+                  color={textColor}
+                  fontSize="md"
                   whiteSpace="pre-wrap"
                   lineHeight="taller"
                   overflowWrap="break-word"
                   wordBreak="break-word"
                   sx={{
-                    hyphens: "auto"
+                    hyphens: "auto",
                   }}
                 >
                   {activeSeasonReview.comment}
@@ -602,37 +618,38 @@ export function ReviewDetails() {
             )}
 
             {/* Botões de ação */}
-            <HStack 
-              spacing={{ base: 2, md: 4 }} 
-              w="full"
-              flexWrap="wrap"
-            >
-              <Box 
-                onClick={(e) => e.stopPropagation()}
-                mr={{ base: 2, md: 4 }}
-              >
-                <ReactionButtons 
-                  reviewId={reviewId || ""} 
+            <HStack spacing={{ base: 2, md: 4 }} w="full" flexWrap="wrap">
+              <Box onClick={(e) => e.stopPropagation()} mr={{ base: 2, md: 4 }}>
+                <ReactionButtons
+                  reviewId={reviewId || ""}
                   seasonNumber={selectedSeasonNumber}
-                  likes={isLiked ? [...(activeSeasonReview.reactions?.likes || []), currentUser?.uid].filter(Boolean) : (activeSeasonReview.reactions?.likes || [])}
+                  likes={
+                    isLiked
+                      ? [...(activeSeasonReview.reactions?.likes || []), currentUser?.uid].filter(
+                          (id): id is string => Boolean(id)
+                        )
+                      : activeSeasonReview.reactions?.likes || []
+                  }
                   onReaction={handleReaction}
                   isLoading={loadingReactions[`${reviewId}-${selectedSeasonNumber}-likes`] || false}
                   forcedLikeState={isLiked}
                   forcedLikesCount={likesCount}
                 />
               </Box>
-              
+
               <Button
-                leftIcon={<Icon as={FaComment} />}
+                leftIcon={<Icon as={ChatCircle} weight="fill" />}
                 variant="ghost"
                 size="sm"
                 onClick={toggleComments}
                 color={isCommentExpanded ? "blue.500" : mutedTextColor}
                 _hover={{ color: "blue.300" }}
               >
-                {localCommentsCount !== null ? localCommentsCount : (activeSeasonReview.comments?.length || 0)}
+                {localCommentsCount !== null
+                  ? localCommentsCount
+                  : activeSeasonReview.comments?.length || 0}
               </Button>
-              
+
               <Button
                 leftIcon={<Icon as={Share} />}
                 variant="ghost"
@@ -647,10 +664,10 @@ export function ReviewDetails() {
 
             {/* Seletor de temporadas caso exista mais de uma avaliação */}
             {review.seasonReviews.length > 1 && (
-              <Box 
-                mb={6} 
-                p={4} 
-                bg="gray.750" 
+              <Box
+                mb={6}
+                p={4}
+                bg="gray.750"
                 borderRadius="lg"
                 borderWidth="1px"
                 borderColor="gray.700"
@@ -659,7 +676,7 @@ export function ReviewDetails() {
                   Outras temporadas avaliadas:
                 </Text>
                 <Flex gap={2} wrap="wrap">
-                  {review.seasonReviews.map((sr: any) => (
+                  {review.seasonReviews.map((sr: SeasonReview) => (
                     <Button
                       key={sr.seasonNumber}
                       size="sm"
@@ -668,7 +685,8 @@ export function ReviewDetails() {
                       onClick={() => navigate(`/reviews/${reviewId}/${sr.seasonNumber}`)}
                       borderRadius="full"
                       _hover={{
-                        transform: sr.seasonNumber !== selectedSeasonNumber ? "translateY(-2px)" : "none",
+                        transform:
+                          sr.seasonNumber !== selectedSeasonNumber ? "translateY(-2px)" : "none",
                       }}
                       transition="transform 0.2s ease"
                     >
@@ -683,13 +701,8 @@ export function ReviewDetails() {
 
         {/* Seção de comentários com animação de collapse */}
         <Collapse in={isCommentExpanded} animateOpacity>
-          <Box 
-            bg={cardBg} 
-            borderRadius="xl" 
-            mb={8}
-            boxShadow="md"
-          >
-            <CommentSection 
+          <Box bg={cardBg} borderRadius="xl" mb={8} boxShadow="md">
+            <CommentSection
               objectId={reviewId || ""}
               seasonNumber={selectedSeasonNumber}
               objectType="review"
@@ -698,20 +711,20 @@ export function ReviewDetails() {
             />
           </Box>
         </Collapse>
-        
+
         {/* Botão para expandir/colapsar comentários quando fechados */}
-        {!isCommentExpanded && activeSeasonReview?.comments?.length > 0 && (
+        {!isCommentExpanded && (activeSeasonReview?.comments?.length ?? 0) > 0 && (
           <Button
             onClick={toggleComments}
             variant="outline"
             colorScheme="gray"
-            leftIcon={<Icon as={ChatCircle} />}
+            leftIcon={<Icon as={ChatCircle} weight="fill" />}
             mb={8}
             w="full"
             borderRadius="lg"
             _hover={{ bg: "gray.700" }}
           >
-            Ver {activeSeasonReview.comments.length} comentários
+            Ver {activeSeasonReview?.comments?.length} comentários
           </Button>
         )}
       </Container>
@@ -730,4 +743,4 @@ export function ReviewDetails() {
       <Footer />
     </Flex>
   );
-} 
+}

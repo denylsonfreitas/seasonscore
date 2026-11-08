@@ -1,36 +1,28 @@
-import {
-  Box,
-  Container,
-  Heading,
-  Skeleton,
-  Text,
-} from "@chakra-ui/react";
+import type { SeriesResponse } from "../../services/tmdb";
+import { Box, Container, Heading, Skeleton, Text } from "@chakra-ui/react";
 import { SeriesCard } from "./SeriesCard";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import { carouselStyles, seriesSliderSettings } from "../../styles/carouselStyles";
+import { Carousel } from "../common/Carousel";
 
 interface RelatedSeriesProps {
-  relatedSeries: any;
+  relatedSeries: SeriesResponse | undefined;
   isLoading: boolean;
   currentSeriesId: string | number;
 }
 
-export function RelatedSeries({
-  relatedSeries,
-  isLoading,
-  currentSeriesId,
-}: RelatedSeriesProps) {
+export function RelatedSeries({ relatedSeries, isLoading, currentSeriesId }: RelatedSeriesProps) {
   if (isLoading) {
     return (
       <Container maxW="container.lg">
         <Heading color="white" size="xl" mb={8}>
           Séries Relacionadas
         </Heading>
-        <Box 
-          display="grid" 
-          gridTemplateColumns={{ base: "repeat(3, 1fr)", md: "repeat(4, 1fr)", lg: "repeat(6, 1fr)" }} 
+        <Box
+          display="grid"
+          gridTemplateColumns={{
+            base: "repeat(3, 1fr)",
+            md: "repeat(4, 1fr)",
+            lg: "repeat(6, 1fr)",
+          }}
           gap={4}
         >
           {[...Array(6)].map((_, i) => (
@@ -43,10 +35,8 @@ export function RelatedSeries({
     );
   }
 
-  const filteredSeries = relatedSeries?.results 
-    ? relatedSeries.results.filter(
-        (series: any) => series.id !== Number(currentSeriesId)
-      )
+  const filteredSeries = relatedSeries?.results
+    ? relatedSeries.results.filter((series) => series.id !== Number(currentSeriesId))
     : [];
 
   if (filteredSeries.length === 0) {
@@ -62,26 +52,20 @@ export function RelatedSeries({
     );
   }
 
-  // Configurações personalizadas para o slider
-  const sliderSettings = {
-    ...seriesSliderSettings,
-    slidesToShow: Math.min(filteredSeries.length, 7),
-  };
-
   return (
     <Container maxW="container.lg">
       <Heading color="white" size="xl" mb={8}>
         Séries Relacionadas
       </Heading>
-      <Box sx={carouselStyles} pb={8}>
-        <Slider {...sliderSettings}>
-          {filteredSeries.map((series: any) => (
+      <Box pb={8}>
+        <Carousel preset="series">
+          {filteredSeries.map((series) => (
             <Box key={series.id}>
               <SeriesCard series={series} size="lg" />
             </Box>
           ))}
-        </Slider>
+        </Carousel>
       </Box>
     </Container>
   );
-} 
+}

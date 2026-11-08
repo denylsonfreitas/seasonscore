@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, useBreakpointValue, PositionProps } from "@chakra-ui/react";
+import { Box, useBreakpointValue, type BoxProps } from "@chakra-ui/react";
 import { createPortal } from "react-dom";
 
 // Hook para gerenciar estado do menu animado
-export function useAnimatedMenu(options = {}) {
+export function useAnimatedMenu(_options = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -39,7 +39,7 @@ interface AnimatedMenuProps {
   isVisible?: boolean;
   onOpen: () => void;
   onClose: () => void;
-  menuStyles?: Record<string, any>;
+  menuStyles?: BoxProps;
   /** Posição fixa do menu (será sobrescrita se alignWithTrigger=true) */
   position?: Position;
   /** Posição responsiva do menu - sobrescreve position */
@@ -81,28 +81,27 @@ export function AnimatedMenu({
   alignOnlyOnDesktop = false,
   transformOrigin = "top right",
 }: AnimatedMenuProps) {
-  
   // Handler para impedir propagação de cliques
   const stopPropagation = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
   }, []);
-  
+
   // React Hooks para breakpoints - todos no início do componente
   const isMobile = useBreakpointValue({ base: true, md: false });
   const responsivePositionValue = useBreakpointValue(responsivePosition || {});
-  const responsiveWidthValue = useBreakpointValue(typeof width === 'object' ? width : {});
-  
+  const responsiveWidthValue = useBreakpointValue(typeof width === "object" ? width : {});
+
   // Variáveis derivadas - não são hooks
   const currentPosition = responsivePositionValue || position;
-  const widthStyle = typeof width === 'string' ? width : responsiveWidthValue || '260px';
+  const widthStyle = typeof width === "string" ? width : responsiveWidthValue || "260px";
   const visibilityState = isVisible !== undefined ? isVisible : isOpen;
-  
+
   // Refs e state
   const triggerRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [menuPosition, setMenuPosition] = useState<Position>(currentPosition);
   const [positionCalculated, setPositionCalculated] = useState(false);
-  
+
   // Calcular a posição do menu apenas quando necessário
   const calculateMenuPosition = useCallback(() => {
     if (alignWithTrigger && triggerRef.current && isOpen && !positionCalculated) {
@@ -111,10 +110,10 @@ export function AnimatedMenu({
         setMenuPosition(currentPosition);
       } else {
         const rect = triggerRef.current.getBoundingClientRect();
-        
+
         setMenuPosition({
           top: `${rect.bottom + 8}px`, // 8px de espaço abaixo do trigger
-          right: window.innerWidth - rect.right + 'px', // Alinhado com a direita do trigger
+          right: window.innerWidth - rect.right + "px", // Alinhado com a direita do trigger
         });
       }
       setPositionCalculated(true);
@@ -123,58 +122,58 @@ export function AnimatedMenu({
       setPositionCalculated(true);
     }
   }, [alignWithTrigger, isOpen, currentPosition, positionCalculated, isMobile, alignOnlyOnDesktop]);
-  
+
   // Configurando um handler para fechar o menu ao clicar fora
   useEffect(() => {
     if (isOpen) {
       const handleClickOutside = (e: MouseEvent) => {
         // Se o clique não foi no menu nem no trigger, fechar
         if (
-          menuRef.current && 
-          !menuRef.current.contains(e.target as Node) && 
-          triggerRef.current && 
+          menuRef.current &&
+          !menuRef.current.contains(e.target as Node) &&
+          triggerRef.current &&
           !triggerRef.current.contains(e.target as Node)
         ) {
           onClose();
         }
       };
-      
+
       // Adicionar handler depois de um pequeno delay
       const timeoutId = setTimeout(() => {
-        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener("mousedown", handleClickOutside);
       }, 100);
-      
+
       return () => {
         clearTimeout(timeoutId);
-        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener("mousedown", handleClickOutside);
       };
     }
   }, [isOpen, onClose]);
-  
+
   // Atualizar posição do menu apenas quando necessário
   useEffect(() => {
     if (isOpen) {
       calculateMenuPosition();
-      
+
       // Adicionar observador de redimensionamento apenas quando alinhado ao trigger
       if (alignWithTrigger) {
         const handleResize = () => {
           setPositionCalculated(false);
           calculateMenuPosition();
         };
-        
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
       }
     } else {
       setPositionCalculated(false);
     }
   }, [isOpen, calculateMenuPosition, alignWithTrigger]);
-  
+
   // Memoize overlay para evitar recriações em cada render
   const overlay = useMemo(() => {
     if (!showOverlay || !isOpen) return null;
-    
+
     return createPortal(
       <Box
         position="fixed"
@@ -187,46 +186,47 @@ export function AnimatedMenu({
         bg={overlayBg}
         pointerEvents={visibilityState ? "auto" : "none"}
         opacity={visibilityState && overlayBg !== "transparent" ? 1 : 0}
-        transition={overlayBg !== "transparent" ? "opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1)" : undefined}
+        transition={
+          overlayBg !== "transparent" ? "opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1)" : undefined
+        }
         data-testid="animated-menu-overlay"
       />,
       document.body
     );
   }, [showOverlay, isOpen, zIndex?.overlay, onClose, overlayBg, visibilityState]);
-  
+
   return (
     <>
       {/* O trigger do menu */}
       <Box ref={triggerRef} display="inline-block" onClick={onOpen}>
         {trigger}
       </Box>
-      
+
       {/* Overlay - renderizado apenas quando necessário */}
       {overlay}
-      
+
       {/* Menu - renderizado via Portal para evitar problemas de z-index */}
-      {isOpen && createPortal(
-        <Box
-          ref={menuRef}
-          onClick={stopPropagation}
-          position="fixed"
-          {...menuPosition}
-          width={widthStyle}
-          zIndex={zIndex?.menu}
-          transform={visibilityState 
-            ? "translateY(0) scale(1)" 
-            : "translateY(-15px) scale(0.95)"}
-          opacity={visibilityState ? 1 : 0}
-          transition="transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s"
-          transformOrigin={transformOrigin}
-          willChange="transform, opacity"
-          {...menuStyles}
-          data-testid="animated-menu"
-        >
-          {children}
-        </Box>,
-        document.body
-      )}
+      {isOpen &&
+        createPortal(
+          <Box
+            ref={menuRef}
+            onClick={stopPropagation}
+            position="fixed"
+            {...menuPosition}
+            width={widthStyle}
+            zIndex={zIndex?.menu}
+            transform={visibilityState ? "translateY(0) scale(1)" : "translateY(-15px) scale(0.95)"}
+            opacity={visibilityState ? 1 : 0}
+            transition="transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s"
+            transformOrigin={transformOrigin}
+            willChange="transform, opacity"
+            {...menuStyles}
+            data-testid="animated-menu"
+          >
+            {children}
+          </Box>,
+          document.body
+        )}
     </>
   );
 }
@@ -236,9 +236,13 @@ export function AnimatedMenu({
  */
 export function useAnimatedMenuComponent(options = {}) {
   const menuHook = useAnimatedMenu(options);
-  
+
   const AnimatedMenuComponent = useCallback(
-    ({ trigger, children, ...props }: Omit<AnimatedMenuProps, 'isOpen' | 'onOpen' | 'onClose' | 'isVisible'>) => (
+    ({
+      trigger,
+      children,
+      ...props
+    }: Omit<AnimatedMenuProps, "isOpen" | "onOpen" | "onClose" | "isVisible">) => (
       <AnimatedMenu
         trigger={trigger}
         isOpen={menuHook.isOpen}
@@ -252,9 +256,9 @@ export function useAnimatedMenuComponent(options = {}) {
     ),
     [menuHook.isOpen, menuHook.handleOpen, menuHook.handleClose, menuHook.isVisible]
   );
-  
+
   return {
     ...menuHook,
     AnimatedMenuComponent,
   };
-} 
+}

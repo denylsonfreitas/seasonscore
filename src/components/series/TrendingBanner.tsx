@@ -1,10 +1,10 @@
-import { Box, Heading, Text, VStack, HStack, IconButton, Button, Image, Skeleton } from "@chakra-ui/react";
+import { Box, Heading, Text, VStack, HStack, IconButton, Image, Skeleton } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getTrendingSeries } from "../../services/tmdb";
 import { useNavigate } from "react-router-dom";
-import { CaretLeft, CaretRight, SignIn, UserCircle } from "@phosphor-icons/react";
+import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { useAuth } from "../../contexts/AuthContext";
-import { useAuthUIStore } from "../../services/uiState";
 
 interface TrendingSeries {
   id: number;
@@ -19,21 +19,33 @@ interface TrendingSeries {
 }
 
 export function TrendingBanner() {
-  const [trendingSeries, setTrendingSeries] = useState<TrendingSeries[]>([]);
+  const { data: trendingSeries = [] } = useQuery({
+    queryKey: ["trendingSeries"],
+    queryFn: async () => (await getTrendingSeries()).slice(0, 10) as TrendingSeries[],
+    staleTime: 1000 * 60 * 30,
+  });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const navigate = useNavigate();
   const { currentUser } = useAuth();
 
-  useEffect(() => {
-    const fetchTrendingSeries = async () => {
-      const series = await getTrendingSeries();
-      setTrendingSeries(series.slice(0, 10));
-    };
+  const handlePrevious = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (isTransitioning) return;
 
-    fetchTrendingSeries();
-  }, []);
+    setIsTransitioning(true);
+    setCurrentIndex((prevIndex) => (prevIndex === 0 ? trendingSeries.length - 1 : prevIndex - 1));
+    setTimeout(() => setIsTransitioning(false), 500);
+  };
 
+  const handleNext = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (isTransitioning) return;
+
+    setIsTransitioning(true);
+    setCurrentIndex((prevIndex) => (prevIndex + 1) % trendingSeries.length);
+    setTimeout(() => setIsTransitioning(false), 500);
+  };
   useEffect(() => {
     if (trendingSeries.length === 0) return;
 
@@ -44,34 +56,12 @@ export function TrendingBanner() {
     return () => clearInterval(interval);
   }, [trendingSeries.length]);
 
-  const handlePrevious = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    if (isTransitioning) return;
-    
-    setIsTransitioning(true);
-    setCurrentIndex((prevIndex) => 
-      prevIndex === 0 ? trendingSeries.length - 1 : prevIndex - 1
-    );
-    setTimeout(() => setIsTransitioning(false), 500);
-  };
-
-  const handleNext = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    if (isTransitioning) return;
-    
-    setIsTransitioning(true);
-    setCurrentIndex((prevIndex) => 
-      (prevIndex + 1) % trendingSeries.length
-    );
-    setTimeout(() => setIsTransitioning(false), 500);
-  };
-
   if (!trendingSeries.length) return null;
 
   const currentSeries = trendingSeries[currentIndex];
 
   return (
-    <Box 
+    <Box
       position="relative"
       cursor="pointer"
       onClick={() => navigate(`/series/${currentSeries.id}`)}
@@ -88,12 +78,7 @@ export function TrendingBanner() {
         willChange: "transform",
       }}
     >
-      <Box
-        h={{ base: "400px", md: "400px" }}
-        w="100%"
-        position="relative"
-        overflow="hidden"
-      >
+      <Box h={{ base: "400px", md: "400px" }} w="100%" position="relative" overflow="hidden">
         <Box
           position="absolute"
           top={0}
@@ -145,16 +130,16 @@ export function TrendingBanner() {
                 </Heading>
               )}
             </Skeleton>
-            <Text 
-              color="gray.200" 
-              fontSize={{ base: "md", md: "lg" }} 
+            <Text
+              color="gray.200"
+              fontSize={{ base: "md", md: "lg" }}
               noOfLines={2}
               transition="transform 0.3s ease"
               transform={isTransitioning ? "translateY(20px)" : "translateY(0)"}
             >
               {currentSeries.overview}
             </Text>
-            
+
             <HStack spacing={4} align="center" mt={currentUser ? 0 : 2}>
               <IconButton
                 icon={<CaretLeft size={20} weight="bold" />}
@@ -201,4 +186,4 @@ export function TrendingBanner() {
       </Box>
     </Box>
   );
-} 
+}

@@ -35,7 +35,7 @@ interface ReviewEditModalProps {
   review: SeriesReview & {
     series: {
       name: string;
-      poster_path?: string;
+      poster_path?: string | null;
     };
   };
   onReviewUpdated: () => void;
@@ -53,7 +53,9 @@ export function ReviewEditModal({
 }: ReviewEditModalProps) {
   // Encontrar a avaliação da temporada inicial
   const initialSeasonReview = initialSeasonNumber
-    ? review.seasonReviews.find((sr: { seasonNumber: number }) => sr.seasonNumber === initialSeasonNumber)
+    ? review.seasonReviews.find(
+        (sr: { seasonNumber: number }) => sr.seasonNumber === initialSeasonNumber
+      )
     : review.seasonReviews[0];
 
   const [rating, setRating] = useState(initialSeasonReview?.rating || 0);
@@ -130,9 +132,9 @@ export function ReviewEditModal({
 
   return (
     <>
-      <Modal 
-        isOpen={isOpen} 
-        onClose={onClose} 
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
         size="xl"
         scrollBehavior="inside"
         blockScrollOnMount={false}
@@ -167,7 +169,8 @@ export function ReviewEditModal({
                       const newSeasonNumber = Number(e.target.value);
                       setSeasonNumber(newSeasonNumber);
                       const seasonReview = review.seasonReviews.find(
-                        (sr: { seasonNumber: number; rating: number; comment?: string }) => sr.seasonNumber === newSeasonNumber
+                        (sr: { seasonNumber: number; rating: number; comment?: string }) =>
+                          sr.seasonNumber === newSeasonNumber
                       );
                       setRating(seasonReview?.rating || 0);
                       setComment(seasonReview?.comment || "");
@@ -184,7 +187,11 @@ export function ReviewEditModal({
                     }}
                   >
                     {review.seasonReviews.map((sr: { seasonNumber: number }) => (
-                      <option key={sr.seasonNumber} value={sr.seasonNumber} style={{ backgroundColor: "#2D3748" }}>
+                      <option
+                        key={sr.seasonNumber}
+                        value={sr.seasonNumber}
+                        style={{ backgroundColor: "#2D3748" }}
+                      >
                         Temporada {sr.seasonNumber}
                       </option>
                     ))}
@@ -194,12 +201,7 @@ export function ReviewEditModal({
                   <Text color="gray.400" mb={2}>
                     Avaliação:
                   </Text>
-                  <RatingStars
-                    rating={rating}
-                    onChange={setRating}
-                    size={32}
-                    isEditable
-                  />
+                  <RatingStars rating={rating} onChange={setRating} size={32} isEditable />
                 </Box>
                 <FormControl mt={4}>
                   <FormLabel color="white">Comentário (opcional)</FormLabel>
@@ -218,7 +220,7 @@ export function ReviewEditModal({
                     {comment.length}/{COMMENT_MAX_LENGTH} caracteres
                   </Text>
                 </FormControl>
-                
+
                 <Flex direction="row" gap={3} mt={2}>
                   <Button
                     bg="red.500"
@@ -255,7 +257,8 @@ export function ReviewEditModal({
               Excluir avaliação
             </AlertDialogHeader>
             <AlertDialogBody color="white">
-              Tem certeza que deseja excluir sua avaliação da temporada {seasonNumber}? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir sua avaliação da temporada {seasonNumber}? Esta ação
+              não pode ser desfeita.
             </AlertDialogBody>
             <AlertDialogFooter>
               <Button

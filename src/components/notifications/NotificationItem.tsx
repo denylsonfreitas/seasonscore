@@ -1,4 +1,5 @@
-import React, { memo } from 'react';
+import { ChatCircle, Heart, Star, User, VideoCamera } from "@phosphor-icons/react";
+import React, { memo } from "react";
 import {
   Box,
   Flex,
@@ -9,167 +10,156 @@ import {
   Stack,
   Checkbox,
   useTheme,
-} from '@chakra-ui/react';
-import {
-  FaUser, FaComment, FaVideo, FaStar
-} from 'react-icons/fa';
-import { FaHeart } from 'react-icons/fa';
-import { Notification, NotificationType } from '../../services/notifications';
-import { UserAvatar } from '../common/UserAvatar';
-import { formatNotificationDate } from '../../utils/dateUtils';
+} from "@chakra-ui/react";
+import { Notification, NotificationType } from "../../services/notifications";
+import { UserAvatar } from "../common/UserAvatar";
+import { formatNotificationDate } from "../../utils/dateUtils";
 
 export interface NotificationItemProps {
   notification: Notification;
   onClick: (notification: Notification) => void;
   index: number;
-  getItemAnimationStyle: (index: number) => any;
+  getItemAnimationStyle: (index: number) => React.CSSProperties;
   isSelectionMode?: boolean;
   isSelected?: boolean;
   onSelect?: (id: string) => void;
 }
 
-export const NotificationItem = memo(({
-  notification,
-  onClick,
-  index,
-  getItemAnimationStyle,
-  isSelectionMode = false,
-  isSelected = false,
-  onSelect
-}: NotificationItemProps) => {
-  const theme = useTheme();
-  
-  const notificationColors = {
-    newfollower: theme?.colors?.notifications?.newfollower || "#2B6CB0",
-    newcomment: theme?.colors?.notifications?.newcomment || "#2F855A",
-    newlike: theme?.colors?.notifications?.newlike || "#C05621",
-    newepisode: theme?.colors?.notifications?.newepisode || "#2F855A",
-    newreview: theme?.colors?.notifications?.newreview || "#F6AD55"
-  };
+export const NotificationItem = memo(
+  ({
+    notification,
+    onClick,
+    index,
+    getItemAnimationStyle,
+    isSelectionMode = false,
+    isSelected = false,
+    onSelect,
+  }: NotificationItemProps) => {
+    const theme = useTheme();
 
-  const isUserDeleted = !notification.senderId || 
-                        !notification.senderName || 
-                        notification.isDeleted || 
-                        notification.senderName === 'Usuário excluído';
+    const notificationColors = {
+      newfollower: theme?.colors?.notifications?.newfollower || "#2B6CB0",
+      newcomment: theme?.colors?.notifications?.newcomment || "#2F855A",
+      newlike: theme?.colors?.notifications?.newlike || "#C05621",
+      newepisode: theme?.colors?.notifications?.newepisode || "#2F855A",
+      newreview: theme?.colors?.notifications?.newreview || "#F6AD55",
+    };
 
-  const formattedDate = formatNotificationDate(notification.createdAt);
-  
-  const getNotificationIcon = () => {
-    if (isUserDeleted) {
-      return <Box as={FaUser} color="gray.400" />;
-    }
-    
-    switch (notification.type) {
-      case NotificationType.NEW_FOLLOWER:
-        return <Box as={FaUser} color={notificationColors.newfollower} />;
-      case NotificationType.NEW_COMMENT:
-      case NotificationType.LIST_COMMENT:
-        return <Box as={FaComment} color={notificationColors.newcomment} />;
-      case NotificationType.NEW_REACTION:
-      case NotificationType.LIST_REACTION:
-        return <Box as={FaHeart} color={notificationColors.newlike} />;
-      case NotificationType.NEW_EPISODE:
-        return <Box as={FaVideo} color={notificationColors.newepisode} />;
-      case NotificationType.NEW_REVIEW:
-        return <Box as={FaStar} color={notificationColors.newreview} />;
-      default:
-        return <Box as={FaUser} color={notificationColors.newfollower} />;
-    }
-  };
-  
-  const bgColor = useColorModeValue(
-    notification.read ? 'gray.700' : 'gray.750',
-    notification.read ? 'gray.750' : 'gray.700'
-  );
-  
-  const hoverBgColor = useColorModeValue('gray.600', 'gray.600');
+    const isUserDeleted =
+      !notification.senderId ||
+      !notification.senderName ||
+      notification.isDeleted ||
+      notification.senderName === "Usuário excluído";
 
-  const handleCheckboxClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onSelect) {
-      onSelect(notification.id);
-    }
-  };
+    const formattedDate = formatNotificationDate(notification.createdAt);
 
-  return (
-    <Box
-      borderBottomWidth="1px"
-      borderBottomColor="gray.700"
-      transition="all 0.2s"
-      bg={bgColor}
-      _hover={{ bg: hoverBgColor }}
-      opacity="0"
-      transform="translateY(10px)"
-      style={getItemAnimationStyle(index)}
-      onClick={() => onClick(notification)}
-      cursor="pointer"
-    >
-      <Flex p={3} alignItems="center">
-        {isSelectionMode && (
-          <Box mr={2} onClick={handleCheckboxClick}>
-            <Checkbox 
-              isChecked={isSelected}
-              colorScheme="primary"
-              size="md"
-            />
-          </Box>
-        )}
-        
-        <Box mr={3}>
-          {notification.senderId ? (
-            <UserAvatar
-              userId={notification.senderId}
-              photoURL={isUserDeleted ? null : notification.senderPhoto}
-              size="sm"
-              isDeleted={isUserDeleted}
-              name={notification.senderName}
-            />
-          ) : (
-            <Box
-              borderRadius="full"
-              bg="gray.600"
-              p={2}
-              fontSize="sm"
-              color="white"
-            >
-              {getNotificationIcon()}
+    const getNotificationIcon = () => {
+      if (isUserDeleted) {
+        return <Box as={User} weight="fill" color="gray.400" />;
+      }
+
+      switch (notification.type) {
+        case NotificationType.NEW_FOLLOWER:
+          return <Box as={User} weight="fill" color={notificationColors.newfollower} />;
+        case NotificationType.NEW_COMMENT:
+        case NotificationType.LIST_COMMENT:
+          return <Box as={ChatCircle} weight="fill" color={notificationColors.newcomment} />;
+        case NotificationType.NEW_REACTION:
+        case NotificationType.LIST_REACTION:
+          return <Box as={Heart} weight="fill" color={notificationColors.newlike} />;
+        case NotificationType.NEW_EPISODE:
+          return <Box as={VideoCamera} weight="fill" color={notificationColors.newepisode} />;
+        case NotificationType.NEW_REVIEW:
+          return <Box as={Star} weight="fill" color={notificationColors.newreview} />;
+        default:
+          return <Box as={User} weight="fill" color={notificationColors.newfollower} />;
+      }
+    };
+
+    const bgColor = useColorModeValue(
+      notification.read ? "gray.700" : "gray.750",
+      notification.read ? "gray.750" : "gray.700"
+    );
+
+    const hoverBgColor = useColorModeValue("gray.600", "gray.600");
+
+    const handleCheckboxClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (onSelect) {
+        onSelect(notification.id);
+      }
+    };
+
+    return (
+      <Box
+        borderBottomWidth="1px"
+        borderBottomColor="gray.700"
+        transition="all 0.2s"
+        bg={bgColor}
+        _hover={{ bg: hoverBgColor }}
+        opacity="0"
+        transform="translateY(10px)"
+        style={getItemAnimationStyle(index)}
+        onClick={() => onClick(notification)}
+        cursor="pointer"
+      >
+        <Flex p={3} alignItems="center">
+          {isSelectionMode && (
+            <Box mr={2} onClick={handleCheckboxClick}>
+              <Checkbox isChecked={isSelected} colorScheme="primary" size="md" />
             </Box>
           )}
-        </Box>
 
-        <Stack flex="1" spacing={0.5}>
-          <HStack>
-            <Text 
-              fontSize="sm" 
-              fontWeight={notification.read ? "normal" : "bold"}
-              color={notification.read ? "gray.300" : "white"}
-              noOfLines={2}
-            >
-              {notification.message}
-            </Text>
-          </HStack>
-          
-          <HStack spacing={2}>
-            <Text fontSize="xs" color="gray.400">
-              {formattedDate}
-            </Text>
-            
-            {!notification.read && (
-              <Badge 
-                colorScheme="primary" 
-                variant="solid" 
-                fontSize="9px"
-                borderRadius="full"
-                px={1.5}
-              >
-                Novo
-              </Badge>
+          <Box mr={3}>
+            {notification.senderId ? (
+              <UserAvatar
+                userId={notification.senderId}
+                photoURL={isUserDeleted ? null : notification.senderPhoto}
+                size="sm"
+                isDeleted={isUserDeleted}
+                name={notification.senderName}
+              />
+            ) : (
+              <Box borderRadius="full" bg="gray.600" p={2} fontSize="sm" color="white">
+                {getNotificationIcon()}
+              </Box>
             )}
-          </HStack>
-        </Stack>
-      </Flex>
-    </Box>
-  );
-});
+          </Box>
 
-NotificationItem.displayName = 'NotificationItem';
+          <Stack flex="1" spacing={0.5}>
+            <HStack>
+              <Text
+                fontSize="sm"
+                fontWeight={notification.read ? "normal" : "bold"}
+                color={notification.read ? "gray.300" : "white"}
+                noOfLines={2}
+              >
+                {notification.message}
+              </Text>
+            </HStack>
+
+            <HStack spacing={2}>
+              <Text fontSize="xs" color="gray.400">
+                {formattedDate}
+              </Text>
+
+              {!notification.read && (
+                <Badge
+                  colorScheme="primary"
+                  variant="solid"
+                  fontSize="9px"
+                  borderRadius="full"
+                  px={1.5}
+                >
+                  Novo
+                </Badge>
+              )}
+            </HStack>
+          </Stack>
+        </Flex>
+      </Box>
+    );
+  }
+);
+
+NotificationItem.displayName = "NotificationItem";

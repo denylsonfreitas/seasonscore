@@ -44,7 +44,7 @@ const colors = {
     800: "#1a202c",
     900: "#171923",
   },
- 
+
   reactions: {
     like: "#FF101F",
     dislike: "#800020",
@@ -226,15 +226,15 @@ const theme = extendTheme({
         popper: {
           zIndex: 1500,
           width: "auto",
-          maxWidth: "100vw"
+          maxWidth: "100vw",
         },
         content: {
           boxShadow: "lg",
           borderRadius: "xl",
           _focus: { boxShadow: "lg", outline: "none" },
-          '& > .chakra-popover__close-btn': {
-            display: 'none !important',
-          }
+          "& > .chakra-popover__close-btn": {
+            display: "none !important",
+          },
         },
         body: {
           padding: "0",
@@ -247,9 +247,9 @@ const theme = extendTheme({
           visibility: "hidden",
           opacity: 0,
           position: "absolute",
-          pointerEvents: "none"
-        }
-      }
+          pointerEvents: "none",
+        },
+      },
     },
     Badge: {
       baseStyle: {

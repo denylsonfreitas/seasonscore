@@ -1,3 +1,4 @@
+import type { Series } from "../../../services/tmdb";
 import React from "react";
 import {
   VStack,
@@ -14,7 +15,7 @@ import {
 } from "@chakra-ui/react";
 
 interface SeriesDetailsTabProps {
-  series: any; // O tipo completo seria melhor
+  series: Series;
 }
 
 export function SeriesDetailsTab({ series }: SeriesDetailsTabProps) {
@@ -50,7 +51,7 @@ export function SeriesDetailsTab({ series }: SeriesDetailsTabProps) {
             Criado por
           </Heading>
           <Wrap spacing={4}>
-            {series.created_by.map((creator: any) => (
+            {series.created_by.map((creator) => (
               <WrapItem key={creator.id}>
                 <Box>
                   <Avatar
@@ -78,7 +79,7 @@ export function SeriesDetailsTab({ series }: SeriesDetailsTabProps) {
             Produção
           </Heading>
           <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={6}>
-            {series.production_companies.map((company: any) => (
+            {series.production_companies.map((company) => (
               <Box
                 key={company.id}
                 bg="gray.800"
@@ -101,12 +102,12 @@ export function SeriesDetailsTab({ series }: SeriesDetailsTabProps) {
                       mx="auto"
                     />
                   ) : (
-                    <Flex 
-                      align="center" 
-                      justify="center" 
-                      bg="gray.700" 
-                      width="60px" 
-                      height="60px" 
+                    <Flex
+                      align="center"
+                      justify="center"
+                      bg="gray.700"
+                      width="60px"
+                      height="60px"
                       borderRadius="md"
                     >
                       <Text color="white" fontSize="xl">
@@ -125,4 +126,4 @@ export function SeriesDetailsTab({ series }: SeriesDetailsTabProps) {
       )}
     </VStack>
   );
-} 
+}

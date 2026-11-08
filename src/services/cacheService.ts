@@ -17,8 +17,8 @@ export const DEFAULT_CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutos em ms
 /** Classe que gerencia o cache global */
 class CacheService {
   /** Armazenamento de cache */
-  private cache: Record<string, CacheItem<any>> = {};
-  
+  private cache: Record<string, CacheItem<unknown>> = {};
+
   /**
    * Obtém um item do cache se existir e não estiver expirado
    * @param key Chave do item
@@ -26,19 +26,19 @@ class CacheService {
    */
   get<T>(key: string, expiryTime = DEFAULT_CACHE_EXPIRY): T | null {
     const item = this.cache[key];
-    
+
     if (!item) return null;
-    
+
     const now = Date.now();
     if (now - item.timestamp > expiryTime) {
       // Item expirado
       delete this.cache[key];
       return null;
     }
-    
-    return item.data;
+
+    return item.data as T;
   }
-  
+
   /**
    * Armazena um item no cache
    * @param key Chave do item
@@ -50,7 +50,7 @@ class CacheService {
       timestamp: Date.now(),
     };
   }
-  
+
   /**
    * Verifica se um item no cache é válido (existe e não está expirado)
    * @param key Chave do item
@@ -59,11 +59,11 @@ class CacheService {
   isValid(key: string, expiryTime = DEFAULT_CACHE_EXPIRY): boolean {
     const item = this.cache[key];
     if (!item) return false;
-    
+
     const now = Date.now();
-    return (now - item.timestamp) < expiryTime;
+    return now - item.timestamp < expiryTime;
   }
-  
+
   /**
    * Remove um item do cache
    * @param key Chave do item
@@ -71,7 +71,7 @@ class CacheService {
   remove(key: string): void {
     delete this.cache[key];
   }
-  
+
   /**
    * Limpa todo o cache ou itens com um prefixo específico
    * @param prefix Prefixo opcional para limpar apenas itens com este prefixo
@@ -81,15 +81,15 @@ class CacheService {
       this.cache = {};
       return;
     }
-    
+
     // Limpar apenas itens que começam com o prefixo
-    Object.keys(this.cache).forEach(key => {
+    Object.keys(this.cache).forEach((key) => {
       if (key.startsWith(prefix)) {
         delete this.cache[key];
       }
     });
   }
-  
+
   /**
    * Atualiza a timestamp de um item de cache para renovar sua validade
    * @param key Chave do item
@@ -112,24 +112,24 @@ export const userCache = {
    * @param userId ID do usuário
    */
   getUser: <T>(userId: string) => cacheService.get<T>(`user:${userId}`),
-  
+
   /**
    * Armazena um usuário no cache
    * @param userId ID do usuário
    * @param data Dados do usuário
    */
   setUser: <T>(userId: string, data: T) => cacheService.set(`user:${userId}`, data),
-  
+
   /**
    * Verifica se um usuário está no cache e é válido
    * @param userId ID do usuário
    */
   isUserValid: (userId: string) => cacheService.isValid(`user:${userId}`),
-  
+
   /**
    * Limpa o cache de usuários
    */
-  clearUsers: () => cacheService.clear('user:'),
+  clearUsers: () => cacheService.clear("user:"),
 };
 
-export default cacheService; 
+export default cacheService;

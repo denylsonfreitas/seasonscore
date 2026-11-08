@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  Flex,
-  Box,
-  Text,
-  HStack,
-  Divider,
-} from "@chakra-ui/react";
+import { Flex, Box, Text, HStack, Divider } from "@chakra-ui/react";
 
 export interface ProfileStatsProps {
   reviewsCount: number;
@@ -25,10 +19,8 @@ export function ProfileStats({
   onShowReviews,
   onShowWatchlist,
   onShowLists,
-  isOwnProfile,
-  activeSection = "reviews"
+  activeSection = "reviews",
 }: ProfileStatsProps) {
-
   const menuItems = [
     {
       key: "reviews",
@@ -51,14 +43,12 @@ export function ProfileStats({
   ];
 
   return (
-    <Box
-      w="100%"
-    >
+    <Box w="100%">
       <HStack spacing={6} align="center" justify="flex-start" py={2}>
-        {menuItems.map((item, index) => (
+        {menuItems.map((item, _index) => (
           <React.Fragment key={item.key}>
-            <Flex 
-              align="center" 
+            <Flex
+              align="center"
               onClick={item.onClick}
               cursor="pointer"
               position="relative"
@@ -78,8 +68,8 @@ export function ProfileStats({
                   : {}
               }
             >
-              <Text 
-                fontWeight={activeSection === item.key ? "bold" : "medium"} 
+              <Text
+                fontWeight={activeSection === item.key ? "bold" : "medium"}
                 color={activeSection === item.key ? "primary.300" : "gray.300"}
                 mr={2}
                 transition="all 0.2s"
@@ -87,12 +77,12 @@ export function ProfileStats({
               >
                 {item.label}
               </Text>
-              <Box 
-                bg={activeSection === item.key ? "primary.500" : "gray.700"} 
+              <Box
+                bg={activeSection === item.key ? "primary.500" : "gray.700"}
                 color={activeSection === item.key ? "white" : "gray.400"}
-                px={2} 
-                py={0.5} 
-                borderRadius="full" 
+                px={2}
+                py={0.5}
+                borderRadius="full"
                 fontSize="xs"
                 minW="24px"
                 textAlign="center"
@@ -106,4 +96,4 @@ export function ProfileStats({
       <Divider borderColor="gray.700" />
     </Box>
   );
-} 
+}

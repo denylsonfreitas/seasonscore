@@ -9,7 +9,6 @@ import {
   Button,
   useToast,
   Text,
-  Textarea,
   Image,
   Spinner,
   AspectRatio,
@@ -23,32 +22,21 @@ import {
 } from "@chakra-ui/react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { createOrUpdateUser, getUserData, isUsernameAvailable, updateUsername } from "../services/users";
-import { updateProfile } from "firebase/auth";
+import { getUserData, isUsernameAvailable, updateProfile, updateUsername } from "../services/users";
 import { useNavigate } from "react-router-dom";
-import { getSeriesDetails } from "../services/tmdb";
-import { SearchModal } from "../components/layout/SearchModal";
-import { ExtendedUser } from "../types/auth";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
-import {
-  Image as ImageIcon,
-  UploadSimple,
-  Plus,
-  X,
-} from "@phosphor-icons/react";
-import { db, auth } from "../config/firebase";
-import { doc, updateDoc, getDoc } from "firebase/firestore";
+import { Image as ImageIcon, UploadSimple, Plus, X } from "@phosphor-icons/react";
 import { UserAvatar } from "../components/common/UserAvatar";
+import { logError } from "../utils/logger";
 
 export function ProfileSettings() {
-  const { currentUser } = useAuth() as { currentUser: ExtendedUser | null };
+  const { currentUser, refreshUser } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [displayName, setDisplayName] = useState("");
-  const [coverURL, setCoverURL] = useState("");
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [uploadingCover, setUploadingCover] = useState(false);
+  const [, setCoverURL] = useState("");
+  const [, setUploadingPhoto] = useState(false);
+  const [, setUploadingCover] = useState(false);
   const [isRemovingPhoto, setIsRemovingPhoto] = useState(false);
   const [isRemovingCover, setIsRemovingCover] = useState(false);
   const [tempPhotoURL, setTempPhotoURL] = useState<string | null>(null);
@@ -60,7 +48,7 @@ export function ProfileSettings() {
   const MAX_NAME_LENGTH = 15;
   const [newUsername, setNewUsername] = useState("");
   const [usernameError, setUsernameError] = useState("");
-  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [, setIsCheckingUsername] = useState(false);
   const [isCurrentUsername, setIsCurrentUsername] = useState(false);
 
   useEffect(() => {
@@ -73,7 +61,7 @@ export function ProfileSettings() {
         setIsRemovingCover(false);
         setTempPhotoURL(null);
         setTempCoverURL(null);
-        
+
         const userData = await getUserData(currentUser.uid);
         if (userData) {
           setDisplayName(userData.displayName || "");
@@ -81,6 +69,7 @@ export function ProfileSettings() {
           setNewUsername(userData.username || "");
         }
       } catch (error) {
+        logError("loadUserData", error);
       } finally {
         setIsLoading(false);
       }
@@ -89,9 +78,7 @@ export function ProfileSettings() {
     loadUserData();
   }, [currentUser]);
 
-  const handlePhotoUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || !event.target.files[0] || !currentUser) return;
 
     setUploadingPhoto(true);
@@ -121,9 +108,7 @@ export function ProfileSettings() {
     }
   };
 
-  const handleCoverUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || !event.target.files[0] || !currentUser) return;
 
     setUploadingCover(true);
@@ -143,8 +128,7 @@ export function ProfileSettings() {
     } catch (error) {
       toast({
         title: "Erro ao carregar capa",
-        description:
-          "Ocorreu um erro ao carregar sua foto de capa. Tente novamente.",
+        description: "Ocorreu um erro ao carregar sua foto de capa. Tente novamente.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -173,6 +157,7 @@ export function ProfileSettings() {
           setUsernameError("");
         }
       } catch (error) {
+        logError("checkUsername", error);
       } finally {
         setIsCheckingUsername(false);
       }
@@ -198,13 +183,13 @@ export function ProfileSettings() {
   }, [newUsername]);
 
   const handleSave = async () => {
-    if (!currentUser || !auth.currentUser) return;
+    if (!currentUser) return;
 
     setIsSaving(true);
     try {
       const userData = await getUserData(currentUser.uid);
       const currentUsername = userData?.username?.toLowerCase();
-      
+
       if (newUsername && newUsername.toLowerCase() !== currentUsername) {
         if (newUsername.length < 3) {
           throw new Error("O nome de usuário deve ter pelo menos 3 caracteres");
@@ -222,39 +207,12 @@ export function ProfileSettings() {
       const photoURLToUse = isRemovingPhoto ? null : tempPhotoURL || currentUser?.photoURL;
       const coverURLToUse = isRemovingCover ? null : tempCoverURL || currentUser?.coverURL;
 
-      const baseData = {
+      await updateProfile(currentUser.uid, {
         displayName,
-        photoURL: photoURLToUse,
-        coverURL: coverURLToUse,
-        ...(newUsername ? { username: newUsername.toLowerCase() } : {})
-      };
-
-      const updatedData = {
-        ...baseData,
-      };
-
-      await createOrUpdateUser(auth.currentUser, updatedData);
-
-      if (isRemovingPhoto) {
-        try {
-          await updateProfile(auth.currentUser, {
-            displayName,
-            photoURL: '',
-          });
-          
-          const userRef = doc(db, "users", auth.currentUser.uid);
-          await updateDoc(userRef, {
-            photoURL: null
-          });
-          
-        } catch (err) {
-        }
-      } else {
-        await updateProfile(auth.currentUser, {
-          displayName,
-          photoURL: photoURLToUse,
-        });
-      }
+        photoURL: photoURLToUse ?? null,
+        coverURL: coverURLToUse ?? null,
+      });
+      await refreshUser();
 
       toast({
         title: "Perfil atualizado",
@@ -265,11 +223,8 @@ export function ProfileSettings() {
       });
 
       navigate("/profile", { replace: true });
-      window.location.reload();
-
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Erro desconhecido";
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro ao atualizar perfil",
         description: `Ocorreu um erro ao salvar suas configurações: ${errorMessage}`,
@@ -337,7 +292,7 @@ export function ProfileSettings() {
                   {/* Avatar com placeholder quando foto removida */}
                   <UserAvatar
                     size="2xl"
-                    photoURL={isRemovingPhoto ? null : (tempPhotoURL || currentUser?.photoURL)}
+                    photoURL={isRemovingPhoto ? null : tempPhotoURL || currentUser?.photoURL}
                     name={currentUser?.displayName || ""}
                     userId={currentUser?.uid}
                   />
@@ -358,12 +313,7 @@ export function ProfileSettings() {
                         rounded="full"
                         aria-label="Opções de foto de perfil"
                       />
-                      <MenuList
-                        bg="gray.700"
-                        borderColor="gray.600"
-                        zIndex={2000}
-                        minW="150px"
-                      >
+                      <MenuList bg="gray.700" borderColor="gray.600" zIndex={2000} minW="150px">
                         <MenuItem
                           icon={<UploadSimple weight="bold" />}
                           onClick={() => photoInputRef.current?.click()}
@@ -400,12 +350,7 @@ export function ProfileSettings() {
                   onChange={handleCoverUpload}
                 />
                 <AspectRatio ratio={16 / 9} maxH="150px">
-                  <Box
-                    bg="gray.700"
-                    borderRadius="md"
-                    overflow="hidden"
-                    position="relative"
-                  >
+                  <Box bg="gray.700" borderRadius="md" overflow="hidden" position="relative">
                     {isRemovingCover ? (
                       <Flex
                         align="center"
@@ -464,14 +409,10 @@ export function ProfileSettings() {
                           </Menu>
                         </Box>
                       </Flex>
-                    ) : (tempCoverURL || currentUser?.coverURL) ? (
+                    ) : tempCoverURL || currentUser?.coverURL ? (
                       <>
                         <Image
-                          src={
-                            tempCoverURL 
-                              ? tempCoverURL
-                              : currentUser?.coverURL || ''
-                          }
+                          src={tempCoverURL ? tempCoverURL : currentUser?.coverURL || ""}
                           alt="Foto de capa"
                           objectFit="cover"
                           w="100%"
@@ -575,12 +516,7 @@ export function ProfileSettings() {
                   </Text>
                 )}
               </FormControl>
-              <Button
-                colorScheme="primary"
-                onClick={handleSave}
-                isLoading={isSaving}
-                mt={4}
-              >
+              <Button colorScheme="primary" onClick={handleSave} isLoading={isSaving} mt={4}>
                 Salvar Alterações
               </Button>
             </VStack>

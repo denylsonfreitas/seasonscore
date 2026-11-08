@@ -5,20 +5,25 @@ interface ReactionButtonsProps {
   reviewId: string;
   seasonNumber: number;
   likes: string[];
-  onReaction: (reviewId: string, seasonNumber: number, type: "likes", event: React.MouseEvent) => void;
+  onReaction: (
+    reviewId: string,
+    seasonNumber: number,
+    type: "likes",
+    event: React.MouseEvent
+  ) => void;
   isLoading?: boolean;
   forcedLikeState?: boolean;
   forcedLikesCount?: number;
 }
 
-export function ReactionButtons({ 
-  reviewId, 
-  seasonNumber, 
-  likes = [], 
+export function ReactionButtons({
+  reviewId,
+  seasonNumber,
+  likes = [],
   onReaction,
   isLoading = false,
   forcedLikeState,
-  forcedLikesCount
+  forcedLikesCount,
 }: ReactionButtonsProps) {
   return (
     <Box>
@@ -32,4 +37,4 @@ export function ReactionButtons({
       />
     </Box>
   );
-} 
+}

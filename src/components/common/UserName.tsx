@@ -1,7 +1,7 @@
 import { Text, Link, Spinner, Box } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { useUserData, ExtendedUserData } from "../../hooks/useUserData";
+import { useUserData } from "../../hooks/useUserData";
 
 interface UserNameProps {
   userId: string;
@@ -13,7 +13,7 @@ interface UserNameProps {
 export function UserName({ userId, color = "white", showAt = true, isLink = true }: UserNameProps) {
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
-  const { userData, isLoading, error } = useUserData(userId);
+  const { userData, isLoading } = useUserData(userId);
 
   useEffect(() => {
     // Se o hook indica que o usuário foi excluído, mostrar "Usuário excluído"
@@ -30,7 +30,7 @@ export function UserName({ userId, color = "white", showAt = true, isLink = true
         setDisplayName(userData.username); // Usamos o username como display principal
       } else {
         // Só usamos o displayName se não houver username
-        setDisplayName(userData.displayName || userData.email?.split("@")[0] || "Usuário");
+        setDisplayName(userData.displayName || "Usuário");
       }
     } else {
       // Se não temos dados, mostrar "Usuário excluído"
@@ -46,11 +46,7 @@ export function UserName({ userId, color = "white", showAt = true, isLink = true
   // Se o usuário foi excluído ou não encontrado, mostrar texto simples em vez de link
   if (userData?.isDeleted || !userData) {
     return (
-      <Text
-        color="gray.400"
-        fontSize={{ base: "sm", md: "md" }}
-        fontStyle="italic"
-      >
+      <Text color="gray.400" fontSize={{ base: "sm", md: "md" }} fontStyle="italic">
         Usuário excluído
       </Text>
     );
@@ -59,12 +55,9 @@ export function UserName({ userId, color = "white", showAt = true, isLink = true
   // Se não for para renderizar como link, retornar apenas o texto
   if (!isLink) {
     return (
-      <Text
-        color={color}
-        fontSize={{ base: "sm", md: "xs" }}
-        fontWeight="bold"
-      >
-        {showAt && username ? "@" : ""}{displayName}
+      <Text color={color} fontSize={{ base: "sm", md: "xs" }} fontWeight="bold">
+        {showAt && username ? "@" : ""}
+        {displayName}
       </Text>
     );
   }
@@ -79,8 +72,9 @@ export function UserName({ userId, color = "white", showAt = true, isLink = true
       fontWeight="bold"
     >
       <Box as="span" display="inline">
-        {showAt && username ? "@" : ""}{displayName}
+        {showAt && username ? "@" : ""}
+        {displayName}
       </Box>
     </Link>
   );
-} 
+}

@@ -21,77 +21,63 @@ import {
   useDisclosure,
   Alert,
   AlertIcon,
-  Icon,
-  FormErrorMessage,
-  HStack,
 } from "@chakra-ui/react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { 
-  updateEmail, 
-  updatePassword, 
-  deleteUser, 
-  EmailAuthProvider, 
-  reauthenticateWithCredential,
-  sendEmailVerification,
-  verifyBeforeUpdateEmail,
-  sendPasswordResetEmail,
-  User,
-} from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { ExtendedUser } from "../types/auth";
-import { auth } from "../config/firebase";
-import { isUsernameAvailable, updateUsername, deleteUserData } from "../services/users";
-import { getFirestore, deleteDoc, doc, getDoc } from "firebase/firestore";
+import { supabase } from "../config/supabase";
+import { isUsernameAvailable, deleteCurrentUserAccount } from "../services/users";
+import { logError } from "../utils/logger";
+import { getErrorMessage } from "../utils/errors";
 
 export function Settings() {
-  const { currentUser, logout } = useAuth() as { currentUser: ExtendedUser | null, logout: () => Promise<void> };
+  const { currentUser, resetPassword } = useAuth();
+  // Contas criadas só com Google não têm senha para confirmar
+  const hasPassword = currentUser?.providers.includes("email") ?? false;
+
+  /** Confirma a senha atual entrando novamente com ela. */
+  const verifyPassword = async (password: string) => {
+    if (!hasPassword) return;
+    if (!currentUser?.email || !password) throw new Error("Informe sua senha atual.");
+    const { error } = await supabase.auth.signInWithPassword({
+      email: currentUser.email,
+      password,
+    });
+    if (error) throw new Error("Senha incorreta. Por favor, verifique e tente novamente.");
+  };
   const [showPassword, setShowPassword] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [email, setEmail] = useState(currentUser?.email || "");
   const [emailSent, setEmailSent] = useState(false);
-  
+
   // Estados para alterar email
   const [emailCurrentPassword, setEmailCurrentPassword] = useState("");
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
-  
+
   // Estados para alterar senha
-  const [passwordCurrentPassword, setPasswordCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
-  
   // Estados para deletar conta
   const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-  
+
   const { isOpen, onOpen, onClose } = useDisclosure();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const toast = useToast();
   const navigate = useNavigate();
 
-  const [newUsername, setNewUsername] = useState("");
-  const [usernameError, setUsernameError] = useState("");
-  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-
+  const [newUsername] = useState("");
+  const [, setUsernameError] = useState("");
+  const [, setIsCheckingUsername] = useState(false);
   const handleUpdateEmail = async () => {
-    if (!auth.currentUser || !emailCurrentPassword) return;
+    if (!currentUser || (hasPassword && !emailCurrentPassword)) return;
 
     setIsUpdatingEmail(true);
     try {
-      const credential = EmailAuthProvider.credential(
-        auth.currentUser.email!,
-        emailCurrentPassword
-      );
-      await reauthenticateWithCredential(auth.currentUser, credential);
-      
-      // Enviar email de verificação para o novo endereço
-      await verifyBeforeUpdateEmail(auth.currentUser, email);
-      
+      await verifyPassword(emailCurrentPassword);
+
+      // O Supabase envia um link de confirmação para o novo endereço
+      const { error } = await supabase.auth.updateUser({ email });
+      if (error) throw error;
+
       setEmailSent(true);
       toast({
         title: "Email de verificação enviado",
@@ -101,12 +87,11 @@ export function Settings() {
         isClosable: true,
       });
 
-      // Limpar campo de senha
       setEmailCurrentPassword("");
     } catch (error) {
       toast({
         title: "Erro ao atualizar email",
-        description: "Verifique sua senha e tente novamente.",
+        description: getErrorMessage(error, "Verifique sua senha e tente novamente."),
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -116,90 +101,18 @@ export function Settings() {
     }
   };
 
-  const handleUpdatePassword = async () => {
-    if (!auth.currentUser || !passwordCurrentPassword || newPassword !== confirmPassword) {
-      toast({
-        title: "Erro na validação",
-        description: "Verifique se as senhas coincidem.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    setIsUpdatingPassword(true);
-    try {
-      const credential = EmailAuthProvider.credential(
-        auth.currentUser.email!,
-        passwordCurrentPassword
-      );
-      await reauthenticateWithCredential(auth.currentUser, credential);
-      await updatePassword(auth.currentUser, newPassword);
-
-      toast({
-        title: "Senha atualizada",
-        description: "Sua senha foi atualizada com sucesso!",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-
-      // Limpar campos
-      setPasswordCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (error) {
-      toast({
-        title: "Erro ao atualizar senha",
-        description: "Verifique sua senha atual e tente novamente.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setIsUpdatingPassword(false);
-    }
-  };
-
   const handleDeleteAccount = async () => {
     setIsDeletingAccount(true);
     try {
-      if (!deleteAccountPassword) {
-        throw new Error("Por favor, insira sua senha para confirmar a exclusão da conta.");
-      }
-      
-      if (!currentUser || !currentUser.email || !auth.currentUser) {
+      if (!currentUser) {
         throw new Error("Usuário não autenticado. Por favor, faça login novamente.");
       }
-      
-      // Exibir aviso inicial ao usuário
-      toast({
-        title: "Processando exclusão",
-        description: "Estamos excluindo seus dados, isso pode levar alguns instantes...",
-        status: "info",
-        duration: 5000,
-        isClosable: true,
-      });
-      
-      // Autenticar novamente o usuário para verificar a senha
-      const credential = EmailAuthProvider.credential(
-        currentUser.email,
-        deleteAccountPassword
-      );
-      await reauthenticateWithCredential(auth.currentUser!, credential);
-
-      // Primeiro excluir os dados do usuário do banco de dados
-      const deleteResult = await deleteUserData(currentUser.uid);
-      
-      // Mensagem de aviso se algumas operações não puderam ser concluídas devido a permissões
-      if (deleteResult.details?.permissionIssues?.length > 0) {
-        console.warn("Algumas operações de exclusão foram ignoradas devido a restrições de permissão:", 
-          deleteResult.details.permissionIssues);
+      if (hasPassword && !deleteAccountPassword) {
+        throw new Error("Por favor, insira sua senha para confirmar a exclusão da conta.");
       }
 
-      // Depois excluir a conta de autenticação
-      await deleteUser(auth.currentUser!);
+      await verifyPassword(deleteAccountPassword);
+      await deleteCurrentUserAccount(currentUser.uid);
 
       toast({
         title: "Conta excluída",
@@ -208,39 +121,15 @@ export function Settings() {
         duration: 5000,
         isClosable: true,
       });
-
-      // Adicionar um pequeno atraso antes de navegar para permitir que as operações de rede terminem
-      setTimeout(() => {
-        try {
-          logout()
-            .then(() => {
-              navigate("/");
-            })
-            .catch((error) => {
-              navigate("/");
-            });
-        } catch (error) {
-          navigate("/");
-        }
-      }, 1500);
-    } catch (error: any) {
-
-      let errorMessage = "Verifique sua senha e tente novamente.";
-      
-      if (error.code === 'auth/wrong-password') {
-        errorMessage = "Senha incorreta. Por favor, verifique e tente novamente.";
-      } else if (error.code === 'auth/requires-recent-login') {
-        errorMessage = "Por motivos de segurança, faça login novamente antes de excluir sua conta.";
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = "Muitas tentativas. Por favor, aguarde alguns minutos e tente novamente.";
-      } else {
-        // Se for um erro durante a exclusão dos dados e não autenticação
-        errorMessage = "Ocorreu um erro ao excluir sua conta. Por favor, tente novamente mais tarde.";
-      }
-
+      navigate("/");
+    } catch (error) {
+      logError("handleDeleteAccount", error);
       toast({
         title: "Erro ao excluir conta",
-        description: errorMessage,
+        description: getErrorMessage(
+          error,
+          "Ocorreu um erro ao excluir sua conta. Por favor, tente novamente mais tarde."
+        ),
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -258,10 +147,10 @@ export function Settings() {
   };
 
   const handleResetPassword = async () => {
-    if (!auth.currentUser?.email) return;
+    if (!currentUser?.email) return;
 
     try {
-      await sendPasswordResetEmail(auth, auth.currentUser.email);
+      await resetPassword(currentUser.email);
       toast({
         title: "Email enviado",
         description: "Verifique sua caixa de entrada para redefinir sua senha.",
@@ -272,74 +161,13 @@ export function Settings() {
     } catch (error) {
       toast({
         title: "Erro ao enviar email",
-        description: "Não foi possível enviar o email de redefinição de senha.",
+        description: getErrorMessage(error, "Não foi possível enviar o email de redefinição."),
         status: "error",
         duration: 3000,
         isClosable: true,
       });
     }
   };
-
-  const handleUsernameChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setUsernameError("");
-
-    try {
-      if (!passwordCurrentPassword) {
-        throw new Error("A senha atual é necessária para alterar o nome de usuário");
-      }
-
-      if (newUsername.length < 3) {
-        throw new Error("O nome de usuário deve ter pelo menos 3 caracteres");
-      }
-
-      if (!/^[a-zA-Z0-9_]+$/.test(newUsername)) {
-        throw new Error("O nome de usuário pode conter apenas letras, números e underscore");
-      }
-
-      // Verificar se o username está disponível
-      const isAvailable = await isUsernameAvailable(newUsername.toLowerCase());
-      if (!isAvailable) {
-        throw new Error("Este nome de usuário já está em uso");
-      }
-
-      // Reautenticar usuário
-      if (currentUser && currentUser.email) {
-        const credential = EmailAuthProvider.credential(
-          currentUser.email,
-          passwordCurrentPassword
-        );
-        await reauthenticateWithCredential(currentUser, credential);
-      }
-
-      // Atualizar username
-      if (currentUser) {
-        await updateUsername(currentUser.uid, newUsername.toLowerCase());
-        toast({
-          title: "Nome de usuário atualizado",
-          description: "Seu nome de usuário foi alterado com sucesso.",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-        setNewUsername("");
-        setPasswordCurrentPassword("");
-      }
-    } catch (error: any) {
-      setUsernameError(error.message || "Erro ao atualizar nome de usuário");
-      toast({
-        title: "Erro",
-        description: error.message || "Erro ao atualizar nome de usuário",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const checkUsername = async (username: string) => {
     if (username.length >= 3) {
       setIsCheckingUsername(true);
@@ -351,6 +179,7 @@ export function Settings() {
           setUsernameError("");
         }
       } catch (error) {
+        logError("checkUsername", error);
       } finally {
         setIsCheckingUsername(false);
       }
@@ -374,10 +203,13 @@ export function Settings() {
           <Heading color="white">Configurações</Heading>
           <Box bg="gray.800" p={6} borderRadius="lg">
             <VStack spacing={6} align="stretch">
-              
-              <Heading size="md" color="white">Segurança</Heading>
+              <Heading size="md" color="white">
+                Segurança
+              </Heading>
               <FormControl>
-                <FormLabel htmlFor="email-input" color="white">Alterar Email</FormLabel>
+                <FormLabel htmlFor="email-input" color="white">
+                  Alterar Email
+                </FormLabel>
                 <VStack spacing={3} align="stretch">
                   {emailSent && (
                     <Alert status="info" bg="blue.800" color="white">
@@ -395,7 +227,7 @@ export function Settings() {
                     border="none"
                     id="email-input"
                   />
-                  <InputGroup>
+                  <InputGroup display={hasPassword ? undefined : "none"}>
                     <Input
                       value={emailCurrentPassword}
                       onChange={(e) => setEmailCurrentPassword(e.target.value)}
@@ -431,7 +263,9 @@ export function Settings() {
               <Divider borderColor="gray.600" />
 
               <FormControl>
-                <FormLabel htmlFor="reset-password-button" color="white">Alterar Senha</FormLabel>
+                <FormLabel htmlFor="reset-password-button" color="white">
+                  Alterar Senha
+                </FormLabel>
                 <VStack spacing={3} align="stretch">
                   <Alert status="info" bg="blue.800" color="white">
                     <AlertIcon />
@@ -451,14 +285,13 @@ export function Settings() {
               <Divider borderColor="gray.600" />
 
               <Box>
-                <Heading size="md" color="white" mb={4}>Encerrar Conta</Heading>
+                <Heading size="md" color="white" mb={4}>
+                  Encerrar Conta
+                </Heading>
                 <Text color="gray.400" mb={4}>
                   Esta ação é irreversível. Todos os seus dados serão excluídos permanentemente.
                 </Text>
-                <Button
-                  colorScheme="red"
-                  onClick={onOpen}
-                >
+                <Button colorScheme="red" onClick={onOpen}>
                   Excluir Conta
                 </Button>
               </Box>
@@ -467,22 +300,16 @@ export function Settings() {
         </VStack>
       </Container>
 
-      <AlertDialog
-        isOpen={isOpen}
-        leastDestructiveRef={cancelRef}
-        onClose={handleCloseDeleteModal}
-      >
+      <AlertDialog isOpen={isOpen} leastDestructiveRef={cancelRef} onClose={handleCloseDeleteModal}>
         <AlertDialogOverlay>
           <AlertDialogContent bg="gray.800">
-            <AlertDialogHeader color="white">
-              Excluir Conta
-            </AlertDialogHeader>
+            <AlertDialogHeader color="white">Excluir Conta</AlertDialogHeader>
 
             <AlertDialogBody>
               <Text color="gray.300" mb={4}>
                 Tem certeza? Esta ação não pode ser desfeita.
               </Text>
-              <FormControl>
+              <FormControl display={hasPassword ? undefined : "none"}>
                 <FormLabel htmlFor="delete-account-password" color="white" mb={2}>
                   Digite sua senha para confirmar:
                 </FormLabel>

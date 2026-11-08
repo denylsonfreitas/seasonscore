@@ -1,10 +1,11 @@
-import { Button, useToast, Box, Icon, Tooltip } from "@chakra-ui/react";
+import { Button, useToast, Icon, Tooltip } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { followUser, unfollowUser, isFollowing } from "../../services/followers";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { UserPlus, UserMinus, SignIn } from "@phosphor-icons/react";
+import { logError } from "../../utils/logger";
 
 interface FollowButtonProps {
   userId: string;
@@ -25,6 +26,7 @@ export function FollowButton({ userId }: FollowButtonProps) {
           const status = await isFollowing(userId);
           setFollowing(status);
         } catch (error) {
+          logError("checkFollowStatus", error);
         } finally {
           setLoading(false);
         }
@@ -71,7 +73,8 @@ export function FollowButton({ userId }: FollowButtonProps) {
     } catch (error) {
       toast({
         title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao atualizar status de seguidor",
+        description:
+          error instanceof Error ? error.message : "Erro ao atualizar status de seguidor",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -124,4 +127,4 @@ export function FollowButton({ userId }: FollowButtonProps) {
       </Button>
     </Tooltip>
   );
-} 
+}

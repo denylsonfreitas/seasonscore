@@ -30,8 +30,7 @@ function GlobalEventHandler() {
       const target = e.target as HTMLElement;
 
       const isModalContent =
-        target.closest(".chakra-modal__content") ||
-        target.closest("[data-ignore-outside-click]");
+        target.closest(".chakra-modal__content") || target.closest("[data-ignore-outside-click]");
 
       if (!isModalContent) {
         closeAllAuth();
@@ -51,9 +50,10 @@ function GlobalEventHandler() {
   return null;
 }
 
-function App() {
-  const router = createBrowserRouter(routes);
+// Criado uma única vez: recriar o roteador a cada render reinicia a navegação.
+const router = createBrowserRouter(routes);
 
+function App() {
   return (
     <ErrorBoundaryProvider>
       <QueryClientProvider client={queryClient}>

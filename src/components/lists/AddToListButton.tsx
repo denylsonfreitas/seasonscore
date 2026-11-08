@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Button,
   Menu,
@@ -32,101 +32,89 @@ import {
   Portal,
   Icon,
   VStack,
-} from '@chakra-ui/react';
-import { 
-  FaListUl, 
-  FaPlus,
-  FaAngleDown, 
-  FaCheck 
-} from 'react-icons/fa';
-import { Series } from '../../services/tmdb';
-import { useAuth } from '../../contexts/AuthContext';
-import { useLists } from '../../hooks/useLists';
-import { Bookmark, BookmarkSimple, DotsThree, Globe, Lock } from "@phosphor-icons/react";
+} from "@chakra-ui/react";
+import type { ListableSeries } from "../../hooks/useLists";
+import { useAuth } from "../../contexts/AuthContext";
+import { useLists } from "../../hooks/useLists";
+import { CaretDown, Check, Globe, ListBullets, Lock, Plus } from "@phosphor-icons/react";
 
 interface AddToListButtonProps {
-  series: Series;
-  size?: 'sm' | 'md' | 'lg';
-  variant?: 'solid' | 'outline' | 'ghost';
+  series: ListableSeries;
+  size?: "sm" | "md" | "lg";
+  variant?: "solid" | "outline" | "ghost";
   iconOnly?: boolean;
   useButtonElement?: boolean;
 }
 
 // Versão do botão específica para uso como MenuItem
-export function AddToListMenuItem({ series }: { series: Series }) {
+export function AddToListMenuItem({ series }: { series: ListableSeries }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
   const { currentUser } = useAuth();
-  
+
   if (!currentUser) {
     return (
-      <MenuItem 
-        icon={<FaListUl color="white" size={14} />}
-        onClick={() => toast({
-          title: "Faça login para adicionar séries às suas listas",
-          status: "warning",
-          duration: 3000,
-          isClosable: true,
-        })}
+      <MenuItem
+        icon={<ListBullets weight="fill" color="white" size={14} />}
+        onClick={() =>
+          toast({
+            title: "Faça login para adicionar séries às suas listas",
+            status: "warning",
+            duration: 3000,
+            isClosable: true,
+          })
+        }
         bg="gray.900"
         _hover={{ bg: "gray.800" }}
         color="white"
       >
-        <Box color="white">
-          Adicionar a uma lista
-        </Box>
+        <Box color="white">Adicionar a uma lista</Box>
       </MenuItem>
     );
   }
-  
+
   return (
     <>
-      <MenuItem 
-        icon={<FaListUl color="white" size={14} />}
+      <MenuItem
+        icon={<ListBullets weight="fill" color="white" size={14} />}
         onClick={onOpen}
         bg="gray.900"
         _hover={{ bg: "gray.800" }}
         color="white"
       >
-        <Box color="white">
-          Adicionar a uma lista
-        </Box>
+        <Box color="white">Adicionar a uma lista</Box>
       </MenuItem>
-      
-      <ListSelectorModal 
-        isOpen={isOpen} 
-        onClose={onClose} 
-        series={series} 
-      />
+
+      <ListSelectorModal isOpen={isOpen} onClose={onClose} series={series} />
     </>
   );
 }
 
 // Componente para o modal de seleção de listas
-function ListSelectorModal({ 
-  isOpen, 
-  onClose, 
-  series 
-}: { 
-  isOpen: boolean, 
-  onClose: () => void, 
-  series: Series 
+function ListSelectorModal({
+  isOpen,
+  onClose,
+  series,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  series: ListableSeries;
 }) {
   const { userLists, isLoading, loadUserLists, addToList, isInList, createUserList } = useLists();
   const [hasLoaded, setHasLoaded] = useState(false);
   const [isAddingToList, setIsAddingToList] = useState<string | null>(null);
-  
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [accessByLink, setAccessByLink] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
+  const [tagInput, setTagInput] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  
+
   const toast = useToast();
-  
+
   useEffect(() => {
     if (isOpen && !hasLoaded) {
       loadUserLists(series.id)
@@ -134,7 +122,7 @@ function ListSelectorModal({
         .catch(() => setHasLoaded(true));
     }
   }, [isOpen, series.id, loadUserLists, hasLoaded]);
-  
+
   const handleAddToList = async (listId: string) => {
     setIsAddingToList(listId);
     try {
@@ -144,7 +132,7 @@ function ListSelectorModal({
       setIsAddingToList(null);
     }
   };
-  
+
   const handleCreateList = async () => {
     if (!title.trim()) {
       toast({
@@ -156,22 +144,16 @@ function ListSelectorModal({
       });
       return;
     }
-    
+
     setIsCreating(true);
     try {
-      const listId = await createUserList(
-        title,
-        description,
-        tags,
-        isPublic,
-        series
-      );
-      
+      const listId = await createUserList(title, description, tags, isPublic, series);
+
       if (listId) {
-        setTitle('');
-        setDescription('');
+        setTitle("");
+        setDescription("");
         setTags([]);
-        setTagInput('');
+        setTagInput("");
         setIsPublic(true);
         setShowCreateForm(false);
         onClose();
@@ -180,44 +162,44 @@ function ListSelectorModal({
       setIsCreating(false);
     }
   };
-  
+
   const handleAddTag = () => {
     const trimmedTag = tagInput.trim().toLowerCase();
     if (trimmedTag && !tags.includes(trimmedTag)) {
       if (tags.length >= 10) {
         toast({
-          title: 'Limite de tags',
-          description: 'Você pode adicionar no máximo 10 tags',
-          status: 'warning',
+          title: "Limite de tags",
+          description: "Você pode adicionar no máximo 10 tags",
+          status: "warning",
           duration: 3000,
           isClosable: true,
         });
         return;
       }
-      
+
       setTags([...tags, trimmedTag]);
-      setTagInput('');
+      setTagInput("");
     }
   };
-  
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && tagInput) {
+    if (e.key === "Enter" && tagInput) {
       e.preventDefault();
       handleAddTag();
     }
   };
-  
+
   const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
+    setTags(tags.filter((tag) => tag !== tagToRemove));
   };
-  
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
       <ModalOverlay backdropFilter="blur(5px)" />
       <ModalContent bg="gray.800" color="white">
         <ModalHeader>Adicionar à Lista</ModalHeader>
         <ModalCloseButton />
-        
+
         <ModalBody pb={6}>
           {showCreateForm ? (
             <>
@@ -258,15 +240,12 @@ function ListSelectorModal({
                     bg="gray.700"
                     borderColor="gray.600"
                   />
-                  <Button 
-                    onClick={handleAddTag}
-                    colorScheme="primary"
-                  >
+                  <Button onClick={handleAddTag} colorScheme="primary">
                     Adicionar
                   </Button>
                 </Flex>
                 <Flex wrap="wrap" gap={2} mt={2}>
-                  {tags.map(tag => (
+                  {tags.map((tag) => (
                     <Tag key={tag} colorScheme="primary" size="md">
                       <TagLabel>{tag}</TagLabel>
                       <TagCloseButton onClick={() => handleRemoveTag(tag)} />
@@ -276,62 +255,75 @@ function ListSelectorModal({
               </FormControl>
 
               <FormControl display="flex" alignItems="center">
-              <FormLabel htmlFor="is-public" mb="0">
-                <Flex align="center">
-                  <Icon as={isPublic ? Globe : Lock} weight="fill" mr={2} color={isPublic ? "green.400" : "gray.400"} />
-                  {isPublic ? "Pública" : "Privada"}
-                </Flex>
-              </FormLabel>
-              <Switch
-                id="is-public"
-                isChecked={isPublic}
-                onChange={(e) => {
-                  setIsPublic(e.target.checked);
-                  // Se tornar pública, desativa o acesso por link
-                  if (e.target.checked) {
-                    setAccessByLink(false);
-                  }
-                }}
-                colorScheme="primary"
-              />
-            </FormControl>
-
-            {/* Opção de acesso por link - aparece apenas quando a lista é privada */}
-            {!isPublic && (
-              <FormControl display="flex" alignItems="center" mt={2} pl={6}>
-                <FormLabel htmlFor="access-by-link" mb="0" fontSize="sm">
+                <FormLabel htmlFor="is-public" mb="0">
                   <Flex align="center">
-                    <Icon as={accessByLink ? Globe : Lock} weight="fill" mr={2} color={accessByLink ? "blue.400" : "gray.400"} size={14} />
-                    Permitir acesso por link
+                    <Icon
+                      as={isPublic ? Globe : Lock}
+                      weight="fill"
+                      mr={2}
+                      color={isPublic ? "green.400" : "gray.400"}
+                    />
+                    {isPublic ? "Pública" : "Privada"}
                   </Flex>
                 </FormLabel>
                 <Switch
-                  id="access-by-link"
-                  isChecked={accessByLink}
-                  onChange={(e) => setAccessByLink(e.target.checked)}
-                  colorScheme="blue"
-                  size="sm"
+                  id="is-public"
+                  isChecked={isPublic}
+                  onChange={(e) => {
+                    setIsPublic(e.target.checked);
+                    // Se tornar pública, desativa o acesso por link
+                    if (e.target.checked) {
+                      setAccessByLink(false);
+                    }
+                  }}
+                  colorScheme="primary"
                 />
               </FormControl>
-            )}
+
+              {/* Opção de acesso por link - aparece apenas quando a lista é privada */}
+              {!isPublic && (
+                <FormControl display="flex" alignItems="center" mt={2} pl={6}>
+                  <FormLabel htmlFor="access-by-link" mb="0" fontSize="sm">
+                    <Flex align="center">
+                      <Icon
+                        as={accessByLink ? Globe : Lock}
+                        weight="fill"
+                        mr={2}
+                        color={accessByLink ? "blue.400" : "gray.400"}
+                        size={14}
+                      />
+                      Permitir acesso por link
+                    </Flex>
+                  </FormLabel>
+                  <Switch
+                    id="access-by-link"
+                    isChecked={accessByLink}
+                    onChange={(e) => setAccessByLink(e.target.checked)}
+                    colorScheme="blue"
+                    size="sm"
+                  />
+                </FormControl>
+              )}
             </>
           ) : (
             <>
-              <Button 
-                leftIcon={<FaPlus />} 
-                colorScheme="primary" 
-                variant="outline" 
-                w="100%" 
+              <Button
+                leftIcon={<Plus weight="fill" />}
+                colorScheme="primary"
+                variant="outline"
+                w="100%"
                 mb={4}
                 onClick={() => setShowCreateForm(true)}
               >
                 Criar nova lista
               </Button>
-              
+
               {isLoading ? (
                 <Box textAlign="center" p={4}>
                   <Spinner size="md" color="white" />
-                  <Text mt={2} color="white">Carregando suas listas...</Text>
+                  <Text mt={2} color="white">
+                    Carregando suas listas...
+                  </Text>
                 </Box>
               ) : userLists.length === 0 ? (
                 <Text color="gray.400" textAlign="center">
@@ -344,7 +336,13 @@ function ListSelectorModal({
                       key={list.id}
                       variant="ghost"
                       justifyContent="flex-start"
-                      leftIcon={isInList(list.id) ? <FaCheck color="white" size={14} /> : <FaPlus color="white" size={14} />}
+                      leftIcon={
+                        isInList(list.id) ? (
+                          <Check weight="fill" color="white" size={14} />
+                        ) : (
+                          <Plus weight="fill" color="white" size={14} />
+                        )
+                      }
                       onClick={() => handleAddToList(list.id)}
                       isDisabled={isAddingToList === list.id || isInList(list.id)}
                       bg="gray.700"
@@ -357,7 +355,9 @@ function ListSelectorModal({
                           <Text color="white">Adicionando...</Text>
                         </Flex>
                       ) : (
-                        <Text color="white" isTruncated>{list.title}</Text>
+                        <Text color="white" isTruncated>
+                          {list.title}
+                        </Text>
                       )}
                     </Button>
                   ))}
@@ -370,7 +370,13 @@ function ListSelectorModal({
         <ModalFooter>
           {showCreateForm ? (
             <>
-              <Button variant="ghost" mr={3} onClick={() => setShowCreateForm(false)} color="gray.400" _hover={{ bg: "gray.700" }}>
+              <Button
+                variant="ghost"
+                mr={3}
+                onClick={() => setShowCreateForm(false)}
+                color="gray.400"
+                _hover={{ bg: "gray.700" }}
+              >
                 Voltar
               </Button>
               <Button
@@ -394,17 +400,17 @@ function ListSelectorModal({
 }
 
 // Componente para renderizar os itens do menu de listas
-function ListMenuItems({ 
+function ListMenuItems({
   series,
   onCreateModalOpen,
-}: { 
-  series: Series,
-  onCreateModalOpen: () => void,
+}: {
+  series: ListableSeries;
+  onCreateModalOpen: () => void;
 }) {
   const { userLists, isLoading, loadUserLists, addToList, isInList } = useLists();
   const [isAddingToList, setIsAddingToList] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
-  
+
   useEffect(() => {
     // Carregar listas do usuário quando o componente montar, apenas uma vez por série
     if (!hasLoaded) {
@@ -427,7 +433,9 @@ function ListMenuItems({
     return (
       <Box textAlign="center" p={3}>
         <Spinner size="sm" color="white" />
-        <Text color="white" mt={2}>Carregando suas listas...</Text>
+        <Text color="white" mt={2}>
+          Carregando suas listas...
+        </Text>
       </Box>
     );
   }
@@ -435,7 +443,7 @@ function ListMenuItems({
   if (userLists.length === 0) {
     return (
       <MenuItem
-        icon={<FaPlus color="white" size={14} />}
+        icon={<Plus weight="fill" color="white" size={14} />}
         onClick={onCreateModalOpen}
         _hover={{ bg: "gray.800" }}
         color="white"
@@ -449,7 +457,7 @@ function ListMenuItems({
   return (
     <>
       <MenuItem
-        icon={<FaPlus color="white" size={14} />}
+        icon={<Plus weight="fill" color="white" size={14} />}
         onClick={onCreateModalOpen}
         _hover={{ bg: "gray.800" }}
         color="white"
@@ -461,7 +469,13 @@ function ListMenuItems({
       {userLists.map((list) => (
         <MenuItem
           key={list.id}
-          icon={isInList(list.id) ? <FaCheck color="white" size={14} /> : <FaPlus color="white" size={14} />}
+          icon={
+            isInList(list.id) ? (
+              <Check weight="fill" color="white" size={14} />
+            ) : (
+              <Plus weight="fill" color="white" size={14} />
+            )
+          }
           onClick={() => handleAddToList(list.id)}
           isDisabled={isAddingToList === list.id || isInList(list.id)}
           _hover={{ bg: "gray.800" }}
@@ -483,32 +497,31 @@ function ListMenuItems({
   );
 }
 
-export function AddToListButton({ 
-  series, 
-  size = 'md', 
-  variant = 'solid',
+export function AddToListButton({
+  series,
+  size = "md",
+  variant = "solid",
   iconOnly = false,
-  useButtonElement = true 
+  useButtonElement = true,
 }: AddToListButtonProps) {
   const { currentUser } = useAuth();
   const { createUserList } = useLists();
-  
+
   const { isOpen, onOpen, onClose } = useDisclosure();
-  
-  const { 
-    isOpen: isCreateModalOpen, 
-    onOpen: onCreateModalOpen, 
-    onClose: onCreateModalClose 
+
+  const {
+    isOpen: isCreateModalOpen,
+    onOpen: onCreateModalOpen,
+    onClose: onCreateModalClose,
   } = useDisclosure();
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
-  const [accessByLink, setAccessByLink] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
+  const [tagInput, setTagInput] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-  
+
   const toast = useToast();
 
   const handleMenuOpen = () => {
@@ -526,30 +539,24 @@ export function AddToListButton({
       });
       return;
     }
-    
+
     setIsCreating(true);
     try {
       // Criar a lista com a série já incluída
-      const listId = await createUserList(
-        title,
-        description,
-        tags,
-        isPublic,
-        series
-      );
-      
+      const listId = await createUserList(title, description, tags, isPublic, series);
+
       if (listId) {
         // Limpar formulário e fechar modal
-        setTitle('');
-        setDescription('');
+        setTitle("");
+        setDescription("");
         setTags([]);
-        setTagInput('');
+        setTagInput("");
         setIsPublic(true);
         onCreateModalClose();
-        
+
         // Fechar também o menu principal se estiver aberto
         onClose();
-        
+
         toast({
           title: "Lista criada",
           description: `Série adicionada à nova lista "${title}"`,
@@ -577,29 +584,29 @@ export function AddToListButton({
     if (trimmedTag && !tags.includes(trimmedTag)) {
       if (tags.length >= 10) {
         toast({
-          title: 'Limite de tags',
-          description: 'Você pode adicionar no máximo 10 tags',
-          status: 'warning',
+          title: "Limite de tags",
+          description: "Você pode adicionar no máximo 10 tags",
+          status: "warning",
           duration: 3000,
           isClosable: true,
         });
         return;
       }
-      
+
       setTags([...tags, trimmedTag]);
-      setTagInput('');
+      setTagInput("");
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && tagInput) {
+    if (e.key === "Enter" && tagInput) {
       e.preventDefault();
       handleAddTag();
     }
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
+    setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
   if (!currentUser) {
@@ -612,7 +619,7 @@ export function AddToListButton({
         <Tooltip label="Listas">
           <IconButton
             aria-label="Adicionar a uma lista"
-            icon={<FaListUl />}
+            icon={<ListBullets weight="fill" />}
             size={size}
             variant={variant}
             onClick={handleMenuOpen}
@@ -627,8 +634,8 @@ export function AddToListButton({
           {useButtonElement ? (
             <MenuButton
               as={Button}
-              rightIcon={<FaAngleDown />}
-              leftIcon={<FaListUl />}
+              rightIcon={<CaretDown weight="fill" />}
+              leftIcon={<ListBullets weight="fill" />}
               onClick={handleMenuOpen}
               size={size}
               variant={variant}
@@ -648,24 +655,25 @@ export function AddToListButton({
               cursor="pointer"
               p={2}
               onClick={handleMenuOpen}
-              fontSize={size === 'sm' ? 'sm' : 'md'}
+              fontSize={size === "sm" ? "sm" : "md"}
               color="white"
               bg="gray.900"
               _hover={{ bg: "gray.800" }}
             >
               <Flex alignItems="center">
-                <Box ml={1} mr={4}><FaListUl size={14} /></Box>
+                <Box ml={1} mr={4}>
+                  <ListBullets weight="fill" size={14} />
+                </Box>
                 <Text>Listas</Text>
-                <Box ml={2}><FaAngleDown /></Box>
+                <Box ml={2}>
+                  <CaretDown weight="fill" />
+                </Box>
               </Flex>
             </MenuButton>
           )}
           <Portal>
             <MenuList bg="gray.900" borderColor="gray.700" color="white">
-              <ListMenuItems 
-                series={series}
-                onCreateModalOpen={onCreateModalOpen}
-              />
+              <ListMenuItems series={series} onCreateModalOpen={onCreateModalOpen} />
             </MenuList>
           </Portal>
         </Menu>
@@ -715,15 +723,12 @@ export function AddToListButton({
                   bg="gray.700"
                   borderColor="gray.600"
                 />
-                <Button 
-                  onClick={handleAddTag}
-                  colorScheme="primary"
-                >
+                <Button onClick={handleAddTag} colorScheme="primary">
                   Adicionar
                 </Button>
               </Flex>
               <Flex wrap="wrap" gap={2} mt={2}>
-                {tags.map(tag => (
+                {tags.map((tag) => (
                   <Tag key={tag} colorScheme="primary" size="md">
                     <TagLabel>{tag}</TagLabel>
                     <TagCloseButton onClick={() => handleRemoveTag(tag)} />
@@ -735,7 +740,12 @@ export function AddToListButton({
             <FormControl display="flex" alignItems="center">
               <FormLabel htmlFor="is-public" mb="0">
                 <Flex align="center">
-                  <Icon as={isPublic ? Globe : Lock} weight="fill" mr={2} color={isPublic ? "green.400" : "gray.400"} />
+                  <Icon
+                    as={isPublic ? Globe : Lock}
+                    weight="fill"
+                    mr={2}
+                    color={isPublic ? "green.400" : "gray.400"}
+                  />
                   {isPublic ? "Pública" : "Privada"}
                 </Flex>
               </FormLabel>
@@ -749,7 +759,13 @@ export function AddToListButton({
           </ModalBody>
 
           <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onCreateModalClose} color="gray.400" _hover={{ bg: "gray.700" }} >
+            <Button
+              variant="ghost"
+              mr={3}
+              onClick={onCreateModalClose}
+              color="gray.400"
+              _hover={{ bg: "gray.700" }}
+            >
               Cancelar
             </Button>
             <Button
@@ -765,4 +781,4 @@ export function AddToListButton({
       </Modal>
     </>
   );
-} 
+}

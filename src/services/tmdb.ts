@@ -1,12 +1,58 @@
-import axios from "axios";
+import { memoizeAsync } from "../utils/memo";
 
-const api = axios.create({
-  baseURL: "https://api.themoviedb.org/3",
-  params: {
-    api_key: import.meta.env.VITE_TMDB_API_KEY,
-    language: "pt-BR",
-  },
+// As requisições passam pelo proxy /api/tmdb (função serverless em api/tmdb.ts),
+// que guarda a chave do TMDB no servidor.
+const TMDB_PROXY_PATH = "/api/tmdb";
+
+type QueryValue = string | number | boolean | undefined | null;
+
+export class TmdbError extends Error {
+  constructor(
+    public status: number,
+    message: string
+  ) {
+    super(message);
+    this.name = "TmdbError";
+  }
+}
+
+async function fetchJson(url: string, path: string): Promise<unknown> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new TmdbError(response.status, `TMDB ${response.status} em ${path}`);
+  }
+  return response.json();
+}
+
+// As respostas do TMDB mudam pouco: guardamos por 10 minutos e evitamos
+// requisições duplicadas quando vários componentes pedem a mesma série.
+const cachedFetchJson = memoizeAsync(fetchJson, {
+  ttlMs: 10 * 60 * 1000,
+  maxEntries: 300,
+  key: (url) => url,
 });
+
+/** Cliente mínimo para a API do TMDB baseado em fetch. */
+const api = {
+  async get<T = unknown>(
+    path: string,
+    options: { params?: Record<string, QueryValue> } = {}
+  ): Promise<{ data: T }> {
+    const url = new URL(TMDB_PROXY_PATH, window.location.origin);
+    const params: Record<string, QueryValue> = {
+      path,
+      language: "pt-BR",
+      ...options.params,
+    };
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null && value !== "") {
+        url.searchParams.set(key, String(value));
+      }
+    }
+
+    return { data: (await cachedFetchJson(url.toString(), path)) as T };
+  },
+};
 
 // Interface para séries na listagem
 export interface SeriesListItem {
@@ -22,6 +68,13 @@ export interface SeriesListItem {
 // Interface para detalhes completos da série
 export interface Series extends SeriesListItem {
   number_of_seasons: number;
+  number_of_episodes?: number;
+  last_air_date?: string;
+  in_production?: boolean;
+  tagline?: string;
+  episode_run_time?: number[];
+  popularity?: number;
+  seasons?: Season[];
   genres: { id: number; name: string }[];
   networks: { id: number; name: string; logo_path: string }[];
   status: string;
@@ -146,23 +199,26 @@ export async function getTopRatedSeries(page = 1) {
   return response.data;
 }
 
-export async function getAiringTodaySeries(page = 1, options: {
-  searchQuery?: string;
-  sortBy?: string;
-  fromDate?: string;
-} = {}) {
+export async function getAiringTodaySeries(
+  page = 1,
+  options: {
+    searchQuery?: string;
+    sortBy?: string;
+    fromDate?: string;
+  } = {}
+) {
   // Se tiver uma query de busca, usar a função de busca
   if (options.searchQuery) {
     const response = await api.get<SeriesResponse>("/search/tv", {
-      params: { 
-        ...defaultParams, 
-        query: options.searchQuery, 
+      params: {
+        ...defaultParams,
+        query: options.searchQuery,
         page,
         sort_by: options.sortBy || "first_air_date.desc",
         "first_air_date.lte": getCurrentDate(),
-        "first_air_date.gte": options.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-          .toISOString()
-          .split("T")[0],
+        "first_air_date.gte":
+          options.fromDate ||
+          new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       },
     });
     return response.data;
@@ -175,22 +231,10 @@ export async function getAiringTodaySeries(page = 1, options: {
       page,
       sort_by: options.sortBy || "first_air_date.desc",
       "first_air_date.lte": getCurrentDate(),
-      "first_air_date.gte": options.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0],
+      "first_air_date.gte":
+        options.fromDate ||
+        new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       "vote_count.gte": 5,
-    },
-  });
-  return response.data;
-}
-
-export async function getNetworkSeries(networkId: number, page = 1) {
-  const response = await api.get<SeriesResponse>("/discover/tv", {
-    params: {
-      ...defaultParams,
-      page,
-      with_networks: networkId,
-      sort_by: "popularity.desc",
     },
   });
   return response.data;
@@ -227,18 +271,18 @@ export async function getFilteredSeries(filters: SeriesFilters = {}, page = 1) {
 
 export async function getRelatedSeries(id: number) {
   const seriesDetails = await getSeriesDetails(id);
-  
+
   const response = await api.get<SeriesResponse>("/discover/tv", {
     params: {
       ...defaultParams,
       with_original_language: seriesDetails.original_language,
-      with_genres: seriesDetails.genres.map(g => g.id).join('|'),
+      with_genres: seriesDetails.genres.map((g) => g.id).join("|"),
       without_genres: "10767,10764",
       "vote_count.gte": 50,
       "vote_average.gte": 6,
       sort_by: "popularity.desc",
       page: 1,
-      without_series: id
+      without_series: id,
     },
   });
 
@@ -246,17 +290,17 @@ export async function getRelatedSeries(id: number) {
     const fallbackResponse = await api.get<SeriesResponse>(`/tv/${id}/similar`, {
       params: defaultParams,
     });
-    
+
     const combinedResults = [
       ...response.data.results,
       ...fallbackResponse.data.results.filter(
-        series => !response.data.results.some(s => s.id === series.id)
-      )
+        (series) => !response.data.results.some((s) => s.id === series.id)
+      ),
     ];
 
     return {
       ...response.data,
-      results: combinedResults.slice(0, 20)
+      results: combinedResults.slice(0, 20),
     };
   }
 
@@ -288,7 +332,7 @@ export interface Season {
 
 // Obter detalhes de uma temporada específica
 export async function getSeasonDetails(seriesId: number, seasonNumber: number): Promise<Season> {
-  const response = await api.get(`/tv/${seriesId}/season/${seasonNumber}`);
+  const response = await api.get<Season>(`/tv/${seriesId}/season/${seasonNumber}`);
   return response.data;
 }
 
@@ -297,28 +341,25 @@ export async function getLatestEpisode(seriesId: number): Promise<Episode | null
   try {
     // Obter detalhes da série para saber o número de temporadas
     const seriesDetails = await getSeriesDetails(seriesId);
-    
+
     if (seriesDetails.number_of_seasons === 0) {
       return null;
     }
-    
+
     // Obter detalhes da última temporada
-    const latestSeason = await getSeasonDetails(
-      seriesId, 
-      seriesDetails.number_of_seasons
-    );
-    
+    const latestSeason = await getSeasonDetails(seriesId, seriesDetails.number_of_seasons);
+
     if (!latestSeason.episodes || latestSeason.episodes.length === 0) {
       return null;
     }
-    
+
     // Ordenar episódios por data de lançamento (mais recente primeiro)
     const sortedEpisodes = [...latestSeason.episodes].sort((a, b) => {
       if (!a.air_date) return 1;
       if (!b.air_date) return -1;
       return new Date(b.air_date).getTime() - new Date(a.air_date).getTime();
     });
-    
+
     // Retornar o episódio mais recente
     return sortedEpisodes[0];
   } catch (error) {
@@ -327,14 +368,6 @@ export async function getLatestEpisode(seriesId: number): Promise<Episode | null
 }
 
 // IDs dos principais serviços de streaming
-export const streamingServices = {
-  NETFLIX: 213,
-  AMAZON: 1024,
-  DISNEY_PLUS: 2739,
-  HBO: 49,
-  APPLE_TV: 2552,
-  PARAMOUNT: 4330,
-} as const;
 
 export async function getTrendingSeries() {
   const response = await api.get<SeriesResponse>("/trending/tv/week", {
@@ -368,7 +401,7 @@ export interface Video {
 // Obter vídeos de uma série
 export async function getSeriesVideos(seriesId: number): Promise<Video[]> {
   try {
-    const response = await api.get(`/tv/${seriesId}/videos`);
+    const response = await api.get<{ results: Video[] }>(`/tv/${seriesId}/videos`);
     return response.data.results;
   } catch (error) {
     return [];

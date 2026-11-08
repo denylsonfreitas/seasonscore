@@ -1,25 +1,6 @@
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  deleteDoc,
-  getFirestore,
-  serverTimestamp,
-  Timestamp,
-} from "firebase/firestore";
-import { auth } from "../config/firebase";
-import { 
-  createNotification, 
-  NotificationType, 
-  deleteNotificationsOfType
-} from "./notifications";
-import { getUserData } from "./users";
+import { getSessionUser, requireUserId, supabase, unwrap } from "../config/supabase";
 
-const db = getFirestore();
-const followersCollection = collection(db, "followers");
-
+/** Relação de seguidor: `followerId` segue `userId`. */
 export interface Follower {
   id: string;
   userId: string;
@@ -27,142 +8,60 @@ export interface Follower {
   createdAt: Date;
 }
 
-export async function followUser(userId: string) {
-  if (!auth.currentUser) throw new Error("Usuário não autenticado");
-  if (userId === auth.currentUser.uid) throw new Error("Não é possível seguir a si mesmo");
+type FollowRow = { follower_id: string; following_id: string; created_at: string };
 
-  // Verificar se já segue
-  const q = query(
-    followersCollection,
-    where("userId", "==", userId),
-    where("followerId", "==", auth.currentUser.uid)
+function followerFromRow(row: FollowRow): Follower {
+  return {
+    id: `${row.follower_id}_${row.following_id}`,
+    userId: row.following_id,
+    followerId: row.follower_id,
+    createdAt: new Date(row.created_at),
+  };
+}
+
+export async function followUser(userId: string): Promise<void> {
+  const currentUserId = requireUserId();
+  if (userId === currentUserId) throw new Error("Não é possível seguir a si mesmo");
+
+  const { error } = await supabase
+    .from("follows")
+    .insert({ follower_id: currentUserId, following_id: userId });
+  if (error?.code === "23505") throw new Error("Você já segue este usuário");
+  if (error) throw error;
+  // A notificação para o usuário seguido é criada por trigger no banco.
+}
+
+export async function unfollowUser(userId: string): Promise<boolean> {
+  const currentUserId = requireUserId();
+  unwrap(
+    await supabase
+      .from("follows")
+      .delete()
+      .eq("follower_id", currentUserId)
+      .eq("following_id", userId)
   );
-  const querySnapshot = await getDocs(q);
-  
-  if (!querySnapshot.empty) {
-    throw new Error("Você já segue este usuário");
-  }
-
-  // Verificar se já seguiu este usuário antes (para evitar spam de notificações)
-  // Em vez de usar uma coleção separada, vamos verificar o histórico de follows
-  // usando a própria coleção de followers com uma consulta mais ampla
-  let hasFollowedBefore = false;
-  
-  try {
-    // Buscar todos os documentos de followers que foram excluídos (histórico)
-    // Isso não é possível diretamente, então vamos usar uma abordagem diferente
-    
-    // Criar o relacionamento de seguidor com um campo adicional
-    const follower = {
-      userId,
-      followerId: auth.currentUser.uid,
-      createdAt: serverTimestamp(),
-      // Adicionar um campo para controlar se é a primeira vez que segue
-      isFirstFollow: true
-    };
-
-    await addDoc(followersCollection, follower);
-    
-    // Criar notificação para o usuário que foi seguido
-    try {
-      const currentUserData = await getUserData(auth.currentUser.uid);
-      // Usar o mesmo campo que será armazenado como senderName na notificação
-      const followerName = currentUserData?.username || currentUserData?.displayName || currentUserData?.email || "Alguém";
-      
-      // Criar uma nova notificação
-      await createNotification(
-        userId,
-        NotificationType.NEW_FOLLOWER,
-        {
-          senderId: auth.currentUser.uid,
-          message: `${followerName} começou a seguir você.`
-        }
-      );
-    } catch (error) {
-    }
-  } catch (error) {
-    throw error;
-  }
+  return true;
 }
 
-export async function unfollowUser(userId: string) {
-  if (!auth.currentUser) throw new Error("Usuário não autenticado");
-
-  try {
-    // Buscar a relação de seguidor
-    const q = query(
-      followersCollection,
-      where("userId", "==", userId),
-      where("followerId", "==", auth.currentUser.uid)
-    );
-    const querySnapshot = await getDocs(q);
-
-    if (querySnapshot.empty) {
-      throw new Error("Você não segue este usuário");
-    }
-
-    // Processar cada relação encontrada (normalmente deve ser apenas uma)
-    for (const followerDoc of querySnapshot.docs) {
-      const followerData = followerDoc.data();
-      
-      // Excluir a relação de seguidor
-      await deleteDoc(followerDoc.ref);
-      
-      // Remover notificações relacionadas
-      try {
-        const followDate = followerData.createdAt instanceof Timestamp 
-          ? followerData.createdAt.toDate() 
-          : followerData.createdAt;
-          
-        // Sempre tentar remover a notificação, independentemente da data
-        // Isso garante que não fiquem notificações órfãs
-        await deleteNotificationsOfType(
-          userId,
-          NotificationType.NEW_FOLLOWER,
-          auth.currentUser.uid
-        );
-        
-      } catch (error) {
-      }
-    }
-    
-    return true;
-  } catch (error) {
-    throw error;
-  }
-}
-
+/** Quem segue o usuário. */
 export async function getFollowers(userId: string): Promise<Follower[]> {
-  const q = query(followersCollection, where("userId", "==", userId));
-  const querySnapshot = await getDocs(q);
-
-  return querySnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-    createdAt: doc.data().createdAt?.toDate(),
-  })) as Follower[];
+  const rows = unwrap(await supabase.from("follows").select("*").eq("following_id", userId));
+  return rows.map(followerFromRow);
 }
 
+/** Quem o usuário segue. */
 export async function getFollowing(userId: string): Promise<Follower[]> {
-  const q = query(followersCollection, where("followerId", "==", userId));
-  const querySnapshot = await getDocs(q);
-
-  return querySnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-    createdAt: doc.data().createdAt?.toDate(),
-  })) as Follower[];
+  const rows = unwrap(await supabase.from("follows").select("*").eq("follower_id", userId));
+  return rows.map(followerFromRow);
 }
 
 export async function isFollowing(userId: string): Promise<boolean> {
-  if (!auth.currentUser) return false;
-
-  const q = query(
-    followersCollection,
-    where("userId", "==", userId),
-    where("followerId", "==", auth.currentUser.uid)
-  );
-  const querySnapshot = await getDocs(q);
-
-  return !querySnapshot.empty;
-} 
+  const currentUser = getSessionUser();
+  if (!currentUser) return false;
+  const { count } = await supabase
+    .from("follows")
+    .select("*", { count: "exact", head: true })
+    .eq("follower_id", currentUser.id)
+    .eq("following_id", userId);
+  return (count ?? 0) > 0;
+}

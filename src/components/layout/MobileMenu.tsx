@@ -1,28 +1,17 @@
+import { Box, Text, Flex, Button, Portal, Divider } from "@chakra-ui/react";
 import {
-  Box,
-  Text,
-  Flex,
-  Button,
-  Portal,
-  Divider,
-  useToast,
-} from "@chakra-ui/react";
-import {
-  TelevisionSimple,
-  Confetti,
-  TrendUp,
-  SignOut,
   Gear,
-  UserCircle,
-  Star,
   Note,
+  NumberCircleOne,
+  SignOut,
+  Star,
+  TelevisionSimple,
+  UserCircle,
   UsersThree,
 } from "@phosphor-icons/react";
-import { TbRosetteNumber1 } from "react-icons/tb";
 import { Link as RouterLink } from "react-router-dom";
 import { ExtendedUser } from "../../types/auth";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -53,16 +42,11 @@ export function MobileMenu({
 }: MobileMenuProps) {
   // Usar estado local para gerenciar a animação em vez do hook completo
   const [isVisible, setIsVisible] = useState(false);
-  const toast = useToast();
-  const navigate = useNavigate();
-
   // Função para criar estilos de animação para itens de menu
   const getItemAnimationStyle = (index: number) => ({
     opacity: isVisible ? 1 : 0,
     transform: isVisible ? "translateY(0)" : "translateY(10px)",
-    transition: `all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) ${
-      index * 0.04 + 0.15
-    }s`,
+    transition: `all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 0.04 + 0.15}s`,
   });
 
   // Ajustar visibilidade baseado na prop isOpen
@@ -106,9 +90,7 @@ export function MobileMenu({
         right="16px"
         borderWidth="1px"
         onClick={(e) => e.stopPropagation()} // Evita que cliques no menu fechem ele
-        transform={
-          isVisible ? "translateY(0) scale(1)" : "translateY(-25px) scale(0.92)"
-        }
+        transform={isVisible ? "translateY(0) scale(1)" : "translateY(-25px) scale(0.92)"}
         opacity={isVisible ? 1 : 0}
         transition="transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)"
         transformOrigin="top right"
@@ -164,8 +146,6 @@ export function MobileMenu({
           </RouterLink>
         </Box>
 
-
-
         <Box style={getItemAnimationStyle(4)}>
           <RouterLink to="/series/top10">
             <Flex
@@ -185,7 +165,7 @@ export function MobileMenu({
                 alignItems="center"
                 justifyContent="center"
               >
-                <TbRosetteNumber1 height="fill" size={18} color={top10Color} />
+                <NumberCircleOne height="fill" size={18} color={top10Color} />
               </Box>
               <Text color="gray.100" fontWeight="medium">
                 Top 10
@@ -278,24 +258,14 @@ export function MobileMenu({
           </RouterLink>
         </Box>
 
-        <Divider
-          borderColor="gray.700"
-          my={3}
-          style={getItemAnimationStyle(7)}
-        />
+        <Divider borderColor="gray.700" my={3} style={getItemAnimationStyle(7)} />
 
         {/* Ações do usuário na parte inferior */}
         {currentUser ? (
           <>
             <Box style={getItemAnimationStyle(8)}>
               <RouterLink to="/profile" onClick={onClose}>
-                <Flex
-                  align="center"
-                  py={2.5}
-                  px={3}
-                  borderRadius="md"
-                  _hover={{ bg: "gray.700" }}
-                >
+                <Flex align="center" py={2.5} px={3} borderRadius="md" _hover={{ bg: "gray.700" }}>
                   <Box
                     p={2}
                     borderRadius="md"

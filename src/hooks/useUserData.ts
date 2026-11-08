@@ -20,7 +20,7 @@ export function useUserData(userId: string) {
   useEffect(() => {
     // Componente foi montado
     isMounted.current = true;
-    
+
     return () => {
       // Componente será desmontado
       isMounted.current = false;
@@ -39,7 +39,7 @@ export function useUserData(userId: string) {
 
       // Verificar se os dados estão em cache
       const cachedData = userCache.getUser<ExtendedUserData>(userId);
-      
+
       if (cachedData) {
         // Usar dados do cache se estiverem disponíveis
         if (isMounted.current) {
@@ -52,21 +52,21 @@ export function useUserData(userId: string) {
       try {
         setIsLoading(true);
         const data = await getUserData(userId);
-        
+
         // Se o usuário não foi encontrado, marcar como excluído
         if (!data) {
           const deletedUserData: ExtendedUserData = { isDeleted: true };
-          
+
           // Atualizar o cache
           userCache.setUser(userId, deletedUserData);
-          
+
           if (isMounted.current) {
             setUserData(deletedUserData);
           }
         } else {
           // Atualizar o cache
           userCache.setUser(userId, data);
-          
+
           if (isMounted.current) {
             setUserData(data);
           }
@@ -74,10 +74,10 @@ export function useUserData(userId: string) {
       } catch (error) {
         // Em caso de erro, considerar o usuário como excluído
         const deletedUserData: ExtendedUserData = { isDeleted: true };
-        
+
         // Atualizar o cache
         userCache.setUser(userId, deletedUserData);
-        
+
         if (isMounted.current) {
           setUserData(deletedUserData);
           setError(error as Error);
@@ -93,4 +93,4 @@ export function useUserData(userId: string) {
   }, [userId]);
 
   return { userData, isLoading, error };
-} 
+}

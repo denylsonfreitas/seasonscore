@@ -10,7 +10,7 @@
   --primary-700: #028a60;
   --primary-800: #017853;
   --primary-900: #005b3f;
-  
+
   /* Cores secundárias */
   --secondary-50: #f7fafc;
   --secondary-100: #edf2f7;
@@ -22,17 +22,17 @@
   --secondary-700: #2d3748;
   --secondary-800: #1a202c;
   --secondary-900: #171923;
-  
+
   /* Cores de reações */
-  --reactions-like: #FF101F;
+  --reactions-like: #ff101f;
   --reactions-dislike: #800020;
-  
+
   /* Cores de estado */
-  --success: #38A169;
-  --warning: #ECC94B;
-  --error: #E53E3E;
-  --info: #3182CE;
-  
+  --success: #38a169;
+  --warning: #ecc94b;
+  --error: #e53e3e;
+  --info: #3182ce;
+
   /* Cores de fundo e texto */
   --bg-primary: #1a202c;
   --bg-secondary: #2d3748;
@@ -89,4 +89,4 @@
 
 .bg-dislike {
   background-color: var(--reactions-dislike);
-} 
+}

@@ -1,13 +1,10 @@
-import { Spinner, Text, Box, color } from "@chakra-ui/react";
+import { Spinner, Text, Box } from "@chakra-ui/react";
 import { SeriesCard } from "./SeriesCard";
 import { SeriesResponse } from "../../services/tmdb";
 import { useQuery } from "@tanstack/react-query";
-import { getSeriesReviews } from "../../services/reviews";
+import { getSeriesAverageRating } from "../../services/reviews";
 import { SectionBase } from "../common/SectionBase";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import { carouselStyles, seriesSliderSettings } from "../../styles/carouselStyles";
+import { Carousel } from "../common/Carousel";
 
 interface HomeSectionProps {
   title: string;
@@ -16,12 +13,7 @@ interface HomeSectionProps {
   link?: string;
 }
 
-export function HomeSeriesSection({
-  title,
-  queryKey,
-  queryFn,
-  link,
-}: HomeSectionProps) {
+export function HomeSeriesSection({ title, queryKey, queryFn, link }: HomeSectionProps) {
   const { data, isLoading, error } = useQuery({
     queryKey,
     queryFn,
@@ -30,31 +22,15 @@ export function HomeSeriesSection({
 
   // Buscar as avaliações para cada série
   const { data: allReviews = {} } = useQuery({
-    queryKey: ["all-reviews"],
+    queryKey: [...queryKey, "ratings", data?.results?.map((s) => s.id)],
     queryFn: async () => {
-      if (!data?.results) return {};
-
-      const reviewsMap: { [key: number]: number } = {};
-
-      await Promise.all(
-        data.results.map(async (series) => {
-          try {
-            const reviews = await getSeriesReviews(series.id);
-            if (reviews.length > 0) {
-              // Calcular a média das avaliações
-              const allRatings = reviews.flatMap((review) =>
-                review.seasonReviews.map((sr) => sr.rating)
-              );
-
-              if (allRatings.length > 0) {
-                reviewsMap[series.id] =
-                  allRatings.reduce((a, b) => a + b, 0) / allRatings.length;
-              }
-            }
-          } catch (error) {}
-        })
-      );
-
+      const results = data?.results ?? [];
+      const ratings = await Promise.all(results.map((s) => getSeriesAverageRating(s.id)));
+      const reviewsMap: Record<number, number> = {};
+      results.forEach((series, i) => {
+        const rating = ratings[i];
+        if (rating !== undefined) reviewsMap[series.id] = rating;
+      });
       return reviewsMap;
     },
     enabled: !!data?.results,
@@ -62,8 +38,8 @@ export function HomeSeriesSection({
 
   const renderContent = () => {
     return (
-      <Box sx={carouselStyles} pb={8}>
-        <Slider {...seriesSliderSettings}>
+      <Box pb={8}>
+        <Carousel preset="series">
           {data?.results?.map((series) => (
             <Box key={series.id}>
               <SeriesCard
@@ -75,7 +51,7 @@ export function HomeSeriesSection({
               />
             </Box>
           ))}
-        </Slider>
+        </Carousel>
       </Box>
     );
   };

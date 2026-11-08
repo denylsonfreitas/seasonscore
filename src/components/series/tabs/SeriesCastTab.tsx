@@ -7,14 +7,10 @@ import {
   Flex,
   Heading,
   Image,
-  useColorModeValue,
   LinkBox,
   LinkOverlay,
 } from "@chakra-ui/react";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import { castCarouselStyles, castSliderSettings } from "../../../styles/carouselStyles";
+import { Carousel } from "../../common/Carousel";
 import { Link as RouterLink } from "react-router-dom";
 
 interface CastMember {
@@ -30,15 +26,12 @@ interface SeriesCastTabProps {
     credits?: {
       cast?: CastMember[];
     };
-    [key: string]: any;
   };
 }
 
 export function SeriesCastTab({ series }: SeriesCastTabProps) {
   // Verificar se credits e cast existem para evitar erros
   const cast = series?.credits?.cast || [];
-  const highlightBg = useColorModeValue("primary.500", "primary.400");
-
   if (!cast || cast.length === 0) {
     return (
       <Text color="gray.400" textAlign="center">
@@ -61,8 +54,8 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
         <Heading size="md" color="white" mb={4}>
           Elenco
         </Heading>
-        <Box sx={castCarouselStyles} pb={4}>
-          <Slider {...castSliderSettings}>
+        <Box pb={4}>
+          <Carousel preset="cast">
             {sortedCast.map((actor) => (
               <Box key={actor.id} p={1}>
                 <Flex
@@ -74,10 +67,10 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
                   boxShadow="sm"
                   height="100%"
                   transition="transform 0.2s, box-shadow 0.2s"
-                  _hover={{ 
-                    transform: "translateY(-4px)", 
+                  _hover={{
+                    transform: "translateY(-4px)",
                     boxShadow: "lg",
-                    bg: "gray.750" 
+                    bg: "gray.750",
                   }}
                   cursor="pointer"
                 >
@@ -95,14 +88,14 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
                         fallbackSrc="https://placehold.co/300x300/222222/FFFFFF?text=Sem+Imagem"
                       />
                     ) : (
-                      <Flex 
+                      <Flex
                         position="absolute"
                         top={0}
                         left={0}
                         width="100%"
                         height="100%"
-                        bg="gray.700" 
-                        align="center" 
+                        bg="gray.700"
+                        align="center"
                         justify="center"
                       >
                         <Avatar size="xl" name={actor.name} />
@@ -122,9 +115,9 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
                 </Flex>
               </Box>
             ))}
-          </Slider>
+          </Carousel>
         </Box>
       </Box>
     </VStack>
   );
-} 
+}

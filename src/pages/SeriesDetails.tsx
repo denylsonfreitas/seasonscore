@@ -1,3 +1,4 @@
+import type { ReviewTarget } from "../types/review";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -27,7 +28,6 @@ import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 import { getUserData } from "../services/users";
 import { SeriesHeader } from "../components/series/SeriesHeader";
 import { RelatedSeries } from "../components/series/RelatedSeries";
-import { User as FirebaseUser } from "firebase/auth";
 import { SEO } from "../components/common/SEO";
 
 export function SeriesDetails() {
@@ -36,13 +36,13 @@ export function SeriesDetails() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [existingReview, setExistingReview] = useState<SeriesReview | null>(null);
   const [selectedSeason, setSelectedSeason] = useState(1);
-  
+
   // Combinar estados relacionados para reduzir re-renders
   const [deleteState, setDeleteState] = useState({
     isOpen: false,
-    seasonToDelete: null as number | null
+    seasonToDelete: null as number | null,
   });
-  
+
   const [userData, setUserData] = useState<{ photoURL?: string | null } | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const queryClient = useQueryClient();
@@ -52,7 +52,11 @@ export function SeriesDetails() {
   const userDataFetched = useRef(false);
 
   // Queries
-  const { data: series, isLoading, isError } = useQuery({
+  const {
+    data: series,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["series", id],
     queryFn: () => getSeriesDetails(Number(id)),
     staleTime: 1000 * 60 * 30, // 30 minutos
@@ -77,47 +81,25 @@ export function SeriesDetails() {
   // Efeitos e dados derivados
   useEffect(() => {
     if (!isLoading && !series && isError) {
-      navigate('/404', { replace: true });
+      navigate("/404", { replace: true });
     }
   }, [isLoading, series, isError, navigate]);
 
-  const userReview = useMemo(() => 
-    reviews.find((review) => review.userId === currentUser?.uid),
+  const userReview = useMemo(
+    () => reviews.find((review) => review.userId === currentUser?.uid),
     [reviews, currentUser?.uid]
   );
-
-  const currentUserReview = useMemo(() => {
-    if (!userReview || !series) return null;
-
-    const seasonReview = userReview.seasonReviews.find(sr => sr.seasonNumber === selectedSeason);
-    if (!seasonReview) return null;
-
-    return {
-      id: userReview.id!,
-      seriesId: id!,
-      userId: userReview.userId!,
-      userEmail: userReview.userEmail!,
-      seriesName: series.name || "",
-      seriesPoster: series.poster_path || "",
-      seasonNumber: selectedSeason,
-      rating: seasonReview.rating,
-      comment: seasonReview.comment || "",
-      comments: seasonReview.comments || [],
-      reactions: seasonReview.reactions || { likes: [] },
-      createdAt: seasonReview.createdAt || new Date()
-    };
-  }, [userReview, series, selectedSeason, id]);
-
   // Memoizar dados do SEO para evitar recálculos
-  const seoData = useMemo(() => ({
-    title: series ? `${series.name} | SeasonScore` : 'Carregando série | SeasonScore',
-    description: series 
-      ? `Avalie e confira as reviews da série ${series.name} no SeasonScore.`
-      : 'Carregando detalhes da série.',
-    image: series?.poster_path 
-      ? `https://image.tmdb.org/t/p/w500${series.poster_path}` 
-      : ''
-  }), [series]);
+  const seoData = useMemo(
+    () => ({
+      title: series ? `${series.name} | SeasonScore` : "Carregando série | SeasonScore",
+      description: series
+        ? `Avalie e confira as reviews da série ${series.name} no SeasonScore.`
+        : "Carregando detalhes da série.",
+      image: series?.poster_path ? `https://image.tmdb.org/t/p/w500${series.poster_path}` : "",
+    }),
+    [series]
+  );
 
   // Callbacks otimizados
   const handleDeleteReview = useCallback(async () => {
@@ -153,30 +135,21 @@ export function SeriesDetails() {
     } finally {
       setDeleteState({
         isOpen: false,
-        seasonToDelete: null
+        seasonToDelete: null,
       });
     }
-  }, [currentUser, series, deleteState.seasonToDelete, userReview?.id, id, queryClient, toast]);
+  }, [currentUser, series, deleteState.seasonToDelete, userReview, id, queryClient, toast]);
 
-  const handleReviewClick = useCallback((review: any) => {
-    navigate(`/reviews/${review.id}/${review.seasonNumber}`);
-  }, [navigate]);
-
-  const handleEditReview = useCallback((seasonNumber: number) => {
-    navigate(`/series/${id}/season/${seasonNumber}/review`);
-  }, [navigate, id]);
-
-  const handleDeleteClick = useCallback((seasonNumber: number) => {
-    setDeleteState({
-      isOpen: true,
-      seasonToDelete: seasonNumber
-    });
-  }, []);
-
+  const handleReviewClick = useCallback(
+    (review: ReviewTarget) => {
+      navigate(`/reviews/${review.id}/${review.seasonNumber}`);
+    },
+    [navigate]
+  );
   const handleCancelDelete = useCallback(() => {
     setDeleteState({
       isOpen: false,
-      seasonToDelete: null
+      seasonToDelete: null,
     });
   }, []);
 
@@ -192,11 +165,11 @@ export function SeriesDetails() {
 
   // Memoizar handlers para componentes filhos
   const handleSetDeleteAlertOpen = useCallback((isOpen: boolean) => {
-    setDeleteState(prev => ({ ...prev, isOpen }));
+    setDeleteState((prev) => ({ ...prev, isOpen }));
   }, []);
 
   const handleSetSeasonToDelete = useCallback((seasonToDelete: number | null) => {
-    setDeleteState(prev => ({ ...prev, seasonToDelete }));
+    setDeleteState((prev) => ({ ...prev, seasonToDelete }));
   }, []);
 
   // Buscar dados do usuário
@@ -219,36 +192,42 @@ export function SeriesDetails() {
   }, [currentUser]);
 
   // Memoizar componentes que podem ser caros de renderizar
-  const LoadingComponent = useMemo(() => (
-    <Center minH="70vh">
-      <Spinner size="xl" color="primary.500" />
-    </Center>
-  ), []);
+  const LoadingComponent = useMemo(
+    () => (
+      <Center minH="70vh">
+        <Spinner size="xl" color="primary.500" />
+      </Center>
+    ),
+    []
+  );
 
-  const NotFoundComponent = useMemo(() => (
-    <Box bg="gray.900" minH="100vh" pt="80px">
-      <Container maxW="container.lg" py={8}>
-        <Box>Série não encontrada</Box>
-      </Container>
-    </Box>
-  ), []);
+  const NotFoundComponent = useMemo(
+    () => (
+      <Box bg="gray.900" minH="100vh" pt="80px">
+        <Container maxW="container.lg" py={8}>
+          <Box>Série não encontrada</Box>
+        </Container>
+      </Box>
+    ),
+    []
+  );
 
   if (isLoading) return LoadingComponent;
   if (!series) return NotFoundComponent;
 
   return (
     <>
-      <SEO 
+      <SEO
         title={seoData.title}
         description={seoData.description}
         image={seoData.image}
         type="article"
       />
-      
+
       <Flex direction="column" minH="100vh" bg="gray.900" ref={seriesDetailsRef}>
         <Box flex="1">
-          <SeriesHeader 
-            series={series} 
+          <SeriesHeader
+            series={series}
             isLoading={isLoading}
             reviews={reviews}
             userReview={userReview}
@@ -264,9 +243,9 @@ export function SeriesDetails() {
             navigate={navigate}
           />
 
-          <RelatedSeries 
-            relatedSeries={relatedSeries} 
-            isLoading={isLoadingRelated} 
+          <RelatedSeries
+            relatedSeries={relatedSeries}
+            isLoading={isLoadingRelated}
             currentSeriesId={id!}
           />
         </Box>
@@ -297,8 +276,8 @@ export function SeriesDetails() {
               seriesId: existingReview.seriesId,
               seasonReviews: existingReview.seasonReviews,
               series: {
-                name: series?.name || '',
-                poster_path: series?.poster_path || '',
+                name: series?.name || "",
+                poster_path: series?.poster_path || "",
               },
             }}
             initialSeasonNumber={selectedSeason}
@@ -317,7 +296,8 @@ export function SeriesDetails() {
                 Excluir avaliação
               </AlertDialogHeader>
               <AlertDialogBody color="white">
-                Tem certeza que deseja excluir sua avaliação da temporada {deleteState.seasonToDelete}? Esta ação não pode ser desfeita.
+                Tem certeza que deseja excluir sua avaliação da temporada{" "}
+                {deleteState.seasonToDelete}? Esta ação não pode ser desfeita.
               </AlertDialogBody>
               <AlertDialogFooter>
                 <Button
@@ -329,12 +309,7 @@ export function SeriesDetails() {
                 >
                   Cancelar
                 </Button>
-                <Button
-                  bg="red.500"
-                  _hover={{ bg: "red.600" }}
-                  onClick={handleDeleteReview}
-                  ml={3}
-                >
+                <Button bg="red.500" _hover={{ bg: "red.600" }} onClick={handleDeleteReview} ml={3}>
                   Excluir
                 </Button>
               </AlertDialogFooter>

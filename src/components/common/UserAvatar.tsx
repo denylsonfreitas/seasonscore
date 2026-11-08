@@ -1,11 +1,11 @@
-import React from 'react';
-import { Avatar, AvatarBadge, AvatarProps, Box, useColorModeValue } from '@chakra-ui/react';
-import { FaUser } from 'react-icons/fa';
+import { User } from "@phosphor-icons/react";
+import React from "react";
+import { Avatar, AvatarBadge, AvatarProps, useColorModeValue } from "@chakra-ui/react";
 
-interface UserAvatarProps extends Omit<AvatarProps, 'src' | 'name' | 'icon'> {
+interface UserAvatarProps extends Omit<AvatarProps, "src" | "name" | "icon"> {
   userId?: string;
   photoURL?: string | null;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
   isOnline?: boolean;
   showStatus?: boolean;
   isDeleted?: boolean;
@@ -18,7 +18,7 @@ interface UserAvatarProps extends Omit<AvatarProps, 'src' | 'name' | 'icon'> {
 export const UserAvatar: React.FC<UserAvatarProps> = ({
   userId,
   photoURL,
-  size = 'md',
+  size = "md",
   isOnline,
   showStatus = false,
   isDeleted = false,
@@ -28,42 +28,32 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   userEmail,
   ...props
 }) => {
-  const { displayName, ...filteredProps } = props as { 
-    displayName?: string
+  const { ...filteredProps } = props as {
+    displayName?: string;
   } & AvatarProps;
-  
-  const userIsDeleted = isDeleted || 
-                       !userId || 
-                       isDeletedExtra || 
-                       !photoURL || 
-                       (name && name.toLowerCase().includes('excluído'));
-  
-  const bg = useColorModeValue('gray.300', 'gray.600');
-  const iconColor = useColorModeValue('gray.600', 'gray.300');
-  
-  const FallbackAvatar = () => (
-    <Box
-      width="100%"
-      height="100%"
-      borderRadius="full"
-      bg={bg}
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-    >
-      <FaUser color={iconColor} size={size === 'xs' ? '10px' : size === 'sm' ? '14px' : '18px'} />
-    </Box>
-  );
-  
+
+  const userIsDeleted =
+    isDeleted ||
+    !userId ||
+    isDeletedExtra ||
+    !photoURL ||
+    (name && name.toLowerCase().includes("excluído"));
+
+  const bg = useColorModeValue("gray.300", "gray.600");
+  const badgeBorderColor = useColorModeValue("white", "gray.800");
   return (
     <Avatar
       size={size}
       src={userIsDeleted ? undefined : photoURL || undefined}
-      name={userIsDeleted ? "Usuário excluído" : name || (userEmail ? userEmail.split('@')[0] : 'Usuário')}
+      name={
+        userIsDeleted
+          ? "Usuário excluído"
+          : name || (userEmail ? userEmail.split("@")[0] : "Usuário")
+      }
       bg={bg}
-      icon={userIsDeleted ? <FaUser /> : undefined}
+      icon={userIsDeleted ? <User weight="fill" /> : undefined}
       onClick={onClick}
-      borderWidth={userIsDeleted ? '1px' : 0}
+      borderWidth={userIsDeleted ? "1px" : 0}
       borderColor="gray.500"
       opacity={userIsDeleted ? 0.7 : 1}
       {...filteredProps}
@@ -71,11 +61,11 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
       {showStatus && (
         <AvatarBadge
           boxSize="1em"
-          bg={isOnline ? 'green.400' : 'gray.400'}
+          bg={isOnline ? "green.400" : "gray.400"}
           borderWidth="2px"
-          borderColor={useColorModeValue('white', 'gray.800')}
+          borderColor={badgeBorderColor}
         />
       )}
     </Avatar>
   );
-}; 
+};

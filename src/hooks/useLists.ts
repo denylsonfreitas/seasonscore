@@ -1,15 +1,17 @@
-import { useState } from 'react';
-import { useToast } from '@chakra-ui/react';
-import { useQueryClient } from '@tanstack/react-query';
-import { 
-  getUserLists, 
-  addSeriesToList, 
-  createList, 
-  getListsContainingSeries 
-} from '../services/lists';
-import { useAuth } from '../contexts/AuthContext';
+import { useState } from "react";
+import { useToast } from "@chakra-ui/react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  getUserLists,
+  addSeriesToList,
+  createList,
+  getListsContainingSeries,
+} from "../services/lists";
+import { useAuth } from "../contexts/AuthContext";
+import type { List } from "../types/list";
 
-interface Series {
+/** Dados mínimos de uma série para adicioná-la a uma lista. */
+export interface ListableSeries {
   id: number;
   name: string;
   poster_path: string | null;
@@ -19,7 +21,7 @@ interface Series {
 export function useLists() {
   const { currentUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [userLists, setUserLists] = useState<any[]>([]);
+  const [userLists, setUserLists] = useState<List[]>([]);
   const [listsWithSeries, setListsWithSeries] = useState<string[]>([]);
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -35,19 +37,19 @@ export function useLists() {
       });
       return { lists: [], listsWithSeries: [] };
     }
-    
+
     setIsLoading(true);
     try {
       const lists = await getUserLists(currentUser.uid);
       setUserLists(lists);
-      
+
       if (seriesId) {
         const listsWithThisSeries = await getListsContainingSeries(currentUser.uid, seriesId);
-        const seriesListIds = listsWithThisSeries.map(list => list.id);
+        const seriesListIds = listsWithThisSeries.map((list) => list.id);
         setListsWithSeries(seriesListIds);
         return { lists, listsWithSeries: seriesListIds };
       }
-      
+
       return { lists, listsWithSeries: [] };
     } catch (error) {
       console.error("Erro ao carregar listas:", error);
@@ -64,7 +66,7 @@ export function useLists() {
     }
   };
 
-  const addToList = async (listId: string, series: Series) => {
+  const addToList = async (listId: string, series: ListableSeries) => {
     if (!currentUser) {
       toast({
         title: "Autenticação necessária",
@@ -75,26 +77,26 @@ export function useLists() {
       });
       return false;
     }
-    
+
     setIsLoading(true);
     try {
       await addSeriesToList(listId, {
         id: series.id,
         name: series.name,
-        poster_path: series.poster_path
+        poster_path: series.poster_path,
       });
-      
+
       // Atualizar a lista de listas que contêm esta série
-      setListsWithSeries(prev => {
+      setListsWithSeries((prev) => {
         if (!prev.includes(listId)) {
           return [...prev, listId];
         }
         return prev;
       });
-      
+
       // Invalidar queries relacionadas às listas
       queryClient.invalidateQueries({ queryKey: ["userLists"] });
-      
+
       toast({
         title: "Série adicionada",
         description: "Série adicionada à lista com sucesso",
@@ -102,7 +104,7 @@ export function useLists() {
         duration: 2000,
         isClosable: true,
       });
-      
+
       return true;
     } catch (error) {
       toast({
@@ -122,11 +124,11 @@ export function useLists() {
    * Cria uma nova lista para o usuário
    */
   const createUserList = async (
-    title: string, 
-    description: string, 
-    tags: string[], 
+    title: string,
+    description: string,
+    tags: string[],
     isPublic: boolean,
-    initialSeries?: Series
+    initialSeries?: ListableSeries
   ) => {
     if (!currentUser) {
       toast({
@@ -138,7 +140,7 @@ export function useLists() {
       });
       return null;
     }
-    
+
     if (!title.trim()) {
       toast({
         title: "Título obrigatório",
@@ -149,17 +151,21 @@ export function useLists() {
       });
       return null;
     }
-    
+
     setIsLoading(true);
     try {
       // Se uma série inicial foi fornecida, criar a lista com ela já incluída
-      const initialItems = initialSeries ? [{
-        seriesId: initialSeries.id,
-        name: initialSeries.name,
-        poster_path: initialSeries.poster_path,
-        addedAt: new Date()
-      }] : [];
-      
+      const initialItems = initialSeries
+        ? [
+            {
+              seriesId: initialSeries.id,
+              name: initialSeries.name,
+              poster_path: initialSeries.poster_path,
+              addedAt: new Date(),
+            },
+          ]
+        : [];
+
       // Criar a lista
       const listId = await createList(
         title.trim(),
@@ -168,25 +174,25 @@ export function useLists() {
         isPublic,
         initialItems
       );
-      
+
       // Invalidar queries relacionadas às listas
       queryClient.invalidateQueries({ queryKey: ["userLists"] });
-      
+
       // Se uma série foi adicionada, também atualizar o estado de listsWithSeries
       if (initialSeries) {
-        setListsWithSeries(prev => [...prev, listId]);
+        setListsWithSeries((prev) => [...prev, listId]);
       }
-      
+
       toast({
         title: "Lista criada",
-        description: initialSeries 
-          ? `Lista criada com sucesso com ${initialSeries.name} adicionada` 
+        description: initialSeries
+          ? `Lista criada com sucesso com ${initialSeries.name} adicionada`
           : "Lista criada com sucesso",
         status: "success",
         duration: 3000,
         isClosable: true,
       });
-      
+
       return listId;
     } catch (error) {
       toast({
@@ -216,6 +222,6 @@ export function useLists() {
     loadUserLists,
     addToList,
     createUserList,
-    isInList
+    isInList,
   };
-} 
+}

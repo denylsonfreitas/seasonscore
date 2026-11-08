@@ -1,13 +1,21 @@
-import React, { useState, useCallback, createContext, useContext, useEffect, ReactNode } from 'react';
-import { 
-  Alert, 
-  AlertIcon, 
-  AlertTitle, 
-  AlertDescription, 
-  Box, 
-  Button, 
-  CloseButton 
-} from '@chakra-ui/react';
+import { logError } from "../utils/logger";
+import React, {
+  useState,
+  useCallback,
+  createContext,
+  useContext,
+  useEffect,
+  ReactNode,
+} from "react";
+import {
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
+  Box,
+  Button,
+  CloseButton,
+} from "@chakra-ui/react";
 
 interface ErrorBoundaryContextProps {
   error: Error | null;
@@ -18,7 +26,7 @@ interface ErrorBoundaryContextProps {
 const ErrorBoundaryContext = createContext<ErrorBoundaryContextProps>({
   error: null,
   setError: () => {},
-  resetError: () => {}
+  resetError: () => {},
 });
 
 interface ErrorBoundaryProviderProps {
@@ -29,54 +37,38 @@ interface ErrorBoundaryProviderProps {
 /**
  * Provider para o gerenciamento de erros
  */
-export function ErrorBoundaryProvider({ 
-  children, 
-  fallback: ErrorFallback 
+export function ErrorBoundaryProvider({
+  children,
+  fallback: ErrorFallback,
 }: ErrorBoundaryProviderProps) {
   const [error, setError] = useState<Error | null>(null);
-  
+
   const resetError = useCallback(() => {
     setError(null);
   }, []);
-  
+
+  // Erros fora da renderização (promises sem tratamento, callbacks) apenas são
+  // registrados: derrubar a tela inteira por uma busca em segundo plano que
+  // falhou é pior do que manter o app funcionando. Erros de renderização
+  // continuam sendo capturados pelo ErrorBoundary abaixo.
   useEffect(() => {
-    const handleGlobalError = (event: ErrorEvent) => {
-      console.error('Erro não capturado:', event.error);
-      setError(event.error);
-      event.preventDefault();
-    };
-    
-    window.addEventListener('error', handleGlobalError);
-    
+    const handleGlobalError = (event: ErrorEvent) => logError("window.error", event.error);
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) =>
+      logError("unhandledrejection", event.reason);
+
+    window.addEventListener("error", handleGlobalError);
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
     return () => {
-      window.removeEventListener('error', handleGlobalError);
+      window.removeEventListener("error", handleGlobalError);
+      window.removeEventListener("unhandledrejection", handleUnhandledRejection);
     };
   }, []);
-  
-  useEffect(() => {
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      console.error('Promise rejeitada não tratada:', event.reason);
-      
-      const error = event.reason instanceof Error
-        ? event.reason
-        : new Error(String(event.reason));
-      
-      setError(error);
-      event.preventDefault();
-    };
-    
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
-    
-    return () => {
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-    };
-  }, []);
-  
+
   if (error) {
     if (ErrorFallback) {
       return <ErrorFallback error={error} resetError={resetError} />;
     }
-    
+
     return (
       <Alert
         status="error"
@@ -93,24 +85,17 @@ export function ErrorBoundaryProvider({
         <AlertTitle mt={4} mb={2} fontSize="lg">
           Ops! Algo deu errado
         </AlertTitle>
-        <AlertDescription maxWidth="sm">
-          {error.message}
-        </AlertDescription>
+        <AlertDescription maxWidth="sm">{error.message}</AlertDescription>
         <Box mt={4}>
           <Button colorScheme="red" onClick={resetError}>
             Tentar novamente
           </Button>
         </Box>
-        <CloseButton
-          position="absolute"
-          right="8px"
-          top="8px"
-          onClick={resetError}
-        />
+        <CloseButton position="absolute" right="8px" top="8px" onClick={resetError} />
       </Alert>
     );
   }
-  
+
   return (
     <ErrorBoundaryContext.Provider value={{ error, setError, resetError }}>
       {children}
@@ -123,11 +108,11 @@ export function ErrorBoundaryProvider({
  */
 export function useErrorBoundary() {
   const context = useContext(ErrorBoundaryContext);
-  
+
   if (!context) {
-    throw new Error('useErrorBoundary deve ser usado dentro de um ErrorBoundaryProvider');
+    throw new Error("useErrorBoundary deve ser usado dentro de um ErrorBoundaryProvider");
   }
-  
+
   return context;
 }
 
@@ -153,7 +138,7 @@ export class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by ErrorBoundary:', error, errorInfo);
+    console.error("Error caught by ErrorBoundary:", error, errorInfo);
   }
 
   resetError = () => {
@@ -163,11 +148,11 @@ export class ErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError && this.state.error) {
       const { fallback: ErrorFallback } = this.props;
-      
+
       if (ErrorFallback) {
         return <ErrorFallback error={this.state.error} resetError={this.resetError} />;
       }
-      
+
       return (
         <Alert
           status="error"
@@ -184,20 +169,13 @@ export class ErrorBoundary extends React.Component<
           <AlertTitle mt={4} mb={2} fontSize="lg">
             Ops! Algo deu errado
           </AlertTitle>
-          <AlertDescription maxWidth="sm">
-            {this.state.error.message}
-          </AlertDescription>
+          <AlertDescription maxWidth="sm">{this.state.error.message}</AlertDescription>
           <Box mt={4}>
             <Button colorScheme="red" onClick={this.resetError}>
               Tentar novamente
             </Button>
           </Box>
-          <CloseButton
-            position="absolute"
-            right="8px"
-            top="8px"
-            onClick={this.resetError}
-          />
+          <CloseButton position="absolute" right="8px" top="8px" onClick={this.resetError} />
         </Alert>
       );
     }

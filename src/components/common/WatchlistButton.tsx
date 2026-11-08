@@ -1,22 +1,20 @@
 import { useState, useEffect } from "react";
-import { 
-  IconButton, 
-  Tooltip, 
-  useToast, 
-  useMediaQuery, 
-  Menu, 
-  MenuButton, 
-  MenuList, 
-  MenuItem, 
+import {
+  IconButton,
+  useToast,
+  useMediaQuery,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
   MenuDivider,
   Box,
-  Portal
+  Portal,
 } from "@chakra-ui/react";
-import { Bookmark, BookmarkSimple, DotsThree } from "@phosphor-icons/react";
+import { Bookmark, BookmarkSimple, DotsThree, ListBullets } from "@phosphor-icons/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSearchParams } from "react-router-dom";
 import { AddToListButton, AddToListMenuItem } from "../lists/AddToListButton";
-import { FaListUl } from "react-icons/fa";
 import { useWatchlist } from "../../hooks/useWatchlist";
 
 interface WatchlistButtonProps {
@@ -26,47 +24,26 @@ interface WatchlistButtonProps {
     poster_path: string | null;
     first_air_date: string;
   };
-  size?: string;
-  variant?: string;
+  size?: "sm" | "md" | "lg";
+  variant?: "solid" | "outline" | "ghost";
   menuAsBox?: boolean;
 }
 
-export function WatchlistButton({ series, size = "md", variant = "ghost", menuAsBox = false }: WatchlistButtonProps) {
+export function WatchlistButton({
+  series,
+  size = "md",
+  variant = "ghost",
+  menuAsBox = false,
+}: WatchlistButtonProps) {
   const { currentUser } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile] = useMediaQuery("(max-width: 768px)");
   const toast = useToast();
   const [searchParams] = useSearchParams();
   const listId = searchParams.get("list_id");
-  
-  // Usar o hook personalizado de watchlist
-  const { 
-    isInWatchlist, 
-    isLoading, 
-    toggleWatchlist 
-  } = useWatchlist(series.id);
 
-  // Se temos um list_id na URL, devemos mostrar o botão de adicionar à lista específica
-  if (listId) {
-    // Criar um objeto que atenda à interface Series esperada pelo AddToListButton
-    const seriesForList = {
-      ...series,
-      // Adicionar propriedades adicionais exigidas pela interface Series
-      backdrop_path: "",
-      overview: "",
-      vote_average: 0,
-      number_of_seasons: 0,
-      genres: [],
-      networks: [],
-      status: "",
-      popularity: 0,
-      in_production: false,
-      homepage: "",
-      last_air_date: ""
-    };
-    
-    return <AddToListButton series={seriesForList as any} size={size as any} variant={variant as any} iconOnly useButtonElement={!menuAsBox} />;
-  }
+  // Usar o hook personalizado de watchlist
+  const { isInWatchlist, isLoading, toggleWatchlist } = useWatchlist(series.id);
 
   // Auto-close tooltip on mobile after action
   useEffect(() => {
@@ -74,10 +51,23 @@ export function WatchlistButton({ series, size = "md", variant = "ghost", menuAs
       const timer = setTimeout(() => {
         setIsOpen(false);
       }, 1500); // Fechar após 1.5 segundos
-      
+
       return () => clearTimeout(timer);
     }
   }, [isMobile, isOpen]);
+
+  // Se temos um list_id na URL, devemos mostrar o botão de adicionar à lista específica
+  if (listId) {
+    return (
+      <AddToListButton
+        series={series}
+        size={size}
+        variant={variant}
+        iconOnly
+        useButtonElement={!menuAsBox}
+      />
+    );
+  }
 
   async function handleWatchlistClick() {
     if (!currentUser) {
@@ -92,31 +82,17 @@ export function WatchlistButton({ series, size = "md", variant = "ghost", menuAs
 
     // Mostrar tooltip temporariamente para feedback visual
     setIsOpen(true);
-    
+
     // Usar a função do hook para alternar a watchlist
     await toggleWatchlist(series);
-    
-    // Fechar tooltip imediatamente para desktop ou agendar fechamento para mobile 
+
+    // Fechar tooltip imediatamente para desktop ou agendar fechamento para mobile
     if (!isMobile) {
       setIsOpen(false);
     }
   }
 
   // Criar um objeto completo para a série que atenda à interface Series
-  const seriesForList = {
-    ...series,
-    backdrop_path: "",
-    overview: "",
-    vote_average: 0,
-    number_of_seasons: 0,
-    genres: [],
-    networks: [],
-    status: "",
-    popularity: 0,
-    in_production: false,
-    homepage: "",
-    last_air_date: ""
-  };
 
   if (!currentUser) {
     // Versão com menu para usuários não logados
@@ -156,38 +132,38 @@ export function WatchlistButton({ series, size = "md", variant = "ghost", menuAs
         )}
         <Portal>
           <MenuList bg="gray.900" borderColor="gray.700" minW="180px">
-            <MenuItem 
+            <MenuItem
               icon={<BookmarkSimple color="white" size={16} />}
-              onClick={() => toast({
-                title: "Faça login para adicionar à sua watchlist",
-                status: "warning",
-                duration: 3000,
-                isClosable: true,
-              })}
+              onClick={() =>
+                toast({
+                  title: "Faça login para adicionar à sua watchlist",
+                  status: "warning",
+                  duration: 3000,
+                  isClosable: true,
+                })
+              }
               bg="gray.900"
               _hover={{ bg: "gray.800" }}
               color="white"
             >
-              <Box color="white">
-                Adicionar à watchlist
-              </Box>
+              <Box color="white">Adicionar à watchlist</Box>
             </MenuItem>
             <MenuDivider borderColor="gray.700" />
-            <MenuItem 
-              icon={<FaListUl color="white" size={14} />}
-              onClick={() => toast({
-                title: "Faça login para adicionar séries às suas listas",
-                status: "warning",
-                duration: 3000,
-                isClosable: true,
-              })}
+            <MenuItem
+              icon={<ListBullets weight="fill" color="white" size={14} />}
+              onClick={() =>
+                toast({
+                  title: "Faça login para adicionar séries às suas listas",
+                  status: "warning",
+                  duration: 3000,
+                  isClosable: true,
+                })
+              }
               bg="gray.900"
               _hover={{ bg: "gray.800" }}
               color="white"
             >
-              <Box color="white">
-                Adicionar a uma lista
-              </Box>
+              <Box color="white">Adicionar a uma lista</Box>
             </MenuItem>
           </MenuList>
         </Portal>
@@ -232,8 +208,14 @@ export function WatchlistButton({ series, size = "md", variant = "ghost", menuAs
       )}
       <Portal>
         <MenuList bg="gray.900" borderColor="gray.700" minW="180px">
-          <MenuItem 
-            icon={isInWatchlist ? <Bookmark weight="fill" color="white" size={16} /> : <BookmarkSimple color="white" size={16} />}
+          <MenuItem
+            icon={
+              isInWatchlist ? (
+                <Bookmark weight="fill" color="white" size={16} />
+              ) : (
+                <BookmarkSimple color="white" size={16} />
+              )
+            }
             onClick={handleWatchlistClick}
             isDisabled={isLoading}
             bg="gray.900"
@@ -245,9 +227,9 @@ export function WatchlistButton({ series, size = "md", variant = "ghost", menuAs
             </Box>
           </MenuItem>
           <MenuDivider borderColor="gray.700" />
-          <AddToListMenuItem series={seriesForList as any} />
+          <AddToListMenuItem series={series} />
         </MenuList>
       </Portal>
     </Menu>
   );
-} 
+}

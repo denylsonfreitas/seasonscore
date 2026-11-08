@@ -1,5 +1,3 @@
-import { FieldValue } from "firebase/firestore";
-
 export interface Comment {
   id: string;
   userId: string;
@@ -18,8 +16,16 @@ export interface SeasonReview {
   rating: number;
   comment: string;
   comments?: Comment[];
-  createdAt: Date | { seconds: number } | FieldValue;
+  createdAt: Date | { seconds: number };
   reactions?: {
     likes: string[];
   };
-} 
+}
+
+/** Dados mínimos para navegar até os detalhes de uma avaliação de temporada. */
+export interface ReviewTarget {
+  id: string;
+  seasonNumber: number;
+}
+
+export type ReviewClickHandler = (review: ReviewTarget) => void;

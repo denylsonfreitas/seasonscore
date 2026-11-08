@@ -1,23 +1,20 @@
-import React, { useState } from 'react';
-import { Grid, Skeleton, useToast, Box } from '@chakra-ui/react';
-import { ListCard } from './ListCard';
-import { useQuery } from '@tanstack/react-query';
-import { getPopularLists } from '../../services/lists';
-import { ListWithUserData } from '../../types/list';
-import { SectionBase } from '../common/SectionBase';
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import { listCarouselStyles, listsSliderSettings } from "../../styles/carouselStyles";
+import React from "react";
+import { Grid, Skeleton, useToast, Box } from "@chakra-ui/react";
+import { ListCard } from "./ListCard";
+import { useQuery } from "@tanstack/react-query";
+import { getPopularLists } from "../../services/lists";
+import { ListWithUserData } from "../../types/list";
+import { SectionBase } from "../common/SectionBase";
+import { Carousel } from "../common/Carousel";
 
 export function PopularLists() {
   const toast = useToast();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["popularLists"],
-    queryFn: () => getPopularLists(12)
+    queryFn: () => getPopularLists(12),
   });
-  
+
   // Tipagem segura para os dados
   const lists: ListWithUserData[] = data || [];
 
@@ -45,16 +42,16 @@ export function PopularLists() {
 
   const renderContent = (limitItems: boolean) => {
     const displayedLists = limitItems ? lists.slice(0, 12) : lists;
-    
+
     return (
-      <Box sx={listCarouselStyles} pb={8}>
-        <Slider {...listsSliderSettings}>
+      <Box pb={8}>
+        <Carousel preset="lists" gap={4}>
           {displayedLists.map((list) => (
             <Box key={list.id} height="100%" px="1px">
               <ListCard key={list.id} list={list} />
             </Box>
           ))}
-        </Slider>
+        </Carousel>
       </Box>
     );
   };
@@ -72,4 +69,4 @@ export function PopularLists() {
       renderContent={renderContent}
     />
   );
-} 
+}

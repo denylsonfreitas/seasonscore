@@ -1,54 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import {
-  SimpleGrid,
-  Box,
-  Text,
-  Button,
-  Flex,
-  useDisclosure,
-  Spinner,
-  IconButton,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalCloseButton,
-  ModalFooter,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  VStack,
-  Switch,
-  FormHelperText,
-  useToast,
-  HStack,
-  Tag,
-  TagLabel,
-  TagCloseButton,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  InputGroup,
-  InputRightElement,
-  Image,
-  Grid,
-  GridItem,
-  Icon
-} from '@chakra-ui/react';
-import { FaPlus, FaSearch, FaTimes, FaAngleRight, FaAngleLeft, } from 'react-icons/fa';
-import { Globe, Lock, Plus } from '@phosphor-icons/react';
-import { ListCard } from '../lists/ListCard';
-import { getUserLists, createList } from '../../services/lists';
-import { useAuth } from '../../contexts/AuthContext';
-import { ListWithUserData } from '../../types/list';
-import { useNavigate } from 'react-router-dom';
-import { searchSeries } from '../../services/tmdb';
-import { CreateListModal } from '../lists/CreateListModal';
-import { SeriesSearchResult } from '../../types/series';
+import React, { useEffect, useState } from "react";
+import { Box, Text, Button, Flex, useDisclosure, Spinner, useToast, Grid } from "@chakra-ui/react";
+import { Plus } from "@phosphor-icons/react";
+import { ListCard } from "../lists/ListCard";
+import { getUserLists } from "../../services/lists";
+import { ListWithUserData } from "../../types/list";
+import { useNavigate } from "react-router-dom";
+import { CreateListModal } from "../lists/CreateListModal";
 
 interface ListsSectionProps {
   userId: string;
@@ -56,27 +13,21 @@ interface ListsSectionProps {
 }
 
 export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
-  const { currentUser } = useAuth();
   const [lists, setLists] = useState<ListWithUserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const navigate = useNavigate();
   const toast = useToast();
-
-  useEffect(() => {
-    fetchLists();
-  }, [userId]);
-
   const fetchLists = async () => {
     try {
       setIsLoading(true);
       const userLists = await getUserLists(userId, !isOwnProfile);
       setLists(userLists);
     } catch (error) {
-      console.error('Erro ao carregar listas:', error);
+      console.error("Erro ao carregar listas:", error);
       toast({
-        title: 'Erro ao carregar listas',
-        status: 'error',
+        title: "Erro ao carregar listas",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -84,12 +35,15 @@ export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
       setIsLoading(false);
     }
   };
+  useEffect(() => {
+    fetchLists();
+  }, [userId]);
 
   const handleListCreated = (listId: string) => {
-      // Atualizar a lista de listas
-      fetchLists();
-      
-      // Navegar para a página da lista recém-criada
+    // Atualizar a lista de listas
+    fetchLists();
+
+    // Navegar para a página da lista recém-criada
     navigate(`/list/${listId}`);
   };
 
@@ -105,33 +59,21 @@ export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
     <Box>
       {isOwnProfile && (
         <Flex justifyContent="flex-end" mb={6}>
-          <Button
-            leftIcon={<Plus weight="bold" />}
-            colorScheme="primary"
-            onClick={onOpen}
-          >
+          <Button leftIcon={<Plus weight="bold" />} colorScheme="primary" onClick={onOpen}>
             Lista
           </Button>
         </Flex>
       )}
 
       {lists.length === 0 ? (
-        <Box
-          textAlign="center"
-          p={10}
-          bg="gray.800"
-          borderRadius="md"
-        >
+        <Box textAlign="center" p={10} bg="gray.800" borderRadius="md">
           <Text fontSize="xl" mb={4}>
             {isOwnProfile
-              ? 'Você ainda não criou nenhuma lista'
-              : 'Este usuário ainda não criou nenhuma lista'}
+              ? "Você ainda não criou nenhuma lista"
+              : "Este usuário ainda não criou nenhuma lista"}
           </Text>
           {isOwnProfile && (
-            <Button
-              colorScheme="primary"
-              onClick={onOpen}
-            >
+            <Button colorScheme="primary" onClick={onOpen}>
               Criar sua primeira lista
             </Button>
           )}
@@ -145,11 +87,7 @@ export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
       )}
 
       {/* Usando o componente CreateListModal */}
-      <CreateListModal 
-        isOpen={isOpen}
-        onClose={onClose} 
-        onListCreated={handleListCreated}
-      />
+      <CreateListModal isOpen={isOpen} onClose={onClose} onListCreated={handleListCreated} />
     </Box>
   );
-} 
+}

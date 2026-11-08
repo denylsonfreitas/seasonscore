@@ -1,3 +1,6 @@
+import type { ExtendedUser as User } from "../../types/auth";
+import type { ReviewClickHandler } from "../../types/review";
+import type { SeasonReview } from "../../types/review";
 import {
   AccordionItem,
   AccordionButton,
@@ -23,23 +26,22 @@ import { SeriesReview, getFollowedUsersReviews } from "../../services/reviews";
 import { RatingStars } from "../common/RatingStars";
 import { ReviewListItem } from "../reviews/ReviewListItem";
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "../../contexts/AuthContext";
 import { UserAvatar } from "../common/UserAvatar";
 import { getGlobalLoginPopover } from "../layout/Navbar";
 
 interface SeasonAccordionItemProps {
   season: number;
   averageRating: number;
-  seasonReviews: any[];
+  seasonReviews: SeasonReview[];
   userReview?: SeriesReview;
-  currentUser: any | null;
+  currentUser: User | null;
   userData: { photoURL?: string | null } | null;
   seriesId: string;
   onSeasonSelect: (season: number) => void;
   onOpenReviewModal: () => void;
   onEditReview: (review: SeriesReview) => void;
   onDeleteReview: (season: number) => void;
-  onReviewClick: (review: any) => void;
+  onReviewClick: ReviewClickHandler;
   navigate: (path: string) => void;
 }
 
@@ -56,17 +58,13 @@ export function SeasonAccordionItem({
   onEditReview,
   onDeleteReview,
   onReviewClick,
-  navigate,
 }: SeasonAccordionItemProps) {
   // Verificar se o usuário tem uma avaliação para esta temporada
-  const hasUserReview = userReview !== undefined && userReview.seasonReviews.some(
-    (sr) => sr.seasonNumber === season
-  );
+  const hasUserReview =
+    userReview !== undefined && userReview.seasonReviews.some((sr) => sr.seasonNumber === season);
 
   // Obter a avaliação da temporada se existir
-  const seasonReview = userReview?.seasonReviews.find(
-    (sr) => sr.seasonNumber === season
-  );
+  const seasonReview = userReview?.seasonReviews.find((sr) => sr.seasonNumber === season);
 
   // Buscar avaliações dos usuários seguidos
   const { data: followedReviews = [], isLoading: isLoadingFollowedReviews } = useQuery({
@@ -85,7 +83,7 @@ export function SeasonAccordionItem({
         userId: review.userId,
         userEmail: review.userEmail,
         comments: sr.comments || [],
-        createdAt: sr.createdAt || new Date()
+        createdAt: sr.createdAt || new Date(),
       }))
   );
 
@@ -93,7 +91,7 @@ export function SeasonAccordionItem({
   const renderUserReviewBox = () => {
     // Só renderizamos se ambos userReview e seasonReview existirem
     if (!userReview || !seasonReview) return null;
-    
+
     return (
       <Box bg="gray.700" p={2} borderRadius="lg">
         <HStack pl={1} justify="space-between" align="center">
@@ -107,11 +105,7 @@ export function SeasonAccordionItem({
             <Text color="white" fontWeight="medium">
               Sua avaliação:
             </Text>
-            <RatingStars
-              rating={seasonReview.rating || 0}
-              size={16}
-              showNumber={false}
-            />
+            <RatingStars rating={seasonReview.rating || 0} size={16} showNumber={false} />
           </HStack>
           <Menu>
             <MenuButton
@@ -121,9 +115,8 @@ export function SeasonAccordionItem({
               variant="ghost"
               color="gray.400"
               _hover={{ bg: "gray.700" }}
-              
             />
-            <MenuList bg="gray.800" borderColor="gray.600" >
+            <MenuList bg="gray.800" borderColor="gray.600">
               <MenuItem
                 icon={<Eye size={20} />}
                 onClick={() => {
@@ -195,10 +188,7 @@ export function SeasonAccordionItem({
             colorScheme="primary"
             onClick={() => {
               const openLoginPopover = getGlobalLoginPopover();
-              if (openLoginPopover) {
-                openLoginPopover();
-              } else {
-              }
+              openLoginPopover?.();
             }}
             width="100%"
           >
@@ -211,12 +201,7 @@ export function SeasonAccordionItem({
 
   return (
     <AccordionItem key={`season-${season}`} border="none">
-      <AccordionButton
-        bg="gray.700"
-        _hover={{ bg: "gray.600" }}
-        mb={2}
-        borderRadius="md"
-      >
+      <AccordionButton bg="gray.700" _hover={{ bg: "gray.600" }} mb={2} borderRadius="md">
         <Box flex="1" textAlign="left">
           <HStack>
             <Text color="white" fontWeight="medium">
@@ -282,4 +267,4 @@ export function SeasonAccordionItem({
       </AccordionPanel>
     </AccordionItem>
   );
-} 
+}

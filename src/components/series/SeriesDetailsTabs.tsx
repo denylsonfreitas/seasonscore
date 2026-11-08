@@ -1,3 +1,6 @@
+import type { Series } from "../../services/tmdb";
+import type { ExtendedUser as User } from "../../types/auth";
+import type { ReviewClickHandler } from "../../types/review";
 import {
   Tabs,
   TabList,
@@ -19,10 +22,10 @@ import { useRef, useEffect, useState } from "react";
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 
 interface SeriesDetailsTabsProps {
-  series: any;
+  series: Series;
   reviews: SeriesReview[];
   userReview?: SeriesReview;
-  currentUser: any | null;
+  currentUser: User | null;
   userData: { photoURL?: string | null } | null;
   seriesId: string;
   onSeasonSelect: (season: number) => void;
@@ -30,7 +33,7 @@ interface SeriesDetailsTabsProps {
   onSetExistingReview: (review: SeriesReview) => void;
   onSetDeleteAlertOpen: (isOpen: boolean) => void;
   onSetSeasonToDelete: (season: number | null) => void;
-  onReviewClick: (review: any) => void;
+  onReviewClick: ReviewClickHandler;
   navigate: (path: string) => void;
 }
 
@@ -57,23 +60,23 @@ export function SeriesDetailsTabs({
   // Verificar se o scroll é possível
   const checkScroll = () => {
     if (!tabListRef.current) return;
-    
+
     const tabList = tabListRef.current;
     setCanScrollLeft(tabList.scrollLeft > 0);
     setCanScrollRight(tabList.scrollLeft < tabList.scrollWidth - tabList.clientWidth);
   };
 
   // Scrollar para a esquerda ou direita
-  const handleScroll = (direction: 'left' | 'right') => {
+  const handleScroll = (direction: "left" | "right") => {
     if (!tabListRef.current) return;
-    
+
     const tabList = tabListRef.current;
     const scrollAmount = 150; // Pode ajustar conforme necessário
-    
-    if (direction === 'left') {
-      tabList.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+
+    if (direction === "left") {
+      tabList.scrollBy({ left: -scrollAmount, behavior: "smooth" });
     } else {
-      tabList.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      tabList.scrollBy({ left: scrollAmount, behavior: "smooth" });
     }
   };
 
@@ -81,35 +84,30 @@ export function SeriesDetailsTabs({
   useEffect(() => {
     if (tabListRef.current) {
       const tabList = tabListRef.current;
-      
+
       // Verificar scroll inicial
       checkScroll();
-      
+
       // Adicionar listener para detecção de scroll
-      tabList.addEventListener('scroll', checkScroll);
-      
+      tabList.addEventListener("scroll", checkScroll);
+
       return () => {
-        tabList.removeEventListener('scroll', checkScroll);
+        tabList.removeEventListener("scroll", checkScroll);
       };
     }
   }, []);
 
   // Reverifcar quando o tamanho da tela muda
   useEffect(() => {
-    window.addEventListener('resize', checkScroll);
-    return () => window.removeEventListener('resize', checkScroll);
+    window.addEventListener("resize", checkScroll);
+    return () => window.removeEventListener("resize", checkScroll);
   }, []);
-
-  const handleReviewClick = (review: any) => {
-    navigate(`/reviews/${review.id}/${review.seasonNumber}`);
-  };
-
   return (
     <Box width="100%">
       <Tabs variant="enclosed" colorScheme="primary" size="sm">
         <Flex justify="flex-end" mb={1} px={2}>
           <Box fontSize="xs" color="gray.400" mr={2} alignSelf="center">
-            {canScrollLeft || canScrollRight ?  "Navegue entre as abas" : ""}
+            {canScrollLeft || canScrollRight ? "Navegue entre as abas" : ""}
           </Box>
           <IconButton
             aria-label="Rolar para a esquerda"
@@ -118,7 +116,7 @@ export function SeriesDetailsTabs({
             variant="ghost"
             colorScheme="primary"
             isDisabled={!canScrollLeft}
-            onClick={() => handleScroll('left')}
+            onClick={() => handleScroll("left")}
           />
           <IconButton
             aria-label="Rolar para a direita"
@@ -127,22 +125,22 @@ export function SeriesDetailsTabs({
             variant="ghost"
             colorScheme="primary"
             isDisabled={!canScrollRight}
-            onClick={() => handleScroll('right')}
+            onClick={() => handleScroll("right")}
           />
         </Flex>
-        
-        <TabList 
-          borderBottomColor="gray.700" 
+
+        <TabList
+          borderBottomColor="gray.700"
           ref={tabListRef}
           overflowX="auto"
           overflowY="hidden"
           css={{
-            scrollbarWidth: 'none',
-            '&::-webkit-scrollbar': {
-              display: 'none',
+            scrollbarWidth: "none",
+            "&::-webkit-scrollbar": {
+              display: "none",
             },
-            WebkitOverflowScrolling: 'touch',
-            whiteSpace: 'nowrap'
+            WebkitOverflowScrolling: "touch",
+            whiteSpace: "nowrap",
           }}
           pb={2}
         >
@@ -222,7 +220,7 @@ export function SeriesDetailsTabs({
           <TabPanel px={0}>
             <SeriesCastTab series={series} />
           </TabPanel>
-          
+
           {/* Painel de Gêneros */}
           <TabPanel px={0}>
             <SeriesGenresTab series={series} />
@@ -236,4 +234,4 @@ export function SeriesDetailsTabs({
       </Tabs>
     </Box>
   );
-} 
+}

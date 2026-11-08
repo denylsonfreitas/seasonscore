@@ -22,13 +22,10 @@ const genres = [
   { id: "9648", name: "Mistério" },
 ];
 
-export function SeriesFilter({
-  genreFilter,
-  onGenreChange,
-}: SeriesFilterProps) {
+export function SeriesFilter({ genreFilter, onGenreChange }: SeriesFilterProps) {
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedGenreId = e.target.value;
-    const selectedGenre = genres.find(genre => genre.id === selectedGenreId);
+    const selectedGenre = genres.find((genre) => genre.id === selectedGenreId);
     onGenreChange(selectedGenreId, selectedGenre?.name);
   };
 
@@ -48,12 +45,12 @@ export function SeriesFilter({
           bg: "gray.700",
           color: "white",
           _hover: {
-            bg: "gray.600"
-          }
-        }
+            bg: "gray.600",
+          },
+        },
       }}
     >
-      {genres.map(genre => (
+      {genres.map((genre) => (
         <option key={genre.id} value={genre.id}>
           {genre.name}
         </option>

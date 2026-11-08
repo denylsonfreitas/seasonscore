@@ -1,38 +1,16 @@
-import {
-  Box,
-  Container,
-  Text,
-  VStack,
-  Flex,
-  useToast,
-  useDisclosure,
-  Center,
-  Spinner,
-} from "@chakra-ui/react";
-import { useState, useEffect, useRef } from "react";
+import { Box, Container, Text, VStack, Flex, useToast, Center, Spinner } from "@chakra-ui/react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import { doc, updateDoc } from "firebase/firestore";
-import { updateProfile } from "firebase/auth";
-import { db } from "../config/firebase";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
-import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { Footer } from "../components/common/Footer";
 import { getUserReviews, SeriesReview } from "../services/reviews";
 import { getUserWatchlist } from "../services/watchlist";
 import { getFollowers, getFollowing } from "../services/followers";
-import {
-  getUserData,
-  UserData,
-  createOrUpdateUser,
-  getUserByUsername,
-} from "../services/users";
+import { getUserData, UserData, updateProfile, getUserByUsername } from "../services/users";
 import { getUserLists } from "../services/lists";
 import { UserListModal } from "../components/user/UserListModal";
-import { ExtendedUser } from "../types/auth";
-import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
-
 // Componentes modularizados para perfil
 import { ProfileHeader } from "../components/profile/ProfileHeader";
 import { ProfileStats } from "../components/profile/ProfileStats";
@@ -41,18 +19,10 @@ import { WatchlistSection } from "../components/profile/WatchlistSection";
 import { ListsSection } from "../components/profile/ListsSection";
 
 export function Profile() {
-  const { currentUser } = useAuth() as { currentUser: ExtendedUser | null };
+  const { currentUser, refreshUser } = useAuth();
   const { username } = useParams();
-  const { isOpen, onOpen, onClose } = useDisclosure();
   const navigate = useNavigate();
   const toast = useToast();
-  const queryClient = useQueryClient();
-
-  const [displayName, setDisplayName] = useState(
-    currentUser?.displayName || ""
-  );
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [selectedReview, setSelectedReview] = useState<any>(null);
   const [profileUser, setProfileUser] = useState<UserData | null>(null);
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
@@ -60,12 +30,7 @@ export function Profile() {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [showWatchlist, setShowWatchlist] = useState(false);
   const [showLists, setShowLists] = useState(false);
-
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const coverInputRef = useRef<HTMLInputElement>(null);
-
-  const isOwnProfile =
-    !username || (currentUser && profileUser?.id === currentUser.uid);
+  const isOwnProfile = !username || (currentUser && profileUser?.id === currentUser.uid);
   const targetUserId = profileUser?.id || currentUser?.uid;
 
   // Efeito para buscar o usuário do perfil
@@ -100,7 +65,7 @@ export function Profile() {
     queryFn: () => getUserReviews(targetUserId!),
     enabled: !!targetUserId,
     refetchInterval: 5000,
-    staleTime: 0
+    staleTime: 0,
   });
 
   const { data: watchlist = [], isLoading: isLoadingWatchlist } = useQuery({
@@ -109,66 +74,26 @@ export function Profile() {
     enabled: !!targetUserId,
   });
 
-  const { data: followers = [], isLoading: isLoadingFollowers } = useQuery({
+  const { data: followers = [] } = useQuery({
     queryKey: ["followers", targetUserId],
     queryFn: () => getFollowers(targetUserId!),
     enabled: !!targetUserId,
   });
 
-  const { data: following = [], isLoading: isLoadingFollowing } = useQuery({
+  const { data: following = [] } = useQuery({
     queryKey: ["following", targetUserId],
     queryFn: () => getFollowing(targetUserId!),
     enabled: !!targetUserId,
   });
 
   const { data: userLists = [], isLoading: isLoadingLists } = useQuery({
-    queryKey: ['userLists', targetUserId],
-    queryFn: () => getUserLists(targetUserId || ''),
-    enabled: !!targetUserId
+    queryKey: ["userLists", targetUserId],
+    queryFn: () => getUserLists(targetUserId || ""),
+    enabled: !!targetUserId,
   });
 
   // Manipuladores de eventos
-  const handleUpdateProfile = async () => {
-    if (!currentUser) return;
-
-    setIsUpdating(true);
-    try {
-      const userRef = doc(db, "users", currentUser.uid);
-      await updateDoc(userRef, {
-        displayName,
-      });
-
-      await updateProfile(currentUser, {
-        displayName,
-      });
-
-      await createOrUpdateUser(currentUser);
-
-      toast({
-        title: "Perfil atualizado",
-        description: "Seu nome foi atualizado com sucesso!",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-
-      onClose();
-    } catch (error) {
-      toast({
-        title: "Erro ao atualizar perfil",
-        description: "Ocorreu um erro ao atualizar seu nome. Tente novamente.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const handlePhotoUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || !event.target.files[0] || !currentUser) return;
 
     setUploadingPhoto(true);
@@ -176,8 +101,8 @@ export function Profile() {
       const file = event.target.files[0];
       const photoURL = await uploadProfilePhoto(file, currentUser.uid);
 
-      await updateProfile(currentUser, { photoURL });
-      await createOrUpdateUser(currentUser, { photoURL });
+      await updateProfile(currentUser.uid, { photoURL });
+      await refreshUser();
 
       toast({
         title: "Foto atualizada",
@@ -199,9 +124,7 @@ export function Profile() {
     }
   };
 
-  const handleCoverUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || !event.target.files[0] || !currentUser) return;
 
     setUploadingCover(true);
@@ -209,7 +132,8 @@ export function Profile() {
       const file = event.target.files[0];
       const coverURL = await uploadCoverPhoto(file, currentUser.uid);
 
-      await createOrUpdateUser(currentUser, { coverURL });
+      await updateProfile(currentUser.uid, { coverURL });
+      await refreshUser();
 
       toast({
         title: "Capa atualizada",
@@ -221,8 +145,7 @@ export function Profile() {
     } catch (error) {
       toast({
         title: "Erro ao atualizar capa",
-        description:
-          "Ocorreu um erro ao atualizar sua foto de capa. Tente novamente.",
+        description: "Ocorreu um erro ao atualizar sua foto de capa. Tente novamente.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -240,19 +163,15 @@ export function Profile() {
     return (
       <Box bg="gray.900" minH="100vh" pt="80px">
         <Container maxW="container.lg" py={8}>
-          <Text color="white">
-            Você precisa estar logado para acessar esta página.
-          </Text>
+          <Text color="white">Você precisa estar logado para acessar esta página.</Text>
         </Container>
       </Box>
     );
   }
 
   const userName = isOwnProfile
-    ? currentUser?.displayName || currentUser?.email?.split("@")[0] || "Usuário"
-    : profileUser?.displayName ||
-      profileUser?.email?.split("@")[0] ||
-      "Usuário";
+    ? currentUser?.displayName || currentUser?.username || "Usuário"
+    : profileUser?.displayName || profileUser?.username || "Usuário";
 
   // Contar listas
   const listsCount = userLists?.length || 0;
@@ -268,7 +187,7 @@ export function Profile() {
     }
 
     const section = showLists ? "lists" : showWatchlist ? "watchlist" : "reviews";
-    
+
     switch (section) {
       case "reviews":
         return (
@@ -280,20 +199,15 @@ export function Profile() {
         );
       case "watchlist":
         return (
-          <WatchlistSection 
-            watchlist={watchlist} 
+          <WatchlistSection
+            watchlist={watchlist}
             isLoading={isLoadingWatchlist}
             isOwnProfile={isOwnProfile === true}
             currentUser={currentUser}
           />
         );
       case "lists":
-        return (
-          <ListsSection
-            userId={targetUserId || ''}
-            isOwnProfile={isOwnProfile === true}
-          />
-        );
+        return <ListsSection userId={targetUserId || ""} isOwnProfile={isOwnProfile === true} />;
       default:
         return null;
     }
@@ -346,19 +260,6 @@ export function Profile() {
 
             {/* Conteúdo principal - alternando entre Avaliações, Watchlist e Listas */}
             {renderActiveSection()}
-            
-            {selectedReview && (
-              <ReviewEditModal
-                isOpen={!!selectedReview}
-                onClose={() => setSelectedReview(null)}
-                review={selectedReview}
-                initialSeasonNumber={selectedReview.selectedSeasonNumber}
-                onReviewUpdated={() => {
-                  setSelectedReview(null);
-                  queryClient.invalidateQueries({ queryKey: ["userReviews", targetUserId] });
-                }}
-              />
-            )}
 
             <UserListModal
               isOpen={showFollowers}

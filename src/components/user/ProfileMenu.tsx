@@ -1,17 +1,10 @@
-import {
-  IconButton,
-  useToast,
-  Flex,
-  Text,
-  Box,
-  Divider,
-} from "@chakra-ui/react";
+import { IconButton, useToast, Flex, Text, Box, Divider } from "@chakra-ui/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { UserCircle, Gear, SignOut } from "@phosphor-icons/react";
 import { Link as RouterLink } from "react-router-dom";
 import { UserAvatar } from "../common/UserAvatar";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { useAnimatedMenu } from "../../hooks/useAnimatedMenu";
 import { RippleEffect } from "../common/RippleEffect";
 import { AnimatedMenu } from "../common/AnimatedMenu";
@@ -26,17 +19,16 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
-  
+
   const {
     isOpen,
     isVisible,
     isRippling,
-    handleOpen,
     handleClose,
     handleRippleEffect,
     getItemAnimationStyle,
     onOpen,
-    onClose
+    onClose,
   } = useAnimatedMenu();
 
   const handleLogout = useCallback(async () => {
@@ -67,44 +59,34 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
 
   // Se for mobile, retorna apenas o ícone que abre o menu mobile
   if (isMobile && onMobileMenuOpen) {
-    const mobileIcon = useMemo(() => (
+    return (
       <IconButton
         aria-label="Menu"
         icon={
           <Box position="relative" overflow="hidden" borderRadius="full">
-            <UserAvatar
-              size={size}
-              userId={currentUser?.uid}
-              photoURL={currentUser?.photoURL}
-            />
+            <UserAvatar size={size} userId={currentUser?.uid} photoURL={currentUser?.photoURL} />
             <RippleEffect isRippling={isRippling} />
           </Box>
         }
         variant="unstyled"
         color="white"
-        onClick={(e) => {
+        onClick={() => {
           handleRippleEffect();
           onMobileMenuOpen();
         }}
         position="relative"
         overflow="hidden"
       />
-    ), [size, currentUser, isRippling, handleRippleEffect, onMobileMenuOpen]);
-    
-    return mobileIcon;
+    );
   }
 
   // Avatar que serve como trigger para o menu
-  const trigger = useMemo(() => (
+  const trigger = (
     <IconButton
       aria-label="Opções do usuário"
       icon={
         <Box position="relative" borderRadius="full">
-          <UserAvatar
-            size={size}
-            userId={currentUser?.uid}
-            photoURL={currentUser?.photoURL}
-          />
+          <UserAvatar size={size} userId={currentUser?.uid} photoURL={currentUser?.photoURL} />
           <RippleEffect isRippling={isRippling} />
         </Box>
       }
@@ -113,7 +95,7 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
       position="relative"
       overflow="hidden"
     />
-  ), [size, currentUser, isRippling, toggleMenu]);
+  );
 
   return (
     <AnimatedMenu
@@ -126,7 +108,7 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
       alignOnlyOnDesktop={true}
       responsivePosition={{
         base: { top: "60px", right: "8px", left: "8px" },
-        md: { } // Vazio para permitir alinhamento com trigger no desktop
+        md: {}, // Vazio para permitir alinhamento com trigger no desktop
       }}
       transformOrigin="top right"
       width={{ base: "calc(100vw - 16px)", md: "200px" }}
@@ -140,33 +122,26 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
         p: 2,
         borderRadius: { base: "md", md: "md" },
         borderWidth: "1px",
-        maxH: { base: "80vh", md: "auto" }
+        maxH: { base: "80vh", md: "auto" },
       }}
     >
       {/* Cabeçalho com informações do usuário */}
-      <Flex 
-        direction="column" 
-        p={3} 
-        borderBottom="1px solid" 
-        borderColor="gray.700" 
+      <Flex
+        direction="column"
+        p={3}
+        borderBottom="1px solid"
+        borderColor="gray.700"
         mb={2}
         style={getItemAnimationStyle(0)}
       >
-        <Text 
-          fontWeight="semibold" 
-          color="white" 
-          fontSize={{ base: "sm", md: "sm" }}
-        >
+        <Text fontWeight="semibold" color="white" fontSize={{ base: "sm", md: "sm" }}>
           {currentUser?.displayName || "Usuário"}
         </Text>
-        <Text 
-          color="gray.400" 
-          fontSize={{ base: "2xs", md: "xs" }}
-        >
+        <Text color="gray.400" fontSize={{ base: "2xs", md: "xs" }}>
           {currentUser?.username}
         </Text>
       </Flex>
-      
+
       {/* Itens do menu */}
       <Box style={getItemAnimationStyle(1)}>
         <Box
@@ -183,10 +158,10 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
           onClick={handleClose}
         >
           <Flex align="center">
-            <Box 
-              bg="blue.500" 
-              p={1.5} 
-              borderRadius="md" 
+            <Box
+              bg="blue.500"
+              p={1.5}
+              borderRadius="md"
               mr={3}
               display="flex"
               alignItems="center"
@@ -198,7 +173,7 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
           </Flex>
         </Box>
       </Box>
-      
+
       <Box style={getItemAnimationStyle(2)}>
         <Box
           as={RouterLink}
@@ -215,10 +190,10 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
           onClick={handleClose}
         >
           <Flex align="center">
-            <Box 
-              bg="primary.500" 
-              p={1.5} 
-              borderRadius="md" 
+            <Box
+              bg="primary.500"
+              p={1.5}
+              borderRadius="md"
               mr={3}
               display="flex"
               alignItems="center"
@@ -230,9 +205,9 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
           </Flex>
         </Box>
       </Box>
-      
+
       <Divider borderColor="gray.700" my={2} style={getItemAnimationStyle(3)} />
-      
+
       <Box style={getItemAnimationStyle(4)}>
         <Box
           py={2.5}
@@ -247,10 +222,10 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
           display="block"
         >
           <Flex align="center">
-            <Box 
-              bg="red.500" 
-              p={1.5} 
-              borderRadius="md" 
+            <Box
+              bg="red.500"
+              p={1.5}
+              borderRadius="md"
               mr={3}
               display="flex"
               alignItems="center"
@@ -264,4 +239,4 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
       </Box>
     </AnimatedMenu>
   );
-} 
+}
