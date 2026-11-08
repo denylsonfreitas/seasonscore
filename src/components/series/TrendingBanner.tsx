@@ -1,5 +1,6 @@
 import { Box, Heading, Text, VStack, HStack, IconButton, Image, Skeleton } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getTrendingSeries } from "../../services/tmdb";
 import { useNavigate } from "react-router-dom";
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
@@ -18,20 +19,16 @@ interface TrendingSeries {
 }
 
 export function TrendingBanner() {
-  const [trendingSeries, setTrendingSeries] = useState<TrendingSeries[]>([]);
+  const { data: trendingSeries = [] } = useQuery({
+    queryKey: ["trendingSeries"],
+    queryFn: async () => (await getTrendingSeries()).slice(0, 10) as TrendingSeries[],
+    staleTime: 1000 * 60 * 30,
+  });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const navigate = useNavigate();
   const { currentUser } = useAuth();
 
-  useEffect(() => {
-    const fetchTrendingSeries = async () => {
-      const series = await getTrendingSeries();
-      setTrendingSeries(series.slice(0, 10));
-    };
-
-    fetchTrendingSeries();
-  }, []);
   const handlePrevious = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (isTransitioning) return;

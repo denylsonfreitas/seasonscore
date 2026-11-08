@@ -1,3 +1,4 @@
+import { logError } from "../utils/logger";
 import React, {
   useState,
   useCallback,
@@ -46,33 +47,19 @@ export function ErrorBoundaryProvider({
     setError(null);
   }, []);
 
+  // Erros fora da renderização (promises sem tratamento, callbacks) apenas são
+  // registrados: derrubar a tela inteira por uma busca em segundo plano que
+  // falhou é pior do que manter o app funcionando. Erros de renderização
+  // continuam sendo capturados pelo ErrorBoundary abaixo.
   useEffect(() => {
-    const handleGlobalError = (event: ErrorEvent) => {
-      console.error("Erro não capturado:", event.error);
-      setError(event.error);
-      event.preventDefault();
-    };
+    const handleGlobalError = (event: ErrorEvent) => logError("window.error", event.error);
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) =>
+      logError("unhandledrejection", event.reason);
 
     window.addEventListener("error", handleGlobalError);
-
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
     return () => {
       window.removeEventListener("error", handleGlobalError);
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      console.error("Promise rejeitada não tratada:", event.reason);
-
-      const error = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
-
-      setError(error);
-      event.preventDefault();
-    };
-
-    window.addEventListener("unhandledrejection", handleUnhandledRejection);
-
-    return () => {
       window.removeEventListener("unhandledrejection", handleUnhandledRejection);
     };
   }, []);
