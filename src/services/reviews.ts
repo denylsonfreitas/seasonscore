@@ -82,7 +82,7 @@ export interface SeriesReview {
   seasonReviews: SeasonReview[];
   series: {
     name: string;
-    poster_path: string;
+    poster_path: string | null;
   };
   selectedSeasonNumber?: number;
   createdAt?: Date | { seconds: number };

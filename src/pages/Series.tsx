@@ -1,3 +1,4 @@
+import type { ListWithUserData } from "../types/list";
 import {
   Box,
   Container,
@@ -47,7 +48,7 @@ export function Series() {
   const filterPopoverRef = useRef<HTMLButtonElement>(null);
   // Verificar se estamos adicionando a uma lista específica
   const [listId, setListId] = useState<string | null>(searchParams.get("list_id"));
-  const [listInfo, setListInfo] = useState<any>(null);
+  const [listInfo, setListInfo] = useState<ListWithUserData | null>(null);
   const [, setIsLoadingList] = useState(false);
 
   // Efeito que sincroniza os parâmetros da URL com o estado local

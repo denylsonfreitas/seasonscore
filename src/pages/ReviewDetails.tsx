@@ -1,3 +1,5 @@
+import type { SeasonReview } from "../types/review";
+import type { UserData } from "../services/users";
 import {
   Box,
   Container,
@@ -38,6 +40,8 @@ import { CommentSection } from "../components/common/CommentSection";
 import { ReactionButtons } from "../components/reviews/ReactionButtons";
 import { Footer } from "../components/common/Footer";
 
+type ReviewDetails = NonNullable<Awaited<ReturnType<typeof getReviewDetails>>>;
+
 export function ReviewDetails() {
   const { reviewId, seasonNumber: seasonNumberParam } = useParams<{
     reviewId: string;
@@ -47,8 +51,8 @@ export function ReviewDetails() {
   const toast = useToast();
   const { currentUser } = useAuth();
 
-  const [review, setReview] = useState<any>(null);
-  const [userData, setUserData] = useState<any>(null);
+  const [review, setReview] = useState<ReviewDetails | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(
@@ -69,7 +73,7 @@ export function ReviewDetails() {
 
   // Seleção da temporada atual para exibição
   const activeSeasonReview = review?.seasonReviews?.find(
-    (sr: any) => sr.seasonNumber === selectedSeasonNumber
+    (sr: SeasonReview) => sr.seasonNumber === selectedSeasonNumber
   );
 
   // Buscar detalhes da avaliação
@@ -97,7 +101,7 @@ export function ReviewDetails() {
       // Se temos um número de temporada na URL, verificar se existe
       if (seasonNumberParam) {
         const seasonExists = reviewData.seasonReviews.some(
-          (sr: any) => sr.seasonNumber === parseInt(seasonNumberParam)
+          (sr: SeasonReview) => sr.seasonNumber === parseInt(seasonNumberParam)
         );
 
         if (!seasonExists) {
@@ -205,7 +209,7 @@ export function ReviewDetails() {
         // Atualizar a cópia local do review para refletir a reação
         const updatedReview = { ...review };
         const seasonIndex = updatedReview.seasonReviews.findIndex(
-          (sr: any) => sr.seasonNumber === seasonNumber
+          (sr: SeasonReview) => sr.seasonNumber === seasonNumber
         );
 
         if (seasonIndex !== -1) {
@@ -622,7 +626,7 @@ export function ReviewDetails() {
                   likes={
                     isLiked
                       ? [...(activeSeasonReview.reactions?.likes || []), currentUser?.uid].filter(
-                          Boolean
+                          (id): id is string => Boolean(id)
                         )
                       : activeSeasonReview.reactions?.likes || []
                   }
@@ -672,7 +676,7 @@ export function ReviewDetails() {
                   Outras temporadas avaliadas:
                 </Text>
                 <Flex gap={2} wrap="wrap">
-                  {review.seasonReviews.map((sr: any) => (
+                  {review.seasonReviews.map((sr: SeasonReview) => (
                     <Button
                       key={sr.seasonNumber}
                       size="sm"
@@ -709,7 +713,7 @@ export function ReviewDetails() {
         </Collapse>
 
         {/* Botão para expandir/colapsar comentários quando fechados */}
-        {!isCommentExpanded && activeSeasonReview?.comments?.length > 0 && (
+        {!isCommentExpanded && (activeSeasonReview?.comments?.length ?? 0) > 0 && (
           <Button
             onClick={toggleComments}
             variant="outline"
@@ -720,7 +724,7 @@ export function ReviewDetails() {
             borderRadius="lg"
             _hover={{ bg: "gray.700" }}
           >
-            Ver {activeSeasonReview.comments.length} comentários
+            Ver {activeSeasonReview?.comments?.length} comentários
           </Button>
         )}
       </Container>

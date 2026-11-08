@@ -35,7 +35,7 @@ interface ReviewEditModalProps {
   review: SeriesReview & {
     series: {
       name: string;
-      poster_path?: string;
+      poster_path?: string | null;
     };
   };
   onReviewUpdated: () => void;

@@ -33,13 +33,13 @@ import {
   Icon,
   VStack,
 } from "@chakra-ui/react";
-import { Series } from "../../services/tmdb";
+import type { ListableSeries } from "../../hooks/useLists";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLists } from "../../hooks/useLists";
 import { CaretDown, Check, Globe, ListBullets, Lock, Plus } from "@phosphor-icons/react";
 
 interface AddToListButtonProps {
-  series: Series;
+  series: ListableSeries;
   size?: "sm" | "md" | "lg";
   variant?: "solid" | "outline" | "ghost";
   iconOnly?: boolean;
@@ -47,7 +47,7 @@ interface AddToListButtonProps {
 }
 
 // Versão do botão específica para uso como MenuItem
-export function AddToListMenuItem({ series }: { series: Series }) {
+export function AddToListMenuItem({ series }: { series: ListableSeries }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
   const { currentUser } = useAuth();
@@ -98,7 +98,7 @@ function ListSelectorModal({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  series: Series;
+  series: ListableSeries;
 }) {
   const { userLists, isLoading, loadUserLists, addToList, isInList, createUserList } = useLists();
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -404,7 +404,7 @@ function ListMenuItems({
   series,
   onCreateModalOpen,
 }: {
-  series: Series;
+  series: ListableSeries;
   onCreateModalOpen: () => void;
 }) {
   const { userLists, isLoading, loadUserLists, addToList, isInList } = useLists();

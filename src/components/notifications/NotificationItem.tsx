@@ -19,7 +19,7 @@ export interface NotificationItemProps {
   notification: Notification;
   onClick: (notification: Notification) => void;
   index: number;
-  getItemAnimationStyle: (index: number) => any;
+  getItemAnimationStyle: (index: number) => React.CSSProperties;
   isSelectionMode?: boolean;
   isSelected?: boolean;
   onSelect?: (id: string) => void;

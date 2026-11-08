@@ -8,8 +8,10 @@ import {
   getListsContainingSeries,
 } from "../services/lists";
 import { useAuth } from "../contexts/AuthContext";
+import type { List } from "../types/list";
 
-interface Series {
+/** Dados mínimos de uma série para adicioná-la a uma lista. */
+export interface ListableSeries {
   id: number;
   name: string;
   poster_path: string | null;
@@ -19,7 +21,7 @@ interface Series {
 export function useLists() {
   const { currentUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [userLists, setUserLists] = useState<any[]>([]);
+  const [userLists, setUserLists] = useState<List[]>([]);
   const [listsWithSeries, setListsWithSeries] = useState<string[]>([]);
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -64,7 +66,7 @@ export function useLists() {
     }
   };
 
-  const addToList = async (listId: string, series: Series) => {
+  const addToList = async (listId: string, series: ListableSeries) => {
     if (!currentUser) {
       toast({
         title: "Autenticação necessária",
@@ -126,7 +128,7 @@ export function useLists() {
     description: string,
     tags: string[],
     isPublic: boolean,
-    initialSeries?: Series
+    initialSeries?: ListableSeries
   ) => {
     if (!currentUser) {
       toast({

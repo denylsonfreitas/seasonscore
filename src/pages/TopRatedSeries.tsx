@@ -1,3 +1,4 @@
+import type { SeriesReview } from "../services/reviews";
 import {
   Box,
   Container,
@@ -18,22 +19,6 @@ import { Footer } from "../components/common/Footer";
 import { TelevisionSimple } from "@phosphor-icons/react";
 import { getTopRatedSeries as getTopRatedReviews } from "../services/reviews";
 import { PageHeader } from "../components/common/PageHeader";
-
-interface SeriesReview {
-  id: string;
-  userId: string;
-  userEmail: string;
-  seriesId: number;
-  seasonReviews: {
-    seasonNumber: number;
-    rating: number;
-    comment?: string;
-  }[];
-  series?: {
-    name: string;
-    poster_path: string;
-  };
-}
 
 interface TopRatedSeries {
   id: number;

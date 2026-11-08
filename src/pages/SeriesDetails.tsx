@@ -1,3 +1,4 @@
+import type { ReviewTarget } from "../types/review";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -140,7 +141,7 @@ export function SeriesDetails() {
   }, [currentUser, series, deleteState.seasonToDelete, userReview, id, queryClient, toast]);
 
   const handleReviewClick = useCallback(
-    (review: any) => {
+    (review: ReviewTarget) => {
       navigate(`/reviews/${review.id}/${review.seasonNumber}`);
     },
     [navigate]

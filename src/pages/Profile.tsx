@@ -4,7 +4,6 @@ import { useAuth } from "../contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { updateProfile } from "firebase/auth";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
-import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { Footer } from "../components/common/Footer";
 import { getUserReviews, SeriesReview } from "../services/reviews";
@@ -14,7 +13,6 @@ import { getUserData, UserData, createOrUpdateUser, getUserByUsername } from "..
 import { getUserLists } from "../services/lists";
 import { UserListModal } from "../components/user/UserListModal";
 import { ExtendedUser } from "../types/auth";
-import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 
 // Componentes modularizados para perfil
 import { ProfileHeader } from "../components/profile/ProfileHeader";
@@ -28,8 +26,6 @@ export function Profile() {
   const { username } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
-  const queryClient = useQueryClient();
-  const [selectedReview, setSelectedReview] = useState<any>(null);
   const [profileUser, setProfileUser] = useState<UserData | null>(null);
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
@@ -266,19 +262,6 @@ export function Profile() {
 
             {/* Conteúdo principal - alternando entre Avaliações, Watchlist e Listas */}
             {renderActiveSection()}
-
-            {selectedReview && (
-              <ReviewEditModal
-                isOpen={!!selectedReview}
-                onClose={() => setSelectedReview(null)}
-                review={selectedReview}
-                initialSeasonNumber={selectedReview.selectedSeasonNumber}
-                onReviewUpdated={() => {
-                  setSelectedReview(null);
-                  queryClient.invalidateQueries({ queryKey: ["userReviews", targetUserId] });
-                }}
-              />
-            )}
 
             <UserListModal
               isOpen={showFollowers}

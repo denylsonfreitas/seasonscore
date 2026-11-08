@@ -24,8 +24,8 @@ interface WatchlistButtonProps {
     poster_path: string | null;
     first_air_date: string;
   };
-  size?: string;
-  variant?: string;
+  size?: "sm" | "md" | "lg";
+  variant?: "solid" | "outline" | "ghost";
   menuAsBox?: boolean;
 }
 
@@ -58,28 +58,11 @@ export function WatchlistButton({
 
   // Se temos um list_id na URL, devemos mostrar o botão de adicionar à lista específica
   if (listId) {
-    // Criar um objeto que atenda à interface Series esperada pelo AddToListButton
-    const seriesForList = {
-      ...series,
-      // Adicionar propriedades adicionais exigidas pela interface Series
-      backdrop_path: "",
-      overview: "",
-      vote_average: 0,
-      number_of_seasons: 0,
-      genres: [],
-      networks: [],
-      status: "",
-      popularity: 0,
-      in_production: false,
-      homepage: "",
-      last_air_date: "",
-    };
-
     return (
       <AddToListButton
-        series={seriesForList as any}
-        size={size as any}
-        variant={variant as any}
+        series={series}
+        size={size}
+        variant={variant}
         iconOnly
         useButtonElement={!menuAsBox}
       />
@@ -110,20 +93,6 @@ export function WatchlistButton({
   }
 
   // Criar um objeto completo para a série que atenda à interface Series
-  const seriesForList = {
-    ...series,
-    backdrop_path: "",
-    overview: "",
-    vote_average: 0,
-    number_of_seasons: 0,
-    genres: [],
-    networks: [],
-    status: "",
-    popularity: 0,
-    in_production: false,
-    homepage: "",
-    last_air_date: "",
-  };
 
   if (!currentUser) {
     // Versão com menu para usuários não logados
@@ -258,7 +227,7 @@ export function WatchlistButton({
             </Box>
           </MenuItem>
           <MenuDivider borderColor="gray.700" />
-          <AddToListMenuItem series={seriesForList as any} />
+          <AddToListMenuItem series={series} />
         </MenuList>
       </Portal>
     </Menu>

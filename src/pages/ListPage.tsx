@@ -789,22 +789,14 @@ export default function ListPage() {
                     spacing={{ base: 2, md: 3 }}
                   >
                     {list?.items.map((item) => {
-                      const seriesData = {
+                      const seriesData: SeriesListItem = {
                         id: item.seriesId,
                         name: item.name,
                         poster_path: item.poster_path,
-                        backdrop_path: "",
+                        backdrop_path: null,
                         overview: "",
                         vote_average: 0,
                         first_air_date: "",
-                        number_of_seasons: 0,
-                        genres: [],
-                        networks: [],
-                        status: "",
-                        popularity: 0,
-                        in_production: false,
-                        homepage: "",
-                        last_air_date: "",
                       };
 
                       return (
@@ -815,7 +807,7 @@ export default function ListPage() {
                           transition="transform 0.2s ease"
                           _hover={{ transform: "scale(1.02)" }}
                         >
-                          <SeriesCard series={seriesData as any} size="sm" />
+                          <SeriesCard series={seriesData} size="sm" />
                           {currentUser && list.userId === currentUser.uid && (
                             <Box
                               position="absolute"

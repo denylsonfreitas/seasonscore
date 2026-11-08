@@ -14,7 +14,7 @@ export class TmdbError extends Error {
 
 /** Cliente mínimo para a API do TMDB baseado em fetch. */
 const api = {
-  async get<T = any>(
+  async get<T = unknown>(
     path: string,
     options: { params?: Record<string, QueryValue> } = {}
   ): Promise<{ data: T }> {
@@ -316,7 +316,7 @@ export interface Season {
 
 // Obter detalhes de uma temporada específica
 export async function getSeasonDetails(seriesId: number, seasonNumber: number): Promise<Season> {
-  const response = await api.get(`/tv/${seriesId}/season/${seasonNumber}`);
+  const response = await api.get<Season>(`/tv/${seriesId}/season/${seasonNumber}`);
   return response.data;
 }
 
@@ -385,7 +385,7 @@ export interface Video {
 // Obter vídeos de uma série
 export async function getSeriesVideos(seriesId: number): Promise<Video[]> {
   try {
-    const response = await api.get(`/tv/${seriesId}/videos`);
+    const response = await api.get<{ results: Video[] }>(`/tv/${seriesId}/videos`);
     return response.data.results;
   } catch (error) {
     return [];

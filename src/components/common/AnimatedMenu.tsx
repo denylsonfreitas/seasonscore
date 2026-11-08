@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, useBreakpointValue } from "@chakra-ui/react";
+import { Box, useBreakpointValue, type BoxProps } from "@chakra-ui/react";
 import { createPortal } from "react-dom";
 
 // Hook para gerenciar estado do menu animado
@@ -39,7 +39,7 @@ interface AnimatedMenuProps {
   isVisible?: boolean;
   onOpen: () => void;
   onClose: () => void;
-  menuStyles?: Record<string, any>;
+  menuStyles?: BoxProps;
   /** Posição fixa do menu (será sobrescrita se alignWithTrigger=true) */
   position?: Position;
   /** Posição responsiva do menu - sobrescreve position */
