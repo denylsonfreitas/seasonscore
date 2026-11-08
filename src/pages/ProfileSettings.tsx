@@ -34,6 +34,8 @@ import {
 } from "../services/users";
 import { getSeriesDetails } from "../services/tmdb";
 import { SearchModal } from "../components/layout/SearchModal";
+import { ImageCropModal } from "../components/common/ImageCropModal";
+import type { CropKind } from "../utils/cropImage";
 import { useNavigate } from "react-router-dom";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
 import { Image as ImageIcon, UploadSimple, Plus, X } from "@phosphor-icons/react";
@@ -52,6 +54,12 @@ export function ProfileSettings() {
   const [isRemovingCover, setIsRemovingCover] = useState(false);
   const [tempPhotoURL, setTempPhotoURL] = useState<string | null>(null);
   const [tempCoverURL, setTempCoverURL] = useState<string | null>(null);
+  // Prévia local do recorte, exibida na hora (sem esperar o Storage)
+  const [localPreview, setLocalPreview] = useState<{ avatar?: string; cover?: string }>({});
+  useEffect(
+    () => () => Object.values(localPreview).forEach((url) => url && URL.revokeObjectURL(url)),
+    [localPreview]
+  );
   const photoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
@@ -110,63 +118,60 @@ export function ProfileSettings() {
     loadUserData();
   }, [currentUser]);
 
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || !event.target.files[0] || !currentUser) return;
+  // Imagem escolhida aguardando o ajuste no modal de recorte
+  const [cropTarget, setCropTarget] = useState<{ kind: CropKind; src: string } | null>(null);
+  const MAX_SOURCE_SIZE = 20 * 1024 * 1024;
 
-    setUploadingPhoto(true);
-    try {
-      const file = event.target.files[0];
-      const photoURL = await uploadProfilePhoto(file, currentUser.uid);
-      setTempPhotoURL(photoURL);
-      setIsRemovingPhoto(false);
-
-      toast({
-        title: "Foto carregada",
-        description: "Clique em Salvar alterações para aplicar as mudanças",
-        status: "info",
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (error) {
-      toast({
-        title: "Erro ao carregar foto",
-        description: "Ocorreu um erro ao carregar sua foto. Tente novamente.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setUploadingPhoto(false);
+  const openCropper = (kind: CropKind) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // permite escolher o mesmo arquivo de novo
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Escolha um arquivo de imagem", status: "warning", duration: 3000 });
+      return;
     }
+    if (file.size > MAX_SOURCE_SIZE) {
+      toast({
+        title: "Imagem muito grande",
+        description: "O limite é 20 MB.",
+        status: "warning",
+        duration: 3000,
+      });
+      return;
+    }
+    setCropTarget({ kind, src: URL.createObjectURL(file) });
   };
 
-  const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || !event.target.files[0] || !currentUser) return;
+  const closeCropper = () => {
+    if (cropTarget) URL.revokeObjectURL(cropTarget.src);
+    setCropTarget(null);
+  };
 
-    setUploadingCover(true);
+  const handleCropped = async (file: File) => {
+    if (!currentUser || !cropTarget) return;
+    const isAvatar = cropTarget.kind === "avatar";
+    const setUploading = isAvatar ? setUploadingPhoto : setUploadingCover;
+    setUploading(true);
     try {
-      const file = event.target.files[0];
-      const coverURL = await uploadCoverPhoto(file, currentUser.uid);
-      setTempCoverURL(coverURL);
-      setIsRemovingCover(false);
-
+      if (isAvatar) {
+        setTempPhotoURL(await uploadProfilePhoto(file, currentUser.uid));
+        setIsRemovingPhoto(false);
+      } else {
+        setTempCoverURL(await uploadCoverPhoto(file, currentUser.uid));
+        setIsRemovingCover(false);
+      }
+      setLocalPreview((prev) => ({ ...prev, [cropTarget.kind]: URL.createObjectURL(file) }));
+      closeCropper();
       toast({
-        title: "Capa carregada",
-        description: "Clique em Salvar alterações para aplicar as mudanças",
+        title: isAvatar ? "Foto ajustada" : "Capa ajustada",
+        description: "Clique em Salvar alterações para aplicar.",
         status: "info",
         duration: 3000,
-        isClosable: true,
       });
-    } catch (error) {
-      toast({
-        title: "Erro ao carregar capa",
-        description: "Ocorreu um erro ao carregar sua foto de capa. Tente novamente.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+    } catch {
+      throw new Error("Não foi possível enviar a imagem. Tente novamente.");
     } finally {
-      setUploadingCover(false);
+      setUploading(false);
     }
   };
 
@@ -274,6 +279,7 @@ export function ProfileSettings() {
   const handleRemoveProfilePhoto = () => {
     setIsRemovingPhoto(true);
     setTempPhotoURL(null);
+    setLocalPreview((prev) => ({ ...prev, avatar: undefined }));
     toast({
       title: "Foto removida",
       description: "Clique em Salvar alterações para confirmar a remoção",
@@ -286,6 +292,7 @@ export function ProfileSettings() {
   const handleRemoveCoverPhoto = () => {
     setIsRemovingCover(true);
     setTempCoverURL(null);
+    setLocalPreview((prev) => ({ ...prev, cover: undefined }));
     toast({
       title: "Capa removida",
       description: "Clique em Salvar alterações para confirmar a remoção",
@@ -322,13 +329,17 @@ export function ProfileSettings() {
                   accept="image/*"
                   display="none"
                   ref={photoInputRef}
-                  onChange={handlePhotoUpload}
+                  onChange={openCropper("avatar")}
                 />
                 <Box position="relative" width="fit-content" mx="auto">
                   {/* Avatar com placeholder quando foto removida */}
                   <UserAvatar
                     size="2xl"
-                    photoURL={isRemovingPhoto ? null : tempPhotoURL || currentUser?.photoURL}
+                    photoURL={
+                      isRemovingPhoto
+                        ? null
+                        : localPreview.avatar || tempPhotoURL || currentUser?.photoURL
+                    }
                     name={currentUser?.displayName || ""}
                     userId={currentUser?.uid}
                   />
@@ -381,9 +392,9 @@ export function ProfileSettings() {
                   accept="image/*"
                   display="none"
                   ref={coverInputRef}
-                  onChange={handleCoverUpload}
+                  onChange={openCropper("cover")}
                 />
-                <AspectRatio ratio={16 / 9} maxH="150px">
+                <AspectRatio ratio={3}>
                   <Box bg="gray.700" borderRadius="md" overflow="hidden" position="relative">
                     {isRemovingCover ? (
                       <Flex
@@ -439,7 +450,7 @@ export function ProfileSettings() {
                     ) : tempCoverURL || currentUser?.coverURL ? (
                       <>
                         <Image
-                          src={tempCoverURL ? tempCoverURL : currentUser?.coverURL || ""}
+                          src={localPreview.cover || tempCoverURL || currentUser?.coverURL || ""}
                           alt="Foto de capa"
                           objectFit="cover"
                           w="100%"
@@ -589,6 +600,14 @@ export function ProfileSettings() {
                   Aparece no seu perfil e serve de capa quando você não tem uma.
                 </Text>
               </FormControl>
+
+              <ImageCropModal
+                isOpen={!!cropTarget}
+                imageSrc={cropTarget?.src ?? null}
+                kind={cropTarget?.kind ?? "avatar"}
+                onCancel={closeCropper}
+                onConfirm={handleCropped}
+              />
 
               <SearchModal
                 isOpen={favoritePicker.isOpen}

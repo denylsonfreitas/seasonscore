@@ -225,7 +225,7 @@ Só onde o usuário dá ou lê a nota de uma avaliação individual. Cor `star`,
 | **Avatar**              | Circular, iniciais em `label` sobre `ink.800` quando não há foto.                                                                                                    |
 | **Modal**               | Fundo `ink.900`, borda `ink.700`, `radius.lg`; no celular vira folha inferior de largura total.                                                                      |
 | **Menu**                | Fundo `ink.850`, borda `ink.700`, `radius.lg`, itens com altura 36.                                                                                                  |
-| **Toast**               | Canto inferior, fundo `ink.850`, traço lateral na cor do status.                                                                                                     |
+| **Toast**               | Canto inferior, fundo `ink.850`, traço lateral na cor do status (tema: `Alert` variante `solid`).                                                                    |
 | **Cabeçalho de seção**  | Rótulo `label` (`ink.400`) acima, título `h2`, link "Ver tudo" à direita em `small` + seta.                                                                          |
 | **Cabeçalho de página** | Título `h1` e, opcionalmente, uma linha de descrição em `ink.300`. Sem fundo próprio.                                                                                |
 | **Estado vazio**        | Alinhado à esquerda dentro da seção: ícone 24 `ink.400`, frase do fato, frase da próxima ação e botão secundário. Nunca centralizado no meio de uma área enorme.     |
@@ -241,6 +241,13 @@ Wordmark "SeasonScore" em Archivo 800 (largura 115), `ink.50`, precedido de um s
 - **Série** (`SeriesCard`): pôster 2:3, título em uma linha abaixo, ano em mono e `ScoreBadge` pequeno quando há nota. Posição de ranking como número mono `01` no canto do pôster.
 - **Avaliação** (`ReviewCard`): miniatura do pôster, série, temporada, estrelas, trecho do texto (3 linhas) e autor. A avaliação é sobre texto, então o texto aparece.
 - **Lista** (`ListCard`): até 5 pôsteres sobrepostos na capa, título, autor, descrição e números em mono (séries, curtidas, comentários).
+
+### Fotos de perfil e capa
+
+- Antes do envio, toda imagem passa pelo ajuste (`ImageCropModal`): arrastar, zoom e recomeçar.
+- Perfil: recorte quadrado mostrado em círculo, salvo em 512×512. Capa: 3:1, salva em 1500×500, com grade de terços.
+- O arquivo é gerado em WebP no navegador (JPEG se não houver suporte), então fotos grandes de celular cabem no limite do Storage.
+- Proporções em `src/utils/cropImage.ts`; a prévia da capa nas configurações usa a mesma proporção.
 
 ### Layout das páginas
 

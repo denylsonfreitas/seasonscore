@@ -461,6 +461,35 @@ const theme = extendTheme({
         },
       },
     },
+    // Toasts e alertas: superfície neutra com traço lateral na cor do status (DESIGN.md)
+    Alert: {
+      variants: {
+        solid: (props: { status?: string }) => {
+          const stripe =
+            props.status === "error"
+              ? "danger"
+              : props.status === "warning"
+                ? "score.mid"
+                : props.status === "success"
+                  ? "signal.400"
+                  : "ink.300";
+          return {
+            container: {
+              bg: "ink.850",
+              color: "ink.100",
+              borderLeft: "2px solid",
+              borderColor: stripe,
+              borderRadius: "md",
+              boxShadow: "0 12px 32px rgba(0,0,0,0.5)",
+            },
+            icon: { color: stripe },
+            spinner: { color: stripe },
+            title: { fontWeight: 600 },
+            description: { color: "ink.300" },
+          };
+        },
+      },
+    },
     Link: {
       baseStyle: {
         transition,
