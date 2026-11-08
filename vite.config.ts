@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv, type Plugin, type PreviewServer, type ViteDevServer } from "vite";
 import react from "@vitejs/plugin-react";
 
 const vendorChunks: Record<string, string[]> = {
@@ -8,9 +8,36 @@ const vendorChunks: Record<string, string[]> = {
   utils: ["date-fns"],
 };
 
+/**
+ * Serve /api/tmdb localmente (dev e preview) usando a mesma função da Vercel.
+ * A chave vem de TMDB_API_KEY (ou VITE_TMDB_API_KEY) no .env.local.
+ */
+function tmdbProxy(): Plugin {
+  const attach = (server: ViteDevServer | PreviewServer, mode: string) => {
+    const env = loadEnv(mode, process.cwd(), "");
+    process.env.TMDB_API_KEY ??= env.TMDB_API_KEY || env.VITE_TMDB_API_KEY;
+    server.middlewares.use("/api/tmdb", async (req, res) => {
+      const { GET } = await import("./api/tmdb");
+      const response = await GET(new Request(`http://localhost${req.originalUrl ?? req.url}`));
+      res.statusCode = response.status;
+      response.headers.forEach((value, key) => res.setHeader(key, value));
+      res.end(await response.text());
+    });
+  };
+  return {
+    name: "tmdb-proxy",
+    configureServer(server) {
+      attach(server, server.config.mode);
+    },
+    configurePreviewServer(server) {
+      attach(server, server.config.mode);
+    },
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tmdbProxy()],
   build: {
     minify: "terser",
     terserOptions: {

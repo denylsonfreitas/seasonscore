@@ -1,6 +1,8 @@
 import { memoizeAsync } from "../utils/memo";
 
-const TMDB_BASE_URL = "https://api.themoviedb.org/3";
+// As requisições passam pelo proxy /api/tmdb (função serverless em api/tmdb.ts),
+// que guarda a chave do TMDB no servidor.
+const TMDB_PROXY_PATH = "/api/tmdb";
 
 type QueryValue = string | number | boolean | undefined | null;
 
@@ -36,9 +38,9 @@ const api = {
     path: string,
     options: { params?: Record<string, QueryValue> } = {}
   ): Promise<{ data: T }> {
-    const url = new URL(TMDB_BASE_URL + path);
+    const url = new URL(TMDB_PROXY_PATH, window.location.origin);
     const params: Record<string, QueryValue> = {
-      api_key: import.meta.env.VITE_TMDB_API_KEY,
+      path,
       language: "pt-BR",
       ...options.params,
     };

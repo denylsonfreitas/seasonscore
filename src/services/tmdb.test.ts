@@ -15,13 +15,14 @@ function mockFetch(body: unknown, status = 200) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("cliente TMDB", () => {
-  it("envia chave, idioma e parâmetros na URL", async () => {
+  it("usa o proxy e envia idioma e parâmetros na URL", async () => {
     const fetchMock = mockFetch({ page: 1, results: [], total_pages: 0, total_results: 0 });
     await searchSeries("the office", 2);
 
     const url = new URL(fetchMock.mock.calls[0][0]);
-    expect(url.origin + url.pathname).toBe("https://api.themoviedb.org/3/search/tv");
-    expect(url.searchParams.get("api_key")).toBe("test-key");
+    expect(url.pathname).toBe("/api/tmdb");
+    expect(url.searchParams.get("path")).toBe("/search/tv");
+    expect(url.searchParams.get("api_key")).toBeNull();
     expect(url.searchParams.get("language")).toBe("pt-BR");
     expect(url.searchParams.get("query")).toBe("the office");
     expect(url.searchParams.get("page")).toBe("2");

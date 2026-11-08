@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.app.json --noEmit && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "test:rules": "firebase emulators:exec --only firestore --project seasonscore-rules-test 'vitest run --config vitest.rules.config.ts'",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
