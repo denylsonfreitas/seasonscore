@@ -45,11 +45,10 @@ export function QuickAddButton({ size = "32px" }: QuickAddButtonProps) {
         <Button
           colorScheme="primary"
           variant="solid"
-          borderRadius="full"
           height={size}
           px="16px"
           onClick={onQuickAddOpen}
-          leftIcon={<Plus weight="bold" />}
+          leftIcon={<Plus weight="bold" size={14} />}
           fontWeight="500"
           fontSize="14px"
         >
@@ -62,7 +61,6 @@ export function QuickAddButton({ size = "32px" }: QuickAddButtonProps) {
           aria-label="Avaliar série"
           icon={<Plus weight="bold" />}
           colorScheme="primary"
-          borderRadius="full"
           height={size}
           width={size}
           minW={size}

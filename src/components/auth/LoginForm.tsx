@@ -51,7 +51,7 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
     (index: number) => ({
       opacity: 1,
       transform: "translateY(0)",
-      transition: `all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 0.05 + 0.1}s`,
+      transition: `opacity 200ms ease-out ${index * 0.03 + 0.05}s, transform 200ms ease-out ${index * 0.03 + 0.05}s`,
     }),
     []
   );

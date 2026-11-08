@@ -1,79 +1,39 @@
-import { CaretUp } from "@phosphor-icons/react";
-import { useEffect } from "react";
-import { Icon, IconButton, Box, useMediaQuery, Tooltip } from "@chakra-ui/react";
+import { ArrowUp } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
+import { IconButton } from "@chakra-ui/react";
 
+/** Botão discreto que aparece depois de rolar bastante a página. */
 export function ScrollToTop() {
-  const [isMobile] = useMediaQuery("(max-width: 768px)");
+  const [visible, setVisible] = useState(false);
 
-  // Função para rolar suavemente para o topo
-  const scrollToTop = () => {
-    try {
-      // Tenta ir para o elemento com ID 'top'
-      const topElement = document.getElementById("top");
-      if (topElement) {
-        topElement.scrollIntoView({ behavior: "smooth" });
-      } else {
-        // Caso o elemento não seja encontrado, usa métodos alternativos
-        window.scrollTo({
-          top: 0,
-          behavior: "smooth",
-        });
-      }
-    } catch (error) {
-      console.error("Erro ao tentar rolar para o topo:", error);
-      // Fallback para abordagem direta se houver erro
-      window.scrollTo(0, 0);
-    }
-  };
-
-  // Suporte para atalhos de teclado
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Quando pressionar "Home" ou "Ctrl+ArrowUp"
-      if (e.key === "Home" || (e.ctrlKey && e.key === "ArrowUp")) {
-        scrollToTop();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    const onScroll = () => setVisible(window.scrollY > 1200);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const button = (
-    <IconButton
-      onClick={scrollToTop}
-      icon={<Icon as={CaretUp} boxSize="1.8em" />}
-      aria-label="Voltar ao topo"
-      title="Voltar ao topo da página"
-      size={{ base: "md", md: "md" }}
-      bg="#04a777"
-      color="white"
-      _hover={{
-        bg: "#039b6d",
-      }}
-      _active={{
-        bg: "#028a60",
-      }}
-      rounded="full"
-    />
-  );
-
   return (
-    <Box
+    <IconButton
+      aria-label="Voltar ao topo"
+      title="Voltar ao topo"
+      icon={<ArrowUp size={18} />}
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
       position="fixed"
-      bottom={{ base: "24px", md: "30px" }}
-      right={{ base: "24px", md: "30px" }}
-      zIndex={9999}
-      role="region"
-      aria-live="polite"
-    >
-      {isMobile ? (
-        button
-      ) : (
-        <Tooltip label="Voltar ao topo" placement="left" hasArrow bg="gray.700" color="white">
-          {button}
-        </Tooltip>
-      )}
-    </Box>
+      bottom={{ base: 4, md: 6 }}
+      right={{ base: 4, md: 6 }}
+      zIndex={900}
+      size="md"
+      variant="outline"
+      bg="ink.900"
+      borderColor="ink.700"
+      color="ink.200"
+      _hover={{ bg: "ink.850", color: "ink.50" }}
+      opacity={visible ? 1 : 0}
+      pointerEvents={visible ? "auto" : "none"}
+      transform={visible ? "none" : "translateY(8px)"}
+      transition="opacity 200ms ease, transform 200ms ease"
+      tabIndex={visible ? 0 : -1}
+    />
   );
 }

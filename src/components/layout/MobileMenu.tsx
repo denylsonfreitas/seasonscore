@@ -1,30 +1,74 @@
-import { Box, Text, Flex, Button, Portal, Divider } from "@chakra-ui/react";
-import {
-  Gear,
-  Note,
-  NumberCircleOne,
-  SignOut,
-  Star,
-  TelevisionSimple,
-  UserCircle,
-  UsersThree,
-} from "@phosphor-icons/react";
-import { Link as RouterLink } from "react-router-dom";
-import { ExtendedUser } from "../../types/auth";
-import { useEffect, useState } from "react";
+import { Box, Text, Flex, Button, Portal, Divider, VStack } from "@chakra-ui/react";
+import { Gear, SignOut, UserCircle } from "@phosphor-icons/react";
+import { Link as RouterLink, useLocation } from "react-router-dom";
+import { useEffect, useState, type ReactNode } from "react";
+import type { ExtendedUser } from "../../types/auth";
+import { NAV_HEIGHT, NAV_LINKS, isNavLinkActive } from "./Navbar";
 
 interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: ExtendedUser | null;
   onLogout: () => void;
-  seriesColor: string;
-  top10Color: string;
-  reviewsColor: string;
-  listsColor: string;
-  communityColor: string;
   openSignUpModal: () => void;
   openLoginPopover: () => void;
+}
+
+function MenuRow({
+  to,
+  onClick,
+  active,
+  icon,
+  danger,
+  children,
+}: {
+  to?: string;
+  onClick: () => void;
+  active?: boolean;
+  icon?: ReactNode;
+  danger?: boolean;
+  children: ReactNode;
+}) {
+  const row = (
+    <Flex
+      align="center"
+      gap={3}
+      h="44px"
+      px={3}
+      borderRadius="md"
+      color={danger ? "danger" : active ? "ink.50" : "ink.200"}
+      bg={active ? "ink.850" : "transparent"}
+      fontWeight={active ? 600 : 500}
+      fontSize="md"
+      cursor="pointer"
+      _hover={{ bg: "ink.850", color: danger ? "danger" : "ink.50" }}
+      onClick={onClick}
+      position="relative"
+      _before={
+        active
+          ? {
+              content: '""',
+              position: "absolute",
+              left: 0,
+              top: "10px",
+              bottom: "10px",
+              w: "2px",
+              bg: "signal.400",
+            }
+          : undefined
+      }
+    >
+      {icon}
+      {children}
+    </Flex>
+  );
+  return to ? (
+    <RouterLink to={to} aria-current={active ? "page" : undefined}>
+      {row}
+    </RouterLink>
+  ) : (
+    row
+  );
 }
 
 export function MobileMenu({
@@ -32,350 +76,132 @@ export function MobileMenu({
   onClose,
   currentUser,
   onLogout,
-  seriesColor,
-  top10Color,
-  reviewsColor,
-  listsColor,
-  communityColor,
   openSignUpModal,
   openLoginPopover,
 }: MobileMenuProps) {
-  // Usar estado local para gerenciar a animação em vez do hook completo
   const [isVisible, setIsVisible] = useState(false);
-  // Função para criar estilos de animação para itens de menu
-  const getItemAnimationStyle = (index: number) => ({
-    opacity: isVisible ? 1 : 0,
-    transform: isVisible ? "translateY(0)" : "translateY(10px)",
-    transition: `all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 0.04 + 0.15}s`,
-  });
+  const { pathname } = useLocation();
 
-  // Ajustar visibilidade baseado na prop isOpen
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => setIsVisible(true), 10);
-    } else {
-      setIsVisible(false);
+      const id = setTimeout(() => setIsVisible(true), 10);
+      return () => clearTimeout(id);
     }
+    setIsVisible(false);
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isOpen, onClose]);
 
   if (!isOpen && !isVisible) return null;
 
   return (
     <Portal>
-      {/* Overlay invisível que fecha o menu quando clicado */}
       <Box
         position="fixed"
-        top="0"
-        left="0"
-        right="0"
-        bottom="0"
+        inset={0}
         zIndex={1200}
         onClick={onClose}
-        bg="blackAlpha.500"
+        bg="blackAlpha.600"
         opacity={isVisible ? 1 : 0}
-        transition="opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1)"
+        transition="opacity 200ms ease"
         pointerEvents={isVisible ? "auto" : "none"}
       />
 
       <Box
-        bg="gray.800"
-        borderColor="gray.700"
-        boxShadow="dark-lg"
-        p={2}
-        borderRadius="md"
-        minWidth="260px"
-        zIndex={1300}
+        role="dialog"
+        aria-label="Menu"
         position="fixed"
-        top="60px"
-        right="16px"
-        borderWidth="1px"
-        onClick={(e) => e.stopPropagation()} // Evita que cliques no menu fechem ele
-        transform={isVisible ? "translateY(0) scale(1)" : "translateY(-25px) scale(0.92)"}
+        top={NAV_HEIGHT}
+        left={0}
+        right={0}
+        zIndex={1300}
+        bg="ink.900"
+        borderBottom="1px solid"
+        borderColor="ink.700"
+        px={4}
+        pt={2}
+        pb={4}
+        maxH={`calc(100dvh - ${NAV_HEIGHT})`}
+        overflowY="auto"
+        transform={isVisible ? "translateY(0)" : "translateY(-8px)"}
         opacity={isVisible ? 1 : 0}
-        transition="transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)"
-        transformOrigin="top right"
-        willChange="transform, opacity"
+        transition="transform 200ms ease-out, opacity 200ms ease-out"
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Cabeçalho - apenas para usuários logados */}
         {currentUser && (
-          <>
-            <Flex
-              direction="column"
-              p={3}
-              borderBottom="1px solid"
-              borderColor="gray.700"
-              mb={2}
-              style={getItemAnimationStyle(0)}
-            >
-              <Text fontWeight="semibold" color="white" fontSize="sm">
-                {currentUser?.displayName || "Usuário"}
+          <Box px={3} py={3} mb={1}>
+            <Text fontWeight={600} color="ink.50" fontSize="sm" noOfLines={1}>
+              {currentUser.displayName || currentUser.username || "Usuário"}
+            </Text>
+            {currentUser.username && (
+              <Text color="ink.400" fontSize="xs" fontFamily="mono">
+                @{currentUser.username}
               </Text>
-              <Text color="gray.400" fontSize="xs">
-                {currentUser?.username}
-              </Text>
-            </Flex>
-          </>
+            )}
+          </Box>
         )}
 
-        {/* Itens de Menu */}
-        <Box style={getItemAnimationStyle(1)}>
-          <RouterLink to="/series">
-            <Flex
-              align="center"
-              py={2.5}
-              px={3}
-              borderRadius="md"
-              _hover={{ bg: "gray.700" }}
+        <VStack as="nav" aria-label="Seções" align="stretch" spacing={0.5}>
+          {NAV_LINKS.map((link) => (
+            <MenuRow
+              key={link.to}
+              to={link.to}
               onClick={onClose}
+              active={isNavLinkActive(pathname, link.to)}
             >
-              <Box
-                p={2}
-                borderRadius="md"
-                mr={3}
-                bg="gray.700"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <TelevisionSimple weight="fill" size={18} color={seriesColor} />
-              </Box>
-              <Text color="gray.100" fontWeight="medium">
-                Séries
-              </Text>
-            </Flex>
-          </RouterLink>
-        </Box>
+              {link.label}
+            </MenuRow>
+          ))}
+        </VStack>
 
-        <Box style={getItemAnimationStyle(4)}>
-          <RouterLink to="/series/top10">
-            <Flex
-              align="center"
-              py={2.5}
-              px={3}
-              borderRadius="md"
-              _hover={{ bg: "gray.700" }}
-              onClick={onClose}
-            >
-              <Box
-                p={2}
-                borderRadius="md"
-                mr={3}
-                bg="gray.700"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <NumberCircleOne height="fill" size={18} color={top10Color} />
-              </Box>
-              <Text color="gray.100" fontWeight="medium">
-                Top 10
-              </Text>
-            </Flex>
-          </RouterLink>
-        </Box>
+        <Divider borderColor="ink.700" my={3} />
 
-        <Box style={getItemAnimationStyle(5)}>
-          <RouterLink to="/reviews">
-            <Flex
-              align="center"
-              py={2.5}
-              px={3}
-              borderRadius="md"
-              _hover={{ bg: "gray.700" }}
-              onClick={onClose}
-            >
-              <Box
-                p={2}
-                borderRadius="md"
-                mr={3}
-                bg="gray.700"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <Star weight="fill" size={18} color={reviewsColor} />
-              </Box>
-              <Text color="gray.100" fontWeight="medium">
-                Avaliações
-              </Text>
-            </Flex>
-          </RouterLink>
-        </Box>
-
-        <Box style={getItemAnimationStyle(6)}>
-          <RouterLink to="/lists">
-            <Flex
-              align="center"
-              py={2.5}
-              px={3}
-              borderRadius="md"
-              _hover={{ bg: "gray.700" }}
-              onClick={onClose}
-            >
-              <Box
-                p={2}
-                borderRadius="md"
-                mr={3}
-                bg="gray.700"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <Note weight="fill" size={18} color={listsColor} />
-              </Box>
-              <Text color="gray.100" fontWeight="medium">
-                Listas
-              </Text>
-            </Flex>
-          </RouterLink>
-        </Box>
-
-        <Box style={getItemAnimationStyle(7)}>
-          <RouterLink to="/community">
-            <Flex
-              align="center"
-              py={2.5}
-              px={3}
-              borderRadius="md"
-              _hover={{ bg: "gray.700" }}
-              onClick={onClose}
-            >
-              <Box
-                p={2}
-                borderRadius="md"
-                mr={3}
-                bg="gray.700"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <UsersThree weight="fill" size={18} color={communityColor} />
-              </Box>
-              <Text color="gray.100" fontWeight="medium">
-                Comunidade
-              </Text>
-            </Flex>
-          </RouterLink>
-        </Box>
-
-        <Divider borderColor="gray.700" my={3} style={getItemAnimationStyle(7)} />
-
-        {/* Ações do usuário na parte inferior */}
         {currentUser ? (
-          <>
-            <Box style={getItemAnimationStyle(8)}>
-              <RouterLink to="/profile" onClick={onClose}>
-                <Flex align="center" py={2.5} px={3} borderRadius="md" _hover={{ bg: "gray.700" }}>
-                  <Box
-                    p={2}
-                    borderRadius="md"
-                    mr={3}
-                    bg="blue.500"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <UserCircle weight="fill" size={18} color="white" />
-                  </Box>
-                  <Text color="gray.100" fontWeight="medium">
-                    Meu Perfil
-                  </Text>
-                </Flex>
-              </RouterLink>
-            </Box>
-
-            <Box style={getItemAnimationStyle(9)}>
-              <RouterLink to="/settings">
-                <Flex
-                  align="center"
-                  py={2.5}
-                  px={3}
-                  borderRadius="md"
-                  _hover={{ bg: "gray.700" }}
-                  onClick={onClose}
-                >
-                  <Box
-                    p={2}
-                    borderRadius="md"
-                    mr={3}
-                    bg="primary.500"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <Gear weight="fill" size={18} color="white" />
-                  </Box>
-                  <Text color="gray.100" fontWeight="medium">
-                    Configurações
-                  </Text>
-                </Flex>
-              </RouterLink>
-            </Box>
-
-            <Box style={getItemAnimationStyle(10)}>
-              <Flex
-                align="center"
-                py={2.5}
-                px={3}
-                borderRadius="md"
-                _hover={{ bg: "red.900" }}
-                onClick={() => {
-                  onClose();
-                  onLogout();
-                }}
-                cursor="pointer"
-              >
-                <Box
-                  p={2}
-                  borderRadius="md"
-                  mr={3}
-                  bg="red.500"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <SignOut weight="fill" size={18} color="white" />
-                </Box>
-                <Text color="gray.100" fontWeight="medium">
-                  Sair da Conta
-                </Text>
-              </Flex>
-            </Box>
-          </>
+          <VStack align="stretch" spacing={0.5}>
+            <MenuRow to="/profile" onClick={onClose} icon={<UserCircle size={20} />}>
+              Meu perfil
+            </MenuRow>
+            <MenuRow to="/settings" onClick={onClose} icon={<Gear size={20} />}>
+              Configurações
+            </MenuRow>
+            <MenuRow
+              danger
+              icon={<SignOut size={20} />}
+              onClick={() => {
+                onClose();
+                onLogout();
+              }}
+            >
+              Sair
+            </MenuRow>
+          </VStack>
         ) : (
-          <Box style={getItemAnimationStyle(8)}>
-            <Flex direction="column" p={3} gap={3}>
-              <Button
-                colorScheme="primary"
-                size="md"
-                borderRadius="md"
-                fontWeight="semibold"
-                onClick={() => {
-                  onClose();
-                  openSignUpModal();
-                }}
-                _hover={{ bg: "primary.600" }}
-                _active={{ bg: "primary.700" }}
-              >
-                Criar conta
-              </Button>
-              <Button
-                variant="outline"
-                colorScheme="whiteAlpha"
-                borderColor="gray.600"
-                color="white"
-                borderRadius="md"
-                _hover={{ bg: "whiteAlpha.100" }}
-                _active={{ bg: "whiteAlpha.200" }}
-                onClick={() => {
-                  onClose();
-                  openLoginPopover();
-                }}
-              >
-                Entrar
-              </Button>
-            </Flex>
-          </Box>
+          <Flex gap={3} pt={1}>
+            <Button
+              flex={1}
+              onClick={() => {
+                onClose();
+                openSignUpModal();
+              }}
+            >
+              Criar conta
+            </Button>
+            <Button
+              flex={1}
+              variant="outline"
+              onClick={() => {
+                onClose();
+                openLoginPopover();
+              }}
+            >
+              Entrar
+            </Button>
+          </Flex>
         )}
       </Box>
     </Portal>

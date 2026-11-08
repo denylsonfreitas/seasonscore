@@ -31,7 +31,6 @@ import { useInfiniteQuery, useQueries } from "@tanstack/react-query";
 import { searchSeries, getFilteredSeries } from "../services/tmdb";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { SeriesFilter } from "../components/series/SeriesFilter";
-import { Footer } from "../components/common/Footer";
 import { useSearchParams } from "react-router-dom";
 import { Funnel } from "@phosphor-icons/react";
 import { getSeriesAverageRating } from "../services/reviews";
@@ -335,7 +334,6 @@ export function Series() {
           onLoadMore={fetchNextPage}
         />
       </Container>
-      <Footer />
     </Flex>
   );
 }

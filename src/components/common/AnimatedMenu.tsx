@@ -186,9 +186,7 @@ export function AnimatedMenu({
         bg={overlayBg}
         pointerEvents={visibilityState ? "auto" : "none"}
         opacity={visibilityState && overlayBg !== "transparent" ? 1 : 0}
-        transition={
-          overlayBg !== "transparent" ? "opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1)" : undefined
-        }
+        transition={overlayBg !== "transparent" ? "opacity 200ms ease" : undefined}
         data-testid="animated-menu-overlay"
       />,
       document.body
@@ -215,9 +213,9 @@ export function AnimatedMenu({
             {...menuPosition}
             width={widthStyle}
             zIndex={zIndex?.menu}
-            transform={visibilityState ? "translateY(0) scale(1)" : "translateY(-15px) scale(0.95)"}
+            transform={visibilityState ? "translateY(0)" : "translateY(-6px)"}
             opacity={visibilityState ? 1 : 0}
-            transition="transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s"
+            transition="transform 200ms cubic-bezier(0.2, 0, 0, 1), opacity 160ms ease-out"
             transformOrigin={transformOrigin}
             willChange="transform, opacity"
             {...menuStyles}

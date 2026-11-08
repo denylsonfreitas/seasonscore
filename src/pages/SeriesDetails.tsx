@@ -22,7 +22,6 @@ import { useAuth } from "../contexts/AuthContext";
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { SeriesReview, getSeriesReviews, deleteReview } from "../services/reviews";
-import { Footer } from "../components/common/Footer";
 import { ReviewModal } from "../components/reviews/ReviewModal";
 import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 import { getUserData } from "../services/users";
@@ -249,8 +248,6 @@ export function SeriesDetails() {
             currentSeriesId={id!}
           />
         </Box>
-
-        <Footer />
 
         {isOpen && (
           <ReviewModal

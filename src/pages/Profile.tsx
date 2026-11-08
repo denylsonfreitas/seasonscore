@@ -4,7 +4,6 @@ import { useAuth } from "../contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
 import { useNavigate, useParams } from "react-router-dom";
-import { Footer } from "../components/common/Footer";
 import { getUserReviews, SeriesReview } from "../services/reviews";
 import { getUserWatchlist } from "../services/watchlist";
 import { getFollowers, getFollowing } from "../services/followers";
@@ -279,7 +278,6 @@ export function Profile() {
           </VStack>
         </Container>
       </Box>
-      <Footer />
     </Flex>
   );
 }

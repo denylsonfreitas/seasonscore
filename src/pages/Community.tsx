@@ -23,7 +23,6 @@ import { getUserRecentReviews } from "../services/reviews";
 import { UserAvatar } from "../components/common/UserAvatar";
 import { FollowButton } from "../components/user/FollowButton";
 import { Link as RouterLink } from "react-router-dom";
-import { Footer } from "../components/common/Footer";
 import { UserName } from "../components/common/UserName";
 import { PageHeader } from "../components/common/PageHeader";
 import { useDebounce } from "../hooks/useDebounce";
@@ -225,8 +224,6 @@ export function Community() {
           </>
         )}
       </Container>
-
-      <Footer />
     </Flex>
   );
 }

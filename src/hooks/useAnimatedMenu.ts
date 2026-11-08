@@ -20,19 +20,17 @@ export function useAnimatedMenu(options: UseAnimatedMenuOptions = {}) {
 
   const disclosure = useDisclosure();
   const [isVisible, setIsVisible] = useState(false);
-  const [isRippling, setIsRippling] = useState(false);
 
   const visibilityTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const rippleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isOpen = isControlled ? controlledOpen : disclosure.isOpen;
 
   const getItemAnimationStyle = useCallback(
     (index: number, baseDelay = 0.1) => ({
       opacity: isVisible ? 1 : 0,
-      transform: isVisible ? "translateY(0)" : "translateY(8px)",
-      transition: `all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 0.05 + baseDelay}s`,
+      transform: isVisible ? "translateY(0)" : "translateY(4px)",
+      transition: `opacity 200ms ease-out ${index * 0.03 + baseDelay / 2}s, transform 200ms ease-out ${index * 0.03 + baseDelay / 2}s`,
     }),
     [isVisible]
   );
@@ -82,37 +80,19 @@ export function useAnimatedMenu(options: UseAnimatedMenuOptions = {}) {
     }, closeDuration);
   }, [isControlled, disclosure, closeDuration, onControlledClose]);
 
-  const handleRippleEffect = useCallback(() => {
-    if (!isRippling) {
-      setIsRippling(true);
-
-      if (rippleTimeoutRef.current) {
-        clearTimeout(rippleTimeoutRef.current);
-      }
-
-      rippleTimeoutRef.current = setTimeout(() => {
-        setIsRippling(false);
-        rippleTimeoutRef.current = null;
-      }, 600);
-    }
-  }, [isRippling]);
-
   useEffect(() => {
     return () => {
       if (visibilityTimeoutRef.current) clearTimeout(visibilityTimeoutRef.current);
       if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
-      if (rippleTimeoutRef.current) clearTimeout(rippleTimeoutRef.current);
     };
   }, []);
 
   return {
     isOpen,
     isVisible,
-    isRippling,
     setIsVisible,
     handleOpen,
     handleClose,
-    handleRippleEffect,
     getItemAnimationStyle,
     onOpen: disclosure.onOpen,
     onClose: disclosure.onClose,

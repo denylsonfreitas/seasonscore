@@ -16,7 +16,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getPersonDetails, getPersonCredits } from "../services/tmdb";
 import { SeriesCard } from "../components/series/SeriesCard";
-import { Footer } from "../components/common/Footer";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ArrowLeft } from "@phosphor-icons/react";
@@ -63,7 +62,6 @@ export function ActorDetails() {
             <Spinner size="xl" color="primary.500" thickness="4px" />
           </Flex>
         </Container>
-        <Footer />
       </Flex>
     );
   }
@@ -89,7 +87,6 @@ export function ActorDetails() {
             </Button>
           </Box>
         </Container>
-        <Footer />
       </Flex>
     );
   }
@@ -255,8 +252,6 @@ export function ActorDetails() {
           )}
         </Box>
       </Container>
-
-      <Footer />
     </Flex>
   );
 }

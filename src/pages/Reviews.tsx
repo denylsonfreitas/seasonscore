@@ -28,7 +28,6 @@ import { UserAvatar } from "../components/common/UserAvatar";
 import { UserName } from "../components/common/UserName";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Footer } from "../components/common/Footer";
 import { PageHeader } from "../components/common/PageHeader";
 
 export function Reviews() {
@@ -296,8 +295,6 @@ export function Reviews() {
           </Center>
         )}
       </Container>
-
-      <Footer />
     </Flex>
   );
 }

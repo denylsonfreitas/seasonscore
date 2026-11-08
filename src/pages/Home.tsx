@@ -9,7 +9,6 @@ import {
   Icon,
   SimpleGrid,
 } from "@chakra-ui/react";
-import { Footer } from "../components/common/Footer";
 import { TrendingBanner } from "../components/series/TrendingBanner";
 import { PopularReviews } from "../components/reviews/PopularReviews";
 import { PopularLists } from "../components/lists/PopularLists";
@@ -213,7 +212,6 @@ export function Home() {
           )}
         </Container>
       </Box>
-      <Footer />
     </Flex>
   );
 }

@@ -38,7 +38,6 @@ import { UserAvatar } from "../components/common/UserAvatar";
 import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 import { CommentSection } from "../components/common/CommentSection";
 import { ReactionButtons } from "../components/reviews/ReactionButtons";
-import { Footer } from "../components/common/Footer";
 
 type ReviewDetails = NonNullable<Awaited<ReturnType<typeof getReviewDetails>>>;
 
@@ -739,8 +738,6 @@ export function ReviewDetails() {
           initialSeasonNumber={selectedSeasonNumber}
         />
       )}
-
-      <Footer />
     </Flex>
   );
 }

@@ -14,7 +14,6 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { getSeriesDetails } from "../services/tmdb";
 import { SeriesCard } from "../components/series/SeriesCard";
-import { Footer } from "../components/common/Footer";
 import { TelevisionSimple } from "@phosphor-icons/react";
 import { getTopRatedSeries as getTopRatedReviews } from "../services/reviews";
 import { PageHeader } from "../components/common/PageHeader";
@@ -266,7 +265,6 @@ export function TopRatedSeries() {
           </>
         )}
       </Container>
-      <Footer />
     </Box>
   );
 }

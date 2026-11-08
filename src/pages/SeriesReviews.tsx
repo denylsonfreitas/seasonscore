@@ -12,7 +12,6 @@ import {
   Select,
 } from "@chakra-ui/react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Footer } from "../components/common/Footer";
 import { getSeriesDetails } from "../services/tmdb";
 import { getSeriesReviews, SeriesReview } from "../services/reviews";
 import { RatingStars } from "../components/common/RatingStars";
@@ -250,7 +249,6 @@ export function SeriesReviews() {
           </VStack>
         </Container>
       </Box>
-      <Footer />
     </Flex>
   );
 }
