@@ -87,10 +87,6 @@ export function CommentSection({
   }>>({});
   
   const bgColor = 'gray.800';
-  useEffect(() => {
-    loadComments();
-  }, [objectId, objectType]);
-
   // Inicializar estados de reação quando os comentários são carregados
   useEffect(() => {
     const newReactions: Record<string, { isLiked: boolean; likesCount: number; isToggling: boolean }> = {};
@@ -140,6 +136,9 @@ export function CommentSection({
       setIsLoading(false);
     }
   };
+    useEffect(() => {
+        loadComments();
+      }, [objectId, objectType]);
 
   const handleAddComment = async () => {
     if (!currentUser) {

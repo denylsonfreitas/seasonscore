@@ -27,11 +27,6 @@ export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const navigate = useNavigate();
   const toast = useToast();
-
-  useEffect(() => {
-    fetchLists();
-  }, [userId]);
-
   const fetchLists = async () => {
     try {
       setIsLoading(true);
@@ -49,6 +44,9 @@ export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
       setIsLoading(false);
     }
   };
+    useEffect(() => {
+        fetchLists();
+      }, [userId]);
 
   const handleListCreated = (listId: string) => {
       // Atualizar a lista de listas

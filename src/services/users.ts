@@ -193,7 +193,7 @@ export async function createOrUpdateUser(user: User, additionalData?: Partial<Us
   }
   
   // Gerar username inicial se não existir
-  let username = "";
+  let username: string;
   if (!userDoc.exists()) {
     // Se já existe um usuário com o mesmo email, usar o username dele
     if (existingUserWithEmail && existingUserWithEmail.username) {

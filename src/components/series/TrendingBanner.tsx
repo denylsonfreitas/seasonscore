@@ -32,17 +32,6 @@ export function TrendingBanner() {
 
     fetchTrendingSeries();
   }, []);
-
-  useEffect(() => {
-    if (trendingSeries.length === 0) return;
-
-    const interval = setInterval(() => {
-      handleNext();
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [trendingSeries.length]);
-
   const handlePrevious = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (isTransitioning) return;
@@ -64,6 +53,15 @@ export function TrendingBanner() {
     );
     setTimeout(() => setIsTransitioning(false), 500);
   };
+    useEffect(() => {
+        if (trendingSeries.length === 0) return;
+
+        const interval = setInterval(() => {
+          handleNext();
+        }, 10000);
+
+        return () => clearInterval(interval);
+      }, [trendingSeries.length]);
 
   if (!trendingSeries.length) return null;
 

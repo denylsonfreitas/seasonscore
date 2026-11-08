@@ -132,7 +132,7 @@ export function SeriesDetails() {
         seasonToDelete: null
       });
     }
-  }, [currentUser, series, deleteState.seasonToDelete, userReview?.id, id, queryClient, toast]);
+  }, [currentUser, series, deleteState.seasonToDelete, userReview, id, queryClient, toast]);
 
   const handleReviewClick = useCallback((review: any) => {
     navigate(`/reviews/${review.id}/${review.seasonNumber}`);

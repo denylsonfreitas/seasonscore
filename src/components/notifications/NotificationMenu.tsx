@@ -116,24 +116,6 @@ export function NotificationMenu() {
       setIsLoading(false);
     }
   }, [currentUser]);
-  
-  useEffect(() => {
-    if (!currentUser) return;
-    
-    loadNotifications();
-    
-    const unsubscribe = subscribeToNotifications(currentUser.uid, (updatedNotifications) => {
-      setNotifications(updatedNotifications);
-      setUnreadCount(updatedNotifications.filter(n => !n.read).length);
-      
-      if (updatedNotifications.length > notifications.length) {
-        handleRippleEffect();
-      }
-    });
-    
-    return () => unsubscribe();
-  }, [currentUser, loadNotifications]);
-  
   useEffect(() => {
     if (isOpen && currentUser) {
       loadNotifications();
@@ -146,6 +128,22 @@ export function NotificationMenu() {
       setIsRippling(false);
     }, 1000);
   };
+    useEffect(() => {
+        if (!currentUser) return;
+        
+        loadNotifications();
+        
+        const unsubscribe = subscribeToNotifications(currentUser.uid, (updatedNotifications) => {
+          setNotifications(updatedNotifications);
+          setUnreadCount(updatedNotifications.filter(n => !n.read).length);
+          
+          if (updatedNotifications.length > notifications.length) {
+            handleRippleEffect();
+          }
+        });
+        
+        return () => unsubscribe();
+      }, [currentUser, loadNotifications]);
 
   const handleNotificationClick = async (notification: Notification) => {
     try {
@@ -374,13 +372,13 @@ export function NotificationMenu() {
     return notifications.filter(notification => notification.type === activeFilter);
   }, [notifications, activeFilter]);
   
-  const notificationCounts = useMemo(() => 
-    notifications.reduce((acc, notification) => {
-    acc[notification.type] = (acc[notification.type] || 0) + 1;
-    return acc;
-    }, {} as Record<string, number>), 
-    [notifications]
-  );
+  const notificationCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const notification of notifications) {
+      counts[notification.type] = (counts[notification.type] || 0) + 1;
+    }
+    return counts;
+  }, [notifications]);
   
   const getItemAnimationStyle = useCallback((index: number) => ({
     opacity: 1,

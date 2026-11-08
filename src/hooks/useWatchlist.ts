@@ -19,13 +19,6 @@ export function useWatchlist(seriesId?: number) {
   const toast = useToast();
   const queryClient = useQueryClient();
 
-  // Verificar status da watchlist quando o componente carrega
-  useEffect(() => {
-    if (currentUser && seriesId) {
-      checkWatchlistStatus(seriesId);
-    }
-  }, [currentUser, seriesId]);
-
   /**
    * Verifica se uma série está na watchlist do usuário
    */
@@ -45,6 +38,12 @@ export function useWatchlist(seriesId?: number) {
       setIsLoading(false);
     }
   };
+  // Verificar status da watchlist quando o componente carrega
+    useEffect(() => {
+        if (currentUser && seriesId) {
+          checkWatchlistStatus(seriesId);
+        }
+      }, [currentUser, seriesId]);
 
   /**
    * Adiciona ou remove uma série da watchlist do usuário

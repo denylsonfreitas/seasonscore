@@ -57,24 +57,6 @@ export function Series() {
 
   // Efeito que sincroniza os parâmetros da URL com o estado local
   // Este efeito só é executado uma vez na montagem do componente
-  useEffect(() => {
-    // Inicialização dos estados a partir dos parâmetros da URL
-    const search = searchParams.get("search") || "";
-    const genre = searchParams.get("genre") || "";
-    const name = searchParams.get("name") || "";
-    const listIdParam = searchParams.get("list_id");
-
-    setSearchQuery(search);
-    setActiveSearch(search);
-    setGenreFilter(genre);
-    setGenreName(name ? decodeURIComponent(name) : "");
-    
-    if (listIdParam) {
-      setListId(listIdParam);
-      fetchListInfo(listIdParam);
-    }
-  }, []); // Sem dependências - executado apenas na montagem
-  
   const fetchListInfo = async (id: string) => {
     setIsLoadingList(true);
     try {
@@ -86,6 +68,23 @@ export function Series() {
       setIsLoadingList(false);
     }
   };
+    useEffect(() => {
+        // Inicialização dos estados a partir dos parâmetros da URL
+        const search = searchParams.get("search") || "";
+        const genre = searchParams.get("genre") || "";
+        const name = searchParams.get("name") || "";
+        const listIdParam = searchParams.get("list_id");
+
+        setSearchQuery(search);
+        setActiveSearch(search);
+        setGenreFilter(genre);
+        setGenreName(name ? decodeURIComponent(name) : "");
+        
+        if (listIdParam) {
+          setListId(listIdParam);
+          fetchListInfo(listIdParam);
+        }
+      }, []);
 
   // Query para todas as séries
   const { 

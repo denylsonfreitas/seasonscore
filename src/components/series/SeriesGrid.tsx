@@ -30,6 +30,60 @@ interface SeriesGridProps {
   isFetchingNextPage?: boolean;
   onLoadMore?: () => void;
 }
+// Lista simples usada no modo de visualização em lista
+const SeriesListView = ({ series }: { series: SeriesWithRating[] }) => (
+  <VStack spacing={3} align="stretch">
+    {series.map((item) => (
+      <Box 
+        key={item.id} 
+        bg="gray.800" 
+        p={3} 
+        borderRadius="md" 
+        _hover={{ bg: "gray.700" }}
+        as="a"
+        href={`/series/${item.id}`}
+        transition="all 0.2s"
+      >
+        <Flex justify="space-between" align="center">
+          <HStack spacing={3}>
+            <Box 
+              w="48px" 
+              h="64px" 
+              bg="gray.700" 
+              borderRadius="md" 
+              overflow="hidden"
+            >
+              {item.poster_path && (
+                <EnhancedImage
+                  src={`https://image.tmdb.org/t/p/w92${item.poster_path}`}
+                  alt={item.name}
+                  tmdbWidth="w92"
+                  fallbackText=""
+                />
+              )}
+            </Box>
+            <VStack align="start" spacing={0}>
+              <Text fontWeight="bold" noOfLines={1}>{item.name}</Text>
+              <Text fontSize="sm" color="gray.400" noOfLines={1}>
+                {item.first_air_date ? new Date(item.first_air_date).getFullYear() : 'Sem data'}
+              </Text>
+            </VStack>
+          </HStack>
+          <HStack>
+            {'rating' in item && item.rating !== undefined && (
+              <Badge variant="rating" fontSize="sm" p={1}>
+                <HStack spacing={1}>
+                  <Icon as={Star} weight="fill" />
+                  <Text>{item.rating.toFixed(1)}</Text>
+                </HStack>
+              </Badge>
+            )}
+          </HStack>
+        </Flex>
+      </Box>
+    ))}
+  </VStack>
+);
 
 export function SeriesGrid({ series, isLoading, hasNextPage, isFetchingNextPage, onLoadMore }: SeriesGridProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -119,60 +173,6 @@ export function SeriesGrid({ series, isLoading, hasNextPage, isFetchingNextPage,
   }
 
   // Componente para visualização em lista
-  const SeriesListView = ({ series }: { series: SeriesWithRating[] }) => (
-    <VStack spacing={3} align="stretch">
-      {series.map((item) => (
-        <Box 
-          key={item.id} 
-          bg="gray.800" 
-          p={3} 
-          borderRadius="md" 
-          _hover={{ bg: "gray.700" }}
-          as="a"
-          href={`/series/${item.id}`}
-          transition="all 0.2s"
-        >
-          <Flex justify="space-between" align="center">
-            <HStack spacing={3}>
-              <Box 
-                w="48px" 
-                h="64px" 
-                bg="gray.700" 
-                borderRadius="md" 
-                overflow="hidden"
-              >
-                {item.poster_path && (
-                  <EnhancedImage
-                    src={`https://image.tmdb.org/t/p/w92${item.poster_path}`}
-                    alt={item.name}
-                    tmdbWidth="w92"
-                    fallbackText=""
-                  />
-                )}
-              </Box>
-              <VStack align="start" spacing={0}>
-                <Text fontWeight="bold" noOfLines={1}>{item.name}</Text>
-                <Text fontSize="sm" color="gray.400" noOfLines={1}>
-                  {item.first_air_date ? new Date(item.first_air_date).getFullYear() : 'Sem data'}
-                </Text>
-              </VStack>
-            </HStack>
-            <HStack>
-              {'rating' in item && item.rating !== undefined && (
-                <Badge variant="rating" fontSize="sm" p={1}>
-                  <HStack spacing={1}>
-                    <Icon as={Star} weight="fill" />
-                    <Text>{item.rating.toFixed(1)}</Text>
-                  </HStack>
-                </Badge>
-              )}
-            </HStack>
-          </Flex>
-        </Box>
-      ))}
-    </VStack>
-  );
-
   return (
     <InfiniteScroll 
       loadMore={onLoadMore || (() => {})}
