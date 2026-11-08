@@ -2,14 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { getSeriesDetails, searchSeries, TmdbError } from "./tmdb";
 
 function mockFetch(body: unknown, status = 200) {
-  const fn = vi
-    .fn()
-    .mockResolvedValue(
-      new Response(JSON.stringify(body), {
-        status,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+  const fn = vi.fn().mockResolvedValue(
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { "Content-Type": "application/json" },
+    })
+  );
   vi.stubGlobal("fetch", fn);
   return fn;
 }
