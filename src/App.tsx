@@ -50,8 +50,10 @@ function GlobalEventHandler() {
   return null;
 }
 
+// Criado uma única vez: recriar o roteador a cada render reinicia a navegação.
+const router = createBrowserRouter(routes);
+
 function App() {
-  const router = createBrowserRouter(routes);
 
   return (
     <ErrorBoundaryProvider>
