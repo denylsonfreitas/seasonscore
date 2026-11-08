@@ -249,7 +249,7 @@ export function CreateListModal({
       size="xl"
     >
       <ModalOverlay backdropFilter="blur(5px)" />
-      <ModalContent bg="gray.800" color="white">
+      <ModalContent>
         <ModalHeader>Criar Nova Lista</ModalHeader>
         <ModalCloseButton />
 
@@ -278,7 +278,7 @@ export function CreateListModal({
           >
             <TabList>
               <Tab>Informações</Tab>
-              <Tab>Adicionar Séries</Tab>
+              <Tab>Adicionar séries</Tab>
             </TabList>
             <TabPanels>
               <TabPanel px={0}>
@@ -368,7 +368,7 @@ export function CreateListModal({
                             as={accessByLink ? Globe : Lock}
                             weight="fill"
                             mr={2}
-                            color={accessByLink ? "blue.400" : "gray.400"}
+                            color={accessByLink ? "signal.300" : "ink.400"}
                             size={14}
                           />
                           Permitir acesso por link
@@ -378,7 +378,7 @@ export function CreateListModal({
                         id="access-by-link"
                         isChecked={accessByLink}
                         onChange={(e) => setAccessByLink(e.target.checked)}
-                        colorScheme="blue"
+                        colorScheme="primary"
                         size="sm"
                       />
                     </FormControl>
@@ -396,7 +396,7 @@ export function CreateListModal({
                   </Box>
 
                   <FormControl>
-                    <FormLabel>Buscar Séries</FormLabel>
+                    <FormLabel>Buscar séries</FormLabel>
                     <InputGroup>
                       <Input
                         placeholder="Digite o nome de uma série..."
@@ -479,7 +479,6 @@ export function CreateListModal({
                                       top={1}
                                       right={1}
                                       bg="red.500"
-                                      borderRadius="full"
                                       p={2}
                                       pr={3}
                                       pl={3}

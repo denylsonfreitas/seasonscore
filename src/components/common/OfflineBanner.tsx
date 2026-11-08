@@ -66,7 +66,7 @@ export function OfflineBanner({
         px={4}
         py={2}
       >
-        <Alert status="warning" variant="solid" borderRadius="md" bg="yellow.500" color="gray.900">
+        <Alert status="warning" variant="solid" borderRadius="md" bg="score.mid" color="ink.950">
           <Flex w="100%" alignItems="center" justifyContent="space-between">
             <HStack spacing={3}>
               <AlertIcon color="gray.900" />

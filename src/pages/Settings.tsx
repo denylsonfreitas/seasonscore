@@ -200,19 +200,26 @@ export function Settings() {
     <Box>
       <Container maxW="container.md" py={8}>
         <VStack spacing={8} align="stretch">
-          <Heading color="white">Configurações</Heading>
+          <Heading as="h1" size="h1">
+            Configurações
+          </Heading>
           <Box bg="gray.800" p={6} borderRadius="lg">
             <VStack spacing={6} align="stretch">
-              <Heading size="md" color="white">
+              <Heading as="h2" size="h2">
                 Segurança
               </Heading>
               <FormControl>
-                <FormLabel htmlFor="email-input" color="white">
-                  Alterar Email
-                </FormLabel>
+                <FormLabel htmlFor="email-input">Alterar email</FormLabel>
                 <VStack spacing={3} align="stretch">
                   {emailSent && (
-                    <Alert status="info" bg="blue.800" color="white">
+                    <Alert
+                      status="info"
+                      bg="ink.850"
+                      color="ink.100"
+                      borderLeft="2px solid"
+                      borderColor="signal.400"
+                      borderRadius="md"
+                    >
                       <AlertIcon />
                       Email de verificação enviado. Por favor, verifique sua caixa de entrada.
                     </Alert>
@@ -223,7 +230,7 @@ export function Settings() {
                     placeholder="Novo email"
                     type="email"
                     bg="gray.700"
-                    color="white"
+
                     border="none"
                     id="email-input"
                   />
@@ -234,7 +241,7 @@ export function Settings() {
                       placeholder="Senha atual"
                       type={showPassword ? "text" : "password"}
                       bg="gray.700"
-                      color="white"
+
                       border="none"
                       id="current-password-email"
                     />
@@ -250,12 +257,8 @@ export function Settings() {
                       </Button>
                     </InputRightElement>
                   </InputGroup>
-                  <Button
-                    colorScheme="primary"
-                    onClick={handleUpdateEmail}
-                    isLoading={isUpdatingEmail}
-                  >
-                    {emailSent ? "Reenviar Email de Verificação" : "Atualizar Email"}
+                  <Button variant="outline" onClick={handleUpdateEmail} isLoading={isUpdatingEmail}>
+                    {emailSent ? "Reenviar email de verificação" : "Atualizar email"}
                   </Button>
                 </VStack>
               </FormControl>
@@ -263,21 +266,26 @@ export function Settings() {
               <Divider borderColor="gray.600" />
 
               <FormControl>
-                <FormLabel htmlFor="reset-password-button" color="white">
-                  Alterar Senha
-                </FormLabel>
+                <FormLabel htmlFor="reset-password-button">Alterar senha</FormLabel>
                 <VStack spacing={3} align="stretch">
-                  <Alert status="info" bg="blue.800" color="white">
+                  <Alert
+                    status="info"
+                    bg="ink.850"
+                    color="ink.100"
+                    borderLeft="2px solid"
+                    borderColor="signal.400"
+                    borderRadius="md"
+                  >
                     <AlertIcon />
                     Por questões de segurança, você receberá um email para alterar sua senha.
                   </Alert>
                   <Button
                     id="reset-password-button"
-                    colorScheme="primary"
+                    variant="outline"
                     onClick={handleResetPassword}
                     width="full"
                   >
-                    Enviar Email para Alterar Senha
+                    Enviar email para alterar a senha
                   </Button>
                 </VStack>
               </FormControl>
@@ -285,14 +293,20 @@ export function Settings() {
               <Divider borderColor="gray.600" />
 
               <Box>
-                <Heading size="md" color="white" mb={4}>
-                  Encerrar Conta
+                <Heading as="h2" size="h2" mb={4}>
+                  Encerrar conta
                 </Heading>
                 <Text color="gray.400" mb={4}>
                   Esta ação é irreversível. Todos os seus dados serão excluídos permanentemente.
                 </Text>
-                <Button colorScheme="red" onClick={onOpen}>
-                  Excluir Conta
+                <Button
+                  variant="outline"
+                  color="danger"
+                  borderColor="rgba(229,83,75,0.4)"
+                  _hover={{ bg: "rgba(229,83,75,0.08)" }}
+                  onClick={onOpen}
+                >
+                  Excluir conta
                 </Button>
               </Box>
             </VStack>
@@ -302,15 +316,15 @@ export function Settings() {
 
       <AlertDialog isOpen={isOpen} leastDestructiveRef={cancelRef} onClose={handleCloseDeleteModal}>
         <AlertDialogOverlay>
-          <AlertDialogContent bg="gray.800">
-            <AlertDialogHeader color="white">Excluir Conta</AlertDialogHeader>
+          <AlertDialogContent>
+            <AlertDialogHeader>Excluir conta</AlertDialogHeader>
 
             <AlertDialogBody>
               <Text color="gray.300" mb={4}>
                 Tem certeza? Esta ação não pode ser desfeita.
               </Text>
               <FormControl display={hasPassword ? undefined : "none"}>
-                <FormLabel htmlFor="delete-account-password" color="white" mb={2}>
+                <FormLabel htmlFor="delete-account-password" mb={2}>
                   Digite sua senha para confirmar:
                 </FormLabel>
                 <InputGroup>
@@ -320,7 +334,7 @@ export function Settings() {
                     placeholder="Digite sua senha para confirmar"
                     type={showDeletePassword ? "text" : "password"}
                     bg="gray.700"
-                    color="white"
+
                     border="none"
                     id="delete-account-password"
                   />

@@ -130,9 +130,9 @@ export function WatchlistButton({
           />
         )}
         <Portal>
-          <MenuList bg="gray.900" borderColor="gray.700" minW="180px">
+          <MenuList minW="180px">
             <MenuItem
-              icon={<BookmarkSimple color="white" size={16} />}
+              icon={<BookmarkSimple size={16} />}
               onClick={() =>
                 toast({
                   title: "Faça login para adicionar à sua watchlist",
@@ -149,7 +149,7 @@ export function WatchlistButton({
             </MenuItem>
             <MenuDivider borderColor="gray.700" />
             <MenuItem
-              icon={<ListBullets weight="fill" color="white" size={14} />}
+              icon={<ListBullets weight="fill" size={14} />}
               onClick={() =>
                 toast({
                   title: "Faça login para adicionar séries às suas listas",
@@ -205,7 +205,7 @@ export function WatchlistButton({
         />
       )}
       <Portal>
-        <MenuList bg="gray.900" borderColor="gray.700" minW="180px">
+        <MenuList minW="180px">
           <MenuItem
             icon={
               isInWatchlist ? (

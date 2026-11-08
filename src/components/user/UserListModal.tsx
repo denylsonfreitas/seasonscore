@@ -107,8 +107,8 @@ export function UserListModal({ isOpen, onClose, title, userIds, type }: UserLis
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
       <ModalOverlay />
-      <ModalContent bg="gray.800">
-        <ModalHeader color="white">{title}</ModalHeader>
+      <ModalContent>
+        <ModalHeader>{title}</ModalHeader>
         <ModalCloseButton color="white" />
         <ModalBody pb={6}>
           {isLoading ? (
@@ -120,11 +120,10 @@ export function UserListModal({ isOpen, onClose, title, userIds, type }: UserLis
               {/* Campo de busca */}
               <InputGroup size="sm" mb={2}>
                 <InputLeftElement pointerEvents="none">
-                  <MagnifyingGlass size={16} color="#CBD5E0" />
+                  <MagnifyingGlass size={16} />
                 </InputLeftElement>
                 <Input
                   placeholder="Buscar por nome ou username"
-                  bg="gray.700"
                   border="none"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}

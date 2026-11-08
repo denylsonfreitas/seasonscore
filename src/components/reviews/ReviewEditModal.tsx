@@ -140,8 +140,8 @@ export function ReviewEditModal({
         blockScrollOnMount={false}
       >
         <ModalOverlay />
-        <ModalContent bg="gray.900">
-          <ModalHeader color="white">Editar Avaliação</ModalHeader>
+        <ModalContent>
+          <ModalHeader>Editar avaliação</ModalHeader>
           <ModalCloseButton color="white" p={6} />
           <ModalBody pb={6}>
             <HStack spacing={6} align="start" mb={4}>
@@ -187,11 +187,7 @@ export function ReviewEditModal({
                     }}
                   >
                     {review.seasonReviews.map((sr: { seasonNumber: number }) => (
-                      <option
-                        key={sr.seasonNumber}
-                        value={sr.seasonNumber}
-                        style={{ backgroundColor: "#2D3748" }}
-                      >
+                      <option key={sr.seasonNumber} value={sr.seasonNumber}>
                         Temporada {sr.seasonNumber}
                       </option>
                     ))}
@@ -252,7 +248,7 @@ export function ReviewEditModal({
         onClose={() => setIsDeleteAlertOpen(false)}
       >
         <AlertDialogOverlay>
-          <AlertDialogContent bg="gray.800">
+          <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white">
               Excluir avaliação
             </AlertDialogHeader>

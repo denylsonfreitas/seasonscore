@@ -1,130 +1,77 @@
-import { Button, useToast, Icon, Tooltip } from "@chakra-ui/react";
-import { useState, useEffect } from "react";
-import { useAuth } from "../../contexts/AuthContext";
-import { followUser, unfollowUser, isFollowing } from "../../services/followers";
+import { Button, useToast, type ButtonProps } from "@chakra-ui/react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import { UserPlus, UserMinus, SignIn } from "@phosphor-icons/react";
+import { useAuth } from "../../contexts/AuthContext";
+import { followUser, isFollowing, unfollowUser } from "../../services/followers";
+import { getGlobalLoginPopover } from "../layout/Navbar";
 import { logError } from "../../utils/logger";
 
 interface FollowButtonProps {
   userId: string;
+  size?: ButtonProps["size"];
 }
 
-export function FollowButton({ userId }: FollowButtonProps) {
+/** "Seguir" (primário) ou "Seguindo" (secundário, vira "Deixar de seguir" no hover). */
+export function FollowButton({ userId, size = "sm" }: FollowButtonProps) {
   const { currentUser } = useAuth();
   const [following, setFollowing] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!currentUser);
+  const [hovered, setHovered] = useState(false);
   const toast = useToast();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
 
   useEffect(() => {
-    const checkFollowStatus = async () => {
-      if (currentUser) {
-        try {
-          const status = await isFollowing(userId);
-          setFollowing(status);
-        } catch (error) {
-          logError("checkFollowStatus", error);
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        setLoading(false);
-      }
+    if (!currentUser || !userId) return;
+    let cancelled = false;
+    isFollowing(userId)
+      .then((status) => !cancelled && setFollowing(status))
+      .catch((error) => logError("checkFollowStatus", error))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
     };
-
-    checkFollowStatus();
   }, [currentUser, userId]);
 
-  const handleFollow = async () => {
+  if (!userId || currentUser?.uid === userId) return null;
+
+  const handleClick = async () => {
     if (!currentUser) {
-      navigate("/login");
+      getGlobalLoginPopover()?.();
       return;
     }
-
     setLoading(true);
     try {
-      if (following) {
-        await unfollowUser(userId);
-        setFollowing(false);
-        toast({
-          title: "Sucesso",
-          description: "Você deixou de seguir este usuário",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-      } else {
-        await followUser(userId);
-        setFollowing(true);
-        toast({
-          title: "Sucesso",
-          description: "Você começou a seguir este usuário",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
+      if (following) await unfollowUser(userId);
+      else await followUser(userId);
+      setFollowing(!following);
+      for (const key of ["followers", "following"]) {
+        queryClient.invalidateQueries({ queryKey: [key] });
       }
-      // Invalidar queries relacionadas a seguidores
-      queryClient.invalidateQueries({ queryKey: ["followers", userId] });
-      queryClient.invalidateQueries({ queryKey: ["following", userId] });
     } catch (error) {
       toast({
-        title: "Erro",
-        description:
-          error instanceof Error ? error.message : "Erro ao atualizar status de seguidor",
+        title: error instanceof Error ? error.message : "Não foi possível atualizar",
         status: "error",
         duration: 3000,
-        isClosable: true,
       });
     } finally {
       setLoading(false);
     }
   };
 
-  if (currentUser?.uid === userId) return null;
-
-  if (!currentUser) {
-    return (
-      <Tooltip label="Entrar para seguir" placement="top" hasArrow>
-        <Button
-          colorScheme="primary"
-          variant="solid"
-          onClick={() => navigate("/login")}
-          size="sm"
-          p={0}
-          minW="30px"
-          h="30px"
-          borderRadius="full"
-        >
-          <Icon as={SignIn} weight="bold" />
-        </Button>
-      </Tooltip>
-    );
-  }
-
   return (
-    <Tooltip label={following ? "Deixar de seguir" : "Seguir"} placement="top" hasArrow>
-      <Button
-        color={following ? "gray.100" : "gray.100"}
-        bg={following ? "followbutton.unfollow" : "followbutton.follow"}
-        variant={following ? "solid" : "solid"}
-        _hover={{
-          bg: following ? "gray.100" : "gray.100",
-          color: following ? "followbutton.unfollow" : "followbutton.follow",
-        }}
-        onClick={handleFollow}
-        isLoading={loading}
-        size="sm"
-        p={0}
-        minW="30px"
-        h="30px"
-        borderRadius="full"
-      >
-        <Icon as={following ? UserMinus : UserPlus} weight="bold" />
-      </Button>
-    </Tooltip>
+    <Button
+      size={size}
+      variant={following ? "outline" : "solid"}
+      minW="96px"
+      isLoading={loading}
+      onClick={handleClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      color={following && hovered ? "danger" : undefined}
+      borderColor={following && hovered ? "danger" : undefined}
+      aria-pressed={following}
+    >
+      {following ? (hovered ? "Deixar de seguir" : "Seguindo") : "Seguir"}
+    </Button>
   );
 }

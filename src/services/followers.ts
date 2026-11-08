@@ -57,7 +57,7 @@ export async function getFollowing(userId: string): Promise<Follower[]> {
 
 export async function isFollowing(userId: string): Promise<boolean> {
   const currentUser = getSessionUser();
-  if (!currentUser) return false;
+  if (!currentUser || !userId) return false;
   const { count } = await supabase
     .from("follows")
     .select("*", { count: "exact", head: true })

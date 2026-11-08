@@ -142,11 +142,9 @@ export function SeriesReviews() {
                     setSelectedSeason(season);
                   }}
                   width="auto"
-                  borderColor="gray.600"
-                  _hover={{ borderColor: "gray.500" }}
                 >
                   {seasons.map((season) => (
-                    <option key={season} value={season} style={{ backgroundColor: "#2D3748" }}>
+                    <option key={season} value={season}>
                       Temporada {season}
                     </option>
                   ))}

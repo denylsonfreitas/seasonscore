@@ -1,4 +1,5 @@
 import type { Series } from "../../../services/tmdb";
+import { STATUS_PT } from "../SeriesHeader";
 import React from "react";
 import {
   VStack,
@@ -14,6 +15,27 @@ import {
   Avatar,
 } from "@chakra-ui/react";
 
+const TYPE_PT: Record<string, string> = {
+  Scripted: "Roteirizada",
+  Reality: "Reality",
+  Documentary: "Documentário",
+  Miniseries: "Minissérie",
+  "Talk Show": "Talk show",
+  News: "Jornalismo",
+  Video: "Vídeo",
+};
+
+/** Nome de idioma ou país em português, usando o Intl do navegador. */
+function displayName(type: "language" | "region", code?: string) {
+  if (!code) return "—";
+  try {
+    const name = new Intl.DisplayNames(["pt-BR"], { type }).of(code);
+    return name ? name.charAt(0).toUpperCase() + name.slice(1) : code;
+  } catch {
+    return code;
+  }
+}
+
 interface SeriesDetailsTabProps {
   series: Series;
 }
@@ -27,20 +49,22 @@ export function SeriesDetailsTab({ series }: SeriesDetailsTabProps) {
         </Heading>
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
           <Box>
-            <Text color="ink.400">Status</Text>
-            <Text color="ink.100">{series.status}</Text>
+            <Text color="ink.400">Situação</Text>
+            <Text color="ink.100">{STATUS_PT[series.status] ?? series.status}</Text>
           </Box>
           <Box>
             <Text color="ink.400">Tipo</Text>
-            <Text color="ink.100">{series.type}</Text>
+            <Text color="ink.100">{TYPE_PT[series.type] ?? series.type}</Text>
           </Box>
           <Box>
-            <Text color="ink.400">País de Origem</Text>
-            <Text color="ink.100">{series.origin_country?.join(", ")}</Text>
+            <Text color="ink.400">País de origem</Text>
+            <Text color="ink.100">
+              {series.origin_country?.map((c) => displayName("region", c)).join(", ")}
+            </Text>
           </Box>
           <Box>
-            <Text color="ink.400">Idioma Original</Text>
-            <Text color="ink.100">{series.original_language}</Text>
+            <Text color="ink.400">Idioma original</Text>
+            <Text color="ink.100">{displayName("language", series.original_language)}</Text>
           </Box>
         </SimpleGrid>
       </Box>

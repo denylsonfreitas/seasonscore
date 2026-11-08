@@ -197,7 +197,7 @@ export function ReviewModal({
     return (
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
-        <ModalContent bg="gray.800" color="white">
+        <ModalContent>
           <ModalHeader>Carregando...</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
@@ -223,8 +223,8 @@ export function ReviewModal({
       blockScrollOnMount={false}
     >
       <ModalOverlay />
-      <ModalContent bg="gray.900">
-        <ModalHeader color="white" display="flex" alignItems="center">
+      <ModalContent>
+        <ModalHeader display="flex" alignItems="center">
           {onBack && (
             <IconButton
               aria-label="Voltar para busca"

@@ -197,8 +197,8 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
     <>
       <Modal isOpen={isOpen} onClose={onClose} initialFocusRef={initialRef} scrollBehavior="inside">
         <ModalOverlay backdropFilter="blur(5px)" />
-        <ModalContent bg="gray.800" color="white">
-          <ModalHeader>Editar Lista</ModalHeader>
+        <ModalContent>
+          <ModalHeader>Editar lista</ModalHeader>
           <ModalCloseButton />
 
           <ModalBody>
@@ -261,13 +261,7 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
                 {tags.length > 0 && (
                   <Flex wrap="wrap" mt={2} gap={2}>
                     {tags.map((tag, index) => (
-                      <Tag
-                        size="md"
-                        key={index}
-                        borderRadius="full"
-                        variant="solid"
-                        colorScheme="primary"
-                      >
+                      <Tag size="md" key={index} variant="solid" colorScheme="primary">
                         <TagLabel>{tag}</TagLabel>
                         <TagCloseButton onClick={() => handleTagRemove(tag)} />
                       </Tag>
@@ -311,7 +305,7 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
                         as={accessByLink ? Globe : Lock}
                         weight="fill"
                         mr={2}
-                        color={accessByLink ? "blue.400" : "gray.400"}
+                        color={accessByLink ? "signal.300" : "ink.400"}
                         size={14}
                       />
                       Permitir acesso por link
@@ -321,7 +315,7 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
                     id="access-by-link"
                     isChecked={accessByLink}
                     onChange={(e) => setAccessByLink(e.target.checked)}
-                    colorScheme="blue"
+                    colorScheme="primary"
                     size="sm"
                   />
                 </FormControl>
@@ -373,7 +367,7 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
         onClose={() => setIsDeleteAlertOpen(false)}
       >
         <AlertDialogOverlay>
-          <AlertDialogContent bg="gray.800" color="white">
+          <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
               Excluir Lista
             </AlertDialogHeader>

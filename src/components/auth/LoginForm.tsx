@@ -217,7 +217,7 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
                   size="sm"
                   onClick={() => setShowPassword(!showPassword)}
                   variant="ghost"
-                  colorScheme="whiteAlpha"
+
                   color="gray.400"
                   _hover={{ color: "white" }}
                 >
