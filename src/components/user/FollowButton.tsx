@@ -73,7 +73,8 @@ export function FollowButton({ userId }: FollowButtonProps) {
     } catch (error) {
       toast({
         title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao atualizar status de seguidor",
+        description:
+          error instanceof Error ? error.message : "Erro ao atualizar status de seguidor",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -126,4 +127,4 @@ export function FollowButton({ userId }: FollowButtonProps) {
       </Button>
     </Tooltip>
   );
-} 
+}

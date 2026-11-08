@@ -15,11 +15,11 @@ export const ensureFirestoreDelete = async (
 ): Promise<void> => {
   // Referência ao documento
   const docRef = doc(db, collectionName, documentId);
-  
+
   // Executa a exclusão
   await deleteDoc(docRef);
-  
+
   // Aqui poderíamos adicionar lógica de verificação adicional
   // Por exemplo, tentar ler o documento novamente para garantir que foi excluído
   // ou implementar tentativas adicionais se a exclusão falhar
-}; 
+};

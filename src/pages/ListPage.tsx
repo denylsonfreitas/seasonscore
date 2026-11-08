@@ -1,9 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  useParams,
-  useNavigate,
-  Link as RouterLink,
-} from "react-router-dom";
+import { useParams, useNavigate, Link as RouterLink } from "react-router-dom";
 import {
   Box,
   Container,
@@ -51,7 +47,17 @@ import {
   BreadcrumbLink,
   Collapse,
 } from "@chakra-ui/react";
-import { Calendar, ChatCircle, Globe, Lock, MagnifyingGlass, NotePencil, Plus, Share, Trash } from "@phosphor-icons/react";
+import {
+  Calendar,
+  ChatCircle,
+  Globe,
+  Lock,
+  MagnifyingGlass,
+  NotePencil,
+  Plus,
+  Share,
+  Trash,
+} from "@phosphor-icons/react";
 import { useAuth } from "../contexts/AuthContext";
 import { SeriesCard } from "../components/series/SeriesCard";
 import { CommentSection } from "../components/common/CommentSection";
@@ -91,9 +97,7 @@ export default function ListPage() {
   const [isRemovingSeries, setIsRemovingSeries] = useState<number | null>(null);
   const [isTogglingLike, setIsTogglingLike] = useState(false);
   const [, setIsForceFetchingReaction] = useState(false);
-  const [localCommentsCount, setLocalCommentsCount] = useState<number | null>(
-    null
-  );
+  const [localCommentsCount, setLocalCommentsCount] = useState<number | null>(null);
 
   const {
     isOpen: isSearchModalOpen,
@@ -121,8 +125,7 @@ export default function ListPage() {
   } = useDisclosure();
   const cancelRef = React.useRef<HTMLButtonElement>(null);
 
-  const { isOpen: isCommentExpanded, onToggle: toggleComments } =
-    useDisclosure();
+  const { isOpen: isCommentExpanded, onToggle: toggleComments } = useDisclosure();
 
   // Usar React Query para obter e manter os dados da lista atualizados
   const {
@@ -142,9 +145,7 @@ export default function ListPage() {
         }
         return data;
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Erro ao carregar a lista"
-        );
+        setError(err instanceof Error ? err.message : "Erro ao carregar a lista");
         navigate("/404", { replace: true });
         throw err;
       }
@@ -163,8 +164,7 @@ export default function ListPage() {
 
       if (currentUser && queryList.reactions) {
         const userReaction = queryList.reactions.find(
-          (reaction) =>
-            reaction.userId === currentUser.uid && reaction.type === "like"
+          (reaction) => reaction.userId === currentUser.uid && reaction.type === "like"
         );
         setIsLiked(!!userReaction);
       } else {
@@ -201,8 +201,7 @@ export default function ListPage() {
 
       if (listData && listData.reactions) {
         const userReaction = listData.reactions.find(
-          (reaction) =>
-            reaction.userId === currentUser.uid && reaction.type === "like"
+          (reaction) => reaction.userId === currentUser.uid && reaction.type === "like"
         );
 
         setIsLiked(!!userReaction);
@@ -252,9 +251,7 @@ export default function ListPage() {
 
       // Atualizar UI imediatamente para feedback instantâneo
       setIsLiked(!isLiked);
-      setLikesCount((prevCount) =>
-        isLiked ? Math.max(0, prevCount - 1) : prevCount + 1
-      );
+      setLikesCount((prevCount) => (isLiked ? Math.max(0, prevCount - 1) : prevCount + 1));
 
       // Chamar API para persistir a mudança
       const result = await toggleListReaction(list.id, "like");
@@ -336,8 +333,7 @@ export default function ListPage() {
     } catch (error: any) {
       toast({
         title: "Erro",
-        description:
-          error.message || "Não foi possível remover a série da lista",
+        description: error.message || "Não foi possível remover a série da lista",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -357,8 +353,7 @@ export default function ListPage() {
 
       toast({
         title: "Link copiado!",
-        description:
-          "O link para esta lista foi copiado para sua área de transferência",
+        description: "O link para esta lista foi copiado para sua área de transferência",
         status: "success",
         duration: 3000,
         isClosable: true,
@@ -467,8 +462,7 @@ export default function ListPage() {
     } catch (error: any) {
       toast({
         title: "Erro",
-        description:
-          error.message || "Não foi possível adicionar a série à lista",
+        description: error.message || "Não foi possível adicionar a série à lista",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -586,11 +580,7 @@ export default function ListPage() {
                 />
                 <VStack align="start" spacing={0}>
                   <HStack>
-                    <Text
-                      fontWeight="medium"
-                      color={textColor}
-                      fontSize={{ base: "xs", md: "md" }}
-                    >
+                    <Text fontWeight="medium" color={textColor} fontSize={{ base: "xs", md: "md" }}>
                       Lista criada por
                     </Text>
                     <Text
@@ -606,24 +596,14 @@ export default function ListPage() {
                     </Text>
                   </HStack>
                   <HStack spacing={1}>
-                    <Icon
-                      as={Calendar}
-                      color={mutedTextColor}
-                      weight="fill"
-                      size={12}
-                    />
+                    <Icon as={Calendar} color={mutedTextColor} weight="fill" size={12} />
                     <Tooltip
-                      label={format(
-                        convertToDate(list?.createdAt),
-                        "dd 'de' MMMM 'de' yyyy",
-                        { locale: ptBR }
-                      )}
+                      label={format(convertToDate(list?.createdAt), "dd 'de' MMMM 'de' yyyy", {
+                        locale: ptBR,
+                      })}
                       placement="bottom"
                     >
-                      <Text
-                        color={mutedTextColor}
-                        fontSize={{ base: "xs", md: "sm" }}
-                      >
+                      <Text color={mutedTextColor} fontSize={{ base: "xs", md: "sm" }}>
                         {formatDistanceToNow(convertToDate(list?.createdAt), {
                           locale: ptBR,
                           addSuffix: true,
@@ -652,12 +632,7 @@ export default function ListPage() {
                   borderRadius="full"
                 >
                   <Flex align="center">
-                    <Icon
-                      as={list?.isPublic ? Globe : Lock}
-                      weight="fill"
-                      mr={1}
-                      size={12}
-                    />
+                    <Icon as={list?.isPublic ? Globe : Lock} weight="fill" mr={1} size={12} />
                     {list?.isPublic ? "Pública" : "Privada"}
                   </Flex>
                 </Badge>
@@ -676,11 +651,7 @@ export default function ListPage() {
             </Grid>
 
             {/* Conteúdo principal da lista */}
-            <Grid
-              templateColumns="1fr"
-              gap={{ base: 3, md: 6 }}
-              mb={{ base: 4, md: 6 }}
-            >
+            <Grid templateColumns="1fr" gap={{ base: 3, md: 6 }} mb={{ base: 4, md: 6 }}>
               {/* Detalhes da lista */}
               <GridItem>
                 <VStack align="start" spacing={{ base: 2, md: 4 }} h="100%">
@@ -738,16 +709,11 @@ export default function ListPage() {
 
                   {/* Botões de ação */}
                   <HStack spacing={{ base: 2, md: 4 }} w="full" flexWrap="wrap">
-                    <Box
-                      onClick={(e) => e.stopPropagation()}
-                      mr={{ base: 2, md: 4 }}
-                    >
+                    <Box onClick={(e) => e.stopPropagation()} mr={{ base: 2, md: 4 }}>
                       <ReactionButton
                         likes={
                           Array.isArray(list?.reactions)
-                            ? list.reactions
-                                .filter((r) => r.type === "like")
-                                .map((r) => r.userId)
+                            ? list.reactions.filter((r) => r.type === "like").map((r) => r.userId)
                             : []
                         }
                         onReaction={handleLikeToggle}
@@ -768,9 +734,7 @@ export default function ListPage() {
                       color={isCommentExpanded ? "blue.500" : mutedTextColor}
                       _hover={{ color: "blue.300" }}
                     >
-                      {localCommentsCount !== null
-                        ? localCommentsCount
-                        : list?.commentsCount || 0}
+                      {localCommentsCount !== null ? localCommentsCount : list?.commentsCount || 0}
                     </Button>
 
                     <Button
@@ -814,12 +778,7 @@ export default function ListPage() {
                 </Flex>
 
                 {list?.items.length === 0 ? (
-                  <Alert
-                    status="info"
-                    borderRadius="md"
-                    bg="gray.700"
-                    borderColor="gray.700"
-                  >
+                  <Alert status="info" borderRadius="md" bg="gray.700" borderColor="gray.700">
                     <AlertIcon />
                     <AlertTitle>Esta lista está vazia</AlertTitle>
                   </Alert>
@@ -878,8 +837,7 @@ export default function ListPage() {
                                 opacity={0.9}
                                 _hover={{
                                   transform: "scale(1.1)",
-                                  boxShadow:
-                                    "0 0 0 1px var(--chakra-colors-red-500)",
+                                  boxShadow: "0 0 0 1px var(--chakra-colors-red-500)",
                                 }}
                                 transition="all 0.2s"
                                 borderRadius="full"
@@ -900,14 +858,7 @@ export default function ListPage() {
 
         {/* Seção de comentários */}
         <Collapse in={isCommentExpanded} animateOpacity>
-          <Box
-            bg={cardBg}
-            borderRadius="xl"
-            overflow="hidden"
-            mb={8}
-            boxShadow="lg"
-            id="comments"
-          >
+          <Box bg={cardBg} borderRadius="xl" overflow="hidden" mb={8} boxShadow="lg" id="comments">
             <CommentSection
               objectId={list?.id || ""}
               objectType="list"
@@ -978,12 +929,7 @@ export default function ListPage() {
             </InputGroup>
 
             {searchResults.length > 0 ? (
-              <Grid
-                templateColumns="repeat(3, 1fr)"
-                gap={2}
-                maxH="300px"
-                overflowY="auto"
-              >
+              <Grid templateColumns="repeat(3, 1fr)" gap={2} maxH="300px" overflowY="auto">
                 {searchResults.map((series) => (
                   <GridItem key={series.id} position="relative">
                     <Box
@@ -1018,9 +964,7 @@ export default function ListPage() {
                           {series.name}
                         </Text>
                       </Box>
-                      {list?.items.some(
-                        (item) => item.seriesId === series.id
-                      ) && (
+                      {list?.items.some((item) => item.seriesId === series.id) && (
                         <Box
                           position="absolute"
                           top={1}
@@ -1051,9 +995,7 @@ export default function ListPage() {
                 {isSearching ? (
                   <Skeleton height="100px" />
                 ) : searchPerformed ? (
-                  <Text color="gray.400">
-                    Nenhum resultado encontrado. Tente outra busca.
-                  </Text>
+                  <Text color="gray.400">Nenhum resultado encontrado. Tente outra busca.</Text>
                 ) : (
                   <Text color="gray.400">Esperando por uma série...</Text>
                 )}
@@ -1076,8 +1018,8 @@ export default function ListPage() {
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              Tem certeza que deseja remover "{seriesNameToRemove}" da lista?
-              Esta ação não pode ser desfeita.
+              Tem certeza que deseja remover "{seriesNameToRemove}" da lista? Esta ação não pode ser
+              desfeita.
             </AlertDialogBody>
 
             <AlertDialogFooter>
@@ -1093,10 +1035,7 @@ export default function ListPage() {
               <Button
                 bg="red.500"
                 _hover={{ bg: "red.600" }}
-                onClick={() =>
-                  seriesIdToRemove &&
-                  handleRemoveSeriesFromList(seriesIdToRemove)
-                }
+                onClick={() => seriesIdToRemove && handleRemoveSeriesFromList(seriesIdToRemove)}
                 ml={3}
                 isLoading={isRemovingSeries === seriesIdToRemove}
               >

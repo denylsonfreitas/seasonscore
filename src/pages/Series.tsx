@@ -27,17 +27,12 @@ import {
 } from "@chakra-ui/react";
 import { SeriesGrid } from "../components/series/SeriesGrid";
 import { useInfiniteQuery, useQueries } from "@tanstack/react-query";
-import {
-  searchSeries,
-  getFilteredSeries
-} from "../services/tmdb";
+import { searchSeries, getFilteredSeries } from "../services/tmdb";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { SeriesFilter } from "../components/series/SeriesFilter";
 import { Footer } from "../components/common/Footer";
 import { useSearchParams } from "react-router-dom";
-import { 
-  Funnel,
-} from "@phosphor-icons/react";
+import { Funnel } from "@phosphor-icons/react";
 import { getSeriesReviews } from "../services/reviews";
 import { getListById } from "../services/lists";
 import { PageHeader } from "../components/common/PageHeader";
@@ -68,53 +63,59 @@ export function Series() {
       setIsLoadingList(false);
     }
   };
-    useEffect(() => {
-        // Inicialização dos estados a partir dos parâmetros da URL
-        const search = searchParams.get("search") || "";
-        const genre = searchParams.get("genre") || "";
-        const name = searchParams.get("name") || "";
-        const listIdParam = searchParams.get("list_id");
+  useEffect(() => {
+    // Inicialização dos estados a partir dos parâmetros da URL
+    const search = searchParams.get("search") || "";
+    const genre = searchParams.get("genre") || "";
+    const name = searchParams.get("name") || "";
+    const listIdParam = searchParams.get("list_id");
 
-        setSearchQuery(search);
-        setActiveSearch(search);
-        setGenreFilter(genre);
-        setGenreName(name ? decodeURIComponent(name) : "");
-        
-        if (listIdParam) {
-          setListId(listIdParam);
-          fetchListInfo(listIdParam);
-        }
-      }, []);
+    setSearchQuery(search);
+    setActiveSearch(search);
+    setGenreFilter(genre);
+    setGenreName(name ? decodeURIComponent(name) : "");
+
+    if (listIdParam) {
+      setListId(listIdParam);
+      fetchListInfo(listIdParam);
+    }
+  }, []);
 
   // Query para todas as séries
-  const { 
-    data: allSeriesData, 
-    fetchNextPage: fetchAllSeriesNextPage, 
-    hasNextPage: hasAllSeriesNextPage, 
-    isFetchingNextPage: isAllSeriesFetchingNextPage, 
+  const {
+    data: allSeriesData,
+    fetchNextPage: fetchAllSeriesNextPage,
+    hasNextPage: hasAllSeriesNextPage,
+    isFetchingNextPage: isAllSeriesFetchingNextPage,
     isLoading: isAllSeriesLoading,
-    refetch: refetchAllSeries
+    refetch: refetchAllSeries,
   } = useInfiniteQuery({
     queryKey: ["series", "all", activeSearch, genreFilter],
     queryFn: async ({ pageParam = 1 }) => {
       if (activeSearch) {
         return searchSeries(activeSearch, pageParam as number);
       } else if (genreFilter) {
-        return getFilteredSeries({ 
-          genre: genreFilter,
-          sortBy: "popularity.desc"
-        }, pageParam as number);
+        return getFilteredSeries(
+          {
+            genre: genreFilter,
+            sortBy: "popularity.desc",
+          },
+          pageParam as number
+        );
       } else {
-        return getFilteredSeries({ 
-          sortBy: "popularity.desc"
-        }, pageParam as number);
+        return getFilteredSeries(
+          {
+            sortBy: "popularity.desc",
+          },
+          pageParam as number
+        );
       }
     },
     getNextPageParam: (lastPage) =>
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
   });
-  
+
   // Atualizar a busca quando os filtros mudarem
   useEffect(() => {
     refetchAllSeries();
@@ -126,41 +127,40 @@ export function Series() {
   const hasNextPage = hasAllSeriesNextPage;
   const isFetchingNextPage = isAllSeriesFetchingNextPage;
   const fetchNextPage = fetchAllSeriesNextPage;
-  
+
   const allSeries = currentQueryData?.pages.flatMap((page) => page.results) ?? [];
-  
+
   // Remover séries duplicadas
   const uniqueSeries = allSeries.filter(
-    (series, index, self) =>
-      index === self.findIndex((s) => s.id === series.id)
+    (series, index, self) => index === self.findIndex((s) => s.id === series.id)
   );
 
   // Buscar avaliações para todas as séries
   const seriesReviewsQueries = useQueries({
-    queries: uniqueSeries.map(series => ({
-      queryKey: ['series-reviews', series.id],
+    queries: uniqueSeries.map((series) => ({
+      queryKey: ["series-reviews", series.id],
       queryFn: async () => {
         const reviews = await getSeriesReviews(series.id);
         if (reviews.length > 0) {
-          const allRatings = reviews.flatMap(review => 
-            review.seasonReviews.map(sr => sr.rating)
+          const allRatings = reviews.flatMap((review) =>
+            review.seasonReviews.map((sr) => sr.rating)
           );
           return allRatings.reduce((a, b) => a + b, 0) / allRatings.length;
         }
         return null;
       },
       staleTime: 1000 * 60 * 5, // 5 minutos
-    }))
+    })),
   });
 
   // Mapear as avaliações para as séries
   const seriesWithRatings = useMemo(() => {
     return uniqueSeries.map((series, index) => ({
       ...series,
-      rating: seriesReviewsQueries[index]?.data ?? undefined
+      rating: seriesReviewsQueries[index]?.data ?? undefined,
     }));
   }, [uniqueSeries, seriesReviewsQueries]);
-  
+
   // Ordenação das séries por popularidade (padrão da API)
   const sortedSeriesWithRatings = useMemo(() => {
     // Clonar array para não modificar o original
@@ -168,7 +168,7 @@ export function Series() {
     // Ordenar por popularidade (padrão)
     return sorted;
   }, [seriesWithRatings]);
-  
+
   // Estatísticas
   // Cores para o modo escuro do site
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -180,7 +180,7 @@ export function Series() {
   const clearSearch = () => {
     setSearchQuery("");
     setActiveSearch("");
-    
+
     // Remover o parâmetro de busca da URL
     const newParams = new URLSearchParams(searchParams.toString());
     newParams.delete("search");
@@ -196,31 +196,31 @@ export function Series() {
   const clearGenreFilter = () => {
     setGenreFilter("");
     setGenreName("");
-    
+
     // Remover os parâmetros de gênero da URL
     const newParams = new URLSearchParams(searchParams.toString());
     newParams.delete("genre");
     newParams.delete("name");
     setSearchParams(newParams);
   };
-  
+
   // Função para atualizar os parâmetros da URL
   const updateSearchParams = () => {
     const params = new URLSearchParams();
-    
+
     if (activeSearch.trim()) {
       params.set("search", activeSearch.trim());
     }
-    
+
     if (genreFilter) {
       params.set("genre", genreFilter);
       if (genreName) params.set("name", genreName);
     }
-    
+
     if (listId) {
       params.set("list_id", listId);
     }
-    
+
     setSearchParams(params);
   };
 
@@ -263,9 +263,9 @@ export function Series() {
               </Button>
             </PopoverTrigger>
             <Portal>
-              <PopoverContent 
-                bg="gray.800" 
-                borderColor="gray.700" 
+              <PopoverContent
+                bg="gray.800"
+                borderColor="gray.700"
                 width={{ base: "300px", md: "400px" }}
                 _focus={{ boxShadow: "none" }}
               >
@@ -274,7 +274,9 @@ export function Series() {
                 <PopoverBody p={4}>
                   <VStack spacing={4} align="stretch">
                     <Box>
-                      <Text color="gray.300" fontWeight="medium" mb={2}>Gênero</Text>
+                      <Text color="gray.300" fontWeight="medium" mb={2}>
+                        Gênero
+                      </Text>
                       <SeriesFilter
                         genreFilter={genreFilter}
                         onGenreChange={(genre, name) => {
@@ -330,7 +332,7 @@ export function Series() {
             </HStack>
           </Box>
         )}
-        
+
         <Divider mb={6} borderColor="gray.700" />
 
         <SeriesGrid

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from "react";
 import {
   Modal,
   ModalOverlay,
@@ -31,13 +31,13 @@ import {
   AlertDialogHeader,
   AlertDialogContent,
   AlertDialogOverlay,
-  Box
-} from '@chakra-ui/react';
+  Box,
+} from "@chakra-ui/react";
 import { Globe, Lock, Plus, Trash } from "@phosphor-icons/react";
-import { List } from '../../types/list';
-import { updateList, deleteList } from '../../services/lists';
-import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { List } from "../../types/list";
+import { updateList, deleteList } from "../../services/lists";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface EditListModalProps {
   isOpen: boolean;
@@ -50,13 +50,13 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
   const { currentUser } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
-  
+
   const [title, setTitle] = useState(list.title);
-  const [description, setDescription] = useState(list.description || '');
+  const [description, setDescription] = useState(list.description || "");
   const [isPublic, setIsPublic] = useState(list.isPublic !== false); // Default to true if not specified
   const [accessByLink, setAccessByLink] = useState(list.accessByLink || false); // Novo estado para acesso por link
   const [tags, setTags] = useState<string[]>(list.tags || []);
-  const [tagInput, setTagInput] = useState('');
+  const [tagInput, setTagInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -70,38 +70,38 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
       // Manter apenas tags únicas
       if (tags.length >= 10) {
         toast({
-          title: 'Limite de tags',
-          description: 'Você pode adicionar no máximo 10 tags por lista',
-          status: 'warning',
+          title: "Limite de tags",
+          description: "Você pode adicionar no máximo 10 tags por lista",
+          status: "warning",
           duration: 3000,
           isClosable: true,
         });
         return;
       }
-      
+
       // Limitar o tamanho da tag
       if (trimmedTag.length > 20) {
         toast({
-          title: 'Tag muito longa',
-          description: 'Tags devem ter no máximo 20 caracteres',
-          status: 'warning',
+          title: "Tag muito longa",
+          description: "Tags devem ter no máximo 20 caracteres",
+          status: "warning",
           duration: 3000,
           isClosable: true,
         });
         return;
       }
-      
+
       setTags([...tags, trimmedTag]);
-      setTagInput('');
+      setTagInput("");
     }
   };
 
   const handleTagRemove = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
+    setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && tagInput) {
+    if (e.key === "Enter" && tagInput) {
       e.preventDefault();
       handleTagAdd();
     }
@@ -109,21 +109,21 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
 
   const handleSubmit = async () => {
     if (!currentUser) return;
-    
+
     if (title.trim().length < 3) {
       toast({
-        title: 'Título muito curto',
-        description: 'O título da lista deve ter pelo menos 3 caracteres',
-        status: 'warning',
+        title: "Título muito curto",
+        description: "O título da lista deve ter pelo menos 3 caracteres",
+        status: "warning",
         duration: 3000,
         isClosable: true,
       });
       return;
     }
-    
+
     try {
       setIsLoading(true);
-      
+
       const updatedListData = {
         title: title.trim(),
         description: description.trim(),
@@ -131,28 +131,28 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
         isPublic,
         accessByLink,
       };
-      
+
       await updateList(list.id, updatedListData);
-      
+
       onListUpdated({
         ...list,
-        ...updatedListData
+        ...updatedListData,
       });
-      
+
       toast({
-        title: 'Lista atualizada',
-        description: 'Suas alterações foram salvas com sucesso',
-        status: 'success',
+        title: "Lista atualizada",
+        description: "Suas alterações foram salvas com sucesso",
+        status: "success",
         duration: 3000,
         isClosable: true,
       });
-      
+
       onClose();
     } catch (error: any) {
       toast({
-        title: 'Erro ao atualizar',
-        description: error.message || 'Não foi possível atualizar a lista',
-        status: 'error',
+        title: "Erro ao atualizar",
+        description: error.message || "Não foi possível atualizar a lista",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -163,26 +163,26 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
 
   const handleDeleteList = async () => {
     if (!currentUser) return;
-    
+
     try {
       setIsDeleting(true);
       await deleteList(list.id);
-      
+
       toast({
-        title: 'Lista excluída',
-        description: 'Sua lista foi excluída com sucesso',
-        status: 'success',
+        title: "Lista excluída",
+        description: "Sua lista foi excluída com sucesso",
+        status: "success",
         duration: 3000,
         isClosable: true,
       });
-      
+
       onClose();
-      navigate('/profile');
+      navigate("/profile");
     } catch (error: any) {
       toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível excluir a lista',
-        status: 'error',
+        title: "Erro",
+        description: error.message || "Não foi possível excluir a lista",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -194,17 +194,12 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
 
   return (
     <>
-      <Modal
-        isOpen={isOpen}
-        onClose={onClose}
-        initialFocusRef={initialRef}
-        scrollBehavior="inside"
-      >
+      <Modal isOpen={isOpen} onClose={onClose} initialFocusRef={initialRef} scrollBehavior="inside">
         <ModalOverlay backdropFilter="blur(5px)" />
         <ModalContent bg="gray.800" color="white">
           <ModalHeader>Editar Lista</ModalHeader>
           <ModalCloseButton />
-          
+
           <ModalBody>
             <VStack spacing={4} align="stretch">
               <FormControl isRequired>
@@ -218,7 +213,7 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
                   borderColor="gray.600"
                 />
               </FormControl>
-              
+
               <FormControl>
                 <FormLabel>Descrição</FormLabel>
                 <Textarea
@@ -231,11 +226,9 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
                   borderColor="gray.600"
                   maxLength={200}
                 />
-                <FormHelperText>
-                  {description.length}/200 caracteres
-                </FormHelperText>
+                <FormHelperText>{description.length}/200 caracteres</FormHelperText>
               </FormControl>
-              
+
               <FormControl>
                 <FormLabel>Tags</FormLabel>
                 <InputGroup size="md">
@@ -263,7 +256,7 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
                 <FormHelperText>
                   Pressione Enter ou clique no ícone para adicionar tags (máx. 10)
                 </FormHelperText>
-                
+
                 {tags.length > 0 && (
                   <Flex wrap="wrap" mt={2} gap={2}>
                     {tags.map((tag, index) => (
@@ -281,11 +274,16 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
                   </Flex>
                 )}
               </FormControl>
-              
+
               <FormControl display="flex" alignItems="center">
                 <FormLabel htmlFor="visibility" mb="0">
                   <Flex align="center">
-                    <Icon as={isPublic ? Globe : Lock} weight="fill" mr={2} color={isPublic ? "green.400" : "gray.400"} />
+                    <Icon
+                      as={isPublic ? Globe : Lock}
+                      weight="fill"
+                      mr={2}
+                      color={isPublic ? "green.400" : "gray.400"}
+                    />
                     {isPublic ? "Pública" : "Privada"}
                   </Flex>
                 </FormLabel>
@@ -308,7 +306,13 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
                 <FormControl display="flex" alignItems="center" mt={2} pl={6}>
                   <FormLabel htmlFor="access-by-link" mb="0" fontSize="sm">
                     <Flex align="center">
-                      <Icon as={accessByLink ? Globe : Lock} weight="fill" mr={2} color={accessByLink ? "blue.400" : "gray.400"} size={14} />
+                      <Icon
+                        as={accessByLink ? Globe : Lock}
+                        weight="fill"
+                        mr={2}
+                        color={accessByLink ? "blue.400" : "gray.400"}
+                        size={14}
+                      />
                       Permitir acesso por link
                     </Flex>
                   </FormLabel>
@@ -339,12 +343,19 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
           </ModalBody>
 
           <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onClose} isDisabled={isLoading} color="white" _hover={{ bg: "gray.700" }}>
+            <Button
+              variant="ghost"
+              mr={3}
+              onClick={onClose}
+              isDisabled={isLoading}
+              color="white"
+              _hover={{ bg: "gray.700" }}
+            >
               Cancelar
             </Button>
-            <Button 
-              colorScheme="primary" 
-              onClick={handleSubmit} 
+            <Button
+              colorScheme="primary"
+              onClick={handleSubmit}
               isLoading={isLoading}
               loadingText="Salvando..."
             >
@@ -368,22 +379,27 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
 
             <AlertDialogBody>
               Tem certeza que deseja excluir a lista "{list.title}"?
-              <Text mt={2} color="red.300">Esta ação não pode ser desfeita e todos os comentários e reações também serão excluídos.</Text>
+              <Text mt={2} color="red.300">
+                Esta ação não pode ser desfeita e todos os comentários e reações também serão
+                excluídos.
+              </Text>
             </AlertDialogBody>
 
             <AlertDialogFooter>
-              <Button 
-              variant="ghost" 
-              color="white" 
-              _hover={{ bg: "gray.700" }}ref={cancelRef} 
-              onClick={() => setIsDeleteAlertOpen(false)} 
-              disabled={isDeleting}>
+              <Button
+                variant="ghost"
+                color="white"
+                _hover={{ bg: "gray.700" }}
+                ref={cancelRef}
+                onClick={() => setIsDeleteAlertOpen(false)}
+                disabled={isDeleting}
+              >
                 Cancelar
               </Button>
-              <Button 
+              <Button
                 bg="red.500"
                 _hover={{ bg: "red.600" }}
-                ml={3} 
+                ml={3}
                 onClick={handleDeleteList}
                 isLoading={isDeleting}
                 loadingText="Excluindo..."
@@ -396,4 +412,4 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
       </AlertDialog>
     </>
   );
-} 
+}

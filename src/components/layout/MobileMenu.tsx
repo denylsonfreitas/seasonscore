@@ -1,12 +1,14 @@
+import { Box, Text, Flex, Button, Portal, Divider } from "@chakra-ui/react";
 import {
-  Box,
-  Text,
-  Flex,
-  Button,
-  Portal,
-  Divider
-} from "@chakra-ui/react";
-import { Gear, Note, NumberCircleOne, SignOut, Star, TelevisionSimple, UserCircle, UsersThree } from "@phosphor-icons/react";
+  Gear,
+  Note,
+  NumberCircleOne,
+  SignOut,
+  Star,
+  TelevisionSimple,
+  UserCircle,
+  UsersThree,
+} from "@phosphor-icons/react";
 import { Link as RouterLink } from "react-router-dom";
 import { ExtendedUser } from "../../types/auth";
 import { useEffect, useState } from "react";
@@ -44,9 +46,7 @@ export function MobileMenu({
   const getItemAnimationStyle = (index: number) => ({
     opacity: isVisible ? 1 : 0,
     transform: isVisible ? "translateY(0)" : "translateY(10px)",
-    transition: `all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) ${
-      index * 0.04 + 0.15
-    }s`,
+    transition: `all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 0.04 + 0.15}s`,
   });
 
   // Ajustar visibilidade baseado na prop isOpen
@@ -90,9 +90,7 @@ export function MobileMenu({
         right="16px"
         borderWidth="1px"
         onClick={(e) => e.stopPropagation()} // Evita que cliques no menu fechem ele
-        transform={
-          isVisible ? "translateY(0) scale(1)" : "translateY(-25px) scale(0.92)"
-        }
+        transform={isVisible ? "translateY(0) scale(1)" : "translateY(-25px) scale(0.92)"}
         opacity={isVisible ? 1 : 0}
         transition="transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)"
         transformOrigin="top right"
@@ -147,8 +145,6 @@ export function MobileMenu({
             </Flex>
           </RouterLink>
         </Box>
-
-
 
         <Box style={getItemAnimationStyle(4)}>
           <RouterLink to="/series/top10">
@@ -262,24 +258,14 @@ export function MobileMenu({
           </RouterLink>
         </Box>
 
-        <Divider
-          borderColor="gray.700"
-          my={3}
-          style={getItemAnimationStyle(7)}
-        />
+        <Divider borderColor="gray.700" my={3} style={getItemAnimationStyle(7)} />
 
         {/* Ações do usuário na parte inferior */}
         {currentUser ? (
           <>
             <Box style={getItemAnimationStyle(8)}>
               <RouterLink to="/profile" onClick={onClose}>
-                <Flex
-                  align="center"
-                  py={2.5}
-                  px={3}
-                  borderRadius="md"
-                  _hover={{ bg: "gray.700" }}
-                >
+                <Flex align="center" py={2.5} px={3} borderRadius="md" _hover={{ bg: "gray.700" }}>
                   <Box
                     p={2}
                     borderRadius="md"

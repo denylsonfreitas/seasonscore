@@ -1,10 +1,10 @@
-import React from 'react';
-import { Grid, Skeleton, useToast, Box } from '@chakra-ui/react';
-import { ListCard } from './ListCard';
-import { useQuery } from '@tanstack/react-query';
-import { getPopularLists } from '../../services/lists';
-import { ListWithUserData } from '../../types/list';
-import { SectionBase } from '../common/SectionBase';
+import React from "react";
+import { Grid, Skeleton, useToast, Box } from "@chakra-ui/react";
+import { ListCard } from "./ListCard";
+import { useQuery } from "@tanstack/react-query";
+import { getPopularLists } from "../../services/lists";
+import { ListWithUserData } from "../../types/list";
+import { SectionBase } from "../common/SectionBase";
 import { Carousel } from "../common/Carousel";
 
 export function PopularLists() {
@@ -12,9 +12,9 @@ export function PopularLists() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["popularLists"],
-    queryFn: () => getPopularLists(12)
+    queryFn: () => getPopularLists(12),
   });
-  
+
   // Tipagem segura para os dados
   const lists: ListWithUserData[] = data || [];
 
@@ -42,7 +42,7 @@ export function PopularLists() {
 
   const renderContent = (limitItems: boolean) => {
     const displayedLists = limitItems ? lists.slice(0, 12) : lists;
-    
+
     return (
       <Box pb={8}>
         <Carousel preset="lists" gap={4}>
@@ -69,4 +69,4 @@ export function PopularLists() {
       renderContent={renderContent}
     />
   );
-} 
+}

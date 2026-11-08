@@ -14,12 +14,7 @@ interface HomeSectionProps {
   link?: string;
 }
 
-export function HomeSeriesSection({
-  title,
-  queryKey,
-  queryFn,
-  link,
-}: HomeSectionProps) {
+export function HomeSeriesSection({ title, queryKey, queryFn, link }: HomeSectionProps) {
   const { data, isLoading, error } = useQuery({
     queryKey,
     queryFn,
@@ -45,8 +40,7 @@ export function HomeSeriesSection({
               );
 
               if (allRatings.length > 0) {
-                reviewsMap[series.id] =
-                  allRatings.reduce((a, b) => a + b, 0) / allRatings.length;
+                reviewsMap[series.id] = allRatings.reduce((a, b) => a + b, 0) / allRatings.length;
               }
             }
           } catch (error) {

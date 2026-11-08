@@ -42,16 +42,26 @@ interface SeasonAccordionItemProps {
   navigate: (path: string) => void;
 }
 
-export function SeasonAccordionItem({ season, averageRating, seasonReviews, userReview, currentUser, userData, seriesId, onSeasonSelect, onOpenReviewModal, onEditReview, onDeleteReview, onReviewClick }: SeasonAccordionItemProps) {
+export function SeasonAccordionItem({
+  season,
+  averageRating,
+  seasonReviews,
+  userReview,
+  currentUser,
+  userData,
+  seriesId,
+  onSeasonSelect,
+  onOpenReviewModal,
+  onEditReview,
+  onDeleteReview,
+  onReviewClick,
+}: SeasonAccordionItemProps) {
   // Verificar se o usuário tem uma avaliação para esta temporada
-  const hasUserReview = userReview !== undefined && userReview.seasonReviews.some(
-    (sr) => sr.seasonNumber === season
-  );
+  const hasUserReview =
+    userReview !== undefined && userReview.seasonReviews.some((sr) => sr.seasonNumber === season);
 
   // Obter a avaliação da temporada se existir
-  const seasonReview = userReview?.seasonReviews.find(
-    (sr) => sr.seasonNumber === season
-  );
+  const seasonReview = userReview?.seasonReviews.find((sr) => sr.seasonNumber === season);
 
   // Buscar avaliações dos usuários seguidos
   const { data: followedReviews = [], isLoading: isLoadingFollowedReviews } = useQuery({
@@ -70,7 +80,7 @@ export function SeasonAccordionItem({ season, averageRating, seasonReviews, user
         userId: review.userId,
         userEmail: review.userEmail,
         comments: sr.comments || [],
-        createdAt: sr.createdAt || new Date()
+        createdAt: sr.createdAt || new Date(),
       }))
   );
 
@@ -78,7 +88,7 @@ export function SeasonAccordionItem({ season, averageRating, seasonReviews, user
   const renderUserReviewBox = () => {
     // Só renderizamos se ambos userReview e seasonReview existirem
     if (!userReview || !seasonReview) return null;
-    
+
     return (
       <Box bg="gray.700" p={2} borderRadius="lg">
         <HStack pl={1} justify="space-between" align="center">
@@ -92,11 +102,7 @@ export function SeasonAccordionItem({ season, averageRating, seasonReviews, user
             <Text color="white" fontWeight="medium">
               Sua avaliação:
             </Text>
-            <RatingStars
-              rating={seasonReview.rating || 0}
-              size={16}
-              showNumber={false}
-            />
+            <RatingStars rating={seasonReview.rating || 0} size={16} showNumber={false} />
           </HStack>
           <Menu>
             <MenuButton
@@ -106,9 +112,8 @@ export function SeasonAccordionItem({ season, averageRating, seasonReviews, user
               variant="ghost"
               color="gray.400"
               _hover={{ bg: "gray.700" }}
-              
             />
-            <MenuList bg="gray.800" borderColor="gray.600" >
+            <MenuList bg="gray.800" borderColor="gray.600">
               <MenuItem
                 icon={<Eye size={20} />}
                 onClick={() => {
@@ -193,12 +198,7 @@ export function SeasonAccordionItem({ season, averageRating, seasonReviews, user
 
   return (
     <AccordionItem key={`season-${season}`} border="none">
-      <AccordionButton
-        bg="gray.700"
-        _hover={{ bg: "gray.600" }}
-        mb={2}
-        borderRadius="md"
-      >
+      <AccordionButton bg="gray.700" _hover={{ bg: "gray.600" }} mb={2} borderRadius="md">
         <Box flex="1" textAlign="left">
           <HStack>
             <Text color="white" fontWeight="medium">
@@ -264,4 +264,4 @@ export function SeasonAccordionItem({ season, averageRating, seasonReviews, user
       </AccordionPanel>
     </AccordionItem>
   );
-} 
+}

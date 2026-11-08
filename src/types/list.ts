@@ -57,4 +57,4 @@ export interface AddToListOptions {
     name: string;
     poster_path: string | null;
   };
-} 
+}

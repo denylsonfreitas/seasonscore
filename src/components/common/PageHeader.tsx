@@ -48,11 +48,7 @@ export function PageHeader({
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   return (
-    <Box 
-      bgGradient="linear(to-b, gray.800, gray.900)" 
-      py={8}
-      position="relative"
-    >
+    <Box bgGradient="linear(to-b, gray.800, gray.900)" py={8} position="relative">
       <Container maxW="container.lg">
         <VStack align="stretch" spacing={6}>
           {/* Título e Subtítulo */}
@@ -98,18 +94,19 @@ export function PageHeader({
                 </TabList>
               </Tabs>
             )}
-            
+
             {/* Barra de busca e botão de ação */}
             {(showSearch || actionButton) && (
-              <Flex 
-                justify="space-between" 
+              <Flex
+                justify="space-between"
                 align="center"
                 flexWrap={{ base: "wrap", md: "nowrap" }}
                 gap={3}
                 mt={tabs && tabs.length > 0 ? 2 : 0}
               >
                 {showSearch && (
-                  <InputGroup flex={{ base: actionButton ? "1 0 100%" : "1", md: "1" }} 
+                  <InputGroup
+                    flex={{ base: actionButton ? "1 0 100%" : "1", md: "1" }}
                     maxW={{ base: "100%", md: actionButton ? "500px" : "100%" }}
                     mb={{ base: actionButton ? 2 : 0, md: 0 }}
                   >
@@ -131,7 +128,7 @@ export function PageHeader({
                     </InputRightElement>
                   </InputGroup>
                 )}
-                
+
                 {actionButton && (
                   <Box flex="0 0 auto" alignSelf={{ base: "flex-end", md: "center" }}>
                     {actionButton}
@@ -144,4 +141,4 @@ export function PageHeader({
       </Container>
     </Box>
   );
-} 
+}

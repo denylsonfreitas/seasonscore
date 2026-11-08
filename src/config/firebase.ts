@@ -19,4 +19,3 @@ setPersistence(auth, browserLocalPersistence).catch((error) => {
 
 export { auth };
 export const db = getFirestore(app);
-

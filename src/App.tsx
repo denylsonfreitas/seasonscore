@@ -30,8 +30,7 @@ function GlobalEventHandler() {
       const target = e.target as HTMLElement;
 
       const isModalContent =
-        target.closest(".chakra-modal__content") ||
-        target.closest("[data-ignore-outside-click]");
+        target.closest(".chakra-modal__content") || target.closest("[data-ignore-outside-click]");
 
       if (!isModalContent) {
         closeAllAuth();

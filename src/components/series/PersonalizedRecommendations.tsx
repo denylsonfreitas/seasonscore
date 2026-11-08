@@ -1,13 +1,4 @@
-import {
-  Box,
-  Heading,
-  Text,
-  HStack,
-  Flex,
-  Spinner,
-  Tooltip,
-  Icon,
-} from "@chakra-ui/react";
+import { Box, Heading, Text, HStack, Flex, Spinner, Tooltip, Icon } from "@chakra-ui/react";
 import { Question } from "@phosphor-icons/react";
 import { useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
@@ -20,11 +11,11 @@ export function PersonalizedRecommendations() {
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
 
-  const { 
-    data: recommendations = [], 
-    isLoading, 
+  const {
+    data: recommendations = [],
+    isLoading,
     isError,
-    refetch
+    refetch,
   } = useQuery({
     queryKey: ["personalized-recommendations", currentUser?.uid],
     queryFn: () => getPersonalizedRecommendations(currentUser?.uid || ""),
@@ -37,11 +28,11 @@ export function PersonalizedRecommendations() {
     if (currentUser && recommendations.length === 0 && !isLoading && !isError) {
       const timer = setTimeout(() => {
         queryClient.invalidateQueries({
-          queryKey: ["personalized-recommendations", currentUser?.uid]
+          queryKey: ["personalized-recommendations", currentUser?.uid],
         });
         refetch();
       }, 3000); // Esperar 3 segundos
-      
+
       return () => clearTimeout(timer);
     }
   }, [currentUser, recommendations, isLoading, isError, queryClient, refetch]);
@@ -50,20 +41,19 @@ export function PersonalizedRecommendations() {
     return (
       <Box mb={12}>
         <HStack spacing={2} mb={6}>
-          <Heading color="white" size="lg">Recomendações para Você</Heading>
-          <Tooltip 
+          <Heading color="white" size="lg">
+            Recomendações para Você
+          </Heading>
+          <Tooltip
             label="Faça login para ver recomendações personalizadas baseadas nas suas avaliações e watchlist"
             placement="top"
           >
-            <Box><Icon as={Question} color="gray.400" boxSize={5} /></Box>
+            <Box>
+              <Icon as={Question} color="gray.400" boxSize={5} />
+            </Box>
           </Tooltip>
         </HStack>
-        <Box 
-          bg="gray.800" 
-          p={6} 
-          borderRadius="lg" 
-          textAlign="center"
-        >
+        <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
           <Text color="gray.400">
             Faça login para ver recomendações personalizadas baseadas no seu perfil de preferências.
           </Text>
@@ -91,14 +81,9 @@ export function PersonalizedRecommendations() {
         <Heading color="white" size="lg" mb={6}>
           Recomendações para Você
         </Heading>
-        <Box 
-          bg="gray.800" 
-          p={6} 
-          borderRadius="lg" 
-          textAlign="center"
-        >
+        <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
           <Text color="gray.400">
-            {isError 
+            {isError
               ? "Ocorreu um erro ao buscar suas recomendações. Tente novamente mais tarde."
               : "Estamos preparando suas recomendações com base nas suas avaliações."}
           </Text>
@@ -108,14 +93,18 @@ export function PersonalizedRecommendations() {
   }
 
   return (
-    <Box >
+    <Box>
       <HStack spacing={2} mb={6}>
-        <Heading color="white" size="md">Recomendações para Você</Heading>
-        <Tooltip 
+        <Heading color="white" size="md">
+          Recomendações para Você
+        </Heading>
+        <Tooltip
           label="Recomendações personalizadas baseadas nas suas avaliações e watchlist"
           placement="top"
         >
-          <Box><Icon as={Question} color="gray.400" boxSize={5} /></Box>
+          <Box>
+            <Icon as={Question} color="gray.400" boxSize={5} />
+          </Box>
         </Tooltip>
       </HStack>
 
@@ -130,4 +119,4 @@ export function PersonalizedRecommendations() {
       </Box>
     </Box>
   );
-} 
+}

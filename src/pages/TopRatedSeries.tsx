@@ -9,7 +9,7 @@ import {
   useBreakpointValue,
   Grid,
   GridItem,
-  Icon
+  Icon,
 } from "@chakra-ui/react";
 import { useQuery } from "@tanstack/react-query";
 import { getSeriesDetails } from "../services/tmdb";
@@ -44,8 +44,10 @@ interface TopRatedSeries {
 }
 
 export function TopRatedSeries() {
-  const secondThirdSize = useBreakpointValue({ base: "sm", md: "md" }) as "sm" | "md" | "lg" | undefined;
-  const firstPlaceSize = useBreakpointValue({ base: "md", md: "lg" }) as "sm" | "md" | "lg" | undefined;
+  const secondThirdSize = useBreakpointValue({ base: "sm", md: "md" }) as
+    "sm" | "md" | "lg" | undefined;
+  const firstPlaceSize = useBreakpointValue({ base: "md", md: "lg" }) as
+    "sm" | "md" | "lg" | undefined;
 
   const { data: reviews, isLoading: isLoadingReviews } = useQuery({
     queryKey: ["topRatedSeries"],
@@ -59,19 +61,21 @@ export function TopRatedSeries() {
 
       // Agrupar reviews por série e calcular média
       const seriesMap = new Map<number, { total: number; count: number }>();
-      
+
       // Garantir que reviews é um array
       const reviewsArray = Array.isArray(reviews) ? reviews : [];
-      
+
       reviewsArray.forEach((review: SeriesReview) => {
         if (!review || !review.seasonReviews || !Array.isArray(review.seasonReviews)) return;
-        
+
         const seriesId = review.seriesId;
         if (!seriesId) return;
-        
-        const seasonRatings = review.seasonReviews.map((sr) => sr?.rating || 0).filter(rating => rating > 0);
+
+        const seasonRatings = review.seasonReviews
+          .map((sr) => sr?.rating || 0)
+          .filter((rating) => rating > 0);
         if (seasonRatings.length === 0) return;
-        
+
         const averageRating =
           seasonRatings.reduce((a: number, b: number) => a + b, 0) / seasonRatings.length;
 
@@ -91,7 +95,7 @@ export function TopRatedSeries() {
           id: seriesId,
           averageRating: data.total / data.count,
         }))
-        .filter(series => series.averageRating >= 3 && !isNaN(series.averageRating))
+        .filter((series) => series.averageRating >= 3 && !isNaN(series.averageRating))
         .sort((a, b) => b.averageRating - a.averageRating)
         .slice(0, 10);
 
@@ -102,7 +106,7 @@ export function TopRatedSeries() {
             try {
               const details = await getSeriesDetails(series.id);
               if (!details) return null;
-              
+
               return {
                 ...details,
                 averageRating: series.averageRating,
@@ -115,7 +119,7 @@ export function TopRatedSeries() {
         );
 
         // Remover itens nulos ou undefined
-        return seriesDetails.filter(item => item !== null && item !== undefined);
+        return seriesDetails.filter((item) => item !== null && item !== undefined);
       } catch (error) {
         console.error("Erro ao buscar detalhes das séries:", error);
         return [];
@@ -128,13 +132,7 @@ export function TopRatedSeries() {
 
   if (isLoading) {
     return (
-      <Flex
-        minH="100vh"
-        bg="gray.900"
-        pt="80px"
-        align="center"
-        justify="center"
-      >
+      <Flex minH="100vh" bg="gray.900" pt="80px" align="center" justify="center">
         <Spinner size="xl" color="primary.500" />
       </Flex>
     );
@@ -142,17 +140,14 @@ export function TopRatedSeries() {
 
   return (
     <Box minH="100vh" bg="gray.900">
-      <PageHeader
-        title="Top 10 Séries"
-        subtitle="As séries mais bem avaliadas pela comunidade"
-      />
+      <PageHeader title="Top 10 Séries" subtitle="As séries mais bem avaliadas pela comunidade" />
 
       <Container maxW="container.lg" pb={20}>
         {!topSeries || topSeries.length === 0 ? (
-          <Flex 
-            direction="column" 
-            align="center" 
-            justify="center" 
+          <Flex
+            direction="column"
+            align="center"
+            justify="center"
             minH="60vh"
             textAlign="center"
             p={8}
@@ -162,7 +157,8 @@ export function TopRatedSeries() {
               Nenhuma série avaliada ainda
             </Heading>
             <Text color="gray.400">
-              Seja o primeiro a avaliar uma série! Apenas séries com nota 3 ou superior aparecem no ranking.
+              Seja o primeiro a avaliar uma série! Apenas séries com nota 3 ou superior aparecem no
+              ranking.
             </Text>
           </Flex>
         ) : (
@@ -170,9 +166,9 @@ export function TopRatedSeries() {
             {/* Pódio Top 5 */}
             {topSeries.length >= 3 ? (
               <Grid
-                templateColumns={{ 
+                templateColumns={{
                   base: "repeat(3, 1fr)",
-                  md: `repeat(${Math.min(topSeries.length, 5)}, 1fr)`
+                  md: `repeat(${Math.min(topSeries.length, 5)}, 1fr)`,
                 }}
                 gap={{ base: 4, md: 4 }}
                 position="relative"
@@ -305,41 +301,43 @@ export function TopRatedSeries() {
 
             {/* Restante do Top 10 */}
             {topSeries.length > 6 && (
-              <SimpleGrid 
-                columns={{ base: 2, sm: 3, md: 4, lg: 5 }} 
+              <SimpleGrid
+                columns={{ base: 2, sm: 3, md: 4, lg: 5 }}
                 spacing={4}
                 mt={{ base: 8, md: 4 }}
               >
                 {/* Na versão desktop, mostrar a partir do 6º lugar */}
-                {topSeries.slice(5).map((series, index) => (
-                  series && (
-                    <Box key={series.id} display={{ base: "none", md: "block" }}>
-                      <SeriesCard
-                        series={{
-                          ...series,
-                          rating: series.averageRating,
-                        }}
-                        size="sm"
-                        position={index + 6}
-                      />
-                    </Box>
-                  )
-                ))}
+                {topSeries.slice(5).map(
+                  (series, index) =>
+                    series && (
+                      <Box key={series.id} display={{ base: "none", md: "block" }}>
+                        <SeriesCard
+                          series={{
+                            ...series,
+                            rating: series.averageRating,
+                          }}
+                          size="sm"
+                          position={index + 6}
+                        />
+                      </Box>
+                    )
+                )}
                 {/* Na versão mobile, mostrar a partir do 7º lugar */}
-                {topSeries.slice(6).map((series, index) => (
-                  series && (
-                    <Box key={`mobile-${series.id}`} display={{ base: "block", md: "none" }}>
-                      <SeriesCard
-                        series={{
-                          ...series,
-                          rating: series.averageRating,
-                        }}
-                        size="sm"
-                        position={index + 7}
-                      />
-                    </Box>
-                  )
-                ))}
+                {topSeries.slice(6).map(
+                  (series, index) =>
+                    series && (
+                      <Box key={`mobile-${series.id}`} display={{ base: "block", md: "none" }}>
+                        <SeriesCard
+                          series={{
+                            ...series,
+                            rating: series.averageRating,
+                          }}
+                          size="sm"
+                          position={index + 7}
+                        />
+                      </Box>
+                    )
+                )}
               </SimpleGrid>
             )}
           </>
@@ -348,4 +346,4 @@ export function TopRatedSeries() {
       <Footer />
     </Box>
   );
-} 
+}

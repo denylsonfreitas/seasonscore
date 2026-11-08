@@ -42,12 +42,8 @@ export function Navbar() {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   // Obtém o estado da UI de autenticação do store
-  const {
-    isSignUpModalOpen,
-    openSignUpModal,
-    closeSignUpModal,
-    openSignUpFromLogin,
-  } = useAuthUIStore();
+  const { isSignUpModalOpen, openSignUpModal, closeSignUpModal, openSignUpFromLogin } =
+    useAuthUIStore();
 
   // Estados e funções para o menu animado de login desktop
   const {
@@ -72,10 +68,13 @@ export function Navbar() {
   } = useAnimatedMenu();
 
   // Adicionar uso do useToken para obter as cores do tema
-  const [seriesColor, top10Color, reviewsColor, listsColor, communityColor] = useToken(
-    "colors",
-    ["linkhome.series", "linkhome.top10", "linkhome.reviews", "linkhome.lists", "linkhome.community"]
-  );
+  const [seriesColor, top10Color, reviewsColor, listsColor, communityColor] = useToken("colors", [
+    "linkhome.series",
+    "linkhome.top10",
+    "linkhome.reviews",
+    "linkhome.lists",
+    "linkhome.community",
+  ]);
 
   const handleLogout = async () => {
     try {
@@ -130,15 +129,11 @@ export function Navbar() {
 
   useEffect(() => {
     const isMobile = window.innerWidth < 768;
-    globalOpenLoginPopover = isMobile
-      ? handleMobileLoginOpen
-      : handleDesktopLoginOpen;
+    globalOpenLoginPopover = isMobile ? handleMobileLoginOpen : handleDesktopLoginOpen;
 
     const handleResize = () => {
       const isMobile = window.innerWidth < 768;
-      globalOpenLoginPopover = isMobile
-        ? handleMobileLoginOpen
-        : handleDesktopLoginOpen;
+      globalOpenLoginPopover = isMobile ? handleMobileLoginOpen : handleDesktopLoginOpen;
     };
 
     window.addEventListener("resize", handleResize);

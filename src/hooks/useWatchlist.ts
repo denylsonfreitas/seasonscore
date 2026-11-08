@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useToast } from '@chakra-ui/react';
-import { useQueryClient } from '@tanstack/react-query';
-import { addToWatchlist, removeFromWatchlist, isInWatchlist } from '../services/watchlist';
-import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect } from "react";
+import { useToast } from "@chakra-ui/react";
+import { useQueryClient } from "@tanstack/react-query";
+import { addToWatchlist, removeFromWatchlist, isInWatchlist } from "../services/watchlist";
+import { useAuth } from "../contexts/AuthContext";
 
 interface Series {
   id: number;
@@ -24,7 +24,7 @@ export function useWatchlist(seriesId?: number) {
    */
   const checkWatchlistStatus = async (id: number = seriesId!) => {
     if (!currentUser) return false;
-    
+
     try {
       setIsLoading(true);
       const status = await isInWatchlist(currentUser.uid, id);
@@ -32,18 +32,18 @@ export function useWatchlist(seriesId?: number) {
       setHasChecked(true);
       return status;
     } catch (error) {
-      console.error('Erro ao verificar status da watchlist:', error);
+      console.error("Erro ao verificar status da watchlist:", error);
       return false;
     } finally {
       setIsLoading(false);
     }
   };
   // Verificar status da watchlist quando o componente carrega
-    useEffect(() => {
-        if (currentUser && seriesId) {
-          checkWatchlistStatus(seriesId);
-        }
-      }, [currentUser, seriesId]);
+  useEffect(() => {
+    if (currentUser && seriesId) {
+      checkWatchlistStatus(seriesId);
+    }
+  }, [currentUser, seriesId]);
 
   /**
    * Adiciona ou remove uma série da watchlist do usuário
@@ -64,34 +64,34 @@ export function useWatchlist(seriesId?: number) {
       // Se já está na lista, remover
       if (isInList) {
         await removeFromWatchlist(currentUser.uid, series.id);
-        
+
         // Invalidar a consulta para atualizar a interface
         queryClient.invalidateQueries({ queryKey: ["userWatchlist"] });
-        
+
         toast({
           title: "Removido da watchlist",
           description: `${series.name} foi removida da sua watchlist`,
           status: "success",
           duration: 2000,
         });
-        
+
         setIsInList(false);
         return false; // Retorna false para indicar que não está mais na lista
-      } 
+      }
       // Senão, adicionar
       else {
         await addToWatchlist(currentUser.uid, series);
-        
+
         // Invalidar a consulta para atualizar a interface
         queryClient.invalidateQueries({ queryKey: ["userWatchlist"] });
-        
+
         toast({
           title: "Adicionado à watchlist",
           description: `${series.name} foi adicionada à sua watchlist`,
           status: "success",
           duration: 2000,
         });
-        
+
         setIsInList(true);
         return true; // Retorna true para indicar que agora está na lista
       }
@@ -116,4 +116,4 @@ export function useWatchlist(seriesId?: number) {
     checkWatchlistStatus,
     toggleWatchlist,
   };
-} 
+}

@@ -1,8 +1,4 @@
-import {
-  VStack,
-  Accordion,
-  Button,
-} from "@chakra-ui/react";
+import { VStack, Accordion, Button } from "@chakra-ui/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CaretDown, CaretUp } from "@phosphor-icons/react";
 import { useState } from "react";
@@ -80,10 +76,7 @@ export function SeasonsTabs({
   return (
     <VStack align="stretch" spacing={4}>
       <Accordion allowMultiple>
-        {Array.from(
-          { length: series.number_of_seasons },
-          (_, i) => i + 1
-        )
+        {Array.from({ length: series.number_of_seasons }, (_, i) => i + 1)
           .slice(0, showAllSeasons ? undefined : 3)
           .map((season) => {
             const averageRating = calculateAverageRating(season);
@@ -125,11 +118,9 @@ export function SeasonsTabs({
           rightIcon={showAllSeasons ? <CaretUp /> : <CaretDown />}
           alignSelf="center"
         >
-          {showAllSeasons 
-            ? "Ver menos" 
-            : `Ver mais (${series.number_of_seasons - 3} temporadas)`}
+          {showAllSeasons ? "Ver menos" : `Ver mais (${series.number_of_seasons - 3} temporadas)`}
         </Button>
       )}
     </VStack>
   );
-} 
+}

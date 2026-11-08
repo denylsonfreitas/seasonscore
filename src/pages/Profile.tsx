@@ -1,13 +1,4 @@
-import {
-  Box,
-  Container,
-  Text,
-  VStack,
-  Flex,
-  useToast,
-  Center,
-  Spinner,
-} from "@chakra-ui/react";
+import { Box, Container, Text, VStack, Flex, useToast, Center, Spinner } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -19,12 +10,7 @@ import { Footer } from "../components/common/Footer";
 import { getUserReviews, SeriesReview } from "../services/reviews";
 import { getUserWatchlist } from "../services/watchlist";
 import { getFollowers, getFollowing } from "../services/followers";
-import {
-  getUserData,
-  UserData,
-  createOrUpdateUser,
-  getUserByUsername,
-} from "../services/users";
+import { getUserData, UserData, createOrUpdateUser, getUserByUsername } from "../services/users";
 import { getUserLists } from "../services/lists";
 import { UserListModal } from "../components/user/UserListModal";
 import { ExtendedUser } from "../types/auth";
@@ -51,8 +37,7 @@ export function Profile() {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [showWatchlist, setShowWatchlist] = useState(false);
   const [showLists, setShowLists] = useState(false);
-  const isOwnProfile =
-    !username || (currentUser && profileUser?.id === currentUser.uid);
+  const isOwnProfile = !username || (currentUser && profileUser?.id === currentUser.uid);
   const targetUserId = profileUser?.id || currentUser?.uid;
 
   // Efeito para buscar o usuário do perfil
@@ -87,7 +72,7 @@ export function Profile() {
     queryFn: () => getUserReviews(targetUserId!),
     enabled: !!targetUserId,
     refetchInterval: 5000,
-    staleTime: 0
+    staleTime: 0,
   });
 
   const { data: watchlist = [], isLoading: isLoadingWatchlist } = useQuery({
@@ -109,15 +94,13 @@ export function Profile() {
   });
 
   const { data: userLists = [], isLoading: isLoadingLists } = useQuery({
-    queryKey: ['userLists', targetUserId],
-    queryFn: () => getUserLists(targetUserId || ''),
-    enabled: !!targetUserId
+    queryKey: ["userLists", targetUserId],
+    queryFn: () => getUserLists(targetUserId || ""),
+    enabled: !!targetUserId,
   });
 
   // Manipuladores de eventos
-  const handlePhotoUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || !event.target.files[0] || !currentUser) return;
 
     setUploadingPhoto(true);
@@ -148,9 +131,7 @@ export function Profile() {
     }
   };
 
-  const handleCoverUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || !event.target.files[0] || !currentUser) return;
 
     setUploadingCover(true);
@@ -170,8 +151,7 @@ export function Profile() {
     } catch (error) {
       toast({
         title: "Erro ao atualizar capa",
-        description:
-          "Ocorreu um erro ao atualizar sua foto de capa. Tente novamente.",
+        description: "Ocorreu um erro ao atualizar sua foto de capa. Tente novamente.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -189,9 +169,7 @@ export function Profile() {
     return (
       <Box bg="gray.900" minH="100vh" pt="80px">
         <Container maxW="container.lg" py={8}>
-          <Text color="white">
-            Você precisa estar logado para acessar esta página.
-          </Text>
+          <Text color="white">Você precisa estar logado para acessar esta página.</Text>
         </Container>
       </Box>
     );
@@ -199,9 +177,7 @@ export function Profile() {
 
   const userName = isOwnProfile
     ? currentUser?.displayName || currentUser?.email?.split("@")[0] || "Usuário"
-    : profileUser?.displayName ||
-      profileUser?.email?.split("@")[0] ||
-      "Usuário";
+    : profileUser?.displayName || profileUser?.email?.split("@")[0] || "Usuário";
 
   // Contar listas
   const listsCount = userLists?.length || 0;
@@ -217,7 +193,7 @@ export function Profile() {
     }
 
     const section = showLists ? "lists" : showWatchlist ? "watchlist" : "reviews";
-    
+
     switch (section) {
       case "reviews":
         return (
@@ -229,20 +205,15 @@ export function Profile() {
         );
       case "watchlist":
         return (
-          <WatchlistSection 
-            watchlist={watchlist} 
+          <WatchlistSection
+            watchlist={watchlist}
             isLoading={isLoadingWatchlist}
             isOwnProfile={isOwnProfile === true}
             currentUser={currentUser}
           />
         );
       case "lists":
-        return (
-          <ListsSection
-            userId={targetUserId || ''}
-            isOwnProfile={isOwnProfile === true}
-          />
-        );
+        return <ListsSection userId={targetUserId || ""} isOwnProfile={isOwnProfile === true} />;
       default:
         return null;
     }
@@ -295,7 +266,7 @@ export function Profile() {
 
             {/* Conteúdo principal - alternando entre Avaliações, Watchlist e Listas */}
             {renderActiveSection()}
-            
+
             {selectedReview && (
               <ReviewEditModal
                 isOpen={!!selectedReview}

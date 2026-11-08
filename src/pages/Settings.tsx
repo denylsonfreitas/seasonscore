@@ -20,16 +20,16 @@ import {
   AlertDialogOverlay,
   useDisclosure,
   Alert,
-  AlertIcon
+  AlertIcon,
 } from "@chakra-ui/react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { 
-  deleteUser, 
-  EmailAuthProvider, 
+import {
+  deleteUser,
+  EmailAuthProvider,
   reauthenticateWithCredential,
   verifyBeforeUpdateEmail,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { ExtendedUser } from "../types/auth";
@@ -38,21 +38,24 @@ import { isUsernameAvailable, deleteUserData } from "../services/users";
 import { logError } from "../utils/logger";
 
 export function Settings() {
-  const { currentUser, logout } = useAuth() as { currentUser: ExtendedUser | null, logout: () => Promise<void> };
+  const { currentUser, logout } = useAuth() as {
+    currentUser: ExtendedUser | null;
+    logout: () => Promise<void>;
+  };
   const [showPassword, setShowPassword] = useState(false);
   const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [email, setEmail] = useState(currentUser?.email || "");
   const [emailSent, setEmailSent] = useState(false);
-  
+
   // Estados para alterar email
   const [emailCurrentPassword, setEmailCurrentPassword] = useState("");
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
-  
+
   // Estados para alterar senha
   // Estados para deletar conta
   const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-  
+
   const { isOpen, onOpen, onClose } = useDisclosure();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const toast = useToast();
@@ -71,10 +74,10 @@ export function Settings() {
         emailCurrentPassword
       );
       await reauthenticateWithCredential(auth.currentUser, credential);
-      
+
       // Enviar email de verificação para o novo endereço
       await verifyBeforeUpdateEmail(auth.currentUser, email);
-      
+
       setEmailSent(true);
       toast({
         title: "Email de verificação enviado",
@@ -104,11 +107,11 @@ export function Settings() {
       if (!deleteAccountPassword) {
         throw new Error("Por favor, insira sua senha para confirmar a exclusão da conta.");
       }
-      
+
       if (!currentUser || !currentUser.email || !auth.currentUser) {
         throw new Error("Usuário não autenticado. Por favor, faça login novamente.");
       }
-      
+
       // Exibir aviso inicial ao usuário
       toast({
         title: "Processando exclusão",
@@ -117,21 +120,20 @@ export function Settings() {
         duration: 5000,
         isClosable: true,
       });
-      
+
       // Autenticar novamente o usuário para verificar a senha
-      const credential = EmailAuthProvider.credential(
-        currentUser.email,
-        deleteAccountPassword
-      );
+      const credential = EmailAuthProvider.credential(currentUser.email, deleteAccountPassword);
       await reauthenticateWithCredential(auth.currentUser!, credential);
 
       // Primeiro excluir os dados do usuário do banco de dados
       const deleteResult = await deleteUserData(currentUser.uid);
-      
+
       // Mensagem de aviso se algumas operações não puderam ser concluídas devido a permissões
       if (deleteResult.details?.permissionIssues?.length > 0) {
-        console.warn("Algumas operações de exclusão foram ignoradas devido a restrições de permissão:", 
-          deleteResult.details.permissionIssues);
+        console.warn(
+          "Algumas operações de exclusão foram ignoradas devido a restrições de permissão:",
+          deleteResult.details.permissionIssues
+        );
       }
 
       // Depois excluir a conta de autenticação
@@ -160,18 +162,18 @@ export function Settings() {
         }
       }, 1500);
     } catch (error: any) {
-
       let errorMessage: string;
-      
-      if (error.code === 'auth/wrong-password') {
+
+      if (error.code === "auth/wrong-password") {
         errorMessage = "Senha incorreta. Por favor, verifique e tente novamente.";
-      } else if (error.code === 'auth/requires-recent-login') {
+      } else if (error.code === "auth/requires-recent-login") {
         errorMessage = "Por motivos de segurança, faça login novamente antes de excluir sua conta.";
-      } else if (error.code === 'auth/too-many-requests') {
+      } else if (error.code === "auth/too-many-requests") {
         errorMessage = "Muitas tentativas. Por favor, aguarde alguns minutos e tente novamente.";
       } else {
         // Se for um erro durante a exclusão dos dados e não autenticação
-        errorMessage = "Ocorreu um erro ao excluir sua conta. Por favor, tente novamente mais tarde.";
+        errorMessage =
+          "Ocorreu um erro ao excluir sua conta. Por favor, tente novamente mais tarde.";
       }
 
       toast({
@@ -250,10 +252,13 @@ export function Settings() {
           <Heading color="white">Configurações</Heading>
           <Box bg="gray.800" p={6} borderRadius="lg">
             <VStack spacing={6} align="stretch">
-              
-              <Heading size="md" color="white">Segurança</Heading>
+              <Heading size="md" color="white">
+                Segurança
+              </Heading>
               <FormControl>
-                <FormLabel htmlFor="email-input" color="white">Alterar Email</FormLabel>
+                <FormLabel htmlFor="email-input" color="white">
+                  Alterar Email
+                </FormLabel>
                 <VStack spacing={3} align="stretch">
                   {emailSent && (
                     <Alert status="info" bg="blue.800" color="white">
@@ -307,7 +312,9 @@ export function Settings() {
               <Divider borderColor="gray.600" />
 
               <FormControl>
-                <FormLabel htmlFor="reset-password-button" color="white">Alterar Senha</FormLabel>
+                <FormLabel htmlFor="reset-password-button" color="white">
+                  Alterar Senha
+                </FormLabel>
                 <VStack spacing={3} align="stretch">
                   <Alert status="info" bg="blue.800" color="white">
                     <AlertIcon />
@@ -327,14 +334,13 @@ export function Settings() {
               <Divider borderColor="gray.600" />
 
               <Box>
-                <Heading size="md" color="white" mb={4}>Encerrar Conta</Heading>
+                <Heading size="md" color="white" mb={4}>
+                  Encerrar Conta
+                </Heading>
                 <Text color="gray.400" mb={4}>
                   Esta ação é irreversível. Todos os seus dados serão excluídos permanentemente.
                 </Text>
-                <Button
-                  colorScheme="red"
-                  onClick={onOpen}
-                >
+                <Button colorScheme="red" onClick={onOpen}>
                   Excluir Conta
                 </Button>
               </Box>
@@ -343,16 +349,10 @@ export function Settings() {
         </VStack>
       </Container>
 
-      <AlertDialog
-        isOpen={isOpen}
-        leastDestructiveRef={cancelRef}
-        onClose={handleCloseDeleteModal}
-      >
+      <AlertDialog isOpen={isOpen} leastDestructiveRef={cancelRef} onClose={handleCloseDeleteModal}>
         <AlertDialogOverlay>
           <AlertDialogContent bg="gray.800">
-            <AlertDialogHeader color="white">
-              Excluir Conta
-            </AlertDialogHeader>
+            <AlertDialogHeader color="white">Excluir Conta</AlertDialogHeader>
 
             <AlertDialogBody>
               <Text color="gray.300" mb={4}>

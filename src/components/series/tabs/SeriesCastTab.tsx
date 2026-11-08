@@ -68,10 +68,10 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
                   boxShadow="sm"
                   height="100%"
                   transition="transform 0.2s, box-shadow 0.2s"
-                  _hover={{ 
-                    transform: "translateY(-4px)", 
+                  _hover={{
+                    transform: "translateY(-4px)",
                     boxShadow: "lg",
-                    bg: "gray.750" 
+                    bg: "gray.750",
                   }}
                   cursor="pointer"
                 >
@@ -89,14 +89,14 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
                         fallbackSrc="https://placehold.co/300x300/222222/FFFFFF?text=Sem+Imagem"
                       />
                     ) : (
-                      <Flex 
+                      <Flex
                         position="absolute"
                         top={0}
                         left={0}
                         width="100%"
                         height="100%"
-                        bg="gray.700" 
-                        align="center" 
+                        bg="gray.700"
+                        align="center"
                         justify="center"
                       >
                         <Avatar size="xl" name={actor.name} />
@@ -121,4 +121,4 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
       </Box>
     </VStack>
   );
-} 
+}

@@ -13,21 +13,15 @@ import {
   arrayUnion,
   serverTimestamp,
   Timestamp,
-  runTransaction
+  runTransaction,
 } from "firebase/firestore";
-import { 
-  List, 
-  ListItem, 
-  ListReaction, 
-  ListReactionType,
-  ListWithUserData
-} from "../types/list";
+import { List, ListItem, ListReaction, ListReactionType, ListWithUserData } from "../types/list";
 import { getUserData } from "./users";
-import { 
-  createNotification, 
+import {
+  createNotification,
   NotificationType,
   deleteNotificationsOfType,
-  removeReactionNotification
+  removeReactionNotification,
 } from "./notifications";
 // Constantes para nomes de coleções
 const LISTS_COLLECTION = "lists";
@@ -47,19 +41,15 @@ const NOTIFICATION_COOLDOWN = 30 * 60 * 1000; // 30 minutos em milissegundos
  * @param receiverId ID do usuário que recebe a notificação
  * @returns Verdadeiro se uma notificação foi enviada nos últimos 30 minutos
  */
-function wasNotifiedRecently(
-  objectId: string, 
-  senderId: string, 
-  receiverId: string
-): boolean {
+function wasNotifiedRecently(objectId: string, senderId: string, receiverId: string): boolean {
   const cacheKey = `${receiverId}_${objectId}_${senderId}`;
   const lastNotified = recentNotificationsCache.get(cacheKey);
-  
+
   if (lastNotified) {
     const now = Date.now();
-    return (now - lastNotified) < NOTIFICATION_COOLDOWN;
+    return now - lastNotified < NOTIFICATION_COOLDOWN;
   }
-  
+
   return false;
 }
 
@@ -69,11 +59,7 @@ function wasNotifiedRecently(
  * @param senderId ID do usuário que interagiu
  * @param receiverId ID do usuário que recebe a notificação
  */
-function trackNotification(
-  objectId: string, 
-  senderId: string, 
-  receiverId: string
-): void {
+function trackNotification(objectId: string, senderId: string, receiverId: string): void {
   const cacheKey = `${receiverId}_${objectId}_${senderId}`;
   recentNotificationsCache.set(cacheKey, Date.now());
 }
@@ -119,9 +105,9 @@ export async function createList(
       tags,
       isPublic,
       accessByLink,
-      items: initialItems.map(item => ({
+      items: initialItems.map((item) => ({
         ...item,
-        addedAt: new Date()
+        addedAt: new Date(),
       })),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -159,40 +145,40 @@ export async function addSeriesToList(
   try {
     const listRef = doc(db, LISTS_COLLECTION, listId);
     const listSnap = await getDoc(listRef);
-    
+
     if (!listSnap.exists()) {
       throw new Error("Lista não encontrada");
     }
-    
+
     const listData = listSnap.data();
     if (listData.userId !== currentUser.uid) {
       throw new Error("Você não tem permissão para editar esta lista");
     }
-    
+
     // Verificar se a série já existe na lista
-    const seriesExists = listData.items.some((item: ListItem) => 
-      item.seriesId === series.id
-    );
-    
+    const seriesExists = listData.items.some((item: ListItem) => item.seriesId === series.id);
+
     if (seriesExists) {
       throw new Error("Esta série já está na lista");
     }
-    
+
     // Adicionar a série à lista
     const newItem: ListItem = {
       seriesId: series.id,
       name: series.name,
       poster_path: series.poster_path,
-      addedAt: new Date()
+      addedAt: new Date(),
     };
-    
+
     await updateDoc(listRef, {
       items: arrayUnion(newItem),
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     });
   } catch (error) {
     console.error("Erro ao adicionar série à lista:", error);
-    throw error instanceof Error ? error : new Error("Não foi possível adicionar a série à lista", { cause: error });
+    throw error instanceof Error
+      ? error
+      : new Error("Não foi possível adicionar a série à lista", { cause: error });
   }
 }
 
@@ -202,10 +188,7 @@ export async function addSeriesToList(
  * @param seriesId ID da série a ser removida
  * @returns Promise<void>
  */
-export async function removeSeriesFromList(
-  listId: string,
-  seriesId: number
-): Promise<void> {
+export async function removeSeriesFromList(listId: string, seriesId: number): Promise<void> {
   const currentUser = auth.currentUser;
   if (!currentUser) {
     throw new Error("Usuário não autenticado");
@@ -214,38 +197,36 @@ export async function removeSeriesFromList(
   try {
     const listRef = doc(db, LISTS_COLLECTION, listId);
     const listSnap = await getDoc(listRef);
-    
+
     if (!listSnap.exists()) {
       throw new Error("Lista não encontrada");
     }
-    
+
     const listData = listSnap.data();
     if (listData.userId !== currentUser.uid) {
       throw new Error("Você não tem permissão para editar esta lista");
     }
-    
+
     // Encontrar o item da série na lista e removê-lo
-    const itemToRemove = listData.items.find((item: ListItem) => 
-      item.seriesId === seriesId
-    );
-    
+    const itemToRemove = listData.items.find((item: ListItem) => item.seriesId === seriesId);
+
     if (!itemToRemove) {
       throw new Error("Série não encontrada na lista");
     }
-    
+
     // Ao remover usando arrayRemove, precisamos enviar o objeto exato,
     // então vamos atualizar a lista diretamente
-    const updatedItems = listData.items.filter((item: ListItem) => 
-      item.seriesId !== seriesId
-    );
-    
+    const updatedItems = listData.items.filter((item: ListItem) => item.seriesId !== seriesId);
+
     await updateDoc(listRef, {
       items: updatedItems,
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     });
   } catch (error) {
     console.error("Erro ao remover série da lista:", error);
-    throw error instanceof Error ? error : new Error("Não foi possível remover a série da lista", { cause: error });
+    throw error instanceof Error
+      ? error
+      : new Error("Não foi possível remover a série da lista", { cause: error });
   }
 }
 
@@ -273,23 +254,25 @@ export async function updateList(
   try {
     const listRef = doc(db, LISTS_COLLECTION, listId);
     const listSnap = await getDoc(listRef);
-    
+
     if (!listSnap.exists()) {
       throw new Error("Lista não encontrada");
     }
-    
+
     const listData = listSnap.data();
     if (listData.userId !== currentUser.uid) {
       throw new Error("Você não tem permissão para editar esta lista");
     }
-    
+
     await updateDoc(listRef, {
       ...data,
       updatedAt: serverTimestamp(),
     });
   } catch (error) {
     console.error("Erro ao atualizar lista:", error);
-    throw error instanceof Error ? error : new Error("Não foi possível atualizar a lista", { cause: error });
+    throw error instanceof Error
+      ? error
+      : new Error("Não foi possível atualizar a lista", { cause: error });
   }
 }
 
@@ -307,16 +290,16 @@ export async function deleteList(listId: string): Promise<void> {
   try {
     const listRef = doc(db, LISTS_COLLECTION, listId);
     const listSnap = await getDoc(listRef);
-    
+
     if (!listSnap.exists()) {
       throw new Error("Lista não encontrada");
     }
-    
+
     const listData = listSnap.data();
     if (listData.userId !== currentUser.uid) {
       throw new Error("Você não tem permissão para excluir esta lista");
     }
-    
+
     // Excluir a lista e todos os dados relacionados em uma transação
     await runTransaction(db, async (transaction) => {
       // 1. Excluir todos os comentários da lista
@@ -324,23 +307,23 @@ export async function deleteList(listId: string): Promise<void> {
         collection(db, LIST_COMMENTS_COLLECTION),
         where("listId", "==", listId)
       );
-      
+
       const commentsSnapshot = await getDocs(commentsQuery);
-      commentsSnapshot.forEach(commentDoc => {
+      commentsSnapshot.forEach((commentDoc) => {
         transaction.delete(commentDoc.ref);
       });
-      
+
       // 2. Excluir todas as reações da lista
       const reactionsQuery = query(
         collection(db, LIST_REACTIONS_COLLECTION),
         where("listId", "==", listId)
       );
-      
+
       const reactionsSnapshot = await getDocs(reactionsQuery);
-      reactionsSnapshot.forEach(reactionDoc => {
+      reactionsSnapshot.forEach((reactionDoc) => {
         transaction.delete(reactionDoc.ref);
       });
-      
+
       // 3. Excluir notificações relacionadas a esta lista
       try {
         await deleteNotificationsOfType(listData.userId, NotificationType.LIST_COMMENT);
@@ -349,13 +332,15 @@ export async function deleteList(listId: string): Promise<void> {
         console.error("Erro ao excluir notificações da lista:", error);
         // Continuar mesmo se houver erro nas notificações
       }
-      
+
       // 4. Excluir a lista
       transaction.delete(listRef);
     });
   } catch (error) {
     console.error("Erro ao excluir lista:", error);
-    throw error instanceof Error ? error : new Error("Não foi possível excluir a lista", { cause: error });
+    throw error instanceof Error
+      ? error
+      : new Error("Não foi possível excluir a lista", { cause: error });
   }
 }
 
@@ -367,15 +352,15 @@ export async function deleteList(listId: string): Promise<void> {
 export async function getListById(listId: string): Promise<ListWithUserData | null> {
   try {
     const listDoc = await getDoc(doc(db, LISTS_COLLECTION, listId));
-    
+
     if (!listDoc.exists()) {
       return null;
     }
-    
+
     const listData = listDoc.data() as List;
     const isPublic = listData.isPublic !== false;
     const allowAccessByLink = listData.accessByLink === true;
-    
+
     // Verificar permissões de acesso:
     // 1. Lista pública: qualquer um pode acessar
     // 2. Lista privada com acesso por link: qualquer um com o link pode acessar
@@ -386,50 +371,49 @@ export async function getListById(listId: string): Promise<ListWithUserData | nu
         throw new Error("Você não tem permissão para acessar esta lista");
       }
     }
-    
+
     // Obter dados do usuário
     const userData = await getUserData(listData.userId);
-    
+
     // Buscar todas as reações para esta lista
     const reactionsQuery = query(
       collection(db, LIST_REACTIONS_COLLECTION),
       where("listId", "==", listId)
     );
-    
+
     const reactionsSnapshot = await getDocs(reactionsQuery);
     const reactions: ListReaction[] = [];
-    
-    reactionsSnapshot.forEach(doc => {
+
+    reactionsSnapshot.forEach((doc) => {
       const reactionData = doc.data() as ListReaction;
       reactions.push({
         ...reactionData,
         id: doc.id,
-        createdAt: reactionData.createdAt instanceof Timestamp 
-          ? reactionData.createdAt.toDate() 
-          : reactionData.createdAt
+        createdAt:
+          reactionData.createdAt instanceof Timestamp
+            ? reactionData.createdAt.toDate()
+            : reactionData.createdAt,
       });
     });
-    
+
     // Formatar timestamps para Date
     const formattedList: ListWithUserData = {
       ...listData,
       id: listDoc.id,
-      createdAt: listData.createdAt instanceof Timestamp 
-        ? listData.createdAt.toDate() 
-        : listData.createdAt,
-      updatedAt: listData.updatedAt instanceof Timestamp 
-        ? listData.updatedAt.toDate() 
-        : listData.updatedAt,
-      items: listData.items.map(item => ({
+      createdAt:
+        listData.createdAt instanceof Timestamp ? listData.createdAt.toDate() : listData.createdAt,
+      updatedAt:
+        listData.updatedAt instanceof Timestamp ? listData.updatedAt.toDate() : listData.updatedAt,
+      items: listData.items.map((item) => ({
         ...item,
-        addedAt: item.addedAt instanceof Timestamp ? item.addedAt.toDate() : item.addedAt
+        addedAt: item.addedAt instanceof Timestamp ? item.addedAt.toDate() : item.addedAt,
       })),
       username: userData?.username,
       userPhotoURL: userData?.photoURL,
       userDisplayName: userData?.displayName,
-      reactions: reactions
+      reactions: reactions,
     };
-    
+
     return formattedList;
   } catch (error) {
     console.error("Erro ao obter lista:", error);
@@ -443,7 +427,10 @@ export async function getListById(listId: string): Promise<ListWithUserData | nu
  * @param onlyPublic Se true, retorna apenas listas públicas
  * @returns Promise com array de listas
  */
-export async function getUserLists(userId: string, onlyPublic: boolean = false): Promise<ListWithUserData[]> {
+export async function getUserLists(
+  userId: string,
+  onlyPublic: boolean = false
+): Promise<ListWithUserData[]> {
   if (!userId) {
     return [];
   }
@@ -451,33 +438,30 @@ export async function getUserLists(userId: string, onlyPublic: boolean = false):
   try {
     const listsRef = collection(db, LISTS_COLLECTION);
     let q;
-    
+
     // Verificar se o usuário atual é o mesmo que está sendo consultado
     const currentUser = auth.currentUser;
     const isOwnProfile = currentUser && currentUser.uid === userId;
-    
+
     // Se não for o próprio perfil ou onlyPublic for true, mostrar apenas listas públicas
     if (!isOwnProfile || onlyPublic) {
-      q = query(listsRef, 
-        where("userId", "==", userId),
-        where("isPublic", "==", true)
-      );
+      q = query(listsRef, where("userId", "==", userId), where("isPublic", "==", true));
     } else {
       // Se for o próprio perfil, mostrar todas as listas
       q = query(listsRef, where("userId", "==", userId));
     }
-    
+
     const querySnapshot = await getDocs(q);
-    
+
     const lists: ListWithUserData[] = [];
     const userData = await getUserData(userId);
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data() as List;
-      
+
       // Garantir que accessByLink esteja presente, mesmo em documentos antigos
       const accessByLink = data.accessByLink || false;
-      
+
       lists.push({
         ...data,
         id: doc.id,
@@ -486,14 +470,14 @@ export async function getUserLists(userId: string, onlyPublic: boolean = false):
         updatedAt: convertTimestampToDate(data.updatedAt),
         items: data.items.map((item: any) => ({
           ...item,
-          addedAt: convertTimestampToDate(item.addedAt)
+          addedAt: convertTimestampToDate(item.addedAt),
         })),
         username: userData?.username,
         userPhotoURL: userData?.photoURL,
         userDisplayName: userData?.displayName,
       });
     });
-    
+
     return lists;
   } catch (error) {
     console.error("Erro ao buscar listas do usuário:", error);
@@ -506,7 +490,9 @@ export async function getUserLists(userId: string, onlyPublic: boolean = false):
  * @param limitCount Número de listas a retornar
  * @returns Promise com array de listas populares
  */
-export async function getPopularLists(limitCount: number = DEFAULT_LIMIT): Promise<ListWithUserData[]> {
+export async function getPopularLists(
+  limitCount: number = DEFAULT_LIMIT
+): Promise<ListWithUserData[]> {
   try {
     const q = query(
       collection(db, LISTS_COLLECTION),
@@ -517,7 +503,7 @@ export async function getPopularLists(limitCount: number = DEFAULT_LIMIT): Promi
     );
 
     const querySnapshot = await getDocs(q);
-    const lists = querySnapshot.docs.map(doc => listFromDoc(doc));
+    const lists = querySnapshot.docs.map((doc) => listFromDoc(doc));
 
     // Enriquecer com dados de usuário
     return Promise.all(
@@ -556,14 +542,14 @@ export async function getAllLists(limitCount: number = DEFAULT_LIMIT): Promise<L
     );
 
     const querySnapshot = await getDocs(q);
-    let lists = querySnapshot.docs.map(doc => listFromDoc(doc));
-    
+    let lists = querySnapshot.docs.map((doc) => listFromDoc(doc));
+
     // Embaralhar a lista usando o algoritmo Fisher-Yates
     for (let i = lists.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [lists[i], lists[j]] = [lists[j], lists[i]];
     }
-    
+
     // Limitar ao número solicitado
     lists = lists.slice(0, limitCount);
 
@@ -611,7 +597,7 @@ export async function getListsByTag(
     );
 
     const querySnapshot = await getDocs(q);
-    const lists = querySnapshot.docs.map(doc => listFromDoc(doc));
+    const lists = querySnapshot.docs.map((doc) => listFromDoc(doc));
 
     // Enriquecer com dados de usuário
     return Promise.all(
@@ -642,25 +628,20 @@ export async function getListsByTag(
  * @param seriesId ID da série
  * @returns Promise com array de listas que contêm a série
  */
-export async function getListsContainingSeries(
-  userId: string,
-  seriesId: number
-): Promise<List[]> {
+export async function getListsContainingSeries(userId: string, seriesId: number): Promise<List[]> {
   try {
     const listsRef = collection(db, LISTS_COLLECTION);
     const q = query(listsRef, where("userId", "==", userId));
     const querySnapshot = await getDocs(q);
-    
+
     const lists: List[] = [];
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data() as List;
-      
+
       // Verificar se a série está na lista
-      const hasSeriesInItems = data.items.some(
-        (item: any) => item.seriesId === seriesId
-      );
-      
+      const hasSeriesInItems = data.items.some((item: any) => item.seriesId === seriesId);
+
       if (hasSeriesInItems) {
         lists.push({
           ...data,
@@ -669,12 +650,12 @@ export async function getListsContainingSeries(
           updatedAt: convertTimestampToDate(data.updatedAt),
           items: data.items.map((item: any) => ({
             ...item,
-            addedAt: convertTimestampToDate(item.addedAt)
-          }))
+            addedAt: convertTimestampToDate(item.addedAt),
+          })),
         });
       }
     });
-    
+
     return lists;
   } catch (error) {
     console.error("Erro ao buscar listas contendo a série:", error);
@@ -699,32 +680,34 @@ export async function toggleListCommentReaction(
 
   const userId = auth.currentUser.uid;
   const commentRef = doc(db, LIST_COMMENTS_COLLECTION, commentId);
-  
+
   try {
     const result = await runTransaction(db, async (transaction) => {
       const commentDoc = await transaction.get(commentRef);
-      
+
       if (!commentDoc.exists()) {
-        console.error(`Comentário ${commentId} não encontrado na coleção ${LIST_COMMENTS_COLLECTION}`);
+        console.error(
+          `Comentário ${commentId} não encontrado na coleção ${LIST_COMMENTS_COLLECTION}`
+        );
         throw new Error("Comentário não encontrado");
       }
 
       const comment = commentDoc.data() as any;
       if (comment.objectId !== listId || comment.objectType !== "list") {
-        console.error(`Comentário não pertence à lista ${listId}`, { 
-          commentObjectId: comment.objectId, 
+        console.error(`Comentário não pertence à lista ${listId}`, {
+          commentObjectId: comment.objectId,
           listId,
-          commentObjectType: comment.objectType
+          commentObjectType: comment.objectType,
         });
         throw new Error("Comentário não pertence a esta lista");
       }
 
       // Clonar o objeto de likes para modificação - inicializa se necessário
       const likes = comment.likes ? { ...comment.likes } : {};
-      
+
       // Verificar se o usuário já curtiu o comentário
       const userLiked = !!likes[userId];
-      
+
       if (userLiked) {
         // Remover o like
         delete likes[userId];
@@ -740,7 +723,7 @@ export async function toggleListCommentReaction(
         isRemoving: userLiked,
         comment,
         likes,
-        likesCount: Object.keys(likes).length
+        likesCount: Object.keys(likes).length,
       };
     });
 
@@ -751,7 +734,7 @@ export async function toggleListCommentReaction(
     setTimeout(async () => {
       try {
         if (!auth.currentUser) return;
-        
+
         // Somente notificar se for uma adição (não uma remoção) e o comentário não for do usuário atual
         if (!isRemoving && comment.userId !== currentUserId) {
           // Verificar se uma notificação foi enviada recentemente
@@ -760,36 +743,33 @@ export async function toggleListCommentReaction(
             currentUserId,
             comment.userId
           );
-          
+
           // Se não foi notificado recentemente, enviar notificação
           if (!wasNotified) {
             try {
               const listSnap = await getDoc(doc(db, LISTS_COLLECTION, listId));
               if (!listSnap.exists()) return;
-              
-              const listData = listSnap.data() as List;              
+
+              const listData = listSnap.data() as List;
               const userData = await getUserData(auth.currentUser.uid);
-              const userName = userData?.username || userData?.displayName || auth.currentUser.email;
-              
+              const userName =
+                userData?.username || userData?.displayName || auth.currentUser.email;
+
               // Registrar que a notificação está sendo enviada
               trackNotification(
-                `list_${listId}_comment_${commentId}`, 
-                auth.currentUser.uid, 
+                `list_${listId}_comment_${commentId}`,
+                auth.currentUser.uid,
                 comment.userId
               );
-              
+
               // Usar mensagem mais genérica para evitar múltiplas notificações específicas
               const message = `${userName} reagiu ao seu comentário na lista "${listData.title}".`;
-              
-              await createNotification(
-                comment.userId,
-                NotificationType.NEW_REACTION,
-                {
-                  senderId: auth.currentUser.uid,
-                  reviewId: `list_${listId}_comment_${commentId}`,
-                  message
-                }
-              );
+
+              await createNotification(comment.userId, NotificationType.NEW_REACTION, {
+                senderId: auth.currentUser.uid,
+                reviewId: `list_${listId}_comment_${commentId}`,
+                message,
+              });
             } catch (notificationError) {
               console.error("Erro ao criar notificação:", notificationError);
               // Silencia erros de notificação
@@ -805,7 +785,7 @@ export async function toggleListCommentReaction(
     // Retornar imediatamente o novo estado para atualização da UI
     return {
       liked: !isRemoving,
-      likesCount
+      likesCount,
     };
   } catch (error) {
     console.error("Erro ao atualizar reação em comentário de lista:", error);
@@ -827,7 +807,7 @@ export async function toggleListReaction(
 
   const userId = auth.currentUser.uid;
   const listRef = doc(db, LISTS_COLLECTION, listId);
-  
+
   try {
     // Primeiro, verifique diretamente se já existe uma reação do usuário atual
     const userReactionQuery = query(
@@ -835,15 +815,15 @@ export async function toggleListReaction(
       where("listId", "==", listId),
       where("userId", "==", userId)
     );
-    
+
     const userReactionSnapshot = await getDocs(userReactionQuery);
     const hasExistingReaction = !userReactionSnapshot.empty;
     const reactionDocId = hasExistingReaction ? userReactionSnapshot.docs[0].id : null;
-    
+
     // Agora use uma transação para garantir a consistência
     const transactionResult = await runTransaction(db, async (transaction) => {
       const listDoc = await transaction.get(listRef);
-      
+
       if (!listDoc.exists()) {
         console.error(`[toggleListReaction] Lista ${listId} não encontrada`);
         throw new Error("Lista não encontrada");
@@ -851,15 +831,15 @@ export async function toggleListReaction(
 
       const list = listDoc.data() as List;
       let newLikesCount = list.likesCount || 0;
-      
+
       // Se já existe uma reação, remover
       if (hasExistingReaction && reactionDocId) {
         transaction.delete(doc(db, "listReactions", reactionDocId));
         newLikesCount = Math.max(0, newLikesCount - 1);
         transaction.update(listRef, {
-          likesCount: newLikesCount
+          likesCount: newLikesCount,
         });
-      } 
+      }
       // Senão, adicionar nova reação
       else {
         const newReactionRef = doc(collection(db, "listReactions"));
@@ -868,70 +848,71 @@ export async function toggleListReaction(
           listId,
           userId,
           type: reactionType,
-          createdAt: serverTimestamp()
+          createdAt: serverTimestamp(),
         };
         transaction.set(newReactionRef, reactionData);
         newLikesCount = newLikesCount + 1;
         transaction.update(listRef, {
-          likesCount: newLikesCount
+          likesCount: newLikesCount,
         });
       }
 
       return {
         isRemoving: hasExistingReaction,
         list,
-        newLikesCount
+        newLikesCount,
       };
     });
 
     const { isRemoving, list, newLikesCount } = transactionResult;
     const currentUserId = auth.currentUser.uid;
-    
+
     // Processar notificações em background sem bloquear
-    Promise.resolve().then(async () => {
-      try {
-        if (!auth.currentUser) return;
-        
-        if (isRemoving && list.userId !== currentUserId) {
-          // Usar removeReactionNotification para tratar a remoção da notificação de maneira segura
-          await removeReactionNotification(listId, currentUserId, undefined, true);
-        }
-        else if (!isRemoving && list.userId !== currentUserId) {
-          // Verificar se já foi enviada notificação recentemente para evitar spam
-          if (!wasNotifiedRecently(listId, currentUserId, list.userId)) {
-            try {
-              const userData = await getUserData(currentUserId);
-              const username = userData?.username || userData?.displayName || auth.currentUser.email?.split('@')[0] || "Alguém";
-              
-              await createNotification(
-                list.userId,
-                NotificationType.LIST_REACTION,
-                {
+    Promise.resolve()
+      .then(async () => {
+        try {
+          if (!auth.currentUser) return;
+
+          if (isRemoving && list.userId !== currentUserId) {
+            // Usar removeReactionNotification para tratar a remoção da notificação de maneira segura
+            await removeReactionNotification(listId, currentUserId, undefined, true);
+          } else if (!isRemoving && list.userId !== currentUserId) {
+            // Verificar se já foi enviada notificação recentemente para evitar spam
+            if (!wasNotifiedRecently(listId, currentUserId, list.userId)) {
+              try {
+                const userData = await getUserData(currentUserId);
+                const username =
+                  userData?.username ||
+                  userData?.displayName ||
+                  auth.currentUser.email?.split("@")[0] ||
+                  "Alguém";
+
+                await createNotification(list.userId, NotificationType.LIST_REACTION, {
                   senderId: currentUserId,
                   reviewId: listId,
-                  message: `${username} gostou da sua lista "${list.title}"`
-                }
-              );
-              
-              // Registrar notificação para evitar duplicatas em curto período
-              trackNotification(listId, currentUserId, list.userId);
-            } catch (error) {
-              console.error("Erro ao enviar notificação de reação:", error);
-              // Silenciar erros na notificação
+                  message: `${username} gostou da sua lista "${list.title}"`,
+                });
+
+                // Registrar notificação para evitar duplicatas em curto período
+                trackNotification(listId, currentUserId, list.userId);
+              } catch (error) {
+                console.error("Erro ao enviar notificação de reação:", error);
+                // Silenciar erros na notificação
+              }
             }
           }
+        } catch (error) {
+          console.error("Erro geral no processamento de notificações:", error);
         }
-      } catch (error) {
-        console.error("Erro geral no processamento de notificações:", error);
-      }
-    }).catch(error => {
-      console.error("Erro ao processar notificações:", error);
-    });
-    
+      })
+      .catch((error) => {
+        console.error("Erro ao processar notificações:", error);
+      });
+
     // Retornar novo estado imediatamente, sem aguardar as notificações
     const finalResult = {
       liked: !isRemoving,
-      likesCount: newLikesCount
+      likesCount: newLikesCount,
     };
     return finalResult;
   } catch (error) {
@@ -946,7 +927,7 @@ export async function toggleListReaction(
 function ensureDate(dateOrTimestamp: Date | Timestamp): Date {
   if (dateOrTimestamp instanceof Date) {
     return dateOrTimestamp;
-  } else if ('toDate' in dateOrTimestamp) {
+  } else if ("toDate" in dateOrTimestamp) {
     return dateOrTimestamp.toDate();
   }
   return new Date();
@@ -957,27 +938,29 @@ function ensureDate(dateOrTimestamp: Date | Timestamp): Date {
  * @param limitCount Número máximo de listas a retornar
  * @returns Promise com array de listas
  */
-export async function getFollowedUsersLists(limitCount: number = DEFAULT_LIMIT): Promise<ListWithUserData[]> {
+export async function getFollowedUsersLists(
+  limitCount: number = DEFAULT_LIMIT
+): Promise<ListWithUserData[]> {
   if (!auth.currentUser) {
     return [];
   }
-  
+
   try {
     // Buscar os usuários que o usuário atual segue
     const followingQuery = query(
       collection(db, "followers"),
       where("followerId", "==", auth.currentUser.uid)
     );
-    
+
     const followingSnapshot = await getDocs(followingQuery);
-    
+
     if (followingSnapshot.empty) {
       return [];
     }
-    
+
     // Extrair os IDs dos usuários seguidos
-    const followedUserIds = followingSnapshot.docs.map(doc => doc.data().userId);
-    
+    const followedUserIds = followingSnapshot.docs.map((doc) => doc.data().userId);
+
     // Buscar listas públicas dos usuários seguidos
     const listsPromises = followedUserIds.map(async (userId) => {
       const userListsQuery = query(
@@ -986,20 +969,20 @@ export async function getFollowedUsersLists(limitCount: number = DEFAULT_LIMIT):
         where("isPublic", "==", true),
         orderBy("updatedAt", "desc")
       );
-      
+
       const userListsSnapshot = await getDocs(userListsQuery);
-      
-      return userListsSnapshot.docs.map(doc => listFromDoc(doc));
+
+      return userListsSnapshot.docs.map((doc) => listFromDoc(doc));
     });
-    
+
     // Juntar todas as listas em um único array
     let allLists = (await Promise.all(listsPromises)).flat();
-    
+
     // Ordenar por data de atualização (mais recentes primeiro) e limitar o número
     allLists = allLists
       .sort((a, b) => ensureDate(b.updatedAt).getTime() - ensureDate(a.updatedAt).getTime())
       .slice(0, limitCount);
-    
+
     // Adicionar dados de usuário a cada lista
     return Promise.all(
       allLists.map(async (list) => {
@@ -1028,37 +1011,36 @@ export async function getFollowedUsersLists(limitCount: number = DEFAULT_LIMIT):
  * @param limitCount Número máximo de tags a retornar
  * @returns Promise com array de tags e suas contagens
  */
-export async function getPopularTags(limitCount: number = 20): Promise<{tag: string, count: number}[]> {
+export async function getPopularTags(
+  limitCount: number = 20
+): Promise<{ tag: string; count: number }[]> {
   try {
     // Buscar todas as listas públicas
-    const listsQuery = query(
-      collection(db, LISTS_COLLECTION),
-      where("isPublic", "==", true)
-    );
-    
+    const listsQuery = query(collection(db, LISTS_COLLECTION), where("isPublic", "==", true));
+
     const querySnapshot = await getDocs(listsQuery);
-    
+
     if (querySnapshot.empty) {
       return [];
     }
-    
+
     // Contar ocorrências de cada tag
     const tagCounter = new Map<string, number>();
-    
-    querySnapshot.docs.forEach(doc => {
+
+    querySnapshot.docs.forEach((doc) => {
       const data = doc.data();
       const tags = data.tags || [];
-      
+
       tags.forEach((tag: string) => {
         const currentCount = tagCounter.get(tag) || 0;
         tagCounter.set(tag, currentCount + 1);
       });
     });
-    
+
     // Converter o Map para array e ordenar por contagem
     const tagsArray = Array.from(tagCounter.entries()).map(([tag, count]) => ({ tag, count }));
     const sortedTags = tagsArray.sort((a, b) => b.count - a.count);
-    
+
     // Limitar o número de resultados
     return sortedTags.slice(0, limitCount);
   } catch (error) {
@@ -1080,7 +1062,7 @@ export async function searchLists(
   try {
     // Normalizar e dividir o texto de pesquisa
     const searchTerms = searchText.toLowerCase().trim().split(/\s+/);
-    
+
     // Consultar todas as listas públicas
     const q = query(
       collection(db, LISTS_COLLECTION),
@@ -1088,26 +1070,27 @@ export async function searchLists(
       orderBy("updatedAt", "desc"),
       limit(limitCount * 3) // Buscar mais resultados para filtrar depois
     );
-    
+
     const querySnapshot = await getDocs(q);
-    
+
     // Filtra as listas que correspondem aos termos de pesquisa
     const matchingLists = querySnapshot.docs
-      .map(doc => listFromDoc(doc))
-      .filter(list => {
+      .map((doc) => listFromDoc(doc))
+      .filter((list) => {
         const titleLower = list.title.toLowerCase();
         const descLower = (list.description || "").toLowerCase();
-        const tagsLower = (list.tags || []).map(tag => tag.toLowerCase());
-        
+        const tagsLower = (list.tags || []).map((tag) => tag.toLowerCase());
+
         // Verificar se algum termo de pesquisa corresponde ao título, descrição ou tags
-        return searchTerms.some(term => 
-          titleLower.includes(term) || 
-          descLower.includes(term) || 
-          tagsLower.some(tag => tag.includes(term))
+        return searchTerms.some(
+          (term) =>
+            titleLower.includes(term) ||
+            descLower.includes(term) ||
+            tagsLower.some((tag) => tag.includes(term))
         );
       })
       .slice(0, limitCount); // Limitar ao número solicitado
-    
+
     // Enriquecer com dados de usuário
     return Promise.all(
       matchingLists.map(async (list) => {
@@ -1145,6 +1128,6 @@ function listFromDoc(doc: any): List {
     createdAt: data.createdAt?.toDate() || new Date(),
     updatedAt: data.updatedAt?.toDate() || new Date(),
     likesCount: data.likesCount || 0,
-    commentsCount: data.commentsCount || 0
+    commentsCount: data.commentsCount || 0,
   };
-} 
+}

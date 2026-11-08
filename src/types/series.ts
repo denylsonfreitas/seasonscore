@@ -10,4 +10,4 @@ export interface SeriesSearchResult {
   name: string;
   poster_path: string | null;
   first_air_date: string;
-} 
+}

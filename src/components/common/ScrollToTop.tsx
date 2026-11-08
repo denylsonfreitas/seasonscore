@@ -70,13 +70,7 @@ export function ScrollToTop() {
       {isMobile ? (
         button
       ) : (
-        <Tooltip
-          label="Voltar ao topo"
-          placement="left"
-          hasArrow
-          bg="gray.700"
-          color="white"
-        >
+        <Tooltip label="Voltar ao topo" placement="left" hasArrow bg="gray.700" color="white">
           {button}
         </Tooltip>
       )}

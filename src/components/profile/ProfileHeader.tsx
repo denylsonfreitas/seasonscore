@@ -65,12 +65,7 @@ export function ProfileHeader({
         willChange: "transform",
       }}
     >
-      <Box
-        h={{ base: "200px", md: "300px" }}
-        w="100%"
-        position="relative"
-        overflow="hidden"
-      >
+      <Box h={{ base: "200px", md: "300px" }} w="100%" position="relative" overflow="hidden">
         <Box
           position="absolute"
           top={0}
@@ -107,11 +102,7 @@ export function ProfileHeader({
         />
       </Box>
 
-      <Container
-        maxW="container.lg"
-        position="relative"
-        px={{ base: 4, md: 6 }}
-      >
+      <Container maxW="container.lg" position="relative" px={{ base: 4, md: 6 }}>
         <Flex
           direction="row"
           position="relative"
@@ -137,22 +128,14 @@ export function ProfileHeader({
               >
                 <UserAvatar
                   size={useBreakpointValue({ base: "lg", md: "2xl" }) || "xl"}
-                  photoURL={
-                    isOwnProfile
-                      ? currentUser?.photoURL
-                      : profileUser?.photoURL
-                  }
+                  photoURL={isOwnProfile ? currentUser?.photoURL : profileUser?.photoURL}
                   name={userName}
                   userId={isOwnProfile ? currentUser?.uid : profileUser?.id}
                 />
               </Box>
             </Box>
 
-            <VStack
-              align="flex-start"
-              spacing={1}
-              maxW={{ base: "150px", md: "600px" }}
-            >
+            <VStack align="flex-start" spacing={1} maxW={{ base: "150px", md: "600px" }}>
               <Flex align="center">
                 <Heading
                   size={{ base: "md", md: "xl" }}
@@ -196,10 +179,10 @@ export function ProfileHeader({
 
           <Flex direction="column" align="flex-end" minW={{ base: "80px", md: "auto" }}>
             <HStack spacing={{ base: 2, md: 4 }} align="center">
-              <Flex 
-                direction="column" 
-                align="center" 
-                cursor="pointer" 
+              <Flex
+                direction="column"
+                align="center"
+                cursor="pointer"
                 onClick={onShowFollowers}
                 borderRadius="md"
                 p={{ base: 1, md: 2 }}
@@ -207,22 +190,21 @@ export function ProfileHeader({
                 transition="all 0.2s"
               >
                 <Flex align="center" mb={1}>
-                  <Text fontWeight="bold" color="white" fontSize={{ base: "sm", md: "md" }}>{followersCount}</Text>
+                  <Text fontWeight="bold" color="white" fontSize={{ base: "sm", md: "md" }}>
+                    {followersCount}
+                  </Text>
                 </Flex>
-                <Text fontSize="xs" color="gray.300">Seguidores</Text>
+                <Text fontSize="xs" color="gray.300">
+                  Seguidores
+                </Text>
               </Flex>
 
-              <Box 
-                h="20px" 
-                w="1px" 
-                bg="gray.600"
-                alignSelf="center"
-              />
+              <Box h="20px" w="1px" bg="gray.600" alignSelf="center" />
 
-              <Flex 
-                direction="column" 
-                align="center" 
-                cursor="pointer" 
+              <Flex
+                direction="column"
+                align="center"
+                cursor="pointer"
                 onClick={onShowFollowing}
                 borderRadius="md"
                 p={{ base: 1, md: 2 }}
@@ -230,9 +212,13 @@ export function ProfileHeader({
                 transition="all 0.2s"
               >
                 <Flex align="center" mb={1}>
-                  <Text fontWeight="bold" color="white" fontSize={{ base: "sm", md: "md" }}>{followingCount}</Text>
+                  <Text fontWeight="bold" color="white" fontSize={{ base: "sm", md: "md" }}>
+                    {followingCount}
+                  </Text>
                 </Flex>
-                <Text fontSize="xs" color="gray.300">Seguindo</Text>
+                <Text fontSize="xs" color="gray.300">
+                  Seguindo
+                </Text>
               </Flex>
             </HStack>
           </Flex>
@@ -240,4 +226,4 @@ export function ProfileHeader({
       </Container>
     </Box>
   );
-} 
+}

@@ -1,10 +1,4 @@
-import {
-  Box,
-  Container,
-  Heading,
-  Skeleton,
-  Text,
-} from "@chakra-ui/react";
+import { Box, Container, Heading, Skeleton, Text } from "@chakra-ui/react";
 import { SeriesCard } from "./SeriesCard";
 import { Carousel } from "../common/Carousel";
 
@@ -14,20 +8,20 @@ interface RelatedSeriesProps {
   currentSeriesId: string | number;
 }
 
-export function RelatedSeries({
-  relatedSeries,
-  isLoading,
-  currentSeriesId,
-}: RelatedSeriesProps) {
+export function RelatedSeries({ relatedSeries, isLoading, currentSeriesId }: RelatedSeriesProps) {
   if (isLoading) {
     return (
       <Container maxW="container.lg">
         <Heading color="white" size="xl" mb={8}>
           Séries Relacionadas
         </Heading>
-        <Box 
-          display="grid" 
-          gridTemplateColumns={{ base: "repeat(3, 1fr)", md: "repeat(4, 1fr)", lg: "repeat(6, 1fr)" }} 
+        <Box
+          display="grid"
+          gridTemplateColumns={{
+            base: "repeat(3, 1fr)",
+            md: "repeat(4, 1fr)",
+            lg: "repeat(6, 1fr)",
+          }}
           gap={4}
         >
           {[...Array(6)].map((_, i) => (
@@ -40,10 +34,8 @@ export function RelatedSeries({
     );
   }
 
-  const filteredSeries = relatedSeries?.results 
-    ? relatedSeries.results.filter(
-        (series: any) => series.id !== Number(currentSeriesId)
-      )
+  const filteredSeries = relatedSeries?.results
+    ? relatedSeries.results.filter((series: any) => series.id !== Number(currentSeriesId))
     : [];
 
   if (filteredSeries.length === 0) {
@@ -75,4 +67,4 @@ export function RelatedSeries({
       </Box>
     </Container>
   );
-} 
+}

@@ -6,8 +6,7 @@ import { ScrollToTop } from "../common/ScrollToTop";
 
 export function Layout() {
   const location = useLocation();
-  const isAuthPage =
-    location.pathname === "/login" || location.pathname === "/signup";
+  const isAuthPage = location.pathname === "/login" || location.pathname === "/signup";
 
   return (
     <Box minH="100vh" position="relative">

@@ -1,17 +1,11 @@
-import React from 'react';
-import {
-  Grid,
-  Skeleton,
-  useToast,
-  Box,
-  Text
-} from '@chakra-ui/react';
-import { ListCard } from './ListCard';
-import { useQuery } from '@tanstack/react-query';
-import { getFollowedUsersLists } from '../../services/lists';
-import { ListWithUserData } from '../../types/list';
-import { useAuth } from '../../contexts/AuthContext';
-import { SectionBase } from '../common/SectionBase';
+import React from "react";
+import { Grid, Skeleton, useToast, Box, Text } from "@chakra-ui/react";
+import { ListCard } from "./ListCard";
+import { useQuery } from "@tanstack/react-query";
+import { getFollowedUsersLists } from "../../services/lists";
+import { ListWithUserData } from "../../types/list";
+import { useAuth } from "../../contexts/AuthContext";
+import { SectionBase } from "../common/SectionBase";
 import { Carousel } from "../common/Carousel";
 
 export function FollowedUsersLists() {
@@ -24,9 +18,9 @@ export function FollowedUsersLists() {
     enabled: !!currentUser,
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
-    staleTime: 0
+    staleTime: 0,
   });
-  
+
   // Tipagem segura para os dados
   const lists: ListWithUserData[] = data || [];
 
@@ -55,14 +49,13 @@ export function FollowedUsersLists() {
   // Componente para mensagem quando o usuário não está logado ou não tem listas
   const emptyElement = !currentUser ? (
     <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
-      <Text color="gray.400">
-        Faça login para ver listas de usuários que você segue.
-      </Text>
+      <Text color="gray.400">Faça login para ver listas de usuários que você segue.</Text>
     </Box>
   ) : (
     <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
       <Text color="gray.400">
-        Você ainda não tem listas de usuários seguidos. Comece a seguir usuários para ver suas listas aqui.
+        Você ainda não tem listas de usuários seguidos. Comece a seguir usuários para ver suas
+        listas aqui.
       </Text>
     </Box>
   );
@@ -70,7 +63,7 @@ export function FollowedUsersLists() {
   // Renderização do conteúdo
   const renderContent = (limitItems: boolean) => {
     const displayedLists = limitItems ? lists.slice(0, 12) : lists;
-    
+
     return (
       <Box pb={8}>
         <Carousel preset="lists" gap={4}>
@@ -97,4 +90,4 @@ export function FollowedUsersLists() {
       renderContent={renderContent}
     />
   );
-} 
+}

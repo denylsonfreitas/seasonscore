@@ -21,30 +21,36 @@ export function RatingStars({
 }: RatingStarsProps) {
   const [hoverRating, setHoverRating] = useState<number | null>(null);
 
-  const handleStarClick = useCallback((event: React.MouseEvent, index: number) => {
-    if (!isEditable) return;
+  const handleStarClick = useCallback(
+    (event: React.MouseEvent, index: number) => {
+      if (!isEditable) return;
 
-    const star = event.currentTarget as HTMLDivElement;
-    const rect = star.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const isHalfClick = x < rect.width / 2;
+      const star = event.currentTarget as HTMLDivElement;
+      const rect = star.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const isHalfClick = x < rect.width / 2;
 
-    const newRating = isHalfClick ? index + 0.5 : index + 1;
-    if (onChange) onChange(newRating);
-    if (onRatingChange) onRatingChange(newRating);
-  }, [isEditable, onChange, onRatingChange]);
+      const newRating = isHalfClick ? index + 0.5 : index + 1;
+      if (onChange) onChange(newRating);
+      if (onRatingChange) onRatingChange(newRating);
+    },
+    [isEditable, onChange, onRatingChange]
+  );
 
-  const handleStarHover = useCallback((event: React.MouseEvent, index: number) => {
-    if (!isEditable) return;
+  const handleStarHover = useCallback(
+    (event: React.MouseEvent, index: number) => {
+      if (!isEditable) return;
 
-    const star = event.currentTarget as HTMLDivElement;
-    const rect = star.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const isHalfHover = x < rect.width / 2;
-    
-    const newHoverRating = isHalfHover ? index + 0.5 : index + 1;
-    setHoverRating(newHoverRating);
-  }, [isEditable]);
+      const star = event.currentTarget as HTMLDivElement;
+      const rect = star.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const isHalfHover = x < rect.width / 2;
+
+      const newHoverRating = isHalfHover ? index + 0.5 : index + 1;
+      setHoverRating(newHoverRating);
+    },
+    [isEditable]
+  );
 
   const handleMouseLeave = useCallback(() => {
     setHoverRating(null);
@@ -77,7 +83,7 @@ export function RatingStars({
             fontSize={`${size}px`}
             position="absolute"
           />
-          
+
           {isHalfStar && (
             <Icon
               as={Star}
@@ -90,7 +96,7 @@ export function RatingStars({
               fontSize={`${size}px`}
             />
           )}
-          
+
           {isFullStar && (
             <Icon
               as={Star}

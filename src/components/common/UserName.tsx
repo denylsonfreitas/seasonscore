@@ -46,11 +46,7 @@ export function UserName({ userId, color = "white", showAt = true, isLink = true
   // Se o usuário foi excluído ou não encontrado, mostrar texto simples em vez de link
   if (userData?.isDeleted || !userData) {
     return (
-      <Text
-        color="gray.400"
-        fontSize={{ base: "sm", md: "md" }}
-        fontStyle="italic"
-      >
+      <Text color="gray.400" fontSize={{ base: "sm", md: "md" }} fontStyle="italic">
         Usuário excluído
       </Text>
     );
@@ -59,12 +55,9 @@ export function UserName({ userId, color = "white", showAt = true, isLink = true
   // Se não for para renderizar como link, retornar apenas o texto
   if (!isLink) {
     return (
-      <Text
-        color={color}
-        fontSize={{ base: "sm", md: "xs" }}
-        fontWeight="bold"
-      >
-        {showAt && username ? "@" : ""}{displayName}
+      <Text color={color} fontSize={{ base: "sm", md: "xs" }} fontWeight="bold">
+        {showAt && username ? "@" : ""}
+        {displayName}
       </Text>
     );
   }
@@ -79,8 +72,9 @@ export function UserName({ userId, color = "white", showAt = true, isLink = true
       fontWeight="bold"
     >
       <Box as="span" display="inline">
-        {showAt && username ? "@" : ""}{displayName}
+        {showAt && username ? "@" : ""}
+        {displayName}
       </Box>
     </Link>
   );
-} 
+}

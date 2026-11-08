@@ -1,12 +1,5 @@
-import React from 'react';
-import {
-  VStack,
-  Box,
-  Text,
-  Wrap,
-  WrapItem,
-  Badge,
-} from "@chakra-ui/react";
+import React from "react";
+import { VStack, Box, Text, Wrap, WrapItem, Badge } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 
 interface Genre {
@@ -23,7 +16,7 @@ interface SeriesGenresTabProps {
 
 export function SeriesGenresTab({ series }: SeriesGenresTabProps) {
   const navigate = useNavigate();
-  
+
   const handleGenreClick = (genreId: number, genreName: string) => {
     navigate(`/series?genre=${genreId}&name=${encodeURIComponent(genreName)}`);
   };
@@ -41,19 +34,22 @@ export function SeriesGenresTab({ series }: SeriesGenresTabProps) {
   return (
     <VStack align="stretch" spacing={6}>
       <Box>
-        
         <Wrap spacing={2}>
           {series.genres.map((genre: Genre) => (
             <WrapItem key={genre.id}>
               <VStack spacing={2} align="center">
-                <Badge colorScheme="primary" fontSize="xs" p={2}                 
-                  _hover={{ 
-                  transform: "translateY(-3px)", 
-                  transition: "all 0.3s ease",
-                  bg: "primary.800",
-                  cursor: "pointer",
+                <Badge
+                  colorScheme="primary"
+                  fontSize="xs"
+                  p={2}
+                  _hover={{
+                    transform: "translateY(-3px)",
+                    transition: "all 0.3s ease",
+                    bg: "primary.800",
+                    cursor: "pointer",
                   }}
-                  onClick={() => handleGenreClick(genre.id, genre.name)}>
+                  onClick={() => handleGenreClick(genre.id, genre.name)}
+                >
                   {genre.name}
                 </Badge>
               </VStack>
@@ -63,4 +59,4 @@ export function SeriesGenresTab({ series }: SeriesGenresTabProps) {
       </Box>
     </VStack>
   );
-} 
+}

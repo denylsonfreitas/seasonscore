@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
 interface AuthUIState {
   isSignUpModalOpen: boolean;
@@ -26,4 +26,4 @@ export const useAuthUIStore = create<AuthUIState>((set) => ({
   // Aliases para compatibilidade com Home.tsx
   openRegister: () => set({ isSignUpModalOpen: true }),
   openLogin: () => set({ isLoginPopoverOpen: true }),
-})); 
+}));

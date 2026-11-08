@@ -22,4 +22,4 @@ export interface SeasonReview {
   reactions?: {
     likes: string[];
   };
-} 
+}

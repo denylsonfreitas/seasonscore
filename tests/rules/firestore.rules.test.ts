@@ -88,7 +88,10 @@ describe("reviews", () => {
   it("outro usuário NÃO altera a nota", async () => {
     await assertFails(
       updateDoc(doc(db(BOB), "reviews/r1"), {
-        seasonReviews: [seasonReview({ rating: 0.5 }), seasonReview({ seasonNumber: 2, rating: 3 })],
+        seasonReviews: [
+          seasonReview({ rating: 0.5 }),
+          seasonReview({ seasonNumber: 2, rating: 3 }),
+        ],
       })
     );
   });
@@ -217,19 +220,20 @@ describe("comentários", () => {
   });
 
   it("dono da lista pode excluir comentários nela", async () => {
-    await seed("listComments/c9", { objectId: "l1", objectType: "list", userId: BOB, content: "x" });
+    await seed("listComments/c9", {
+      objectId: "l1",
+      objectType: "list",
+      userId: BOB,
+      content: "x",
+    });
     await assertSucceeds(deleteDoc(doc(db(ALICE), "listComments/c9")));
   });
 });
 
 describe("followers", () => {
   it("só segue em nome próprio", async () => {
-    await assertSucceeds(
-      setDoc(doc(db(BOB), "followers/f1"), { userId: ALICE, followerId: BOB })
-    );
-    await assertFails(
-      setDoc(doc(db(BOB), "followers/f2"), { userId: "carol", followerId: ALICE })
-    );
+    await assertSucceeds(setDoc(doc(db(BOB), "followers/f1"), { userId: ALICE, followerId: BOB }));
+    await assertFails(setDoc(doc(db(BOB), "followers/f2"), { userId: "carol", followerId: ALICE }));
   });
 
   it("não segue a si mesmo", async () => {
@@ -279,9 +283,7 @@ describe("watchlist", () => {
     await assertSucceeds(
       setDoc(doc(db(ALICE), "watchlist/alice_1399"), { userId: ALICE, seriesId: 1399 })
     );
-    await assertFails(
-      setDoc(doc(db(BOB), "watchlist/alice_1"), { userId: ALICE, seriesId: 1 })
-    );
+    await assertFails(setDoc(doc(db(BOB), "watchlist/alice_1"), { userId: ALICE, seriesId: 1 }));
   });
 });
 

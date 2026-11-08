@@ -12,12 +12,12 @@ import {
 } from "firebase/auth";
 import { useEffect, useState } from "react";
 import { auth } from "../config/firebase";
-import { 
-  createOrUpdateUser, 
-  getUserData, 
-  getUserByEmail, 
+import {
+  createOrUpdateUser,
+  getUserData,
+  getUserByEmail,
   getUserByUsernameOrEmail,
-  UserData
+  UserData,
 } from "../services/users";
 import { ExtendedUser } from "../types/auth";
 import { cleanupNotifications } from "../services/notifications";
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             favoriteSeries: userData?.favoriteSeries || undefined,
           };
           setCurrentUser(extendedUser);
-          
+
           closeAllAuth();
         } catch (error) {
           setCurrentUser(user);
@@ -85,15 +85,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   async function signUp(email: string, password: string, username: string) {
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
-      
+
       const existingUser = await getUserByEmail(email);
-      
+
       const displayName = existingUser?.displayName || email.split("@")[0];
-      
+
       await updateProfile(result.user, {
-        displayName: displayName
+        displayName: displayName,
       });
-      
+
       await createOrUpdateUser(result.user, {
         username: username.toLowerCase(),
         displayName: displayName,
@@ -105,11 +105,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
 
       const userData = await getUserData(result.user.uid);
-      
+
       return userData;
     } catch (error: any) {
-      
-      if (error.code === 'auth/email-already-in-use') {
+      if (error.code === "auth/email-already-in-use") {
         toast({
           title: "Email em uso",
           description: "Este email já está em uso. Por favor, faça login ou use outro email.",
@@ -117,8 +116,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           duration: 5000,
           isClosable: true,
         });
-        throw new Error("Este email já está em uso. Por favor, faça login ou use outro email.", { cause: error });
-      } else if (error.code === 'auth/weak-password') {
+        throw new Error("Este email já está em uso. Por favor, faça login ou use outro email.", {
+          cause: error,
+        });
+      } else if (error.code === "auth/weak-password") {
         toast({
           title: "Senha fraca",
           description: "A senha deve ter pelo menos 6 caracteres.",
@@ -127,7 +128,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           isClosable: true,
         });
         throw new Error("A senha deve ter pelo menos 6 caracteres.", { cause: error });
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (error.code === "auth/invalid-email") {
         toast({
           title: "Email inválido",
           description: "Por favor, forneça um endereço de email válido.",
@@ -137,7 +138,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         });
         throw new Error("Por favor, forneça um endereço de email válido.", { cause: error });
       }
-      
+
       toast({
         title: "Erro ao criar conta",
         description: "Ocorreu um erro inesperado. Por favor, tente novamente mais tarde.",
@@ -152,15 +153,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   async function login(usernameOrEmail: string, password: string) {
     try {
       const userData = await getUserByUsernameOrEmail(usernameOrEmail);
-      
+
       if (!userData) {
         throw new Error("Usuário não encontrado. Verifique seu nome de usuário ou email.");
       }
-      
+
       const email = userData.email;
-      
+
       const result = await signInWithEmailAndPassword(auth, email, password);
-      
+
       await createOrUpdateUser(result.user, {
         username: userData.username,
         displayName: userData.displayName || result.user.displayName || "",
@@ -168,7 +169,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         coverURL: userData.coverURL,
         favoriteSeries: userData.favoriteSeries,
       });
-      
+
       const updatedUserData = await getUserData(result.user.uid);
       const extendedUser: ExtendedUser = {
         ...result.user,
@@ -178,18 +179,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
         favoriteSeries: updatedUserData?.favoriteSeries || undefined,
       };
       setCurrentUser(extendedUser);
-      
+
       await cleanupNotifications(result.user.uid);
     } catch (error: any) {
-      
-      if (error.code === 'auth/wrong-password') {
+      if (error.code === "auth/wrong-password") {
         throw new Error("Senha incorreta. Tente novamente.", { cause: error });
-      } else if (error.code === 'auth/user-not-found' || error.message.includes("Usuário não encontrado")) {
-        throw new Error("Usuário não encontrado. Verifique seu nome de usuário ou email.", { cause: error });
-      } else if (error.code === 'auth/invalid-credential') {
-        throw new Error("Credenciais inválidas. Verifique seu nome de usuário ou email e senha.", { cause: error });
+      } else if (
+        error.code === "auth/user-not-found" ||
+        error.message.includes("Usuário não encontrado")
+      ) {
+        throw new Error("Usuário não encontrado. Verifique seu nome de usuário ou email.", {
+          cause: error,
+        });
+      } else if (error.code === "auth/invalid-credential") {
+        throw new Error("Credenciais inválidas. Verifique seu nome de usuário ou email e senha.", {
+          cause: error,
+        });
       }
-      
+
       throw error;
     }
   }
@@ -210,14 +217,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     try {
       const methods = await fetchSignInMethodsForEmail(auth, email);
-      
+
       if (methods.length > 0) {
         throw new Error("Este email já está associado a outra conta");
       }
-      
+
       const credential = EmailAuthProvider.credential(email, password);
       await linkWithCredential(currentUser, credential);
-      
+
       toast({
         title: "Email vinculado com sucesso",
         description: "Seu email foi vinculado à sua conta",
@@ -226,7 +233,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         isClosable: true,
       });
     } catch (error: any) {
-      if (error.code === 'auth/provider-already-linked') {
+      if (error.code === "auth/provider-already-linked") {
         toast({
           title: "Provedor já vinculado",
           description: "Este método de login já está vinculado à sua conta",
@@ -234,7 +241,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           duration: 5000,
           isClosable: true,
         });
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (error.code === "auth/invalid-email") {
         toast({
           title: "Email inválido",
           description: "Por favor, forneça um endereço de email válido",
@@ -242,7 +249,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           duration: 5000,
           isClosable: true,
         });
-      } else if (error.code === 'auth/weak-password') {
+      } else if (error.code === "auth/weak-password") {
         toast({
           title: "Senha fraca",
           description: "A senha deve ter pelo menos 6 caracteres",
@@ -282,7 +289,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         isClosable: true,
       });
     } catch (error: any) {
-      if (error.code === 'auth/user-not-found') {
+      if (error.code === "auth/user-not-found") {
         toast({
           title: "Usuário não encontrado",
           description: "Não há usuário registrado com este email",
@@ -290,7 +297,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           duration: 5000,
           isClosable: true,
         });
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (error.code === "auth/invalid-email") {
         toast({
           title: "Email inválido",
           description: "Por favor, forneça um endereço de email válido",
@@ -317,12 +324,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login,
     logout,
     linkWithEmail,
-    resetPassword
+    resetPassword,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 }

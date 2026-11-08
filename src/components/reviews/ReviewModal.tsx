@@ -68,8 +68,7 @@ export function ReviewModal({
   const { currentUser } = useAuth();
 
   const seriesName = propSeriesName || seriesDetails?.name || "";
-  const numberOfSeasons =
-    propNumberOfSeasons || seriesDetails?.number_of_seasons || 0;
+  const numberOfSeasons = propNumberOfSeasons || seriesDetails?.number_of_seasons || 0;
   const posterPath = propPosterPath || seriesDetails?.poster_path || "";
 
   useEffect(() => {
@@ -105,9 +104,7 @@ export function ReviewModal({
       if (!currentUser) return;
       try {
         const reviews = await getSeriesReviews(seriesId);
-        const userReview = reviews.find(
-          (review) => review.userId === currentUser.uid
-        );
+        const userReview = reviews.find((review) => review.userId === currentUser.uid);
         if (userReview) {
           const seasonReview = userReview.seasonReviews.find(
             (sr) => sr.seasonNumber === selectedSeason
@@ -183,7 +180,10 @@ export function ReviewModal({
     } catch (error) {
       toast({
         title: "Erro ao enviar avaliação",
-        description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar sua avaliação. Tente novamente.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Ocorreu um erro ao salvar sua avaliação. Tente novamente.",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -272,13 +272,11 @@ export function ReviewModal({
                     },
                   }}
                 >
-                  {Array.from({ length: numberOfSeasons }, (_, i) => i + 1).map(
-                    (season) => (
-                      <option key={season} value={season}>
-                        Temporada {season}
-                      </option>
-                    )
-                  )}
+                  {Array.from({ length: numberOfSeasons }, (_, i) => i + 1).map((season) => (
+                    <option key={season} value={season}>
+                      Temporada {season}
+                    </option>
+                  ))}
                 </Select>
               </Box>
 
@@ -286,12 +284,7 @@ export function ReviewModal({
                 <Text color="gray.400" mb={2}>
                   Avaliação:
                 </Text>
-                <RatingStars
-                  rating={rating}
-                  onRatingChange={setRating}
-                  size={32}
-                  isEditable
-                />
+                <RatingStars rating={rating} onRatingChange={setRating} size={32} isEditable />
               </Box>
 
               <FormControl mt={4}>
@@ -317,7 +310,6 @@ export function ReviewModal({
                 colorScheme="primary"
                 isLoading={isSubmitting}
                 isDisabled={isSubmitting || !selectedSeason}
-                
               >
                 {isSubmitting ? "Salvando..." : "Salvar avaliação"}
               </Button>

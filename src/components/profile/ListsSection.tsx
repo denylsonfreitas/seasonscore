@@ -1,20 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import {
-  Box,
-  Text,
-  Button,
-  Flex,
-  useDisclosure,
-  Spinner,
-  useToast,
-  Grid
-} from '@chakra-ui/react';
-import { Plus } from '@phosphor-icons/react';
-import { ListCard } from '../lists/ListCard';
-import { getUserLists } from '../../services/lists';
-import { ListWithUserData } from '../../types/list';
-import { useNavigate } from 'react-router-dom';
-import { CreateListModal } from '../lists/CreateListModal';
+import React, { useEffect, useState } from "react";
+import { Box, Text, Button, Flex, useDisclosure, Spinner, useToast, Grid } from "@chakra-ui/react";
+import { Plus } from "@phosphor-icons/react";
+import { ListCard } from "../lists/ListCard";
+import { getUserLists } from "../../services/lists";
+import { ListWithUserData } from "../../types/list";
+import { useNavigate } from "react-router-dom";
+import { CreateListModal } from "../lists/CreateListModal";
 
 interface ListsSectionProps {
   userId: string;
@@ -33,10 +24,10 @@ export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
       const userLists = await getUserLists(userId, !isOwnProfile);
       setLists(userLists);
     } catch (error) {
-      console.error('Erro ao carregar listas:', error);
+      console.error("Erro ao carregar listas:", error);
       toast({
-        title: 'Erro ao carregar listas',
-        status: 'error',
+        title: "Erro ao carregar listas",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -44,15 +35,15 @@ export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
       setIsLoading(false);
     }
   };
-    useEffect(() => {
-        fetchLists();
-      }, [userId]);
+  useEffect(() => {
+    fetchLists();
+  }, [userId]);
 
   const handleListCreated = (listId: string) => {
-      // Atualizar a lista de listas
-      fetchLists();
-      
-      // Navegar para a página da lista recém-criada
+    // Atualizar a lista de listas
+    fetchLists();
+
+    // Navegar para a página da lista recém-criada
     navigate(`/list/${listId}`);
   };
 
@@ -68,33 +59,21 @@ export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
     <Box>
       {isOwnProfile && (
         <Flex justifyContent="flex-end" mb={6}>
-          <Button
-            leftIcon={<Plus weight="bold" />}
-            colorScheme="primary"
-            onClick={onOpen}
-          >
+          <Button leftIcon={<Plus weight="bold" />} colorScheme="primary" onClick={onOpen}>
             Lista
           </Button>
         </Flex>
       )}
 
       {lists.length === 0 ? (
-        <Box
-          textAlign="center"
-          p={10}
-          bg="gray.800"
-          borderRadius="md"
-        >
+        <Box textAlign="center" p={10} bg="gray.800" borderRadius="md">
           <Text fontSize="xl" mb={4}>
             {isOwnProfile
-              ? 'Você ainda não criou nenhuma lista'
-              : 'Este usuário ainda não criou nenhuma lista'}
+              ? "Você ainda não criou nenhuma lista"
+              : "Este usuário ainda não criou nenhuma lista"}
           </Text>
           {isOwnProfile && (
-            <Button
-              colorScheme="primary"
-              onClick={onOpen}
-            >
+            <Button colorScheme="primary" onClick={onOpen}>
               Criar sua primeira lista
             </Button>
           )}
@@ -108,11 +87,7 @@ export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
       )}
 
       {/* Usando o componente CreateListModal */}
-      <CreateListModal 
-        isOpen={isOpen}
-        onClose={onClose} 
-        onListCreated={handleListCreated}
-      />
+      <CreateListModal isOpen={isOpen} onClose={onClose} onListCreated={handleListCreated} />
     </Box>
   );
-} 
+}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 /**
  * Hook para criar um valor com debounce
@@ -20,4 +20,4 @@ export function useDebounce<T>(value: T, delay: number): [T] {
   }, [value, delay]);
 
   return [debouncedValue];
-} 
+}

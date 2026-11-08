@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
-    "test:rules": "firebase emulators:exec --only firestore --project seasonscore-rules-test 'vitest run --config vitest.rules.config.ts'"
+    "test:rules": "firebase emulators:exec --only firestore --project seasonscore-rules-test 'vitest run --config vitest.rules.config.ts'",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@chakra-ui/react": "^2.10.10",
@@ -36,6 +38,7 @@
     "eslint-plugin-react-refresh": "^0.5.7",
     "firebase-tools": "^15.35.0",
     "globals": "^17.14.0",
+    "prettier": "^3.9.10",
     "terser": "^5.51.2",
     "typescript": "~5.9",
     "typescript-eslint": "^8.72.1",

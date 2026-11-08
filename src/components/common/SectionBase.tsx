@@ -38,7 +38,25 @@ export interface SectionBaseProps {
   children?: ReactNode;
 }
 
-export function SectionBase({ title, link, linkText = "Ver todas", isLoading = false, error = null, isEmpty = false, emptyMessage = "Nenhum conteúdo encontrado", loadingElement, errorElement, emptyElement, expandable = false, containerProps, headerProps, titleProps, linkButtonProps, renderContent, children }: SectionBaseProps) {
+export function SectionBase({
+  title,
+  link,
+  linkText = "Ver todas",
+  isLoading = false,
+  error = null,
+  isEmpty = false,
+  emptyMessage = "Nenhum conteúdo encontrado",
+  loadingElement,
+  errorElement,
+  emptyElement,
+  expandable = false,
+  containerProps,
+  headerProps,
+  titleProps,
+  linkButtonProps,
+  renderContent,
+  children,
+}: SectionBaseProps) {
   // Renderização personalizada ou padrão de elementos de estado
   const renderLoadingState = () => {
     if (loadingElement) return loadingElement;
@@ -100,12 +118,10 @@ export function SectionBase({ title, link, linkText = "Ver todas", isLoading = f
       ) : isEmpty ? (
         renderEmptyState()
       ) : (
-        <>
-          {renderContent(expandable)}
-        </>
+        <>{renderContent(expandable)}</>
       )}
-      
+
       {children}
     </Box>
   );
-} 
+}

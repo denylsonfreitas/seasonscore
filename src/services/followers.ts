@@ -8,11 +8,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { auth, db } from "../config/firebase";
-import { 
-  createNotification, 
-  NotificationType, 
-  deleteNotificationsOfType
-} from "./notifications";
+import { createNotification, NotificationType, deleteNotificationsOfType } from "./notifications";
 import { getUserData } from "./users";
 import { logError } from "../utils/logger";
 
@@ -36,7 +32,7 @@ export async function followUser(userId: string) {
     where("followerId", "==", auth.currentUser.uid)
   );
   const querySnapshot = await getDocs(q);
-  
+
   if (!querySnapshot.empty) {
     throw new Error("Você já segue este usuário");
   }
@@ -46,33 +42,33 @@ export async function followUser(userId: string) {
   // usando a própria coleção de followers com uma consulta mais ampla
   // Buscar todos os documentos de followers que foram excluídos (histórico)
   // Isso não é possível diretamente, então vamos usar uma abordagem diferente
-  
+
   // Criar o relacionamento de seguidor com um campo adicional
   const follower = {
     userId,
     followerId: auth.currentUser.uid,
     createdAt: serverTimestamp(),
     // Adicionar um campo para controlar se é a primeira vez que segue
-    isFirstFollow: true
+    isFirstFollow: true,
   };
 
   await addDoc(followersCollection, follower);
-  
+
   // Criar notificação para o usuário que foi seguido
   try {
     const currentUserData = await getUserData(auth.currentUser.uid);
     // Usar o mesmo campo que será armazenado como senderName na notificação
-    const followerName = currentUserData?.username || currentUserData?.displayName || currentUserData?.email || "Alguém";
-    
+    const followerName =
+      currentUserData?.username ||
+      currentUserData?.displayName ||
+      currentUserData?.email ||
+      "Alguém";
+
     // Criar uma nova notificação
-    await createNotification(
-      userId,
-      NotificationType.NEW_FOLLOWER,
-      {
-        senderId: auth.currentUser.uid,
-        message: `${followerName} começou a seguir você.`
-      }
-    );
+    await createNotification(userId, NotificationType.NEW_FOLLOWER, {
+      senderId: auth.currentUser.uid,
+      message: `${followerName} começou a seguir você.`,
+    });
   } catch (error) {
     logError("followUser", error);
   }
@@ -95,25 +91,19 @@ export async function unfollowUser(userId: string) {
 
   // Processar cada relação encontrada (normalmente deve ser apenas uma)
   for (const followerDoc of querySnapshot.docs) {
-    
     // Excluir a relação de seguidor
     await deleteDoc(followerDoc.ref);
-    
+
     // Remover notificações relacionadas
     try {
       // Sempre tentar remover a notificação, independentemente da data
       // Isso garante que não fiquem notificações órfãs
-      await deleteNotificationsOfType(
-        userId,
-        NotificationType.NEW_FOLLOWER,
-        auth.currentUser.uid
-      );
-      
+      await deleteNotificationsOfType(userId, NotificationType.NEW_FOLLOWER, auth.currentUser.uid);
     } catch (error) {
       logError("unfollowUser", error);
     }
   }
-  
+
   return true;
 }
 
@@ -150,4 +140,4 @@ export async function isFollowing(userId: string): Promise<boolean> {
   const querySnapshot = await getDocs(q);
 
   return !querySnapshot.empty;
-} 
+}

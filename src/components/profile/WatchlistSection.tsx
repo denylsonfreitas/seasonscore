@@ -85,11 +85,7 @@ export function WatchlistSection({
   }
 
   return (
-    <SimpleGrid 
-      columns={{ base: 3, sm: 4, md: 5, lg: 6 }} 
-      spacing={{ base: 3, md: 4 }}
-      pb={4}
-    >
+    <SimpleGrid columns={{ base: 3, sm: 4, md: 5, lg: 6 }} spacing={{ base: 3, md: 4 }} pb={4}>
       {watchlist.map((item, index) => (
         <SlideFade
           key={item.seriesId}
@@ -109,15 +105,15 @@ export function WatchlistSection({
               transform: "translateY(-4px)",
               boxShadow: "0 10px 20px rgba(0, 0, 0, 0.4)",
               "& .poster-overlay": {
-                opacity: 1
+                opacity: 1,
               },
               "& .poster-image": {
-                transform: "scale(1.05)"
+                transform: "scale(1.05)",
               },
               "& .remove-button": {
                 opacity: 1,
-                transform: "translateY(0)"
-              }
+                transform: "translateY(0)",
+              },
             }}
           >
             {isOwnProfile && (
@@ -140,19 +136,16 @@ export function WatchlistSection({
                 />
               </Tooltip>
             )}
-            
+
             <RouterLink to={`/series/${item.seriesId}`}>
-              <Tooltip 
-                label={item.seriesData.name} 
-                placement="top" 
-                hasArrow 
-                openDelay={500}
-              >
-                <AspectRatio ratio={2/3}>
+              <Tooltip label={item.seriesData.name} placement="top" hasArrow openDelay={500}>
+                <AspectRatio ratio={2 / 3}>
                   <Image
-                    src={item.seriesData.poster_path 
-                      ? `https://image.tmdb.org/t/p/w342${item.seriesData.poster_path}` 
-                      : "https://dummyimage.com/342x513/333/ffffff.png&text=Sem+Poster"}
+                    src={
+                      item.seriesData.poster_path
+                        ? `https://image.tmdb.org/t/p/w342${item.seriesData.poster_path}`
+                        : "https://dummyimage.com/342x513/333/ffffff.png&text=Sem+Poster"
+                    }
                     alt={item.seriesData.name}
                     objectFit="cover"
                     className="poster-image"
@@ -161,7 +154,7 @@ export function WatchlistSection({
                   />
                 </AspectRatio>
               </Tooltip>
-              
+
               {/* Overlay com informações */}
               <Box
                 className="poster-overlay"
@@ -174,13 +167,11 @@ export function WatchlistSection({
                 px={1.5}
                 opacity={0}
                 transition="opacity 0.3s ease"
-              >
-
-              </Box>
+              ></Box>
             </RouterLink>
           </Box>
         </SlideFade>
       ))}
     </SimpleGrid>
   );
-} 
+}

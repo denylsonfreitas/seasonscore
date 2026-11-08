@@ -34,7 +34,7 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
 
   // Referência para o primeiro input
   const initialFocusRef = useRef<HTMLInputElement>(null);
-  
+
   // Focalizar o primeiro input quando o componente montar
   useEffect(() => {
     setTimeout(() => {
@@ -45,11 +45,14 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
   }, []);
 
   // Função para criar estilos de animação para itens do formulário
-  const getItemAnimationStyle = useCallback((index: number) => ({
-    opacity: 1,
-    transform: "translateY(0)",
-    transition: `all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 0.05 + 0.1}s`,
-  }), []);
+  const getItemAnimationStyle = useCallback(
+    (index: number) => ({
+      opacity: 1,
+      transform: "translateY(0)",
+      transition: `all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) ${index * 0.05 + 0.1}s`,
+    }),
+    []
+  );
 
   // Manipulador de cliques globais para fechar o popover
   useEffect(() => {
@@ -58,7 +61,7 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
       // Se houver um clique fora do formulário e onClose for fornecido
       if (onClose && e.target instanceof Node) {
         // Verifica se o clique foi fora do modal
-        const loginFormElement = document.querySelector('.login-form-container');
+        const loginFormElement = document.querySelector(".login-form-container");
         if (loginFormElement && !loginFormElement.contains(e.target)) {
           // Se o elemento clicado não estiver dentro do container do login form
           onClose();
@@ -69,19 +72,19 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
     // Adiciona o listener depois de um pequeno delay para evitar que
     // o click que abriu o popover o feche imediatamente
     const timeoutId = setTimeout(() => {
-      document.addEventListener('mousedown', handleGlobalClick);
+      document.addEventListener("mousedown", handleGlobalClick);
     }, 100);
 
     // Remove o listener ao desmontar o componente
     return () => {
       clearTimeout(timeoutId);
-      document.removeEventListener('mousedown', handleGlobalClick);
+      document.removeEventListener("mousedown", handleGlobalClick);
     };
   }, [onClose]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     // Verificar se o formulário é válido
     const form = e.currentTarget;
     if (!form.checkValidity()) {
@@ -95,7 +98,7 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
       });
       return;
     }
-    
+
     if (!usernameOrEmail || !password) {
       toast({
         title: "Campos obrigatórios",
@@ -110,25 +113,28 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
     setIsLoading(true);
     try {
       await login(usernameOrEmail, password);
-      
+
       if (onClose) {
         onClose();
       }
     } catch (error: any) {
       let errorMessage = "Email/nome de usuário ou senha incorretos.";
-      
-      if (error.code === 'auth/user-not-found' || error.message.includes("Usuário não encontrado")) {
+
+      if (
+        error.code === "auth/user-not-found" ||
+        error.message.includes("Usuário não encontrado")
+      ) {
         errorMessage = "Usuário não encontrado. Verifique seu nome de usuário ou email.";
-      } else if (error.code === 'auth/wrong-password') {
+      } else if (error.code === "auth/wrong-password") {
         errorMessage = "Senha incorreta. Tente novamente.";
-      } else if (error.code === 'auth/too-many-requests') {
+      } else if (error.code === "auth/too-many-requests") {
         errorMessage = "Muitas tentativas de login. Tente novamente mais tarde.";
-      } else if (error.code === 'auth/invalid-credential') {
+      } else if (error.code === "auth/invalid-credential") {
         errorMessage = "Credenciais inválidas. Verifique seu nome de usuário ou email e senha.";
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       toast({
         title: "Erro ao fazer login",
         description: errorMessage,
@@ -167,15 +173,15 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
       setResetEmail("");
     } catch (error: any) {
       let errorMessage = "Não foi possível enviar o email de redefinição.";
-      
-      if (error.code === 'auth/user-not-found') {
+
+      if (error.code === "auth/user-not-found") {
         errorMessage = "Email não encontrado.";
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (error.code === "auth/invalid-email") {
         errorMessage = "Endereço de email inválido.";
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       toast({
         title: "Erro",
         description: errorMessage,
@@ -308,4 +314,4 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
       </Box>
     </FocusLock>
   );
-} 
+}

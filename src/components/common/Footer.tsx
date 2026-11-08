@@ -34,11 +34,14 @@ export function Footer() {
           </HStack>
           {/*© {new Date().getFullYear()}*/}
           <Text color="gray.500" fontSize="sm">
-            SeasonScore é um projeto independente e esta limitado a erros, feedbacks e melhorias são sempre bem-vindos.
+            SeasonScore é um projeto independente e esta limitado a erros, feedbacks e melhorias são
+            sempre bem-vindos.
           </Text>
-          <Button onClick={() => {
-            window.open("https://github.com/denylsonfreitas/seasonscore/issues", "_blank");
-          }}>
+          <Button
+            onClick={() => {
+              window.open("https://github.com/denylsonfreitas/seasonscore/issues", "_blank");
+            }}
+          >
             Reportar um erro
           </Button>
           <Text color="gray.600" fontSize="xs">
@@ -48,4 +51,4 @@ export function Footer() {
       </Container>
     </Box>
   );
-} 
+}

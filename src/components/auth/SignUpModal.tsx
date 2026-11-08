@@ -55,7 +55,7 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (password !== confirmPassword) {
       toast({
         title: "Erro na senha",
@@ -104,7 +104,7 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
 
     try {
       const userData = await signUp(email, password, username);
-      
+
       toast({
         title: "Conta criada com sucesso!",
         description: `Bem-vindo ao SeasonScore, ${userData?.displayName || username}!`,
@@ -112,26 +112,26 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
         duration: 3000,
         isClosable: true,
       });
-      
+
       resetForm();
       onClose();
     } catch (error: any) {
       let errorMessage = "Não foi possível criar sua conta. Tente novamente.";
-      
-      if (error.code === 'auth/email-already-in-use') {
+
+      if (error.code === "auth/email-already-in-use") {
         errorMessage = "Este email já está em uso.";
         setEmailError(errorMessage);
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (error.code === "auth/invalid-email") {
         errorMessage = "Email inválido. Verifique o formato do email.";
         setEmailError(errorMessage);
-      } else if (error.code === 'auth/weak-password') {
+      } else if (error.code === "auth/weak-password") {
         errorMessage = "Senha muito fraca. Use uma senha mais forte.";
-      } else if (error.code === 'auth/network-request-failed') {
+      } else if (error.code === "auth/network-request-failed") {
         errorMessage = "Erro de conexão. Verifique sua internet e tente novamente.";
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       toast({
         title: "Erro ao criar conta",
         description: errorMessage,
@@ -218,8 +218,8 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
   }, [isOpen]);
 
   return (
-    <Modal 
-      isOpen={isOpen} 
+    <Modal
+      isOpen={isOpen}
       onClose={() => {
         onClose();
       }}
@@ -228,8 +228,8 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
       scrollBehavior="outside"
     >
       <ModalOverlay />
-      <ModalContent 
-        bg="gray.800" 
+      <ModalContent
+        bg="gray.800"
         color="white"
         borderRadius="md"
         maxW={{ base: "95%", md: "500px" }}
@@ -250,9 +250,7 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
                 required
                 isDisabled={isCheckingUsername}
               />
-              {usernameError && (
-                <FormErrorMessage>{usernameError}</FormErrorMessage>
-              )}
+              {usernameError && <FormErrorMessage>{usernameError}</FormErrorMessage>}
             </FormControl>
 
             <FormControl isInvalid={!!emailError}>
@@ -331,13 +329,7 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
         </ModalBody>
 
         <ModalFooter>
-          <Button
-            colorScheme="white"
-            mr={3}
-            onClick={onClose}
-            variant="ghost"
-            disabled={isLoading}
-          >
+          <Button colorScheme="white" mr={3} onClick={onClose} variant="ghost" disabled={isLoading}>
             Cancelar
           </Button>
           <Button
@@ -353,4 +345,4 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
       </ModalContent>
     </Modal>
   );
-} 
+}

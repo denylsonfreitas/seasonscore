@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
-import { 
-  IconButton, 
-  useToast, 
-  useMediaQuery, 
-  Menu, 
-  MenuButton, 
-  MenuList, 
-  MenuItem, 
+import {
+  IconButton,
+  useToast,
+  useMediaQuery,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
   MenuDivider,
   Box,
-  Portal
+  Portal,
 } from "@chakra-ui/react";
 import { Bookmark, BookmarkSimple, DotsThree, ListBullets } from "@phosphor-icons/react";
 import { useAuth } from "../../contexts/AuthContext";
@@ -29,20 +29,21 @@ interface WatchlistButtonProps {
   menuAsBox?: boolean;
 }
 
-export function WatchlistButton({ series, size = "md", variant = "ghost", menuAsBox = false }: WatchlistButtonProps) {
+export function WatchlistButton({
+  series,
+  size = "md",
+  variant = "ghost",
+  menuAsBox = false,
+}: WatchlistButtonProps) {
   const { currentUser } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile] = useMediaQuery("(max-width: 768px)");
   const toast = useToast();
   const [searchParams] = useSearchParams();
   const listId = searchParams.get("list_id");
-  
+
   // Usar o hook personalizado de watchlist
-  const { 
-    isInWatchlist, 
-    isLoading, 
-    toggleWatchlist 
-  } = useWatchlist(series.id);
+  const { isInWatchlist, isLoading, toggleWatchlist } = useWatchlist(series.id);
 
   // Auto-close tooltip on mobile after action
   useEffect(() => {
@@ -50,7 +51,7 @@ export function WatchlistButton({ series, size = "md", variant = "ghost", menuAs
       const timer = setTimeout(() => {
         setIsOpen(false);
       }, 1500); // Fechar após 1.5 segundos
-      
+
       return () => clearTimeout(timer);
     }
   }, [isMobile, isOpen]);
@@ -71,12 +72,19 @@ export function WatchlistButton({ series, size = "md", variant = "ghost", menuAs
       popularity: 0,
       in_production: false,
       homepage: "",
-      last_air_date: ""
+      last_air_date: "",
     };
-    
-    return <AddToListButton series={seriesForList as any} size={size as any} variant={variant as any} iconOnly useButtonElement={!menuAsBox} />;
-  }
 
+    return (
+      <AddToListButton
+        series={seriesForList as any}
+        size={size as any}
+        variant={variant as any}
+        iconOnly
+        useButtonElement={!menuAsBox}
+      />
+    );
+  }
 
   async function handleWatchlistClick() {
     if (!currentUser) {
@@ -91,11 +99,11 @@ export function WatchlistButton({ series, size = "md", variant = "ghost", menuAs
 
     // Mostrar tooltip temporariamente para feedback visual
     setIsOpen(true);
-    
+
     // Usar a função do hook para alternar a watchlist
     await toggleWatchlist(series);
-    
-    // Fechar tooltip imediatamente para desktop ou agendar fechamento para mobile 
+
+    // Fechar tooltip imediatamente para desktop ou agendar fechamento para mobile
     if (!isMobile) {
       setIsOpen(false);
     }
@@ -114,7 +122,7 @@ export function WatchlistButton({ series, size = "md", variant = "ghost", menuAs
     popularity: 0,
     in_production: false,
     homepage: "",
-    last_air_date: ""
+    last_air_date: "",
   };
 
   if (!currentUser) {
@@ -155,38 +163,38 @@ export function WatchlistButton({ series, size = "md", variant = "ghost", menuAs
         )}
         <Portal>
           <MenuList bg="gray.900" borderColor="gray.700" minW="180px">
-            <MenuItem 
+            <MenuItem
               icon={<BookmarkSimple color="white" size={16} />}
-              onClick={() => toast({
-                title: "Faça login para adicionar à sua watchlist",
-                status: "warning",
-                duration: 3000,
-                isClosable: true,
-              })}
+              onClick={() =>
+                toast({
+                  title: "Faça login para adicionar à sua watchlist",
+                  status: "warning",
+                  duration: 3000,
+                  isClosable: true,
+                })
+              }
               bg="gray.900"
               _hover={{ bg: "gray.800" }}
               color="white"
             >
-              <Box color="white">
-                Adicionar à watchlist
-              </Box>
+              <Box color="white">Adicionar à watchlist</Box>
             </MenuItem>
             <MenuDivider borderColor="gray.700" />
-            <MenuItem 
+            <MenuItem
               icon={<ListBullets weight="fill" color="white" size={14} />}
-              onClick={() => toast({
-                title: "Faça login para adicionar séries às suas listas",
-                status: "warning",
-                duration: 3000,
-                isClosable: true,
-              })}
+              onClick={() =>
+                toast({
+                  title: "Faça login para adicionar séries às suas listas",
+                  status: "warning",
+                  duration: 3000,
+                  isClosable: true,
+                })
+              }
               bg="gray.900"
               _hover={{ bg: "gray.800" }}
               color="white"
             >
-              <Box color="white">
-                Adicionar a uma lista
-              </Box>
+              <Box color="white">Adicionar a uma lista</Box>
             </MenuItem>
           </MenuList>
         </Portal>
@@ -231,8 +239,14 @@ export function WatchlistButton({ series, size = "md", variant = "ghost", menuAs
       )}
       <Portal>
         <MenuList bg="gray.900" borderColor="gray.700" minW="180px">
-          <MenuItem 
-            icon={isInWatchlist ? <Bookmark weight="fill" color="white" size={16} /> : <BookmarkSimple color="white" size={16} />}
+          <MenuItem
+            icon={
+              isInWatchlist ? (
+                <Bookmark weight="fill" color="white" size={16} />
+              ) : (
+                <BookmarkSimple color="white" size={16} />
+              )
+            }
             onClick={handleWatchlistClick}
             isDisabled={isLoading}
             bg="gray.900"
@@ -249,4 +263,4 @@ export function WatchlistButton({ series, size = "md", variant = "ghost", menuAs
       </Portal>
     </Menu>
   );
-} 
+}

@@ -56,7 +56,7 @@ export function UserListModal({ isOpen, onClose, title, userIds, type }: UserLis
 
       // Verificamos se os IDs são os mesmos da última busca
       const idsChanged = JSON.stringify(userIds) !== JSON.stringify(lastFetchedIds);
-      
+
       // Se os IDs não mudaram e já buscamos anteriormente, não precisamos buscar novamente
       if (!idsChanged && lastFetchedIds.length > 0) {
         setIsLoading(false);
@@ -65,7 +65,7 @@ export function UserListModal({ isOpen, onClose, title, userIds, type }: UserLis
 
       // Se chegamos aqui, precisamos buscar os dados
       setIsLoading(true);
-      
+
       try {
         const usersData = await Promise.all(
           userIds.map(async (userId) => {
@@ -81,7 +81,7 @@ export function UserListModal({ isOpen, onClose, title, userIds, type }: UserLis
         setIsLoading(false);
       }
     };
-    
+
     fetchUsers();
   }, [isOpen, userIds]); // Removemos lastFetchedIds das dependências para evitar o loop
 
@@ -95,12 +95,13 @@ export function UserListModal({ isOpen, onClose, title, userIds, type }: UserLis
   // Filtrar usuários com base na consulta de busca
   const filteredUsers = useMemo(() => {
     if (!searchQuery.trim()) return users;
-    
+
     const query = searchQuery.toLowerCase().trim();
-    return users.filter(user => 
-      (user.displayName?.toLowerCase().includes(query)) || 
-      (user.username?.toLowerCase().includes(query)) || 
-      (user.email?.toLowerCase().includes(query))
+    return users.filter(
+      (user) =>
+        user.displayName?.toLowerCase().includes(query) ||
+        user.username?.toLowerCase().includes(query) ||
+        user.email?.toLowerCase().includes(query)
     );
   }, [users, searchQuery]);
 
@@ -128,10 +129,13 @@ export function UserListModal({ isOpen, onClose, title, userIds, type }: UserLis
                   border="none"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  _focus={{ borderColor: "primary.400", boxShadow: "0 0 0 1px var(--chakra-colors-primary-400)" }}
+                  _focus={{
+                    borderColor: "primary.400",
+                    boxShadow: "0 0 0 1px var(--chakra-colors-primary-400)",
+                  }}
                 />
               </InputGroup>
-              
+
               {filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
                   <HStack key={user.id} spacing={4} p={2} borderRadius="md" bg="gray.700">
@@ -146,14 +150,12 @@ export function UserListModal({ isOpen, onClose, title, userIds, type }: UserLis
                     <Box flex="1">
                       <UserName userId={user.id} />
                     </Box>
-                    {currentUser?.uid !== user.id && (
-                      <FollowButton userId={user.id} />
-                    )}
+                    {currentUser?.uid !== user.id && <FollowButton userId={user.id} />}
                   </HStack>
                 ))
               ) : (
                 <Text color="gray.400" textAlign="center" py={4}>
-                  {searchQuery 
+                  {searchQuery
                     ? `Nenhum resultado encontrado para "${searchQuery}".`
                     : "Nenhum usuário encontrado."}
                 </Text>
@@ -161,8 +163,8 @@ export function UserListModal({ isOpen, onClose, title, userIds, type }: UserLis
             </VStack>
           ) : (
             <Text color="gray.400" textAlign="center">
-              {type === "followers" 
-                ? "Este usuário ainda não tem seguidores." 
+              {type === "followers"
+                ? "Este usuário ainda não tem seguidores."
                 : "Este usuário ainda não segue ninguém."}
             </Text>
           )}
@@ -170,4 +172,4 @@ export function UserListModal({ isOpen, onClose, title, userIds, type }: UserLis
       </ModalContent>
     </Modal>
   );
-} 
+}

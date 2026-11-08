@@ -9,27 +9,30 @@ interface QuickAddButtonProps {
 }
 
 export function QuickAddButton({ size = "32px" }: QuickAddButtonProps) {
-  const { 
-    isOpen: isQuickAddOpen, 
-    onOpen: onQuickAddOpen, 
-    onClose: onQuickAddClose 
+  const {
+    isOpen: isQuickAddOpen,
+    onOpen: onQuickAddOpen,
+    onClose: onQuickAddClose,
   } = useDisclosure();
-  
-  const { 
-    isOpen: isReviewModalOpen, 
-    onOpen: onReviewModalOpen, 
-    onClose: onReviewModalClose 
+
+  const {
+    isOpen: isReviewModalOpen,
+    onOpen: onReviewModalOpen,
+    onClose: onReviewModalClose,
   } = useDisclosure();
-  
+
   const [selectedSeriesId, setSelectedSeriesId] = useState<number | null>(null);
-  
+
   const showButtonText = useBreakpointValue({ base: false, sm: true });
 
-  const handleQuickAddSelect = useCallback((seriesId: number) => {
-    setSelectedSeriesId(seriesId);
-    onQuickAddClose();
-    onReviewModalOpen();
-  }, [onQuickAddClose, onReviewModalOpen]);
+  const handleQuickAddSelect = useCallback(
+    (seriesId: number) => {
+      setSelectedSeriesId(seriesId);
+      onQuickAddClose();
+      onReviewModalOpen();
+    },
+    [onQuickAddClose, onReviewModalOpen]
+  );
 
   const handleReviewModalBack = useCallback(() => {
     onReviewModalClose();
@@ -69,34 +72,37 @@ export function QuickAddButton({ size = "32px" }: QuickAddButtonProps) {
     }
   }, [showButtonText, size, onQuickAddOpen]);
 
-  const modals = useMemo(() => (
-    <>
-      <SearchModal 
-        isOpen={isQuickAddOpen} 
-        onClose={onQuickAddClose} 
-        onSelect={handleQuickAddSelect}
-        title="Avaliar Série"
-        subtitle="Busque uma série para avaliar rapidamente"
-      />
-
-      {selectedSeriesId && (
-        <ReviewModal
-          isOpen={isReviewModalOpen}
-          onClose={onReviewModalClose}
-          seriesId={selectedSeriesId}
-          onBack={handleReviewModalBack}
+  const modals = useMemo(
+    () => (
+      <>
+        <SearchModal
+          isOpen={isQuickAddOpen}
+          onClose={onQuickAddClose}
+          onSelect={handleQuickAddSelect}
+          title="Avaliar Série"
+          subtitle="Busque uma série para avaliar rapidamente"
         />
-      )}
-    </>
-  ), [
-    isQuickAddOpen, 
-    onQuickAddClose, 
-    handleQuickAddSelect, 
-    selectedSeriesId, 
-    isReviewModalOpen, 
-    onReviewModalClose, 
-    handleReviewModalBack
-  ]);
+
+        {selectedSeriesId && (
+          <ReviewModal
+            isOpen={isReviewModalOpen}
+            onClose={onReviewModalClose}
+            seriesId={selectedSeriesId}
+            onBack={handleReviewModalBack}
+          />
+        )}
+      </>
+    ),
+    [
+      isQuickAddOpen,
+      onQuickAddClose,
+      handleQuickAddSelect,
+      selectedSeriesId,
+      isReviewModalOpen,
+      onReviewModalClose,
+      handleReviewModalBack,
+    ]
+  );
 
   return (
     <>
@@ -104,4 +110,4 @@ export function QuickAddButton({ size = "32px" }: QuickAddButtonProps) {
       {modals}
     </>
   );
-} 
+}

@@ -9,7 +9,7 @@ import {
   VStack,
   useToast,
   Divider,
-  Select
+  Select,
 } from "@chakra-ui/react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Footer } from "../components/common/Footer";
@@ -24,23 +24,21 @@ import { useQuery } from "@tanstack/react-query";
 export function SeriesReviews() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const [selectedSeason, setSelectedSeason] = useState(
-    Number(searchParams.get("season")) || 1
-  );
+  const [selectedSeason, setSelectedSeason] = useState(Number(searchParams.get("season")) || 1);
   const navigate = useNavigate();
   const toast = useToast();
   const { data: series } = useQuery({
     queryKey: ["series", id],
     queryFn: () => getSeriesDetails(Number(id)),
   });
-  
+
   const [reviews, setReviews] = useState<SeriesReview[]>([]);
   const [, setIsLoadingReviews] = useState(true);
-  
+
   // Buscar detalhes da série e avaliações
   useEffect(() => {
     if (!id) return;
-    
+
     const fetchData = async () => {
       setIsLoadingReviews(true);
       try {
@@ -60,43 +58,41 @@ export function SeriesReviews() {
         setIsLoadingReviews(false);
       }
     };
-    
+
     fetchData();
   }, [id, toast]);
-  
+
   // Manipular clique na avaliação
   // Filtrar avaliações por temporada
   const filteredReviews = useMemo(() => {
-    return reviews.filter(review => 
-      review.seasonReviews.some(seasonReview => 
-        seasonReview.seasonNumber === selectedSeason
-      )
+    return reviews.filter((review) =>
+      review.seasonReviews.some((seasonReview) => seasonReview.seasonNumber === selectedSeason)
     );
   }, [reviews, selectedSeason]);
-  
+
   // Obter temporadas únicas
   const seasons = useMemo(() => {
-    const allSeasons = reviews.flatMap(review => 
-      review.seasonReviews.map(season => season.seasonNumber)
+    const allSeasons = reviews.flatMap((review) =>
+      review.seasonReviews.map((season) => season.seasonNumber)
     );
     return [...new Set(allSeasons)].sort((a, b) => a - b);
   }, [reviews]);
-  
+
   // Verificar se o usuário já fez avaliação para esta temporada
   // Ordenar avaliações (mais recentes primeiro)
   const sortedReviews = useMemo(() => {
     return [...filteredReviews].sort((a, b) => {
-      const aDate = a.seasonReviews.find(sr => sr.seasonNumber === selectedSeason)?.createdAt;
-      const bDate = b.seasonReviews.find(sr => sr.seasonNumber === selectedSeason)?.createdAt;
-      
+      const aDate = a.seasonReviews.find((sr) => sr.seasonNumber === selectedSeason)?.createdAt;
+      const bDate = b.seasonReviews.find((sr) => sr.seasonNumber === selectedSeason)?.createdAt;
+
       if (!aDate || !bDate) return 0;
-      
+
       // Converter para timestamp se necessário
-      const aTime = aDate instanceof Date ? aDate.getTime() : 
-        ('seconds' in aDate ? aDate.seconds * 1000 : 0);
-      const bTime = bDate instanceof Date ? bDate.getTime() : 
-        ('seconds' in bDate ? bDate.seconds * 1000 : 0);
-      
+      const aTime =
+        aDate instanceof Date ? aDate.getTime() : "seconds" in aDate ? aDate.seconds * 1000 : 0;
+      const bTime =
+        bDate instanceof Date ? bDate.getTime() : "seconds" in bDate ? bDate.seconds * 1000 : 0;
+
       return bTime - aTime;
     });
   }, [filteredReviews, selectedSeason]);
@@ -106,19 +102,14 @@ export function SeriesReviews() {
       <Box flex="1">
         <Box position="relative">
           {/* Banner */}
-          <Box
-            h="400px"
-            w="100%"
-            position="relative"
-            overflow="hidden"
-          >
+          <Box h="400px" w="100%" position="relative" overflow="hidden">
             <Box
               position="absolute"
               top={0}
               left={0}
               right={0}
               bottom={0}
-              bgImage={`url(https://image.tmdb.org/t/p/original${series?.backdrop_path || ''})`}
+              bgImage={`url(https://image.tmdb.org/t/p/original${series?.backdrop_path || ""})`}
               bgSize="cover"
               bgPosition="center"
               _after={{
@@ -139,7 +130,7 @@ export function SeriesReviews() {
           <VStack spacing={6} align="stretch">
             <HStack justify="space-between" align="center" p={6} borderRadius="lg">
               <Heading color="white" size="lg">
-                Avaliações de {series?.name || 'Série'}
+                Avaliações de {series?.name || "Série"}
               </Heading>
               <HStack spacing={2} mr={6}>
                 <Text color="gray.400" fontWeight="medium">
@@ -191,7 +182,7 @@ export function SeriesReviews() {
                           />
                           <VStack align="start" spacing={2} flex={1}>
                             <UserName userId={review.userId} />
-                            <Text 
+                            <Text
                               color="gray.300"
                               fontSize={{ base: "sm", md: "md" }}
                               width="full"
@@ -200,13 +191,20 @@ export function SeriesReviews() {
                               maxW="100%"
                               overflowWrap="break-word"
                             >
-                              {review.seasonReviews.find(sr => sr.seasonNumber === selectedSeason)?.comment}
+                              {
+                                review.seasonReviews.find(
+                                  (sr) => sr.seasonNumber === selectedSeason
+                                )?.comment
+                              }
                             </Text>
                           </VStack>
                         </HStack>
                         <Box>
                           <RatingStars
-                            rating={review.seasonReviews.find(sr => sr.seasonNumber === selectedSeason)?.rating || 0}
+                            rating={
+                              review.seasonReviews.find((sr) => sr.seasonNumber === selectedSeason)
+                                ?.rating || 0
+                            }
                             size={20}
                             showNumber={false}
                           />
@@ -217,16 +215,26 @@ export function SeriesReviews() {
                         <ReactionButtons
                           reviewId={review.id}
                           seasonNumber={selectedSeason}
-                          likes={review.seasonReviews.find(sr => sr.seasonNumber === selectedSeason)?.reactions?.likes || []}
+                          likes={
+                            review.seasonReviews.find((sr) => sr.seasonNumber === selectedSeason)
+                              ?.reactions?.likes || []
+                          }
                           onReaction={async (_event) => {
                             // Implemente a lógica para reagir à avaliação
                           }}
                           isLoading={false}
                         />
-                        <Divider borderColor="gray.600" orientation="vertical" height="20px" display={{ base: "none", md: "flex" }} />
+                        <Divider
+                          borderColor="gray.600"
+                          orientation="vertical"
+                          height="20px"
+                          display={{ base: "none", md: "flex" }}
+                        />
                         <HStack>
                           <Text color="gray.400" fontSize="sm">
-                            {review.seasonReviews.find(sr => sr.seasonNumber === selectedSeason)?.comments?.length || 0} comentários
+                            {review.seasonReviews.find((sr) => sr.seasonNumber === selectedSeason)
+                              ?.comments?.length || 0}{" "}
+                            comentários
                           </Text>
                         </HStack>
                       </HStack>
@@ -235,9 +243,7 @@ export function SeriesReviews() {
                 ))
               ) : (
                 <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
-                  <Text color="gray.400">
-                    Nenhuma avaliação encontrada para esta temporada.
-                  </Text>
+                  <Text color="gray.400">Nenhuma avaliação encontrada para esta temporada.</Text>
                 </Box>
               )}
             </VStack>
@@ -247,4 +253,4 @@ export function SeriesReviews() {
       <Footer />
     </Flex>
   );
-} 
+}

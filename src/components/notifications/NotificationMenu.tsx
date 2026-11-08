@@ -1,5 +1,15 @@
-import { Bell, ChatCircle, Check, Gear, Heart, Star, Trash, User, VideoCamera } from "@phosphor-icons/react";
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  Bell,
+  ChatCircle,
+  Check,
+  Gear,
+  Heart,
+  Star,
+  Trash,
+  User,
+  VideoCamera,
+} from "@phosphor-icons/react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Box,
   Icon,
@@ -25,8 +35,8 @@ import {
   Switch,
   FormControl,
   FormLabel,
-} from '@chakra-ui/react';
-import { useAuth } from '../../contexts/AuthContext';
+} from "@chakra-ui/react";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   Notification,
   NotificationType,
@@ -37,12 +47,12 @@ import {
   getGroupedNotifications,
   subscribeToNotifications,
   deleteAllUserNotifications,
-} from '../../services/notifications';
-import { NotificationItem } from './NotificationItem';
-import { useNavigate } from 'react-router-dom';
-import { AnimatedMenu } from '../common/AnimatedMenu';
-import { RippleEffect } from '../common/RippleEffect';
-import { updateUserNotificationSettings, getUserNotificationSettings } from '../../services/users';
+} from "../../services/notifications";
+import { NotificationItem } from "./NotificationItem";
+import { useNavigate } from "react-router-dom";
+import { AnimatedMenu } from "../common/AnimatedMenu";
+import { RippleEffect } from "../common/RippleEffect";
+import { updateUserNotificationSettings, getUserNotificationSettings } from "../../services/users";
 import { logError } from "../../utils/logger";
 
 export function NotificationMenu() {
@@ -50,22 +60,26 @@ export function NotificationMenu() {
   const toast = useToast();
   const navigate = useNavigate();
   const theme = useTheme();
-  
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<'all' | NotificationType>('all');
-  
+  const [activeFilter, setActiveFilter] = useState<"all" | NotificationType>("all");
+
   const [isRippling, setIsRippling] = useState(false);
-  
+
   // Estado para o menu animado
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
   // Estado e configurações para o modal de configurações
-  const { isOpen: isSettingsOpen, onOpen: onSettingsOpen, onClose: onSettingsClose } = useDisclosure();
+  const {
+    isOpen: isSettingsOpen,
+    onOpen: onSettingsOpen,
+    onClose: onSettingsClose,
+  } = useDisclosure();
   const [notificationSettings, setNotificationSettings] = useState({
     newEpisode: true,
     newFollower: true,
@@ -73,19 +87,19 @@ export function NotificationMenu() {
     newReaction: true,
     newReview: true,
     listComment: true,
-    listReaction: true
+    listReaction: true,
   });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
-  
+
   // Definir cores padrão caso o tema não esteja carregado ou não tenha as cores definidas
   const notificationColors = {
     newfollower: theme?.colors?.notifications?.newfollower || "#2B6CB0",
     newcomment: theme?.colors?.notifications?.newcomment || "#2F855A",
     newlike: theme?.colors?.notifications?.newlike || "#C05621",
     newepisode: theme?.colors?.notifications?.newepisode || "#2F855A",
-    newreview: theme?.colors?.notifications?.newreview || "#F6AD55"
+    newreview: theme?.colors?.notifications?.newreview || "#F6AD55",
   };
-  
+
   const onOpen = useCallback(() => {
     setIsOpen(true);
     // Pequeno atraso para permitir animação
@@ -97,19 +111,19 @@ export function NotificationMenu() {
     // Esperar a animação terminar antes de fechar realmente
     setTimeout(() => setIsOpen(false), 300);
   }, []);
-  
+
   const loadNotifications = useCallback(async () => {
     if (!currentUser) return;
-    
+
     setIsLoading(true);
     try {
       await cleanupNotifications(currentUser.uid);
-      
+
       const groupedNotifications = await getGroupedNotifications(currentUser.uid);
-      
+
       setNotifications(groupedNotifications);
-      
-      setUnreadCount(groupedNotifications.filter(n => !n.read).length);
+
+      setUnreadCount(groupedNotifications.filter((n) => !n.read).length);
     } catch (error) {
       logError("loadNotifications", error);
     } finally {
@@ -128,76 +142,76 @@ export function NotificationMenu() {
       setIsRippling(false);
     }, 1000);
   };
-    useEffect(() => {
-        if (!currentUser) return;
-        
-        loadNotifications();
-        
-        const unsubscribe = subscribeToNotifications(currentUser.uid, (updatedNotifications) => {
-          setNotifications(updatedNotifications);
-          setUnreadCount(updatedNotifications.filter(n => !n.read).length);
-          
-          if (updatedNotifications.length > notifications.length) {
-            handleRippleEffect();
-          }
-        });
-        
-        return () => unsubscribe();
-      }, [currentUser, loadNotifications]);
+  useEffect(() => {
+    if (!currentUser) return;
+
+    loadNotifications();
+
+    const unsubscribe = subscribeToNotifications(currentUser.uid, (updatedNotifications) => {
+      setNotifications(updatedNotifications);
+      setUnreadCount(updatedNotifications.filter((n) => !n.read).length);
+
+      if (updatedNotifications.length > notifications.length) {
+        handleRippleEffect();
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentUser, loadNotifications]);
 
   const handleNotificationClick = async (notification: Notification) => {
     try {
       if (isSelectionMode) return;
-      
+
       await markNotificationAsRead(currentUser?.uid || "", notification.id);
-      
-      setNotifications(prev => 
-        prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
       );
-      
-      setUnreadCount(prev => Math.max(0, prev - 1));
-      
+
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+
       switch (notification.type) {
         case NotificationType.NEW_FOLLOWER:
           if (notification.senderId && !notification.isDeleted) {
             navigate(`/u/${notification.senderName}`);
           }
           break;
-          
+
         case NotificationType.NEW_COMMENT:
         case NotificationType.NEW_REACTION:
           if (notification.reviewId) {
             navigate(`/series/${notification.seriesId}`);
           }
           break;
-          
+
         case NotificationType.NEW_EPISODE:
           if (notification.seriesId) {
             navigate(`/series/${notification.seriesId}`);
           }
           break;
-          
+
         case NotificationType.NEW_REVIEW:
           if (notification.seriesId) {
             navigate(`/series/${notification.seriesId}/reviews`);
           }
           break;
-          
+
         case NotificationType.LIST_COMMENT:
         case NotificationType.LIST_REACTION:
           if (notification.reviewId) {
             navigate(`/lists/${notification.reviewId}`);
           }
           break;
-          
+
         default:
           onClose();
       }
     } catch (error) {
       toast({
-        title: 'Erro',
-        description: 'Não foi possível processar a notificação',
-        status: 'error',
+        title: "Erro",
+        description: "Não foi possível processar a notificação",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -206,23 +220,23 @@ export function NotificationMenu() {
 
   const handleMarkAllAsRead = async () => {
     if (!currentUser) return;
-    
+
     try {
       await markAllNotificationsAsRead(currentUser.uid);
-      
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
-      
+
       toast({
-        title: 'Notificações marcadas como lidas',
-        status: 'success',
+        title: "Notificações marcadas como lidas",
+        status: "success",
         duration: 2000,
         isClosable: true,
       });
     } catch (error) {
       toast({
-        title: 'Erro',
-        status: 'error',
+        title: "Erro",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -235,12 +249,12 @@ export function NotificationMenu() {
   };
 
   const toggleNotificationSelection = (notificationId: string) => {
-    setSelectedNotifications(prev => {
+    setSelectedNotifications((prev) => {
       if (prev.includes(notificationId)) {
-        return prev.filter(id => id !== notificationId);
-    } else {
+        return prev.filter((id) => id !== notificationId);
+      } else {
         return [...prev, notificationId];
-    }
+      }
     });
   };
 
@@ -248,40 +262,45 @@ export function NotificationMenu() {
     if (selectedNotifications.length === filteredNotifications.length) {
       setSelectedNotifications([]);
     } else {
-      setSelectedNotifications(filteredNotifications.map(n => n.id));
+      setSelectedNotifications(filteredNotifications.map((n) => n.id));
     }
   };
 
   const deleteSelectedNotifications = async () => {
     if (selectedNotifications.length === 0) return;
-    
+
     try {
       setIsLoading(true);
-      
+
       // Se todas as notificações estiverem selecionadas e a quantidade for significativa,
       // usar a função de lote mais eficiente
-      if (selectedNotifications.length === notifications.length && selectedNotifications.length > 10) {
+      if (
+        selectedNotifications.length === notifications.length &&
+        selectedNotifications.length > 10
+      ) {
         // Confirmar exclusão em massa
-        const isConfirmed = window.confirm("Tem certeza que deseja excluir todas as notificações selecionadas? Esta ação não pode ser desfeita.");
-        
+        const isConfirmed = window.confirm(
+          "Tem certeza que deseja excluir todas as notificações selecionadas? Esta ação não pode ser desfeita."
+        );
+
         if (!isConfirmed) {
           setIsLoading(false);
           return;
         }
-        
+
         try {
           const count = await deleteAllUserNotifications(currentUser?.uid || "");
-          
+
           if (count > 0) {
             // Limpar a lista local
             setNotifications([]);
             setUnreadCount(0);
             setSelectedNotifications([]);
             setIsSelectionMode(false);
-            
+
             toast({
               title: `${count} notificações excluídas`,
-              status: 'success',
+              status: "success",
               duration: 2000,
               isClosable: true,
             });
@@ -292,10 +311,10 @@ export function NotificationMenu() {
           // Se falhar, continuar com o método individual
         }
       }
-      
+
       // Método original para exclusão individual
       const successfullyDeleted: string[] = [];
-      
+
       for (const notificationId of selectedNotifications) {
         try {
           const success = await deleteNotification(notificationId);
@@ -306,39 +325,40 @@ export function NotificationMenu() {
           console.error(`Erro ao excluir notificação ${notificationId}:`, err);
         }
       }
-      
+
       if (successfullyDeleted.length > 0) {
-        setNotifications(prev => prev.filter(n => !successfullyDeleted.includes(n.id)));
-        
-        setUnreadCount(prev => 
-          prev - successfullyDeleted.filter(id => 
-            notifications.find(n => n.id === id && !n.read)
-          ).length
+        setNotifications((prev) => prev.filter((n) => !successfullyDeleted.includes(n.id)));
+
+        setUnreadCount(
+          (prev) =>
+            prev -
+            successfullyDeleted.filter((id) => notifications.find((n) => n.id === id && !n.read))
+              .length
         );
-        
+
         setSelectedNotifications([]);
         setIsSelectionMode(false);
-        
+
         toast({
           title: `${successfullyDeleted.length} notificações excluídas`,
-          status: 'success',
+          status: "success",
           duration: 2000,
           isClosable: true,
         });
       } else {
         toast({
-          title: 'Não foi possível excluir notificações',
-          description: 'Verifique suas permissões ou tente novamente mais tarde',
-          status: 'warning',
+          title: "Não foi possível excluir notificações",
+          description: "Verifique suas permissões ou tente novamente mais tarde",
+          status: "warning",
           duration: 3000,
           isClosable: true,
         });
       }
     } catch (error) {
       toast({
-        title: 'Erro ao excluir notificações',
-        description: 'Ocorreu um problema ao processar sua solicitação',
-        status: 'error',
+        title: "Erro ao excluir notificações",
+        description: "Ocorreu um problema ao processar sua solicitação",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
@@ -346,32 +366,34 @@ export function NotificationMenu() {
       setIsLoading(false);
     }
   };
-  
+
   const filteredNotifications = useMemo(() => {
-    if (activeFilter === 'all') {
+    if (activeFilter === "all") {
       return notifications;
     }
-    
+
     // Para comentários, mostrar tanto NEW_COMMENT quanto LIST_COMMENT
     if (activeFilter === NotificationType.NEW_COMMENT) {
-      return notifications.filter(notification => 
-        notification.type === NotificationType.NEW_COMMENT || 
-        notification.type === NotificationType.LIST_COMMENT
+      return notifications.filter(
+        (notification) =>
+          notification.type === NotificationType.NEW_COMMENT ||
+          notification.type === NotificationType.LIST_COMMENT
       );
     }
-    
+
     // Para reações, mostrar tanto NEW_REACTION quanto LIST_REACTION
     if (activeFilter === NotificationType.NEW_REACTION) {
-      return notifications.filter(notification => 
-        notification.type === NotificationType.NEW_REACTION || 
-        notification.type === NotificationType.LIST_REACTION
+      return notifications.filter(
+        (notification) =>
+          notification.type === NotificationType.NEW_REACTION ||
+          notification.type === NotificationType.LIST_REACTION
       );
     }
-    
+
     // Para outros tipos, mostrar apenas o tipo específico
-    return notifications.filter(notification => notification.type === activeFilter);
+    return notifications.filter((notification) => notification.type === activeFilter);
   }, [notifications, activeFilter]);
-  
+
   const notificationCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const notification of notifications) {
@@ -379,53 +401,59 @@ export function NotificationMenu() {
     }
     return counts;
   }, [notifications]);
-  
-  const getItemAnimationStyle = useCallback((index: number) => ({
-    opacity: 1,
-    transform: 'translateY(0)',
-    transition: `all 0.3s ease-out ${0.1 + index * 0.05}s`,
-  }), []);
-  
+
+  const getItemAnimationStyle = useCallback(
+    (index: number) => ({
+      opacity: 1,
+      transform: "translateY(0)",
+      transition: `all 0.3s ease-out ${0.1 + index * 0.05}s`,
+    }),
+    []
+  );
+
   // Trigger para o botão de notificações
-  const trigger = useMemo(() => (
-    <IconButton
-      aria-label="Notificações"
-      icon={
-        <Box position="relative">
-          <Icon as={Bell} boxSize={6} color="white" />
-          {unreadCount > 0 && (
-            <Badge
-              colorScheme="red"
-              borderRadius="full"
-              position="absolute"
-              top="-2px"
-              right="-2px"
-              fontSize="10px"
-              minW="18px"
-              height="18px"
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              fontWeight="bold"
-              border="2px solid"
-              borderColor="gray.800"
-            >
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </Badge>
-          )}
-          <RippleEffect isRippling={isRippling} />
-        </Box>
-      }
-      variant="ghost"
-      _hover={{ bg: "gray.700" }}
-    />
-  ), [unreadCount, isRippling]);
-  
+  const trigger = useMemo(
+    () => (
+      <IconButton
+        aria-label="Notificações"
+        icon={
+          <Box position="relative">
+            <Icon as={Bell} boxSize={6} color="white" />
+            {unreadCount > 0 && (
+              <Badge
+                colorScheme="red"
+                borderRadius="full"
+                position="absolute"
+                top="-2px"
+                right="-2px"
+                fontSize="10px"
+                minW="18px"
+                height="18px"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                fontWeight="bold"
+                border="2px solid"
+                borderColor="gray.800"
+              >
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </Badge>
+            )}
+            <RippleEffect isRippling={isRippling} />
+          </Box>
+        }
+        variant="ghost"
+        _hover={{ bg: "gray.700" }}
+      />
+    ),
+    [unreadCount, isRippling]
+  );
+
   // Carregar configurações de notificação do usuário atual
   useEffect(() => {
     const loadNotificationSettings = async () => {
       if (!currentUser?.uid) return;
-      
+
       try {
         const settings = await getUserNotificationSettings(currentUser.uid);
         if (settings) {
@@ -435,22 +463,22 @@ export function NotificationMenu() {
         // Silenciar erro
       }
     };
-    
+
     loadNotificationSettings();
   }, [currentUser]);
-  
+
   // Função para atualizar configurações de notificação
   const handleNotificationSettingsChange = (setting: keyof typeof notificationSettings) => {
     setNotificationSettings({
       ...notificationSettings,
-      [setting]: !notificationSettings[setting]
+      [setting]: !notificationSettings[setting],
     });
   };
-  
+
   // Função para salvar configurações de notificação
   const saveNotificationSettings = async () => {
     if (!currentUser?.uid) return;
-    
+
     setIsSavingSettings(true);
     try {
       await updateUserNotificationSettings(currentUser.uid, notificationSettings);
@@ -491,7 +519,7 @@ export function NotificationMenu() {
         alignOnlyOnDesktop={true}
         responsivePosition={{
           base: { top: "60px", right: "8px", left: "8px" },
-          md: { }
+          md: {},
         }}
         transformOrigin="top right"
         width={{ base: "calc(100vw - 16px)", md: "380px" }}
@@ -505,7 +533,7 @@ export function NotificationMenu() {
           borderRadius: { base: "md", md: "md" },
           borderWidth: "1px",
           maxH: { base: "80vh", md: "80vh" },
-          overflow: "hidden"
+          overflow: "hidden",
         }}
       >
         {/* Cabeçalho do menu */}
@@ -513,8 +541,8 @@ export function NotificationMenu() {
           <Flex justify="space-between" align="center" mb={2}>
             <Flex align="center">
               <Text fontWeight="bold" color="white">
-              Notificações
-            </Text>
+                Notificações
+              </Text>
               <Tooltip label="Configurações de notificações" placement="top">
                 <IconButton
                   aria-label="Configurações de notificações"
@@ -529,8 +557,8 @@ export function NotificationMenu() {
               </Tooltip>
             </Flex>
             <HStack spacing={1}>
-          {notifications.length > 0 && (
-                isSelectionMode ? (
+              {notifications.length > 0 &&
+                (isSelectionMode ? (
                   <HStack spacing={1}>
                     <Button
                       size="xs"
@@ -539,17 +567,19 @@ export function NotificationMenu() {
                       color="white"
                       onClick={selectAllNotifications}
                     >
-                      {selectedNotifications.length === filteredNotifications.length ? "Nenhum" : "Todos"}
+                      {selectedNotifications.length === filteredNotifications.length
+                        ? "Nenhum"
+                        : "Todos"}
                     </Button>
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    _hover={{ bg: "gray.700" }}
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      _hover={{ bg: "gray.700" }}
                       colorScheme="red"
-                    onClick={toggleSelectionMode}
-                  >
-                    Cancelar
-                  </Button>
+                      onClick={toggleSelectionMode}
+                    >
+                      Cancelar
+                    </Button>
                     <IconButton
                       aria-label="Excluir selecionadas"
                       icon={<Trash />}
@@ -561,164 +591,249 @@ export function NotificationMenu() {
                       onClick={deleteSelectedNotifications}
                     />
                   </HStack>
-              ) : (
+                ) : (
                   <HStack spacing={1}>
                     {unreadCount > 0 && (
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    _hover={{ bg: "gray.700" }}
-                    color="white"
-                    onClick={handleMarkAllAsRead}
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        _hover={{ bg: "gray.700" }}
+                        color="white"
+                        onClick={handleMarkAllAsRead}
                         leftIcon={<Check />}
-                  >
-                    Marcar lidas
-                  </Button>
+                      >
+                        Marcar lidas
+                      </Button>
                     )}
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    _hover={{ bg: "gray.700" }}
-                    color="white"
-                    onClick={toggleSelectionMode}
-                  >
-                    Selecionar
-                  </Button>
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      _hover={{ bg: "gray.700" }}
+                      color="white"
+                      onClick={toggleSelectionMode}
+                    >
+                      Selecionar
+                    </Button>
                   </HStack>
-                )
-              )}
+                ))}
             </HStack>
-        </Flex>
+          </Flex>
 
           {/* Filtros de tipo */}
           {notifications.length > 0 && (
             <HStack spacing={2} overflowX="auto" pb={1}>
               <Tooltip label="Todas as notificações" placement="top">
-          <Button
-            size="xs"
-            variant={activeFilter === 'all' ? "solid" : "ghost"}
+                <Button
+                  size="xs"
+                  variant={activeFilter === "all" ? "solid" : "ghost"}
                   colorScheme="primary"
-            onClick={() => setActiveFilter('all')}
-          >
+                  onClick={() => setActiveFilter("all")}
+                >
                   <Icon as={Bell} mr={1} />
                   {notifications.length}
-          </Button>
+                </Button>
               </Tooltip>
-              
+
               {notificationCounts[NotificationType.NEW_FOLLOWER] > 0 && (
                 <Tooltip label="Novos seguidores" placement="top">
-          <Button
-            size="xs"
-            variant={activeFilter === NotificationType.NEW_FOLLOWER ? "solid" : "ghost"}
-                    bg={activeFilter === NotificationType.NEW_FOLLOWER ? notificationColors.newfollower : "transparent"}
-                    color={activeFilter === NotificationType.NEW_FOLLOWER ? "white" : notificationColors.newfollower}
-                    _hover={{ bg: activeFilter === NotificationType.NEW_FOLLOWER ? notificationColors.newfollower : "gray.700" }}
-            onClick={() => setActiveFilter(NotificationType.NEW_FOLLOWER)}
-          >
-                    <User weight="fill" style={{ marginRight: '4px' }} />
-                    {notificationCounts[NotificationType.NEW_FOLLOWER]}
-          </Button>
-                </Tooltip>
-              )}
-              
-              {(notificationCounts[NotificationType.NEW_COMMENT] > 0 || notificationCounts[NotificationType.LIST_COMMENT] > 0) && (
-                <Tooltip label="Comentários" placement="top">
-          <Button
-            size="xs"
-                    variant={activeFilter === NotificationType.NEW_COMMENT || activeFilter === NotificationType.LIST_COMMENT ? "solid" : "ghost"}
-                    bg={activeFilter === NotificationType.NEW_COMMENT || activeFilter === NotificationType.LIST_COMMENT ? notificationColors.newcomment : "transparent"}
-                    color={activeFilter === NotificationType.NEW_COMMENT || activeFilter === NotificationType.LIST_COMMENT ? "white" : notificationColors.newcomment}
-                    _hover={{ bg: activeFilter === NotificationType.NEW_COMMENT || activeFilter === NotificationType.LIST_COMMENT ? notificationColors.newcomment : "gray.700" }}
-            onClick={() => setActiveFilter(NotificationType.NEW_COMMENT)}
+                  <Button
+                    size="xs"
+                    variant={activeFilter === NotificationType.NEW_FOLLOWER ? "solid" : "ghost"}
+                    bg={
+                      activeFilter === NotificationType.NEW_FOLLOWER
+                        ? notificationColors.newfollower
+                        : "transparent"
+                    }
+                    color={
+                      activeFilter === NotificationType.NEW_FOLLOWER
+                        ? "white"
+                        : notificationColors.newfollower
+                    }
+                    _hover={{
+                      bg:
+                        activeFilter === NotificationType.NEW_FOLLOWER
+                          ? notificationColors.newfollower
+                          : "gray.700",
+                    }}
+                    onClick={() => setActiveFilter(NotificationType.NEW_FOLLOWER)}
                   >
-                    <ChatCircle weight="fill" style={{ marginRight: '4px' }} />
-                    {(notificationCounts[NotificationType.NEW_COMMENT] || 0) + (notificationCounts[NotificationType.LIST_COMMENT] || 0)}
+                    <User weight="fill" style={{ marginRight: "4px" }} />
+                    {notificationCounts[NotificationType.NEW_FOLLOWER]}
                   </Button>
                 </Tooltip>
               )}
-              
-              {(notificationCounts[NotificationType.NEW_REACTION] > 0 || notificationCounts[NotificationType.LIST_REACTION] > 0) && (
+
+              {(notificationCounts[NotificationType.NEW_COMMENT] > 0 ||
+                notificationCounts[NotificationType.LIST_COMMENT] > 0) && (
+                <Tooltip label="Comentários" placement="top">
+                  <Button
+                    size="xs"
+                    variant={
+                      activeFilter === NotificationType.NEW_COMMENT ||
+                      activeFilter === NotificationType.LIST_COMMENT
+                        ? "solid"
+                        : "ghost"
+                    }
+                    bg={
+                      activeFilter === NotificationType.NEW_COMMENT ||
+                      activeFilter === NotificationType.LIST_COMMENT
+                        ? notificationColors.newcomment
+                        : "transparent"
+                    }
+                    color={
+                      activeFilter === NotificationType.NEW_COMMENT ||
+                      activeFilter === NotificationType.LIST_COMMENT
+                        ? "white"
+                        : notificationColors.newcomment
+                    }
+                    _hover={{
+                      bg:
+                        activeFilter === NotificationType.NEW_COMMENT ||
+                        activeFilter === NotificationType.LIST_COMMENT
+                          ? notificationColors.newcomment
+                          : "gray.700",
+                    }}
+                    onClick={() => setActiveFilter(NotificationType.NEW_COMMENT)}
+                  >
+                    <ChatCircle weight="fill" style={{ marginRight: "4px" }} />
+                    {(notificationCounts[NotificationType.NEW_COMMENT] || 0) +
+                      (notificationCounts[NotificationType.LIST_COMMENT] || 0)}
+                  </Button>
+                </Tooltip>
+              )}
+
+              {(notificationCounts[NotificationType.NEW_REACTION] > 0 ||
+                notificationCounts[NotificationType.LIST_REACTION] > 0) && (
                 <Tooltip label="Reações" placement="top">
                   <Button
                     size="xs"
-                    variant={activeFilter === NotificationType.NEW_REACTION || activeFilter === NotificationType.LIST_REACTION ? "solid" : "ghost"}
-                    bg={activeFilter === NotificationType.NEW_REACTION || activeFilter === NotificationType.LIST_REACTION ? notificationColors.newlike : "transparent"}
-                    color={activeFilter === NotificationType.NEW_REACTION || activeFilter === NotificationType.LIST_REACTION ? "white" : notificationColors.newlike}
-                    _hover={{ bg: activeFilter === NotificationType.NEW_REACTION || activeFilter === NotificationType.LIST_REACTION ? notificationColors.newlike : "gray.700" }}
+                    variant={
+                      activeFilter === NotificationType.NEW_REACTION ||
+                      activeFilter === NotificationType.LIST_REACTION
+                        ? "solid"
+                        : "ghost"
+                    }
+                    bg={
+                      activeFilter === NotificationType.NEW_REACTION ||
+                      activeFilter === NotificationType.LIST_REACTION
+                        ? notificationColors.newlike
+                        : "transparent"
+                    }
+                    color={
+                      activeFilter === NotificationType.NEW_REACTION ||
+                      activeFilter === NotificationType.LIST_REACTION
+                        ? "white"
+                        : notificationColors.newlike
+                    }
+                    _hover={{
+                      bg:
+                        activeFilter === NotificationType.NEW_REACTION ||
+                        activeFilter === NotificationType.LIST_REACTION
+                          ? notificationColors.newlike
+                          : "gray.700",
+                    }}
                     onClick={() => setActiveFilter(NotificationType.NEW_REACTION)}
                   >
-                    <Heart weight="fill" style={{ marginRight: '4px' }} />
-                    {(notificationCounts[NotificationType.NEW_REACTION] || 0) + (notificationCounts[NotificationType.LIST_REACTION] || 0)}
+                    <Heart weight="fill" style={{ marginRight: "4px" }} />
+                    {(notificationCounts[NotificationType.NEW_REACTION] || 0) +
+                      (notificationCounts[NotificationType.LIST_REACTION] || 0)}
                   </Button>
                 </Tooltip>
               )}
-              
+
               {notificationCounts[NotificationType.NEW_REVIEW] > 0 && (
                 <Tooltip label="Avaliações" placement="top">
                   <Button
                     size="xs"
                     variant={activeFilter === NotificationType.NEW_REVIEW ? "solid" : "ghost"}
-                    bg={activeFilter === NotificationType.NEW_REVIEW ? notificationColors.newreview : "transparent"}
-                    color={activeFilter === NotificationType.NEW_REVIEW ? "white" : notificationColors.newreview}
-                    _hover={{ bg: activeFilter === NotificationType.NEW_REVIEW ? notificationColors.newreview : "gray.700" }}
+                    bg={
+                      activeFilter === NotificationType.NEW_REVIEW
+                        ? notificationColors.newreview
+                        : "transparent"
+                    }
+                    color={
+                      activeFilter === NotificationType.NEW_REVIEW
+                        ? "white"
+                        : notificationColors.newreview
+                    }
+                    _hover={{
+                      bg:
+                        activeFilter === NotificationType.NEW_REVIEW
+                          ? notificationColors.newreview
+                          : "gray.700",
+                    }}
                     onClick={() => setActiveFilter(NotificationType.NEW_REVIEW)}
                   >
-                    <Star weight="fill" style={{ marginRight: '4px' }} />
+                    <Star weight="fill" style={{ marginRight: "4px" }} />
                     {notificationCounts[NotificationType.NEW_REVIEW]}
-          </Button>
+                  </Button>
                 </Tooltip>
               )}
-              
+
               {notificationCounts[NotificationType.NEW_EPISODE] > 0 && (
                 <Tooltip label="Novos episódios" placement="top">
-          <Button
-            size="xs"
-            variant={activeFilter === NotificationType.NEW_EPISODE ? "solid" : "ghost"}
-                    bg={activeFilter === NotificationType.NEW_EPISODE ? notificationColors.newepisode : "transparent"}
-                    color={activeFilter === NotificationType.NEW_EPISODE ? "white" : notificationColors.newepisode}
-                    _hover={{ bg: activeFilter === NotificationType.NEW_EPISODE ? notificationColors.newepisode : "gray.700" }}
-            onClick={() => setActiveFilter(NotificationType.NEW_EPISODE)}
-          >
-                    <VideoCamera weight="fill" style={{ marginRight: '4px' }} />
+                  <Button
+                    size="xs"
+                    variant={activeFilter === NotificationType.NEW_EPISODE ? "solid" : "ghost"}
+                    bg={
+                      activeFilter === NotificationType.NEW_EPISODE
+                        ? notificationColors.newepisode
+                        : "transparent"
+                    }
+                    color={
+                      activeFilter === NotificationType.NEW_EPISODE
+                        ? "white"
+                        : notificationColors.newepisode
+                    }
+                    _hover={{
+                      bg:
+                        activeFilter === NotificationType.NEW_EPISODE
+                          ? notificationColors.newepisode
+                          : "gray.700",
+                    }}
+                    onClick={() => setActiveFilter(NotificationType.NEW_EPISODE)}
+                  >
+                    <VideoCamera weight="fill" style={{ marginRight: "4px" }} />
                     {notificationCounts[NotificationType.NEW_EPISODE]}
-          </Button>
+                  </Button>
                 </Tooltip>
               )}
-        </HStack>
+            </HStack>
           )}
-    </Box>
-        
+        </Box>
+
         <Divider borderColor="gray.700" />
-        
+
         {/* Lista de notificações */}
         <Box maxH="60vh" overflowY="auto">
           {isLoading && (
-      <Box p={8} textAlign="center">
+            <Box p={8} textAlign="center">
               <VStack spacing={3}>
-          <Spinner color="primary.300" size="md" />
-          <Text color="gray.400" fontSize="sm">
-            Atualizando notificações...
-          </Text>
-        </VStack>
-      </Box>
+                <Spinner color="primary.300" size="md" />
+                <Text color="gray.400" fontSize="sm">
+                  Atualizando notificações...
+                </Text>
+              </VStack>
+            </Box>
           )}
-          
+
           {!isLoading && filteredNotifications.length === 0 && (
             <Box p={8} textAlign="center">
               <VStack spacing={3}>
                 <Box p={3} borderRadius="full" bg="gray.700">
                   <Icon as={Bell} color="gray.400" boxSize={6} />
-          </Box>
-          <Text color="gray.400" fontSize="sm">
-            {notifications.length === 0 
-              ? "Você não tem notificações" 
-              : "Nenhuma notificação nesta categoria"}
-          </Text>
-        </VStack>
-      </Box>
+                </Box>
+                <Text color="gray.400" fontSize="sm">
+                  {notifications.length === 0
+                    ? "Você não tem notificações"
+                    : "Nenhuma notificação nesta categoria"}
+                </Text>
+              </VStack>
+            </Box>
           )}
-          
-          {!isLoading && filteredNotifications.length > 0 && 
+
+          {!isLoading &&
+            filteredNotifications.length > 0 &&
             filteredNotifications.map((notification, index) => (
               <NotificationItem
                 key={notification.id}
@@ -730,8 +845,7 @@ export function NotificationMenu() {
                 index={index}
                 getItemAnimationStyle={getItemAnimationStyle}
               />
-            ))
-          }
+            ))}
         </Box>
       </AnimatedMenu>
 
@@ -746,27 +860,27 @@ export function NotificationMenu() {
               <Text color="gray.400" fontSize="sm">
                 Escolha quais tipos de notificações você deseja receber:
               </Text>
-              
+
               <FormControl display="flex" alignItems="center">
                 <FormLabel htmlFor="new-follower-notifications" mb="0" color="white" flex="1">
                   Novos seguidores
                 </FormLabel>
-                <Switch 
+                <Switch
                   id="new-follower-notifications"
                   isChecked={notificationSettings.newFollower}
-                  onChange={() => handleNotificationSettingsChange('newFollower')}
+                  onChange={() => handleNotificationSettingsChange("newFollower")}
                   colorScheme="primary"
                 />
               </FormControl>
-              
+
               <FormControl display="flex" alignItems="center">
                 <FormLabel htmlFor="new-reaction-notifications" mb="0" color="white" flex="1">
                   Reações nas suas avaliações
                 </FormLabel>
-                <Switch 
+                <Switch
                   id="new-reaction-notifications"
                   isChecked={notificationSettings.newReaction}
-                  onChange={() => handleNotificationSettingsChange('newReaction')}
+                  onChange={() => handleNotificationSettingsChange("newReaction")}
                   colorScheme="primary"
                 />
               </FormControl>
@@ -775,63 +889,63 @@ export function NotificationMenu() {
                 <FormLabel htmlFor="new-comment-notifications" mb="0" color="white" flex="1">
                   Comentários nas suas avaliações
                 </FormLabel>
-                <Switch 
+                <Switch
                   id="new-comment-notifications"
                   isChecked={notificationSettings.newComment}
-                  onChange={() => handleNotificationSettingsChange('newComment')}
+                  onChange={() => handleNotificationSettingsChange("newComment")}
                   colorScheme="primary"
                 />
               </FormControl>
-              
+
               <FormControl display="flex" alignItems="center">
                 <FormLabel htmlFor="list-reaction-notifications" mb="0" color="white" flex="1">
                   Reações nas suas listas
                 </FormLabel>
-                <Switch 
+                <Switch
                   id="list-reaction-notifications"
                   isChecked={notificationSettings.listReaction}
-                  onChange={() => handleNotificationSettingsChange('listReaction')}
+                  onChange={() => handleNotificationSettingsChange("listReaction")}
                   colorScheme="primary"
                 />
               </FormControl>
-              
+
               <FormControl display="flex" alignItems="center">
                 <FormLabel htmlFor="list-comment-notifications" mb="0" color="white" flex="1">
                   Comentários nas suas listas
                 </FormLabel>
-                <Switch 
+                <Switch
                   id="list-comment-notifications"
                   isChecked={notificationSettings.listComment}
-                  onChange={() => handleNotificationSettingsChange('listComment')}
+                  onChange={() => handleNotificationSettingsChange("listComment")}
                   colorScheme="primary"
                 />
               </FormControl>
-              
+
               <FormControl display="flex" alignItems="center">
                 <FormLabel htmlFor="new-review-notifications" mb="0" color="white" flex="1">
                   Avaliações de pessoas que você segue
                 </FormLabel>
-                <Switch 
+                <Switch
                   id="new-review-notifications"
                   isChecked={notificationSettings.newReview}
-                  onChange={() => handleNotificationSettingsChange('newReview')}
+                  onChange={() => handleNotificationSettingsChange("newReview")}
                   colorScheme="primary"
                 />
               </FormControl>
-              
+
               <FormControl display="flex" alignItems="center">
                 <FormLabel htmlFor="new-episode-notifications" mb="0" color="white" flex="1">
                   Novos episódios das séries na watchlist
                 </FormLabel>
-                <Switch 
+                <Switch
                   id="new-episode-notifications"
                   isChecked={notificationSettings.newEpisode}
-                  onChange={() => handleNotificationSettingsChange('newEpisode')}
+                  onChange={() => handleNotificationSettingsChange("newEpisode")}
                   colorScheme="primary"
                 />
               </FormControl>
-              
-              <Button 
+
+              <Button
                 colorScheme="primary"
                 onClick={saveNotificationSettings}
                 isLoading={isSavingSettings}
@@ -846,4 +960,4 @@ export function NotificationMenu() {
       </Modal>
     </>
   );
-} 
+}

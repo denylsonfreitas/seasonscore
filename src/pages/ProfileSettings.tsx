@@ -22,17 +22,17 @@ import {
 } from "@chakra-ui/react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { createOrUpdateUser, getUserData, isUsernameAvailable, updateUsername } from "../services/users";
+import {
+  createOrUpdateUser,
+  getUserData,
+  isUsernameAvailable,
+  updateUsername,
+} from "../services/users";
 import { updateProfile } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { ExtendedUser } from "../types/auth";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
-import {
-  Image as ImageIcon,
-  UploadSimple,
-  Plus,
-  X,
-} from "@phosphor-icons/react";
+import { Image as ImageIcon, UploadSimple, Plus, X } from "@phosphor-icons/react";
 import { db, auth } from "../config/firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { UserAvatar } from "../components/common/UserAvatar";
@@ -70,7 +70,7 @@ export function ProfileSettings() {
         setIsRemovingCover(false);
         setTempPhotoURL(null);
         setTempCoverURL(null);
-        
+
         const userData = await getUserData(currentUser.uid);
         if (userData) {
           setDisplayName(userData.displayName || "");
@@ -87,9 +87,7 @@ export function ProfileSettings() {
     loadUserData();
   }, [currentUser]);
 
-  const handlePhotoUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || !event.target.files[0] || !currentUser) return;
 
     setUploadingPhoto(true);
@@ -119,9 +117,7 @@ export function ProfileSettings() {
     }
   };
 
-  const handleCoverUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || !event.target.files[0] || !currentUser) return;
 
     setUploadingCover(true);
@@ -141,8 +137,7 @@ export function ProfileSettings() {
     } catch (error) {
       toast({
         title: "Erro ao carregar capa",
-        description:
-          "Ocorreu um erro ao carregar sua foto de capa. Tente novamente.",
+        description: "Ocorreu um erro ao carregar sua foto de capa. Tente novamente.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -203,7 +198,7 @@ export function ProfileSettings() {
     try {
       const userData = await getUserData(currentUser.uid);
       const currentUsername = userData?.username?.toLowerCase();
-      
+
       if (newUsername && newUsername.toLowerCase() !== currentUsername) {
         if (newUsername.length < 3) {
           throw new Error("O nome de usuário deve ter pelo menos 3 caracteres");
@@ -225,7 +220,7 @@ export function ProfileSettings() {
         displayName,
         photoURL: photoURLToUse,
         coverURL: coverURLToUse,
-        ...(newUsername ? { username: newUsername.toLowerCase() } : {})
+        ...(newUsername ? { username: newUsername.toLowerCase() } : {}),
       };
 
       const updatedData = {
@@ -238,14 +233,13 @@ export function ProfileSettings() {
         try {
           await updateProfile(auth.currentUser, {
             displayName,
-            photoURL: '',
+            photoURL: "",
           });
-          
+
           const userRef = doc(db, "users", auth.currentUser.uid);
           await updateDoc(userRef, {
-            photoURL: null
+            photoURL: null,
           });
-          
         } catch (err) {
           logError("handleSave", err);
         }
@@ -266,10 +260,8 @@ export function ProfileSettings() {
 
       navigate("/profile", { replace: true });
       window.location.reload();
-
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Erro desconhecido";
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro ao atualizar perfil",
         description: `Ocorreu um erro ao salvar suas configurações: ${errorMessage}`,
@@ -337,7 +329,7 @@ export function ProfileSettings() {
                   {/* Avatar com placeholder quando foto removida */}
                   <UserAvatar
                     size="2xl"
-                    photoURL={isRemovingPhoto ? null : (tempPhotoURL || currentUser?.photoURL)}
+                    photoURL={isRemovingPhoto ? null : tempPhotoURL || currentUser?.photoURL}
                     name={currentUser?.displayName || ""}
                     userId={currentUser?.uid}
                   />
@@ -358,12 +350,7 @@ export function ProfileSettings() {
                         rounded="full"
                         aria-label="Opções de foto de perfil"
                       />
-                      <MenuList
-                        bg="gray.700"
-                        borderColor="gray.600"
-                        zIndex={2000}
-                        minW="150px"
-                      >
+                      <MenuList bg="gray.700" borderColor="gray.600" zIndex={2000} minW="150px">
                         <MenuItem
                           icon={<UploadSimple weight="bold" />}
                           onClick={() => photoInputRef.current?.click()}
@@ -400,12 +387,7 @@ export function ProfileSettings() {
                   onChange={handleCoverUpload}
                 />
                 <AspectRatio ratio={16 / 9} maxH="150px">
-                  <Box
-                    bg="gray.700"
-                    borderRadius="md"
-                    overflow="hidden"
-                    position="relative"
-                  >
+                  <Box bg="gray.700" borderRadius="md" overflow="hidden" position="relative">
                     {isRemovingCover ? (
                       <Flex
                         align="center"
@@ -464,14 +446,10 @@ export function ProfileSettings() {
                           </Menu>
                         </Box>
                       </Flex>
-                    ) : (tempCoverURL || currentUser?.coverURL) ? (
+                    ) : tempCoverURL || currentUser?.coverURL ? (
                       <>
                         <Image
-                          src={
-                            tempCoverURL 
-                              ? tempCoverURL
-                              : currentUser?.coverURL || ''
-                          }
+                          src={tempCoverURL ? tempCoverURL : currentUser?.coverURL || ""}
                           alt="Foto de capa"
                           objectFit="cover"
                           w="100%"
@@ -575,12 +553,7 @@ export function ProfileSettings() {
                   </Text>
                 )}
               </FormControl>
-              <Button
-                colorScheme="primary"
-                onClick={handleSave}
-                isLoading={isSaving}
-                mt={4}
-              >
+              <Button colorScheme="primary" onClick={handleSave} isLoading={isSaving} mt={4}>
                 Salvar Alterações
               </Button>
             </VStack>

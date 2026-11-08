@@ -67,7 +67,7 @@ export function InfiniteScroll({
         </Center>
       );
     }
-    
+
     if (!hasMore) {
       return (
         <Text color="gray.500" fontSize="sm">
@@ -75,7 +75,7 @@ export function InfiniteScroll({
         </Text>
       );
     }
-    
+
     return null;
   }, [isLoading, hasMore]);
 
@@ -87,4 +87,4 @@ export function InfiniteScroll({
       </Box>
     </>
   );
-} 
+}

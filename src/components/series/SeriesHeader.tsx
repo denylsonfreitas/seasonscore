@@ -66,8 +66,8 @@ interface SeriesHeaderProps {
   navigate: (path: string) => void;
 }
 
-export function SeriesHeader({ 
-  series, 
+export function SeriesHeader({
+  series,
   isLoading,
   reviews,
   userReview,
@@ -80,29 +80,29 @@ export function SeriesHeader({
   onSetDeleteAlertOpen,
   onSetSeasonToDelete,
   onReviewClick,
-  navigate
+  navigate,
 }: SeriesHeaderProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [trailerUrl, setTrailerUrl] = useState<string | null>(null);
   const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
   const toast = useToast();
-  
+
   useEffect(() => {
     const fetchTrailer = async () => {
       if (!seriesId) return;
-      
+
       setIsLoadingTrailer(true);
       try {
         const videos = await getSeriesVideos(parseInt(seriesId));
-        
-        const trailer = videos.find(video => 
-          video.type === "Trailer" && video.site === "YouTube"
-        ) || videos.find(video => 
-          video.type === "Teaser" && video.site === "YouTube"
-        ) || videos.find(video => 
-          (video.type === "Clip" || video.type === "Featurette") && video.site === "YouTube"
-        );
-        
+
+        const trailer =
+          videos.find((video) => video.type === "Trailer" && video.site === "YouTube") ||
+          videos.find((video) => video.type === "Teaser" && video.site === "YouTube") ||
+          videos.find(
+            (video) =>
+              (video.type === "Clip" || video.type === "Featurette") && video.site === "YouTube"
+          );
+
         if (trailer) {
           setTrailerUrl(`https://www.youtube.com/watch?v=${trailer.key}`);
         }
@@ -112,10 +112,10 @@ export function SeriesHeader({
         setIsLoadingTrailer(false);
       }
     };
-    
+
     fetchTrailer();
   }, [seriesId]);
-  
+
   const handleOpenTrailer = () => {
     if (trailerUrl) {
       window.open(trailerUrl, "_blank", "noopener,noreferrer");
@@ -133,12 +133,7 @@ export function SeriesHeader({
   return (
     <>
       <Box position="relative">
-        <Box
-          h="400px"
-          w="100%"
-          position="relative"
-          overflow="hidden"
-        >
+        <Box h="400px" w="100%" position="relative" overflow="hidden">
           <Box
             position="absolute"
             top={0}
@@ -208,7 +203,7 @@ export function SeriesHeader({
                     {isExpanded ? "Menos" : "Mais..."}
                   </Button>
                 )}
-                
+
                 <Button
                   leftIcon={<VideoCamera weight="fill" />}
                   colorScheme="primary"
@@ -226,12 +221,12 @@ export function SeriesHeader({
               </Flex>
             </Box>
 
-            <Stack 
+            <Stack
               direction="row"
-              spacing={6} 
+              spacing={6}
               align="center"
-              bg="gray.800" 
-              p={4} 
+              bg="gray.800"
+              p={4}
               borderRadius="lg"
               width="100%"
               flexWrap={{ base: "wrap", md: "nowrap" }}
@@ -241,21 +236,23 @@ export function SeriesHeader({
               <HStack spacing={3} width="auto">
                 <Icon as={PlayCircle} color="primary.400" boxSize={5} weight="fill" />
                 <VStack spacing={0} align="start">
-                  <Text color="gray.400" fontSize="sm">Temporadas</Text>
+                  <Text color="gray.400" fontSize="sm">
+                    Temporadas
+                  </Text>
                   <Text color="white" fontSize="lg" fontWeight="bold">
                     {series.number_of_seasons}
                   </Text>
                 </VStack>
               </HStack>
 
-              <Divider orientation="vertical"
-                      height="40px"
-                      borderColor="gray.600" />
-              
+              <Divider orientation="vertical" height="40px" borderColor="gray.600" />
+
               <HStack spacing={3} width="auto">
                 <Icon as={Calendar} color="primary.400" boxSize={5} weight="fill" />
                 <VStack spacing={0} align="start">
-                  <Text color="gray.400" fontSize="sm">Lançamento</Text>
+                  <Text color="gray.400" fontSize="sm">
+                    Lançamento
+                  </Text>
                   <Text color="white" fontSize="lg" fontWeight="bold">
                     {series.first_air_date ? new Date(series.first_air_date).getFullYear() : "N/A"}
                   </Text>
@@ -286,4 +283,4 @@ export function SeriesHeader({
       </Container>
     </>
   );
-} 
+}

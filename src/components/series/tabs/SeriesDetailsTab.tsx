@@ -101,12 +101,12 @@ export function SeriesDetailsTab({ series }: SeriesDetailsTabProps) {
                       mx="auto"
                     />
                   ) : (
-                    <Flex 
-                      align="center" 
-                      justify="center" 
-                      bg="gray.700" 
-                      width="60px" 
-                      height="60px" 
+                    <Flex
+                      align="center"
+                      justify="center"
+                      bg="gray.700"
+                      width="60px"
+                      height="60px"
                       borderRadius="md"
                     >
                       <Text color="white" fontSize="xl">
@@ -125,4 +125,4 @@ export function SeriesDetailsTab({ series }: SeriesDetailsTabProps) {
       )}
     </VStack>
   );
-} 
+}
