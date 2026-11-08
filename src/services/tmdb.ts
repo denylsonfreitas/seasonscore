@@ -70,6 +70,9 @@ export interface SeriesListItem {
 export interface Series extends SeriesListItem {
   number_of_seasons: number;
   number_of_episodes?: number;
+  /** Último episódio já exibido; o próximo anunciado fica em next_episode_to_air. */
+  last_episode_to_air?: Episode | null;
+  next_episode_to_air?: Episode | null;
   last_air_date?: string;
   in_production?: boolean;
   tagline?: string;
@@ -337,33 +340,12 @@ export async function getSeasonDetails(seriesId: number, seasonNumber: number): 
   return response.data;
 }
 
-// Verificar novos episódios de uma série
+/** Último episódio JÁ exibido (o TMDB informa direto nos detalhes da série). */
 export async function getLatestEpisode(seriesId: number): Promise<Episode | null> {
   try {
-    // Obter detalhes da série para saber o número de temporadas
-    const seriesDetails = await getSeriesDetails(seriesId);
-
-    if (seriesDetails.number_of_seasons === 0) {
-      return null;
-    }
-
-    // Obter detalhes da última temporada
-    const latestSeason = await getSeasonDetails(seriesId, seriesDetails.number_of_seasons);
-
-    if (!latestSeason.episodes || latestSeason.episodes.length === 0) {
-      return null;
-    }
-
-    // Ordenar episódios por data de lançamento (mais recente primeiro)
-    const sortedEpisodes = [...latestSeason.episodes].sort((a, b) => {
-      if (!a.air_date) return 1;
-      if (!b.air_date) return -1;
-      return new Date(b.air_date).getTime() - new Date(a.air_date).getTime();
-    });
-
-    // Retornar o episódio mais recente
-    return sortedEpisodes[0];
-  } catch (error) {
+    const details = await getSeriesDetails(seriesId);
+    return details.last_episode_to_air ?? null;
+  } catch {
     return null;
   }
 }

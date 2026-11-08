@@ -4,9 +4,23 @@ import { NotificationType } from "./notifications";
 import { logError } from "../utils/logger";
 
 /**
- * Avisa o próprio usuário quando uma série da watchlist teve episódio nos últimos 7 dias.
- * Cada episódio é avisado uma única vez (controle em last_notified_episodes).
+ * Ao adicionar uma série à watchlist, avisa se ela teve episódio nos últimos 7 dias.
+ * Depois disso, a tarefa agendada no banco (private.check_new_episodes) cuida dos
+ * episódios seguintes. Cada episódio é avisado uma única vez (last_notified_episodes).
  */
+/** Mesmo formato da tarefa agendada: "Novo episódio de X: T2 · E08 – Nome". */
+export function episodeMessage(
+  seriesName: string,
+  episode: { season_number: number; episode_number: number; name?: string }
+): string {
+  const number = String(episode.episode_number).padStart(2, "0");
+  const name = episode.name?.trim() ? ` – ${episode.name.trim()}` : "";
+  return `Novo episódio de ${seriesName}: T${episode.season_number} · E${number}${name}`.slice(
+    0,
+    500
+  );
+}
+
 export async function checkNewEpisodeForSeries(
   userId: string,
   seriesId: number,
@@ -31,9 +45,10 @@ export async function checkNewEpisodeForSeries(
       return;
     }
 
+    // Só episódios já exibidos, de no máximo 7 dias atrás
     const diffDays =
-      Math.abs(Date.now() - new Date(latestEpisode.air_date).getTime()) / (1000 * 60 * 60 * 24);
-    if (diffDays > 7) return;
+      (Date.now() - new Date(latestEpisode.air_date).getTime()) / (1000 * 60 * 60 * 24);
+    if (diffDays < 0 || diffDays > 7) return;
 
     await supabase.from("notifications").insert({
       user_id: userId,
@@ -43,7 +58,7 @@ export async function checkNewEpisodeForSeries(
       series_poster: posterPath,
       season_number: latestEpisode.season_number,
       episode_number: latestEpisode.episode_number,
-      message: `Novo episódio de ${seriesName}: S${latestEpisode.season_number}E${latestEpisode.episode_number} - ${latestEpisode.name}`,
+      message: episodeMessage(seriesName, latestEpisode),
     });
 
     await supabase.from("last_notified_episodes").upsert({
