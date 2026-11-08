@@ -1,81 +1,53 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate, Link as RouterLink } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams, Link as RouterLink } from "react-router-dom";
 import {
-  Box,
-  Heading,
-  Text,
-  Flex,
-  HStack,
-  VStack,
-  Tag,
-  TagLabel,
-  SimpleGrid,
-  Button,
-  IconButton,
-  Divider,
-  useColorModeValue,
-  Skeleton,
-  Tooltip,
-  Badge,
-  useToast,
-  Alert,
-  AlertIcon,
-  AlertTitle,
-  useDisclosure,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalCloseButton,
-  Input,
-  InputGroup,
-  InputRightElement,
-  Grid,
-  GridItem,
-  Image,
   AlertDialog,
   AlertDialogBody,
+  AlertDialogContent,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogContent,
   AlertDialogOverlay,
-  Icon,
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  Collapse,
+  Box,
+  Button,
+  Flex,
+  Heading,
+  HStack,
+  IconButton,
+  Link,
+  SimpleGrid,
+  Skeleton,
+  Tag,
+  Text,
+  Tooltip,
+  useDisclosure,
+  useToast,
+  Wrap,
+  WrapItem,
 } from "@chakra-ui/react";
-import {
-  Calendar,
-  ChatCircle,
-  Globe,
-  Lock,
-  MagnifyingGlass,
-  NotePencil,
-  Plus,
-  Share,
-  Trash,
-} from "@phosphor-icons/react";
+import { ChatCircle, Lock, NotePencil, Plus, Share, X, ListBullets } from "@phosphor-icons/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { useAuth } from "../contexts/AuthContext";
+import {
+  addSeriesToList,
+  getListById,
+  removeSeriesFromList,
+  toggleListReaction,
+} from "../services/lists";
+import type { SeriesListItem } from "../services/tmdb";
+import type { ListWithUserData } from "../types/list";
 import { SeriesCard } from "../components/series/SeriesCard";
 import { CommentSection } from "../components/common/CommentSection";
 import { ReactionButton } from "../components/common/ReactionButton";
-import {
-  getListById,
-  toggleListReaction,
-  removeSeriesFromList,
-  addSeriesToList,
-} from "../services/lists";
-import { ListWithUserData } from "../types/list";
-import { SeriesListItem, searchSeries } from "../services/tmdb";
-import { EditListModal } from "../components/lists/EditListModal";
 import { UserAvatar } from "../components/common/UserAvatar";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
-import { format, formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { getErrorMessage } from "../utils/errors";
+import { EmptyState } from "../components/common/EmptyState";
+import { EditListModal } from "../components/lists/EditListModal";
+import { AddSeriesModal } from "../components/lists/AddSeriesModal";
 import { PageContainer } from "../components/layout/PageContainer";
+import { getGlobalLoginPopover } from "../components/layout/Navbar";
+import { SEO } from "../components/common/SEO";
+import { getErrorMessage } from "../utils/errors";
 
 export default function ListPage() {
   const { listId } = useParams();
@@ -84,956 +56,422 @@ export default function ListPage() {
   const toast = useToast();
   const queryClient = useQueryClient();
 
-  // Cores e estilos
-  const cardBg = useColorModeValue("gray.800", "gray.800");
-  const textColor = useColorModeValue("white", "white");
-  const mutedTextColor = useColorModeValue("gray.400", "gray.400");
-  const primaryColor = useColorModeValue("primary.500", "primary.400");
+  const edit = useDisclosure();
+  const addSeries = useDisclosure();
+  const removeAlert = useDisclosure();
+  const cancelRef = useRef<HTMLButtonElement>(null);
 
   const [list, setList] = useState<ListWithUserData | null>(null);
-  const [, setError] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
-  const [isRemovingSeries, setIsRemovingSeries] = useState<number | null>(null);
   const [isTogglingLike, setIsTogglingLike] = useState(false);
-  const [, setIsForceFetchingReaction] = useState(false);
-  const [localCommentsCount, setLocalCommentsCount] = useState<number | null>(null);
+  const [toRemove, setToRemove] = useState<{ id: number; name: string } | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [commentsCount, setCommentsCount] = useState<number | null>(null);
 
-  const {
-    isOpen: isSearchModalOpen,
-    onOpen: onSearchModalOpen,
-    onClose: onSearchModalClose,
-  } = useDisclosure();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SeriesListItem[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [, setIsAddingSeries] = useState<number | null>(null);
-  const [searchPerformed, setSearchPerformed] = useState(false);
-
-  const {
-    isOpen: isEditModalOpen,
-    onOpen: onEditModalOpen,
-    onClose: onEditModalClose,
-  } = useDisclosure();
-
-  const [seriesIdToRemove, setSeriesIdToRemove] = useState<number | null>(null);
-  const [seriesNameToRemove, setSeriesNameToRemove] = useState<string>("");
-  const {
-    isOpen: isRemoveAlertOpen,
-    onOpen: onRemoveAlertOpen,
-    onClose: onRemoveAlertClose,
-  } = useDisclosure();
-  const cancelRef = React.useRef<HTMLButtonElement>(null);
-
-  const { isOpen: isCommentExpanded, onToggle: toggleComments } = useDisclosure();
-
-  // Usar React Query para obter e manter os dados da lista atualizados
-  const {
-    data: queryList,
-    refetch,
-    isLoading,
-    isError,
-  } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["list", listId],
-    queryFn: async () => {
-      if (!listId) return null;
-
-      try {
-        const data = await getListById(listId);
-        if (!data) {
-          throw new Error("Lista não encontrada");
-        }
-        return data;
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Erro ao carregar a lista");
-        navigate("/404", { replace: true });
-        throw err;
-      }
-    },
+    queryFn: () => getListById(listId!),
     enabled: !!listId,
-    staleTime: 1000, // 1 segundo
-    refetchInterval: 5000, // Refetch a cada 5 segundos
-    refetchOnWindowFocus: true,
+    staleTime: 30_000,
   });
 
-  // Sincronizar o estado local com os dados do React Query
   useEffect(() => {
-    if (queryList) {
-      setList(queryList);
-      setLikesCount(queryList.likesCount || 0);
+    if (isError || (!isLoading && data === null)) navigate("/404", { replace: true });
+  }, [isError, isLoading, data, navigate]);
 
-      if (currentUser && queryList.reactions) {
-        const userReaction = queryList.reactions.find(
-          (reaction) => reaction.userId === currentUser.uid && reaction.type === "like"
-        );
-        setIsLiked(!!userReaction);
-      } else {
-        setIsLiked(false);
-      }
+  // Estado local para atualizar a tela na hora (curtir, adicionar, remover)
+  useEffect(() => {
+    if (!data) return;
+    setList(data);
+    setLikesCount(data.likesCount || 0);
+    setIsLiked(
+      !!currentUser &&
+        !!data.reactions?.some((r) => r.userId === currentUser.uid && r.type === "like")
+    );
+  }, [data, currentUser]);
+
+  const isOwner = !!currentUser && list?.userId === currentUser.uid;
+  const existingIds = useMemo(() => new Set(list?.items.map((i) => i.seriesId)), [list]);
+
+  const invalidateLists = () => {
+    for (const key of ["list", "popularLists", "userLists", "profileLists", "followedUsersLists"]) {
+      queryClient.invalidateQueries({ queryKey: [key] });
     }
-  }, [queryList, currentUser]);
-
-  // Configurar um polling ativo para o estado da reação
-  useEffect(() => {
-    if (!listId || !currentUser) return;
-
-    const intervalId = setInterval(() => {
-      if (!document.hidden) {
-        // Forçar um refetch dos dados da lista a cada 3 segundos quando a página estiver visível
-        refetch();
-      }
-    }, 3000);
-
-    return () => clearInterval(intervalId);
-  }, [listId, currentUser, refetch]);
-
-  useEffect(() => {
-    document.title = "SeasonScore";
-  }, [list]);
-
-  // Função para buscar o estado atual da reação do usuário diretamente do banco de dados
-  const fetchUserReactionState = useCallback(async () => {
-    if (!currentUser || !listId) return;
-
-    try {
-      setIsForceFetchingReaction(true);
-      const listData = await getListById(listId);
-
-      if (listData && listData.reactions) {
-        const userReaction = listData.reactions.find(
-          (reaction) => reaction.userId === currentUser.uid && reaction.type === "like"
-        );
-
-        setIsLiked(!!userReaction);
-        setLikesCount(listData.likesCount || 0);
-      }
-    } catch (error) {
-      console.error("Erro ao buscar estado da reação:", error);
-    } finally {
-      setIsForceFetchingReaction(false);
-    }
-  }, [currentUser, listId]);
-
-  // Efeito para forçar a atualização do estado de curtida periodicamente
-  useEffect(() => {
-    if (!currentUser || !listId) return;
-
-    // Buscar inicialmente
-    fetchUserReactionState();
-
-    // Configurar um intervalo para buscar atualizações a cada 10 segundos
-    const intervalId = setInterval(() => {
-      if (!document.hidden) {
-        fetchUserReactionState();
-      }
-    }, 10000);
-
-    // Limpar intervalo ao desmontar
-    return () => clearInterval(intervalId);
-  }, [currentUser, listId, fetchUserReactionState]);
+  };
 
   const handleLikeToggle = async () => {
-    if (!currentUser || !list) {
-      toast({
-        title: "Faça login",
-        description: "Você precisa estar logado para curtir listas",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-      });
+    if (!currentUser) {
+      getGlobalLoginPopover()?.();
       return;
     }
-
-    if (isTogglingLike) return;
-
+    if (!list || isTogglingLike) return;
+    const wasLiked = isLiked;
+    setIsTogglingLike(true);
+    setIsLiked(!wasLiked);
+    setLikesCount((c) => (wasLiked ? Math.max(0, c - 1) : c + 1));
     try {
-      setIsTogglingLike(true);
-
-      // Atualizar UI imediatamente para feedback instantâneo
-      setIsLiked(!isLiked);
-      setLikesCount((prevCount) => (isLiked ? Math.max(0, prevCount - 1) : prevCount + 1));
-
-      // Chamar API para persistir a mudança
       const result = await toggleListReaction(list.id, "like");
-
-      // Atualizar estado com dados do servidor
       setIsLiked(result.liked);
       setLikesCount(result.likesCount);
-
-      // Invalidar consultas relacionadas
-      queryClient.invalidateQueries({ queryKey: ["list", listId] });
-      queryClient.invalidateQueries({ queryKey: ["lists"] });
-      queryClient.invalidateQueries({ queryKey: ["popularLists"] });
-      queryClient.invalidateQueries({ queryKey: ["userLists"] });
-
-      // Forçar um refetch imediato para atualizar todos os componentes
-      refetch();
-
-      setIsTogglingLike(false);
-
-      // Programar refetches adicionais para garantir que todos os componentes estejam atualizados
-      setTimeout(() => refetch(), 500);
-      setTimeout(() => refetch(), 1500);
+      invalidateLists();
     } catch (error) {
-      // Reverter alterações em caso de erro
-      setIsLiked(isLiked);
-      setLikesCount(likesCount);
-      setIsTogglingLike(false);
-
+      setIsLiked(wasLiked);
+      setLikesCount((c) => (wasLiked ? c + 1 : Math.max(0, c - 1)));
       toast({
-        title: "Erro",
-        description: getErrorMessage(error) || "Não foi possível processar sua reação",
+        title: getErrorMessage(error) || "Não foi possível curtir",
         status: "error",
         duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
-  // Função para confirmar remoção de série
-  const confirmRemoveSeries = (seriesId: number, seriesName: string) => {
-    setSeriesIdToRemove(seriesId);
-    setSeriesNameToRemove(seriesName);
-    onRemoveAlertOpen();
-  };
-
-  const handleRemoveSeriesFromList = async (seriesId: number) => {
-    if (!list || !currentUser) return;
-
-    if (list.userId !== currentUser.uid) {
-      toast({
-        title: "Permissão negada",
-        description: "Você não tem permissão para editar esta lista",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    try {
-      setIsRemovingSeries(seriesId);
-      await removeSeriesFromList(list.id, seriesId);
-
-      setList((prevList) => {
-        if (!prevList) return null;
-
-        return {
-          ...prevList,
-          items: prevList.items.filter((item) => item.seriesId !== seriesId),
-        };
-      });
-
-      toast({
-        title: "Série removida",
-        description: "A série foi removida da lista com sucesso",
-        status: "success",
-        duration: 2000,
-        isClosable: true,
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: getErrorMessage(error) || "Não foi possível remover a série da lista",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
       });
     } finally {
-      setIsRemovingSeries(null);
-      onRemoveAlertClose();
+      setIsTogglingLike(false);
     }
   };
 
-  const handleShare = async () => {
+  const handleAdd = async (series: SeriesListItem) => {
     if (!list) return;
-
     try {
-      const url = window.location.href;
-      await navigator.clipboard.writeText(url);
-
-      toast({
-        title: "Link copiado!",
-        description: "O link para esta lista foi copiado para sua área de transferência",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível copiar o link",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-
-    setIsSearching(true);
-    setSearchPerformed(true);
-    try {
-      const response = await searchSeries(searchQuery, 1);
-      const seriesResults = response.results.map((item) => ({
-        id: item.id,
-        name: item.name,
-        overview: item.overview,
-        poster_path: item.poster_path,
-        backdrop_path: item.backdrop_path,
-        first_air_date: item.first_air_date,
-        vote_average: item.vote_average,
-      }));
-      setSearchResults(seriesResults);
-    } catch (error) {
-      toast({
-        title: "Erro na busca",
-        description: "Não foi possível buscar séries",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // Adicionar useEffect para busca automática
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (searchQuery.trim().length >= 1) {
-        handleSearch();
-      } else {
-        setSearchResults([]);
-        setSearchPerformed(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery]);
-
-  const handleAddSeriesToList = async (series: SeriesListItem) => {
-    if (!listId || !currentUser) return;
-
-    if (list?.items.some((item) => item.seriesId === series.id)) {
-      toast({
-        title: "Série já adicionada",
-        description: "Esta série já está na sua lista",
-        status: "info",
-        duration: 2000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    setIsAddingSeries(series.id);
-    try {
-      await addSeriesToList(listId, {
+      await addSeriesToList(list.id, {
         id: series.id,
         name: series.name,
         poster_path: series.poster_path,
       });
-
-      setList((prevList) => {
-        if (!prevList) return null;
-
-        return {
-          ...prevList,
-          items: [
-            ...prevList.items,
-            {
-              seriesId: series.id,
-              name: series.name,
-              poster_path: series.poster_path,
-              addedAt: new Date(),
-            },
-          ],
-        };
-      });
-
-      toast({
-        title: "Série adicionada",
-        description: "A série foi adicionada à lista com sucesso",
-        status: "success",
-        duration: 2000,
-        isClosable: true,
-      });
+      setList((prev) =>
+        prev
+          ? {
+              ...prev,
+              items: [
+                ...prev.items,
+                {
+                  seriesId: series.id,
+                  name: series.name,
+                  poster_path: series.poster_path,
+                  addedAt: new Date(),
+                },
+              ],
+            }
+          : prev
+      );
+      invalidateLists();
     } catch (error) {
       toast({
-        title: "Erro",
-        description: getErrorMessage(error) || "Não foi possível adicionar a série à lista",
+        title: getErrorMessage(error) || "Não foi possível adicionar",
         status: "error",
         duration: 3000,
-        isClosable: true,
+      });
+    }
+  };
+
+  const handleRemove = async () => {
+    if (!list || !toRemove) return;
+    setIsRemoving(true);
+    try {
+      await removeSeriesFromList(list.id, toRemove.id);
+      setList((prev) =>
+        prev ? { ...prev, items: prev.items.filter((i) => i.seriesId !== toRemove.id) } : prev
+      );
+      invalidateLists();
+      toast({ title: `${toRemove.name} saiu da lista`, status: "success", duration: 2000 });
+    } catch (error) {
+      toast({
+        title: getErrorMessage(error) || "Não foi possível remover",
+        status: "error",
+        duration: 3000,
       });
     } finally {
-      setIsAddingSeries(null);
+      setIsRemoving(false);
+      setToRemove(null);
+      removeAlert.onClose();
     }
   };
 
-  const handleTagClick = (tag: string) => {
-    navigate(`/lists?tag=${encodeURIComponent(tag)}&source=listPage`);
-  };
-
-  // Função auxiliar para converter datas
-  const convertToDate = (timestamp: Date | number | string | null | undefined): Date => {
-    if (!timestamp) return new Date();
-    if (timestamp instanceof Date) return timestamp;
-    if (typeof timestamp === "number") {
-      return new Date(timestamp * 1000);
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast({ title: "Link copiado", status: "success", duration: 2000 });
+    } catch {
+      toast({ title: "Não foi possível copiar o link", status: "error", duration: 3000 });
     }
-    return new Date(timestamp);
   };
 
-  // Função para atualizar a contagem de comentários localmente
-  const handleCommentsCountChange = (count: number) => {
-    setLocalCommentsCount(count);
-  };
-
-  // Resetar a contagem local de comentários quando a lista mudar
-  useEffect(() => {
-    setLocalCommentsCount(null);
-  }, [listId]);
-
-  if (isLoading) {
+  if (isLoading || !list) {
     return (
-      <PageContainer py={8}>
-        <Skeleton height="40px" width="50%" mb={4} />
-        <Skeleton height="20px" width="30%" mb={6} />
-        <Skeleton height="200px" mb={8} />
-        <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={6}>
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} height="250px" borderRadius="md" />
+      <PageContainer py={10}>
+        <Skeleton h="36px" w="50%" startColor="ink.900" endColor="ink.850" />
+        <Skeleton mt={3} h="16px" w="30%" startColor="ink.900" endColor="ink.850" />
+        <SimpleGrid mt={10} columns={{ base: 3, md: 5, lg: 6 }} spacing={4}>
+          {Array.from({ length: 6 }, (_, i) => (
+            <Skeleton
+              key={i}
+              aspectRatio={2 / 3}
+              borderRadius="md"
+              startColor="ink.900"
+              endColor="ink.850"
+            />
           ))}
         </SimpleGrid>
       </PageContainer>
     );
   }
 
-  if (isError || !list) {
-    return null;
-  }
+  const author = list.userDisplayName || list.username || "Usuário";
+  const count = list.items.length;
+  const updated = list.updatedAt
+    ? formatDistanceToNow(new Date(list.updatedAt), { locale: ptBR, addSuffix: true })
+    : null;
 
   return (
-    <Flex direction="column">
-      <PageContainer py={6} flex="1">
-        {/* Breadcrumbs com efeito de hover */}
-        <Breadcrumb
-          mb={6}
-          color="gray.400"
-          separator=">"
-          fontSize="xs"
-          fontWeight="medium"
-          spacing={2}
-        >
-          <BreadcrumbItem>
-            <BreadcrumbLink
-              as={RouterLink}
-              to="/lists"
-              _hover={{ color: "primary.300", textDecoration: "none" }}
-              transition="color 0.2s ease"
-            >
-              Listas
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbItem isCurrentPage>
-            <Text color="primary.300">{list?.title}</Text>
-          </BreadcrumbItem>
-        </Breadcrumb>
+    <>
+      <SEO
+        title={`${list.title} | SeasonScore`}
+        description={list.description || `Lista de ${author}`}
+      />
 
-        {/* Card principal com gradiente e efeitos visuais */}
-        <Box
-          bg={cardBg}
-          borderRadius="xl"
-          overflow="hidden"
-          mb={8}
-          boxShadow="lg"
-          position="relative"
-          _before={{
-            content: '""',
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: "8px",
-            borderTopRadius: "xl",
-          }}
-        >
-          <Box p={{ base: 3, md: 8 }}>
-            {/* Informações do usuário e data */}
-            <Grid
-              templateColumns={{ base: "1fr", md: "auto 1fr auto" }}
-              gap={{ base: 2, md: 4 }}
-              mb={{ base: 3, md: 6 }}
-              alignItems="center"
-            >
-              <HStack spacing={{ base: 2, md: 4 }}>
-                <UserAvatar
-                  userId={list?.userId}
-                  photoURL={list?.userPhotoURL}
-                  size="sm"
-                  showBorder
-                />
-                <VStack align="start" spacing={0}>
-                  <HStack>
-                    <Text fontWeight="medium" color={textColor} fontSize={{ base: "xs", md: "md" }}>
-                      Lista criada por
-                    </Text>
-                    <Text
-                      as={RouterLink}
-                      to={`/u/${list?.username || list?.userId}`}
-                      fontWeight="bold"
-                      color={primaryColor}
-                      _hover={{ textDecoration: "underline" }}
-                      transition="color 0.2s"
-                      fontSize={{ base: "xs", md: "md" }}
-                    >
-                      @{list?.username || list?.userDisplayName || "Usuário"}
-                    </Text>
-                  </HStack>
-                  <HStack spacing={1}>
-                    <Icon as={Calendar} color={mutedTextColor} weight="fill" size={12} />
-                    <Tooltip
-                      label={format(convertToDate(list?.createdAt), "dd 'de' MMMM 'de' yyyy", {
-                        locale: ptBR,
-                      })}
-                      placement="bottom"
-                    >
-                      <Text color={mutedTextColor} fontSize={{ base: "xs", md: "sm" }}>
-                        {formatDistanceToNow(convertToDate(list?.createdAt), {
-                          locale: ptBR,
-                          addSuffix: true,
-                        })}
-                      </Text>
-                    </Tooltip>
-                  </HStack>
-                </VStack>
-              </HStack>
-
-              {/* Badge de visibilidade e botão de edição */}
-              <Box
-                display="flex"
-                justifyContent={{ base: "flex-start", md: "flex-end" }}
-                position={{ base: "absolute", md: "relative" }}
-                top={{ base: 3, md: 0 }}
-                right={{ base: 3, md: -5 }}
-                gap={2}
-                alignItems="center"
+      <PageContainer py={{ base: 8, md: 12 }}>
+        <Flex justify="space-between" align="flex-start" gap={4} wrap="wrap">
+          <Box maxW="720px">
+            <HStack spacing={2}>
+              <Text textStyle="label" color="ink.400">
+                Lista · {count} {count === 1 ? "série" : "séries"}
+              </Text>
+              {!list.isPublic && (
+                <HStack spacing={1} color="ink.400" fontSize="xs">
+                  <Lock size={12} />
+                  <Text>{list.accessByLink ? "Privada, acesso por link" : "Privada"}</Text>
+                </HStack>
+              )}
+            </HStack>
+            <Heading as="h1" size="h1" mt={2}>
+              {list.title}
+            </Heading>
+            <HStack mt={3} spacing={2.5}>
+              <UserAvatar
+                size="xs"
+                photoURL={list.userPhotoURL}
+                name={author}
+                userId={list.userId}
+              />
+              <Link
+                as={RouterLink}
+                to={`/u/${list.username || list.userId}`}
+                fontSize="sm"
+                fontWeight={500}
+                color="ink.200"
+                _hover={{ color: "signal.300", textDecoration: "none" }}
               >
-                <Badge
-                  colorScheme={list?.isPublic ? "green" : "gray"}
-                  fontSize={{ base: "xs", md: "md" }}
-                  py={1}
-                  px={2}
-                  borderRadius="full"
-                >
-                  <Flex align="center">
-                    <Icon as={list?.isPublic ? Globe : Lock} weight="fill" mr={1} size={12} />
-                    {list?.isPublic ? "Pública" : "Privada"}
-                  </Flex>
-                </Badge>
-
-                {currentUser && list?.userId === currentUser.uid && (
-                  <IconButton
-                    icon={<Icon as={NotePencil} />}
-                    aria-label="Editar lista"
-                    size="sm"
-                    colorScheme="primary"
-                    variant="outline"
-                    onClick={onEditModalOpen}
-                  />
-                )}
-              </Box>
-            </Grid>
-
-            {/* Conteúdo principal da lista */}
-            <Grid templateColumns="1fr" gap={{ base: 3, md: 6 }} mb={{ base: 4, md: 6 }}>
-              {/* Detalhes da lista */}
-              <GridItem>
-                <VStack align="start" spacing={{ base: 2, md: 4 }} h="100%">
-                  <Box>
-                    <Heading
-                      as="h1"
-                      size={{ base: "sm", md: "lg" }}
-                      color={textColor}
-                      lineHeight="shorter"
-                      mb={1}
-                    >
-                      {list?.title}
-                    </Heading>
-                    {list?.description && (
-                      <Text
-                        fontSize={{ base: "xs", md: "md" }}
-                        color={mutedTextColor}
-                        whiteSpace="pre-wrap"
-                        overflowWrap="break-word"
-                        wordBreak="break-word"
-                        sx={{
-                          hyphens: "auto",
-                        }}
-                      >
-                        {list?.description}
-                      </Text>
-                    )}
-                  </Box>
-
-                  {/* Tags */}
-                  {list?.tags && list.tags.length > 0 && (
-                    <HStack spacing={2} flexWrap="wrap">
-                      {list.tags.map((tag, index) => (
-                        <Tag
-                          key={index}
-                          size="sm"
-                          colorScheme="primary"
-                          borderRadius="full"
-                          cursor="pointer"
-                          onClick={() => handleTagClick(tag)}
-                          _hover={{
-                            transform: "scale(1.05)",
-                            bg: "primary.600",
-                            color: "white",
-                          }}
-                          transition="all 0.2s"
-                          px={3}
-                          py={1}
-                        >
-                          <TagLabel>{tag}</TagLabel>
-                        </Tag>
-                      ))}
-                    </HStack>
-                  )}
-
-                  {/* Botões de ação */}
-                  <HStack spacing={{ base: 2, md: 4 }} w="full" flexWrap="wrap">
-                    <Box onClick={(e) => e.stopPropagation()} mr={{ base: 2, md: 4 }}>
-                      <ReactionButton
-                        likes={
-                          Array.isArray(list?.reactions)
-                            ? list.reactions.filter((r) => r.type === "like").map((r) => r.userId)
-                            : []
-                        }
-                        onReaction={handleLikeToggle}
-                        tooltipText={isLiked ? "Descurtir" : "Curtir"}
-                        showCount={true}
-                        isLoading={isTogglingLike}
-                        forcedLikeState={isLiked}
-                        forcedLikesCount={likesCount}
-                        size="sm"
-                      />
-                    </Box>
-
-                    <Button
-                      leftIcon={<Icon as={ChatCircle} weight="fill" />}
-                      variant="ghost"
+                {author}
+              </Link>
+              {updated && (
+                <Text fontSize="xs" color="ink.400" fontFamily="mono">
+                  · atualizada {updated}
+                </Text>
+              )}
+            </HStack>
+            {list.description && (
+              <Text mt={4} color="ink.200" whiteSpace="pre-wrap">
+                {list.description}
+              </Text>
+            )}
+            {list.tags && list.tags.length > 0 && (
+              <Wrap mt={4} spacing={1.5}>
+                {list.tags.map((tag) => (
+                  <WrapItem key={tag}>
+                    <Tag
+                      as={RouterLink}
+                      to={`/lists?tag=${encodeURIComponent(tag)}`}
                       size="sm"
-                      onClick={toggleComments}
-                      color={isCommentExpanded ? "blue.500" : mutedTextColor}
-                      _hover={{ color: "blue.300" }}
+                      _hover={{ color: "ink.50" }}
                     >
-                      {localCommentsCount !== null ? localCommentsCount : list?.commentsCount || 0}
-                    </Button>
-
-                    <Button
-                      leftIcon={<Icon as={Share} />}
-                      variant="ghost"
-                      size={{ base: "sm", md: "md" }}
-                      onClick={handleShare}
-                      color={mutedTextColor}
-                      _hover={{ color: "primary.300" }}
-                    >
-                      Compartilhar
-                    </Button>
-                  </HStack>
-                </VStack>
-              </GridItem>
-
-              <Divider color="gray.700" />
-
-              {/* Seção de séries da lista */}
-              <Box>
-                <Flex
-                  justifyContent="space-between"
-                  alignItems="center"
-                  mb={6}
-                  flexDirection={{ base: "column", md: "row" }}
-                  gap={{ base: 4, md: 0 }}
-                >
-                  {currentUser && list?.userId === currentUser.uid && (
-                    <Tooltip label="Adicionar séries à lista">
-                      <Button
-                        leftIcon={<Icon as={Plus} />}
-                        colorScheme="primary"
-                        size={{ base: "sm", md: "md" }}
-                        onClick={onSearchModalOpen}
-                        w={{ base: "full", md: "auto" }}
-                      >
-                        Adicionar séries
-                      </Button>
-                    </Tooltip>
-                  )}
-                </Flex>
-
-                {list?.items.length === 0 ? (
-                  <Alert status="info" borderRadius="md" bg="gray.700" borderColor="gray.700">
-                    <AlertIcon />
-                    <AlertTitle>Esta lista está vazia</AlertTitle>
-                  </Alert>
-                ) : (
-                  <SimpleGrid
-                    columns={{ base: 5, sm: 7, md: 8, lg: 10, xl: 10 }}
-                    spacing={{ base: 2, md: 3 }}
-                  >
-                    {list?.items.map((item) => {
-                      const seriesData: SeriesListItem = {
-                        id: item.seriesId,
-                        name: item.name,
-                        poster_path: item.poster_path,
-                        backdrop_path: null,
-                        overview: "",
-                        vote_average: 0,
-                        first_air_date: "",
-                      };
-
-                      return (
-                        <Box
-                          key={item.seriesId}
-                          position="relative"
-                          transform="scale(1)"
-                          transition="transform 0.2s ease"
-                          _hover={{ transform: "scale(1.02)" }}
-                        >
-                          <SeriesCard series={seriesData} size="sm" />
-                          {currentUser && list.userId === currentUser.uid && (
-                            <Box
-                              position="absolute"
-                              bottom={1}
-                              right={1}
-                              zIndex={10}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <IconButton
-                                icon={<Icon as={Trash} size={10} />}
-                                aria-label="Remover série"
-                                size="xs"
-                                colorScheme="red"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
-                                  confirmRemoveSeries(item.seriesId, item.name);
-                                }}
-                                isLoading={isRemovingSeries === item.seriesId}
-                                opacity={0.9}
-                                _hover={{
-                                  transform: "scale(1.1)",
-                                  boxShadow: "0 0 0 1px var(--chakra-colors-red-500)",
-                                }}
-                                transition="all 0.2s"
-                                borderRadius="full"
-                                bg="rgba(229, 62, 62, 0.85)"
-                                boxShadow="0 0 4px rgba(0,0,0,0.3)"
-                              />
-                            </Box>
-                          )}
-                        </Box>
-                      );
-                    })}
-                  </SimpleGrid>
-                )}
-              </Box>
-            </Grid>
+                      {tag}
+                    </Tag>
+                  </WrapItem>
+                ))}
+              </Wrap>
+            )}
           </Box>
-        </Box>
 
-        {/* Seção de comentários */}
-        <Collapse in={isCommentExpanded} animateOpacity>
-          <Box bg={cardBg} borderRadius="xl" overflow="hidden" mb={8} boxShadow="lg" id="comments">
-            <CommentSection
-              objectId={list?.id || ""}
-              objectType="list"
-              commentsCount={list?.commentsCount || 0}
-              onCommentsCountChange={handleCommentsCountChange}
+          {isOwner && (
+            <HStack spacing={2}>
+              <Button leftIcon={<Plus size={16} />} onClick={addSeries.onOpen}>
+                Adicionar séries
+              </Button>
+              <Button variant="outline" leftIcon={<NotePencil size={16} />} onClick={edit.onOpen}>
+                Editar
+              </Button>
+            </HStack>
+          )}
+        </Flex>
+
+        <HStack
+          mt={6}
+          py={3}
+          spacing={1}
+          borderTop="1px solid"
+          borderBottom="1px solid"
+          borderColor="ink.800"
+        >
+          <Box px={2}>
+            <ReactionButton
+              likes={[]}
+              onReaction={handleLikeToggle}
+              tooltipText={isLiked ? "Descurtir lista" : "Curtir lista"}
+              forcedLikeState={isLiked}
+              forcedLikesCount={likesCount}
+              isLoading={isTogglingLike}
             />
           </Box>
-        </Collapse>
+          <Button
+            as="a"
+            href="#comentarios"
+            variant="ghost"
+            size="sm"
+            leftIcon={<ChatCircle size={16} />}
+          >
+            <Text as="span" fontFamily="mono">
+              {commentsCount ?? list.commentsCount ?? 0}
+            </Text>
+          </Button>
+          <Button variant="ghost" size="sm" leftIcon={<Share size={16} />} onClick={handleShare}>
+            Copiar link
+          </Button>
+        </HStack>
+
+        <Box as="section" mt={8} aria-label="Séries da lista">
+          {count === 0 ? (
+            <EmptyState
+              icon={ListBullets}
+              title="Esta lista ainda não tem séries."
+              description={
+                isOwner ? "Busque e adicione as séries que fazem parte dela." : undefined
+              }
+              action={
+                isOwner ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    leftIcon={<Plus size={14} />}
+                    onClick={addSeries.onOpen}
+                  >
+                    Adicionar séries
+                  </Button>
+                ) : undefined
+              }
+            />
+          ) : (
+            <SimpleGrid
+              as="ol"
+              listStyleType="none"
+              columns={{ base: 3, sm: 4, md: 5, lg: 6 }}
+              spacingX={{ base: 3, md: 4 }}
+              spacingY={6}
+            >
+              {list.items.map((item, index) => (
+                <Box as="li" key={item.seriesId} position="relative" role="group">
+                  <SeriesCard
+                    series={{
+                      id: item.seriesId,
+                      name: item.name,
+                      poster_path: item.poster_path,
+                      backdrop_path: null,
+                      overview: "",
+                      first_air_date: "",
+                      vote_average: 0,
+                    }}
+                    size="lg"
+                    position={index + 1}
+                  />
+                  {isOwner && (
+                    <Tooltip label="Remover da lista" openDelay={300}>
+                      <IconButton
+                        aria-label={`Remover ${item.name} da lista`}
+                        icon={<X size={14} />}
+                        size="xs"
+                        position="absolute"
+                        bottom={{ base: "52px", md: "56px" }}
+                        right={1.5}
+                        zIndex={3}
+                        bg="rgba(15,15,14,0.85)"
+                        color="ink.100"
+                        _hover={{ bg: "danger", color: "ink.50" }}
+                        opacity={{ base: 1, md: 0 }}
+                        _groupHover={{ opacity: 1 }}
+                        _focus={{ opacity: 1 }}
+                        onClick={() => {
+                          setToRemove({ id: item.seriesId, name: item.name });
+                          removeAlert.onOpen();
+                        }}
+                      />
+                    </Tooltip>
+                  )}
+                </Box>
+              ))}
+            </SimpleGrid>
+          )}
+        </Box>
+
+        <Box as="section" id="comentarios" mt={12} scrollMarginTop="80px" maxW="760px">
+          <CommentSection
+            objectId={list.id}
+            objectType="list"
+            commentsCount={list.commentsCount || 0}
+            onCommentsCountChange={setCommentsCount}
+          />
+        </Box>
       </PageContainer>
 
-      {/* Modais e diálogos */}
-      {list && currentUser && list.userId === currentUser.uid && (
-        <EditListModal
-          isOpen={isEditModalOpen}
-          onClose={onEditModalClose}
-          list={list}
-          onListUpdated={(updatedList) => {
-            setList((prevList) => {
-              if (!prevList) return null;
-              return {
-                ...prevList,
-                title: updatedList.title,
-                description: updatedList.description,
-                tags: updatedList.tags,
-                isPublic: updatedList.isPublic,
-              };
-            });
-          }}
-        />
+      {isOwner && (
+        <>
+          <EditListModal
+            isOpen={edit.isOpen}
+            onClose={edit.onClose}
+            list={list}
+            onListUpdated={(updated) => {
+              setList((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      title: updated.title,
+                      description: updated.description,
+                      tags: updated.tags,
+                      isPublic: updated.isPublic,
+                      accessByLink: updated.accessByLink,
+                    }
+                  : prev
+              );
+              invalidateLists();
+            }}
+          />
+          <AddSeriesModal
+            isOpen={addSeries.isOpen}
+            onClose={addSeries.onClose}
+            existingIds={existingIds}
+            onAdd={handleAdd}
+          />
+        </>
       )}
 
-      {/* Modal de pesquisa de séries */}
-      <Modal
-        isOpen={isSearchModalOpen}
-        onClose={() => {
-          onSearchModalClose();
-          setSearchQuery("");
-          setSearchResults([]);
-          setSearchPerformed(false);
-        }}
-        size="xl"
-      >
-        <ModalOverlay backdropFilter="blur(5px)" />
-        <ModalContent bg="gray.800" color="white">
-          <ModalHeader>Adicionar Séries à Lista</ModalHeader>
-          <ModalCloseButton />
-
-          <ModalBody>
-            <InputGroup mb={4}>
-              <Input
-                placeholder="Digite o nome de uma série"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                bg="gray.700"
-                borderColor="gray.600"
-              />
-              <InputRightElement width="4.5rem">
-                <Button
-                  h="1.75rem"
-                  size="sm"
-                  colorScheme="primary"
-                  onClick={handleSearch}
-                  isLoading={isSearching}
-                >
-                  <Icon as={MagnifyingGlass} weight="bold" />
-                </Button>
-              </InputRightElement>
-            </InputGroup>
-
-            {searchResults.length > 0 ? (
-              <Grid templateColumns="repeat(3, 1fr)" gap={2} maxH="300px" overflowY="auto">
-                {searchResults.map((series) => (
-                  <GridItem key={series.id} position="relative">
-                    <Box
-                      position="relative"
-                      borderRadius="md"
-                      overflow="hidden"
-                      cursor="pointer"
-                      onClick={() => handleAddSeriesToList(series)}
-                      _hover={{ opacity: 0.8 }}
-                      transition="all 0.2s"
-                    >
-                      <Image
-                        src={
-                          series.poster_path
-                            ? `https://image.tmdb.org/t/p/w200${series.poster_path}`
-                            : "https://placehold.co/200x300/222222/FFFFFF?text=Sem+Imagem"
-                        }
-                        alt={series.name}
-                        h="120px"
-                        w="100%"
-                        objectFit="cover"
-                      />
-                      <Box
-                        position="absolute"
-                        bottom={0}
-                        left={0}
-                        right={0}
-                        bg="blackAlpha.700"
-                        p={1}
-                      >
-                        <Text fontSize="xs" noOfLines={2}>
-                          {series.name}
-                        </Text>
-                      </Box>
-                      {list?.items.some((item) => item.seriesId === series.id) && (
-                        <Box
-                          position="absolute"
-                          top={1}
-                          right={1}
-                          bg="red.500"
-                          borderRadius="full"
-                          p={2}
-                          pr={3}
-                          pl={3}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            confirmRemoveSeries(series.id, series.name);
-                          }}
-                          cursor="pointer"
-                          _hover={{ bg: "red.600" }}
-                        >
-                          <Text fontSize="xs" color="white">
-                            Remover
-                          </Text>
-                        </Box>
-                      )}
-                    </Box>
-                  </GridItem>
-                ))}
-              </Grid>
-            ) : (
-              <Box textAlign="center" py={8}>
-                {isSearching ? (
-                  <Skeleton height="100px" />
-                ) : searchPerformed ? (
-                  <Text color="gray.400">Nenhum resultado encontrado. Tente outra busca.</Text>
-                ) : (
-                  <Text color="gray.400">Esperando por uma série...</Text>
-                )}
-              </Box>
-            )}
-          </ModalBody>
-        </ModalContent>
-      </Modal>
-
-      {/* AlertDialog para confirmar remoção de série */}
       <AlertDialog
-        isOpen={isRemoveAlertOpen}
+        isOpen={removeAlert.isOpen}
         leastDestructiveRef={cancelRef}
-        onClose={onRemoveAlertClose}
+        onClose={removeAlert.onClose}
       >
         <AlertDialogOverlay>
-          <AlertDialogContent bg="gray.800" color="white">
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              Remover série
-            </AlertDialogHeader>
-
-            <AlertDialogBody>
-              Tem certeza que deseja remover "{seriesNameToRemove}" da lista? Esta ação não pode ser
-              desfeita.
+          <AlertDialogContent>
+            <AlertDialogHeader>Remover da lista</AlertDialogHeader>
+            <AlertDialogBody color="ink.200">
+              Remover <strong>{toRemove?.name}</strong> desta lista?
             </AlertDialogBody>
-
             <AlertDialogFooter>
-              <Button
-                variant="ghost"
-                color="gray.400"
-                _hover={{ bg: "gray.700" }}
-                ref={cancelRef}
-                onClick={onRemoveAlertClose}
-              >
+              <Button ref={cancelRef} variant="ghost" onClick={removeAlert.onClose}>
                 Cancelar
               </Button>
-              <Button
-                bg="red.500"
-                _hover={{ bg: "red.600" }}
-                onClick={() => seriesIdToRemove && handleRemoveSeriesFromList(seriesIdToRemove)}
-                ml={3}
-                isLoading={isRemovingSeries === seriesIdToRemove}
-              >
+              <Button colorScheme="red" ml={3} isLoading={isRemoving} onClick={handleRemove}>
                 Remover
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
-    </Flex>
+    </>
   );
 }
