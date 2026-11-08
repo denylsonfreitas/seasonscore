@@ -1,4 +1,4 @@
-import { HStack, IconButton, Text, Tooltip, useColorModeValue, Flex, Icon, Spinner } from "@chakra-ui/react";
+import { Text, Tooltip, useColorModeValue, Flex, Icon, Spinner } from "@chakra-ui/react";
 import { Heart } from "@phosphor-icons/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useEffect, useState, useRef } from "react";

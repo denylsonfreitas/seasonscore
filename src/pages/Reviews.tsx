@@ -1,20 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Container,
-  Heading,
   Text,
   Grid,
-  Button,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
   Flex,
-  Input,
-  InputGroup,
-  InputRightElement,
   VStack,
   HStack,
   Icon,
@@ -25,14 +15,13 @@ import {
   useToast,
   SkeletonCircle,
 } from '@chakra-ui/react';
-import { MagnifyingGlass, Heart, TelevisionSimple } from '@phosphor-icons/react';
+import { Heart, TelevisionSimple } from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
-import { getPopularReviews, getRecentFollowedUsersReviews, getSeriesReviews, PopularReview, getAllReviews } from '../services/reviews';
+import { getPopularReviews, getRecentFollowedUsersReviews, PopularReview, getAllReviews } from '../services/reviews';
 import { EnhancedImage } from '../components/common/EnhancedImage';
 import { RatingStars } from '../components/common/RatingStars';
 import { UserAvatar } from '../components/common/UserAvatar';
 import { UserName } from '../components/common/UserName';
-import { getSeriesDetails } from '../services/tmdb';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Footer } from '../components/common/Footer';

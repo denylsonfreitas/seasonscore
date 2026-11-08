@@ -1,10 +1,9 @@
-import { Box, Heading, Text, VStack, HStack, IconButton, Button, Image, Skeleton } from "@chakra-ui/react";
+import { Box, Heading, Text, VStack, HStack, IconButton, Image, Skeleton } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { getTrendingSeries } from "../../services/tmdb";
 import { useNavigate } from "react-router-dom";
-import { CaretLeft, CaretRight, SignIn, UserCircle } from "@phosphor-icons/react";
+import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { useAuth } from "../../contexts/AuthContext";
-import { useAuthUIStore } from "../../services/uiState";
 
 interface TrendingSeries {
   id: number;

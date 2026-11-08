@@ -1,10 +1,4 @@
-import { HomeSeriesSection } from "../components/series/HomeSeriesSection";
-import { Box, Container, VStack, Flex, Heading, Text, Button, HStack, Icon, Image, SimpleGrid, useColorModeValue } from "@chakra-ui/react";
-import {
-  getAiringTodaySeries,
-  getTopRatedSeries,
-  getPopularSeries
-} from "../services/tmdb";
+import { Box, Container, Flex, Heading, Text, Button, HStack, Icon, SimpleGrid } from "@chakra-ui/react";
 import { Footer } from "../components/common/Footer";
 import { TrendingBanner } from "../components/series/TrendingBanner";
 import { PopularReviews } from "../components/reviews/PopularReviews";

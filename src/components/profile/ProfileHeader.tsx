@@ -17,7 +17,7 @@ import { UserData } from "../../services/users";
 import { FollowButton } from "../user/FollowButton";
 import { ExtendedUser } from "../../types/auth";
 import { UserAvatar } from "../common/UserAvatar";
-import { Camera, PencilSimple } from "@phosphor-icons/react";
+import { PencilSimple } from "@phosphor-icons/react";
 
 interface ProfileHeaderProps {
   isOwnProfile: boolean;

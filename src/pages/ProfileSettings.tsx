@@ -9,7 +9,6 @@ import {
   Button,
   useToast,
   Text,
-  Textarea,
   Image,
   Spinner,
   AspectRatio,
@@ -26,8 +25,6 @@ import { useAuth } from "../contexts/AuthContext";
 import { createOrUpdateUser, getUserData, isUsernameAvailable, updateUsername } from "../services/users";
 import { updateProfile } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { getSeriesDetails } from "../services/tmdb";
-import { SearchModal } from "../components/layout/SearchModal";
 import { ExtendedUser } from "../types/auth";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
 import {
@@ -37,7 +34,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { db, auth } from "../config/firebase";
-import { doc, updateDoc, getDoc } from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { UserAvatar } from "../components/common/UserAvatar";
 
 export function ProfileSettings() {

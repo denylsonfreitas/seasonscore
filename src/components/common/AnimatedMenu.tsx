@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, useBreakpointValue, PositionProps } from "@chakra-ui/react";
+import { Box, useBreakpointValue } from "@chakra-ui/react";
 import { createPortal } from "react-dom";
 
 // Hook para gerenciar estado do menu animado

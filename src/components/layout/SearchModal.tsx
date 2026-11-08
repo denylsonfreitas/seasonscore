@@ -14,8 +14,7 @@ import {
   InputRightElement,
   Spinner,
   Heading,
-  Skeleton,
-  SkeletonCircle,
+  Skeleton
 } from "@chakra-ui/react";
 import { useState, useEffect, useRef } from "react";
 import { searchSeries } from "../../services/tmdb";

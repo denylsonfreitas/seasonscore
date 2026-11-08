@@ -1,5 +1,4 @@
 import { User as FirebaseUser } from "firebase/auth";
-import { UserData } from "../services/users";
 
 export interface ExtendedUser extends FirebaseUser {
   coverURL?: string;

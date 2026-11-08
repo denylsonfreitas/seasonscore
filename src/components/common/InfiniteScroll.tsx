@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useCallback } from "react";
-import { Box, Spinner, Center, Text, Flex } from "@chakra-ui/react";
+import { Box, Spinner, Center, Text } from "@chakra-ui/react";
 
 interface InfiniteScrollProps {
   loadMore: () => void;

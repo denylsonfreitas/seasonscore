@@ -2,44 +2,25 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Container,
-  Grid,
-  GridItem,
   Heading,
   Text,
-  Button,
   Flex,
   HStack,
   VStack,
-  Spinner,
-  Center,
-  Image,
-  useColorModeValue,
-  Tabs,
-  TabList,
-  Tab,
-  TabPanels,
-  TabPanel,
   useToast,
-  Link as ChakraLink,
-  Badge,
-  Icon,
   Divider,
   Select,
   useBreakpointValue,
 } from "@chakra-ui/react";
-import { useParams, Link as RouterLink, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Footer } from "../components/common/Footer";
 import { getSeriesDetails } from "../services/tmdb";
-import { getSeriesReviews, SeriesReview, getUserReview } from "../services/reviews";
+import { getSeriesReviews, SeriesReview } from "../services/reviews";
 import { RatingStars } from "../components/common/RatingStars";
 import { UserAvatar } from "../components/common/UserAvatar";
 import { UserName } from "../components/common/UserName";
 import { ReactionButtons } from "../components/reviews/ReactionButtons";
 import { useAuth } from "../contexts/AuthContext";
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Star, ChatCircle, Heart, ArrowLeft } from "@phosphor-icons/react";
-import { PageHeader } from "../components/common/PageHeader";
 import { useQuery } from "@tanstack/react-query";
 
 export function SeriesReviews() {

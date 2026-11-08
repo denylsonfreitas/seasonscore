@@ -5,14 +5,13 @@ import {
   Button,
   Text,
   Spinner,
-  Grid,
   BoxProps,
   HeadingProps,
   ButtonProps,
   GridProps,
 } from "@chakra-ui/react";
 import React, { ReactNode, useState } from "react";
-import { CaretRight, CaretDown, CaretUp } from "@phosphor-icons/react";
+import { CaretRight } from "@phosphor-icons/react";
 import { Link as RouterLink } from "react-router-dom";
 
 export interface SectionBaseProps {

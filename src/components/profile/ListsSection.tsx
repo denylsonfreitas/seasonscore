@@ -1,54 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import {
-  SimpleGrid,
   Box,
   Text,
   Button,
   Flex,
   useDisclosure,
   Spinner,
-  IconButton,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalCloseButton,
-  ModalFooter,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  VStack,
-  Switch,
-  FormHelperText,
   useToast,
-  HStack,
-  Tag,
-  TagLabel,
-  TagCloseButton,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  InputGroup,
-  InputRightElement,
-  Image,
-  Grid,
-  GridItem,
-  Icon
+  Grid
 } from '@chakra-ui/react';
-import { FaPlus, FaSearch, FaTimes, FaAngleRight, FaAngleLeft, } from 'react-icons/fa';
-import { Globe, Lock, Plus } from '@phosphor-icons/react';
+import { Plus } from '@phosphor-icons/react';
 import { ListCard } from '../lists/ListCard';
-import { getUserLists, createList } from '../../services/lists';
+import { getUserLists } from '../../services/lists';
 import { useAuth } from '../../contexts/AuthContext';
 import { ListWithUserData } from '../../types/list';
 import { useNavigate } from 'react-router-dom';
-import { searchSeries } from '../../services/tmdb';
 import { CreateListModal } from '../lists/CreateListModal';
-import { SeriesSearchResult } from '../../types/series';
 
 interface ListsSectionProps {
   userId: string;

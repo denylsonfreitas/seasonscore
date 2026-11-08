@@ -4,7 +4,6 @@ import {
   VStack,
   Badge,
   LinkBox,
-  LinkOverlay,
   Flex,
   Center,
   Icon,

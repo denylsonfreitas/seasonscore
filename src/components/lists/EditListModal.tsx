@@ -15,7 +15,6 @@ import {
   VStack,
   Switch,
   FormHelperText,
-  HStack,
   Tag,
   TagLabel,
   TagCloseButton,
@@ -34,7 +33,7 @@ import {
   AlertDialogOverlay,
   Box
 } from '@chakra-ui/react';
-import { FaPlus, FaTrash } from 'react-icons/fa';
+import { FaPlus } from 'react-icons/fa';
 import { Globe, Lock, Trash } from '@phosphor-icons/react';
 import { List } from '../../types/list';
 import { updateList, deleteList } from '../../services/lists';

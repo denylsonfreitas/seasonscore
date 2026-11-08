@@ -4,18 +4,12 @@ import {
   query,
   where,
   getDocs,
-  deleteDoc,
   doc,
   getDoc,
   updateDoc,
   orderBy,
   serverTimestamp,
-  Timestamp,
-  runTransaction,
-  limit,
-  setDoc,
-  increment,
-  writeBatch
+  runTransaction
 } from 'firebase/firestore';
 import { db } from "../config/firebase";
 import { auth } from "../config/firebase";

@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Button,
   FormControl,
-  FormLabel,
   Input,
   InputGroup,
   InputRightElement,
@@ -12,14 +11,11 @@ import {
   Flex,
   Text,
   Link,
-  IconButton,
-  HStack,
   Collapse,
   FocusLock,
 } from "@chakra-ui/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { X } from "@phosphor-icons/react";
 
 interface LoginFormProps {
   onSignUpClick: () => void;

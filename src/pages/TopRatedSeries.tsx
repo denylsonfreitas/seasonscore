@@ -4,25 +4,19 @@ import {
   Heading,
   Text,
   SimpleGrid,
-  Image,
   Flex,
-  VStack,
-  HStack,
   Spinner,
-  Button,
   useBreakpointValue,
   Grid,
   GridItem,
-  Icon,
-  Center,
+  Icon
 } from "@chakra-ui/react";
-import { useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { getSeriesDetails } from "../services/tmdb";
 import { SeriesCard } from "../components/series/SeriesCard";
 import { Footer } from "../components/common/Footer";
-import { Star, Trophy, TelevisionSimple } from "@phosphor-icons/react";
-import { getSeriesReviews, getTopRatedSeries as getTopRatedReviews } from "../services/reviews";
-import { useMemo } from "react";
+import { TelevisionSimple } from "@phosphor-icons/react";
+import { getTopRatedSeries as getTopRatedReviews } from "../services/reviews";
 import { PageHeader } from "../components/common/PageHeader";
 
 interface SeriesReview {

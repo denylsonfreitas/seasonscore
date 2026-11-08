@@ -12,10 +12,7 @@ import { getFollowedUsersLists } from '../../services/lists';
 import { ListWithUserData } from '../../types/list';
 import { useAuth } from '../../contexts/AuthContext';
 import { SectionBase } from '../common/SectionBase';
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import { listCarouselStyles, listsSliderSettings } from "../../styles/carouselStyles";
+import { Carousel } from "../common/Carousel";
 
 export function FollowedUsersLists() {
   const toast = useToast();
@@ -75,14 +72,14 @@ export function FollowedUsersLists() {
     const displayedLists = limitItems ? lists.slice(0, 12) : lists;
     
     return (
-      <Box sx={listCarouselStyles} pb={8}>
-        <Slider {...listsSliderSettings}>
+      <Box pb={8}>
+        <Carousel preset="lists" gap={4}>
           {displayedLists.map((list) => (
             <Box key={list.id} height="100%" px="1px">
               <ListCard key={list.id} list={list} />
             </Box>
           ))}
-        </Slider>
+        </Carousel>
       </Box>
     );
   };

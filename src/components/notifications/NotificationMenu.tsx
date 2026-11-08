@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   IconButton,
@@ -24,26 +24,22 @@ import {
   FormControl,
   FormLabel,
 } from '@chakra-ui/react';
-import { BellIcon, CheckIcon, CloseIcon, DeleteIcon, SettingsIcon } from '@chakra-ui/icons';
+import { BellIcon, CheckIcon, DeleteIcon, SettingsIcon } from '@chakra-ui/icons';
 import { FaUser, FaComment, FaVideo, FaStar, FaHeart } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   Notification,
   NotificationType,
-  getUserNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
   deleteNotification,
   cleanupNotifications,
   getGroupedNotifications,
   subscribeToNotifications,
-  getReviewDetails,
-  DEFAULT_NOTIFICATION_LIMIT,
   deleteAllUserNotifications,
 } from '../../services/notifications';
 import { NotificationItem } from './NotificationItem';
 import { useNavigate } from 'react-router-dom';
-import { formatNotificationDate } from '../../utils/dateUtils';
 import { AnimatedMenu } from '../common/AnimatedMenu';
 import { RippleEffect } from '../common/RippleEffect';
 import { updateUserNotificationSettings, getUserNotificationSettings } from '../../services/users';

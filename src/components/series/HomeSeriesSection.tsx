@@ -1,13 +1,10 @@
-import { Spinner, Text, Box, color } from "@chakra-ui/react";
+import { Spinner, Text, Box } from "@chakra-ui/react";
 import { SeriesCard } from "./SeriesCard";
 import { SeriesResponse } from "../../services/tmdb";
 import { useQuery } from "@tanstack/react-query";
 import { getSeriesReviews } from "../../services/reviews";
 import { SectionBase } from "../common/SectionBase";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import { carouselStyles, seriesSliderSettings } from "../../styles/carouselStyles";
+import { Carousel } from "../common/Carousel";
 
 interface HomeSectionProps {
   title: string;
@@ -30,7 +27,7 @@ export function HomeSeriesSection({
 
   // Buscar as avaliações para cada série
   const { data: allReviews = {} } = useQuery({
-    queryKey: ["all-reviews"],
+    queryKey: [...queryKey, "ratings", data?.results?.map((s) => s.id)],
     queryFn: async () => {
       if (!data?.results) return {};
 
@@ -62,8 +59,8 @@ export function HomeSeriesSection({
 
   const renderContent = () => {
     return (
-      <Box sx={carouselStyles} pb={8}>
-        <Slider {...seriesSliderSettings}>
+      <Box pb={8}>
+        <Carousel preset="series">
           {data?.results?.map((series) => (
             <Box key={series.id}>
               <SeriesCard
@@ -75,7 +72,7 @@ export function HomeSeriesSection({
               />
             </Box>
           ))}
-        </Slider>
+        </Carousel>
       </Box>
     );
   };

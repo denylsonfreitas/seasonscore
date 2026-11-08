@@ -27,7 +27,6 @@ import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 import { getUserData } from "../services/users";
 import { SeriesHeader } from "../components/series/SeriesHeader";
 import { RelatedSeries } from "../components/series/RelatedSeries";
-import { User as FirebaseUser } from "firebase/auth";
 import { SEO } from "../components/common/SEO";
 
 export function SeriesDetails() {

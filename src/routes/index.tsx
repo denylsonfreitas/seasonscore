@@ -1,8 +1,8 @@
 import { Navigate } from "react-router-dom";
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect } from "react";
 import { Layout } from "../components/layout/Layout";
 import { useAuth } from "../contexts/AuthContext";
-import { Box, Spinner, Center } from "@chakra-ui/react";
+import { Spinner, Center } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 import { getUserData } from "../services/users";
 import { ReviewDetails } from "../pages/ReviewDetails";

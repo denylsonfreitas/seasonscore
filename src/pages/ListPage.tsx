@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   useParams,
   useNavigate,
-  useLocation,
   Link as RouterLink,
 } from "react-router-dom";
 import {

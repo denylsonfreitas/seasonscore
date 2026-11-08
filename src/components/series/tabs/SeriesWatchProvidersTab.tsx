@@ -4,15 +4,13 @@ import {
   Heading,
   Wrap,
   WrapItem,
-  Image,
   Text,
   Link,
   Button,
   Flex,
-  Icon,
-  HStack,
+  Icon
 } from "@chakra-ui/react";
-import { TelevisionSimple, Info } from "@phosphor-icons/react";
+import { Info } from "@phosphor-icons/react";
 import { EnhancedImage } from "../../common/EnhancedImage";
 
 interface Provider {

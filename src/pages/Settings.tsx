@@ -20,29 +20,22 @@ import {
   AlertDialogOverlay,
   useDisclosure,
   Alert,
-  AlertIcon,
-  Icon,
-  FormErrorMessage,
-  HStack,
+  AlertIcon
 } from "@chakra-ui/react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { 
-  updateEmail, 
   updatePassword, 
   deleteUser, 
   EmailAuthProvider, 
   reauthenticateWithCredential,
-  sendEmailVerification,
   verifyBeforeUpdateEmail,
-  sendPasswordResetEmail,
-  User,
+  sendPasswordResetEmail
 } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { ExtendedUser } from "../types/auth";
 import { auth } from "../config/firebase";
 import { isUsernameAvailable, updateUsername, deleteUserData } from "../services/users";
-import { getFirestore, deleteDoc, doc, getDoc } from "firebase/firestore";
 
 export function Settings() {
   const { currentUser, logout } = useAuth() as { currentUser: ExtendedUser | null, logout: () => Promise<void> };

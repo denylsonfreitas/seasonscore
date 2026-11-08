@@ -7,7 +7,6 @@ import {
   IconButton,
   useDisclosure,
   Text,
-  Flex,
   Divider,
   useToken,
 } from "@chakra-ui/react";
@@ -22,7 +21,7 @@ import { LoginForm } from "../auth/LoginForm";
 import { SignUpModal } from "../auth/SignUpModal";
 import { useAuthUIStore } from "../../services/uiState";
 import { MobileMenu } from "./MobileMenu";
-import { useRef, useEffect } from "react";
+import { useEffect } from "react";
 import { AnimatedMenu } from "../common/AnimatedMenu";
 import { useAnimatedMenu } from "../../hooks/useAnimatedMenu";
 import { RippleEffect } from "../common/RippleEffect";

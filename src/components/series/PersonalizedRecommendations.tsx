@@ -2,25 +2,19 @@ import {
   Box,
   Heading,
   Text,
-  Badge,
   HStack,
-  VStack,
-  Button,
   Flex,
   Spinner,
   Tooltip,
   Icon,
 } from "@chakra-ui/react";
-import { Lightning, Question } from "@phosphor-icons/react";
-import { useState, useEffect } from "react";
+import { Question } from "@phosphor-icons/react";
+import { useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getPersonalizedRecommendations, RecommendedSeries } from "../../services/recommendations";
+import { getPersonalizedRecommendations } from "../../services/recommendations";
 import { SeriesCard } from "./SeriesCard";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import { carouselStyles, seriesSliderSettings } from "../../styles/carouselStyles";
+import { Carousel } from "../common/Carousel";
 
 export function PersonalizedRecommendations() {
   const { currentUser } = useAuth();
@@ -125,14 +119,14 @@ export function PersonalizedRecommendations() {
         </Tooltip>
       </HStack>
 
-      <Box sx={carouselStyles} pb={8}>
-        <Slider {...seriesSliderSettings}>
+      <Box pb={8}>
+        <Carousel preset="series">
           {recommendations.map((series) => (
             <Box key={series.id}>
               <SeriesCard series={series} />
             </Box>
           ))}
-        </Slider>
+        </Carousel>
       </Box>
     </Box>
   );

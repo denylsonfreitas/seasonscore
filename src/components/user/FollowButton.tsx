@@ -1,4 +1,4 @@
-import { Button, useToast, Box, Icon, Tooltip } from "@chakra-ui/react";
+import { Button, useToast, Icon, Tooltip } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { followUser, unfollowUser, isFollowing } from "../../services/followers";

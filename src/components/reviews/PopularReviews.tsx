@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import {
-  Box, Text, HStack, VStack, Icon, Badge, Center, Skeleton, SkeletonCircle, Link,
+  Box, Text, HStack, VStack, Icon, Badge, Center, Skeleton, SkeletonCircle,
   LinkBox,
 } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
@@ -11,8 +11,7 @@ import { UserName } from "../common/UserName";
 import { getPopularReviews, PopularReview } from "../../services/reviews";
 import { SectionBase } from "../common/SectionBase";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Slider from "react-slick";
-import { seriesSliderSettings, carouselStyles } from "../../styles/carouselStyles";
+import { Carousel } from "../common/Carousel";
 import { EnhancedImage } from "../common/EnhancedImage";
 
 export function PopularReviews() {
@@ -39,8 +38,8 @@ export function PopularReviews() {
 
   // Componente de carregamento elegante como skeleton
   const loadingElement = (
-    <Box sx={carouselStyles} pb={8}>
-      <Slider {...seriesSliderSettings}>
+    <Box pb={8}>
+      <Carousel preset="series">
         {Array(8).fill(0).map((_, i) => (
           <Box key={i} px={2}>
             <Box 
@@ -81,7 +80,7 @@ export function PopularReviews() {
             </Box>
           </Box>
         ))}
-      </Slider>
+      </Carousel>
     </Box>
   );
 
@@ -90,8 +89,8 @@ export function PopularReviews() {
     const displayedReviews = limitItems ? popularReviews.slice(0, 12) : popularReviews;
     
     return (
-      <Box sx={carouselStyles} pb={8}>
-        <Slider {...seriesSliderSettings}>
+      <Box pb={8}>
+        <Carousel preset="series">
           {displayedReviews.map((review) => (
             <Box
               key={review.id}
@@ -173,7 +172,7 @@ export function PopularReviews() {
               </Badge>
             </Box>
           ))}
-        </Slider>
+        </Carousel>
       </Box>
     );
   };

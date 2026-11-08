@@ -1,5 +1,4 @@
-import { Box, VStack, Text, HStack, Grid, Icon, Badge, Center, LinkBox, Skeleton, SkeletonCircle } from "@chakra-ui/react";
-import { useState } from "react";
+import { Box, VStack, Text, HStack, Icon, Badge, Center, LinkBox, Skeleton, SkeletonCircle } from "@chakra-ui/react";
 import { getRecentFollowedUsersReviews, PopularReview } from "../../services/reviews";
 import { Heart, TelevisionSimple } from "@phosphor-icons/react";
 import { RatingStars } from "../common/RatingStars";
@@ -10,10 +9,7 @@ import { UserName } from "../common/UserName";
 import { useAuth } from "../../contexts/AuthContext";
 import { EnhancedImage } from "../common/EnhancedImage";
 import { SectionBase } from "../common/SectionBase";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import { carouselStyles, seriesSliderSettings } from "../../styles/carouselStyles";
+import { Carousel } from "../common/Carousel";
 
 export function FollowedUsersReviews() {
   const navigate = useNavigate();
@@ -39,8 +35,8 @@ export function FollowedUsersReviews() {
 
   // Componente de carregamento elegante como skeleton
   const loadingElement = (
-    <Box sx={carouselStyles} pb={8}>
-      <Slider {...seriesSliderSettings}>
+    <Box pb={8}>
+      <Carousel preset="series">
         {Array(8).fill(0).map((_, i) => (
           <Box key={i} px={2}>
             <Box 
@@ -81,7 +77,7 @@ export function FollowedUsersReviews() {
             </Box>
           </Box>
         ))}
-      </Slider>
+      </Carousel>
     </Box>
   );
 
@@ -115,8 +111,8 @@ export function FollowedUsersReviews() {
     const displayedReviews = limitItems ? reviews.slice(0, 12) : reviews;
     
     return (
-      <Box sx={carouselStyles} pb={8}>
-        <Slider {...seriesSliderSettings}>
+      <Box pb={8}>
+        <Carousel preset="series">
           {displayedReviews.map((review) => (
             <Box
               key={review.id}
@@ -198,7 +194,7 @@ export function FollowedUsersReviews() {
               </Badge>
             </Box>
           ))}
-        </Slider>
+        </Carousel>
       </Box>
     );
   };

@@ -11,10 +11,7 @@ import {
   LinkBox,
   LinkOverlay,
 } from "@chakra-ui/react";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import { castCarouselStyles, castSliderSettings } from "../../../styles/carouselStyles";
+import { Carousel } from "../../common/Carousel";
 import { Link as RouterLink } from "react-router-dom";
 
 interface CastMember {
@@ -61,8 +58,8 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
         <Heading size="md" color="white" mb={4}>
           Elenco
         </Heading>
-        <Box sx={castCarouselStyles} pb={4}>
-          <Slider {...castSliderSettings}>
+        <Box pb={4}>
+          <Carousel preset="cast">
             {sortedCast.map((actor) => (
               <Box key={actor.id} p={1}>
                 <Flex
@@ -122,7 +119,7 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
                 </Flex>
               </Box>
             ))}
-          </Slider>
+          </Carousel>
         </Box>
       </Box>
     </VStack>

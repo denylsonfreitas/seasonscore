@@ -18,7 +18,6 @@ import {
   Center,
   HStack,
   Image,
-  Flex,
   IconButton,
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";

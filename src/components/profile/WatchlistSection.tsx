@@ -4,17 +4,15 @@ import {
   Text,
   Image,
   IconButton,
-  Flex,
   Spinner,
   useToast,
-  Badge,
   AspectRatio,
   Tooltip,
   Center,
   SlideFade,
 } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
-import { Bookmark, TelevisionSimple, BookmarkSimple } from "@phosphor-icons/react";
+import { Bookmark, BookmarkSimple } from "@phosphor-icons/react";
 import { removeFromWatchlist } from "../../services/watchlist";
 import { useQueryClient } from "@tanstack/react-query";
 import { ExtendedUser } from "../../types/auth";

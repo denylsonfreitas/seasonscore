@@ -11,7 +11,6 @@ import {
   Wrap,
   WrapItem,
   useColorModeValue,
-  Stack,
   Tooltip
 } from '@chakra-ui/react';
 import { FaHeart, FaComment } from 'react-icons/fa';

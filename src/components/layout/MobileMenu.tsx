@@ -9,8 +9,6 @@ import {
 } from "@chakra-ui/react";
 import {
   TelevisionSimple,
-  Confetti,
-  TrendUp,
   SignOut,
   Gear,
   UserCircle,

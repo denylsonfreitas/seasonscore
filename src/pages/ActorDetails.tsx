@@ -5,12 +5,10 @@ import {
   Heading,
   Text,
   VStack,
-  HStack,
   Flex,
   Spinner,
   Divider,
   Badge,
-  useColorModeValue,
   Button,
   Icon,
 } from '@chakra-ui/react';
@@ -19,13 +17,10 @@ import { useQuery } from '@tanstack/react-query';
 import { getPersonDetails, getPersonCredits } from '../services/tmdb';
 import { SeriesCard } from '../components/series/SeriesCard';
 import { Footer } from '../components/common/Footer';
-import { formatDistanceToNow, format, parseISO } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ArrowLeft } from '@phosphor-icons/react';
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import { carouselStyles, seriesSliderSettings } from "../styles/carouselStyles";
+import { Carousel } from "../components/common/Carousel";
 import { EnhancedImage } from '../components/common/EnhancedImage';
 
 export function ActorDetails() {
@@ -236,8 +231,8 @@ export function ActorDetails() {
           </Heading>
           
           {sortedCredits.length > 0 ? (
-            <Box sx={carouselStyles} pb={4}>
-              <Slider {...seriesSliderSettings}>
+            <Box pb={4}>
+              <Carousel preset="series">
                 {sortedCredits.map((series) => (
                   <Box key={`${series.id}-${series.character}`} px={2}>
                     <Box 
@@ -259,7 +254,7 @@ export function ActorDetails() {
                     </Box>
                   </Box>
                 ))}
-              </Slider>
+              </Carousel>
             </Box>
           ) : (
             <Text color="gray.400" textAlign="center">

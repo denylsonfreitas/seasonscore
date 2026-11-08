@@ -23,7 +23,6 @@ import { SeriesReview, getFollowedUsersReviews } from "../../services/reviews";
 import { RatingStars } from "../common/RatingStars";
 import { ReviewListItem } from "../reviews/ReviewListItem";
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "../../contexts/AuthContext";
 import { UserAvatar } from "../common/UserAvatar";
 import { getGlobalLoginPopover } from "../layout/Navbar";
 

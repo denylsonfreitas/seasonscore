@@ -1,7 +1,7 @@
 import { Text, Link, Spinner, Box } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { useUserData, ExtendedUserData } from "../../hooks/useUserData";
+import { useUserData } from "../../hooks/useUserData";
 
 interface UserNameProps {
   userId: string;

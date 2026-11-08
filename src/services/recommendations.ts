@@ -1,7 +1,6 @@
 import { getSeriesDetails, SeriesListItem, getFilteredSeries, getPopularSeries } from "./tmdb";
-import { getSeriesReviews } from "./reviews";
 import { getUserWatchlist } from "./watchlist";
-import { collection, query, where, getDocs, limit } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../config/firebase";
 
 // Interface para os gêneros preferidos do usuário

@@ -6,10 +6,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { SeriesCard } from "./SeriesCard";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import { carouselStyles, seriesSliderSettings } from "../../styles/carouselStyles";
+import { Carousel } from "../common/Carousel";
 
 interface RelatedSeriesProps {
   relatedSeries: any;
@@ -62,25 +59,19 @@ export function RelatedSeries({
     );
   }
 
-  // Configurações personalizadas para o slider
-  const sliderSettings = {
-    ...seriesSliderSettings,
-    slidesToShow: Math.min(filteredSeries.length, 7),
-  };
-
   return (
     <Container maxW="container.lg">
       <Heading color="white" size="xl" mb={8}>
         Séries Relacionadas
       </Heading>
-      <Box sx={carouselStyles} pb={8}>
-        <Slider {...sliderSettings}>
+      <Box pb={8}>
+        <Carousel preset="series">
           {filteredSeries.map((series: any) => (
             <Box key={series.id}>
               <SeriesCard series={series} size="lg" />
             </Box>
           ))}
-        </Slider>
+        </Carousel>
       </Box>
     </Container>
   );

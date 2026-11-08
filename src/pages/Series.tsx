@@ -1,16 +1,10 @@
 import {
   Box,
   Container,
-  SimpleGrid,
   Flex,
   Spinner,
-  Input,
-  InputGroup,
-  InputRightElement,
   Button,
-  Heading,
   Text,
-  InputLeftElement,
   VStack,
   Tag,
   HStack,
@@ -20,21 +14,9 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
-  Select,
   Icon,
   Divider,
-  Stat,
-  StatLabel,
-  StatNumber,
-  StatHelpText,
-  StatArrow,
-  StatGroup,
   useColorModeValue,
-  Tabs,
-  TabList,
-  Tab,
-  TabPanels,
-  TabPanel,
   Popover,
   PopoverTrigger,
   PopoverContent,
@@ -45,26 +27,16 @@ import {
   Portal,
 } from "@chakra-ui/react";
 import { SeriesGrid } from "../components/series/SeriesGrid";
-import { useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueries } from "@tanstack/react-query";
 import {
   searchSeries,
-  getFilteredSeries,
-  SeriesResponse,
-  SeriesListItem,
-  getPopularSeries,
-  getAiringTodaySeries,
+  getFilteredSeries
 } from "../services/tmdb";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { SeriesFilter } from "../components/series/SeriesFilter";
 import { Footer } from "../components/common/Footer";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { 
-  MagnifyingGlass, 
-  Calendar, 
-  SortDescending, 
-  Television, 
-  Star, 
-  TrendUp,
   Funnel,
 } from "@phosphor-icons/react";
 import { getSeriesReviews } from "../services/reviews";

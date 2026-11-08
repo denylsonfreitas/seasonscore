@@ -9,7 +9,6 @@ import {
   getDocs,
   getDoc,
 } from "firebase/firestore";
-import { Series } from "./tmdb";
 import { checkNewEpisodeForSeries } from "./episodeNotifications";
 
 export interface WatchlistItem {

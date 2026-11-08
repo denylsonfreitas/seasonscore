@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Button, Heading, Text, VStack, Flex, Icon, useColorModeValue } from '@chakra-ui/react';
+import { Box, Button, Heading, Text, VStack, Flex, Icon } from '@chakra-ui/react';
 import { FaHome, FaExclamationTriangle } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 

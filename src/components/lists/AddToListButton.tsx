@@ -42,7 +42,7 @@ import {
 import { Series } from '../../services/tmdb';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLists } from '../../hooks/useLists';
-import { Bookmark, BookmarkSimple, DotsThree, Globe, Lock } from "@phosphor-icons/react";
+import { Globe, Lock } from "@phosphor-icons/react";
 
 interface AddToListButtonProps {
   series: Series;

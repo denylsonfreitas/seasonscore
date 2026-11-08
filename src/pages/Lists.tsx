@@ -2,26 +2,15 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
-  Heading,
   Text,
   Grid,
   Button,
-  HStack,
   VStack,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
   Flex,
-  Input,
-  InputGroup,
-  InputRightElement,
   Tag,
   TagLabel,
   Wrap,
   WrapItem,
-  Divider,
   useDisclosure,
   Icon,
   Skeleton,
@@ -29,7 +18,6 @@ import {
   IconButton,
   Center
 } from '@chakra-ui/react';
-import { FaSearch, FaPlus, FaTimes } from 'react-icons/fa';
 import { CaretDown, CaretUp, Plus, TagSimple, X, User } from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { getPopularLists, getFollowedUsersLists, getListsByTag, getPopularTags, searchLists, getAllLists } from '../services/lists';
