@@ -33,16 +33,10 @@ import {
   Icon,
   VStack,
 } from '@chakra-ui/react';
-import { 
-  FaListUl, 
-  FaPlus,
-  FaAngleDown, 
-  FaCheck 
-} from 'react-icons/fa';
 import { Series } from '../../services/tmdb';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLists } from '../../hooks/useLists';
-import { Globe, Lock } from "@phosphor-icons/react";
+import { CaretDown, Check, Globe, ListBullets, Lock, Plus } from "@phosphor-icons/react";
 
 interface AddToListButtonProps {
   series: Series;
@@ -61,7 +55,7 @@ export function AddToListMenuItem({ series }: { series: Series }) {
   if (!currentUser) {
     return (
       <MenuItem 
-        icon={<FaListUl color="white" size={14} />}
+        icon={<ListBullets weight="fill" color="white" size={14} />}
         onClick={() => toast({
           title: "Faça login para adicionar séries às suas listas",
           status: "warning",
@@ -82,7 +76,7 @@ export function AddToListMenuItem({ series }: { series: Series }) {
   return (
     <>
       <MenuItem 
-        icon={<FaListUl color="white" size={14} />}
+        icon={<ListBullets weight="fill" color="white" size={14} />}
         onClick={onOpen}
         bg="gray.900"
         _hover={{ bg: "gray.800" }}
@@ -318,7 +312,7 @@ function ListSelectorModal({
           ) : (
             <>
               <Button 
-                leftIcon={<FaPlus />} 
+                leftIcon={<Plus weight="fill" />} 
                 colorScheme="primary" 
                 variant="outline" 
                 w="100%" 
@@ -344,7 +338,7 @@ function ListSelectorModal({
                       key={list.id}
                       variant="ghost"
                       justifyContent="flex-start"
-                      leftIcon={isInList(list.id) ? <FaCheck color="white" size={14} /> : <FaPlus color="white" size={14} />}
+                      leftIcon={isInList(list.id) ? <Check weight="fill" color="white" size={14} /> : <Plus weight="fill" color="white" size={14} />}
                       onClick={() => handleAddToList(list.id)}
                       isDisabled={isAddingToList === list.id || isInList(list.id)}
                       bg="gray.700"
@@ -435,7 +429,7 @@ function ListMenuItems({
   if (userLists.length === 0) {
     return (
       <MenuItem
-        icon={<FaPlus color="white" size={14} />}
+        icon={<Plus weight="fill" color="white" size={14} />}
         onClick={onCreateModalOpen}
         _hover={{ bg: "gray.800" }}
         color="white"
@@ -449,7 +443,7 @@ function ListMenuItems({
   return (
     <>
       <MenuItem
-        icon={<FaPlus color="white" size={14} />}
+        icon={<Plus weight="fill" color="white" size={14} />}
         onClick={onCreateModalOpen}
         _hover={{ bg: "gray.800" }}
         color="white"
@@ -461,7 +455,7 @@ function ListMenuItems({
       {userLists.map((list) => (
         <MenuItem
           key={list.id}
-          icon={isInList(list.id) ? <FaCheck color="white" size={14} /> : <FaPlus color="white" size={14} />}
+          icon={isInList(list.id) ? <Check weight="fill" color="white" size={14} /> : <Plus weight="fill" color="white" size={14} />}
           onClick={() => handleAddToList(list.id)}
           isDisabled={isAddingToList === list.id || isInList(list.id)}
           _hover={{ bg: "gray.800" }}
@@ -612,7 +606,7 @@ export function AddToListButton({
         <Tooltip label="Listas">
           <IconButton
             aria-label="Adicionar a uma lista"
-            icon={<FaListUl />}
+            icon={<ListBullets weight="fill" />}
             size={size}
             variant={variant}
             onClick={handleMenuOpen}
@@ -627,8 +621,8 @@ export function AddToListButton({
           {useButtonElement ? (
             <MenuButton
               as={Button}
-              rightIcon={<FaAngleDown />}
-              leftIcon={<FaListUl />}
+              rightIcon={<CaretDown weight="fill" />}
+              leftIcon={<ListBullets weight="fill" />}
               onClick={handleMenuOpen}
               size={size}
               variant={variant}
@@ -654,9 +648,9 @@ export function AddToListButton({
               _hover={{ bg: "gray.800" }}
             >
               <Flex alignItems="center">
-                <Box ml={1} mr={4}><FaListUl size={14} /></Box>
+                <Box ml={1} mr={4}><ListBullets weight="fill" size={14} /></Box>
                 <Text>Listas</Text>
-                <Box ml={2}><FaAngleDown /></Box>
+                <Box ml={2}><CaretDown weight="fill" /></Box>
               </Flex>
             </MenuButton>
           )}

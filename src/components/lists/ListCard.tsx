@@ -13,8 +13,7 @@ import {
   useColorModeValue,
   Tooltip
 } from '@chakra-ui/react';
-import { FaHeart, FaComment } from 'react-icons/fa';
-import { Globe, Lock } from '@phosphor-icons/react';
+import { ChatCircle, Globe, Heart, Lock } from "@phosphor-icons/react";
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { formatRelativeTime } from '../../utils/dateUtils';
 import { UserAvatar } from '../common/UserAvatar';
@@ -275,12 +274,12 @@ export function ListCard({ list, showUser = true }: ListCardProps) {
         {/* Estatísticas */}
         <HStack mt={1} spacing={4} color="gray.400">
           <HStack spacing={1} fontSize="sm">
-            <Icon as={FaHeart} color={(displayList.likesCount || 0) > 0 ? "red.500" : "gray.500"} />
+            <Icon as={Heart} weight="fill" color={(displayList.likesCount || 0) > 0 ? "red.500" : "gray.500"} />
             <Text>{displayList.likesCount || 0}</Text>
           </HStack>
           
           <HStack spacing={1} fontSize="sm">
-            <Icon as={FaComment} color={(displayList.commentsCount || 0) > 0 ? "blue.500" : "gray.500"} />
+            <Icon as={ChatCircle} weight="fill" color={(displayList.commentsCount || 0) > 0 ? "blue.500" : "gray.500"} />
             <Text>{displayList.commentsCount || 0}</Text>
           </HStack>
           

@@ -52,16 +52,7 @@ import {
   BreadcrumbLink,
   Collapse,
 } from "@chakra-ui/react";
-import {
-  Globe,
-  Lock,
-  Calendar,
-  NotePencil,
-  Share,
-  Plus,
-  MagnifyingGlass,
-  Trash,
-} from "@phosphor-icons/react";
+import { Calendar, ChatCircle, Globe, Lock, MagnifyingGlass, NotePencil, Plus, Share, Trash } from "@phosphor-icons/react";
 import { useAuth } from "../contexts/AuthContext";
 import { SeriesCard } from "../components/series/SeriesCard";
 import { CommentSection } from "../components/common/CommentSection";
@@ -81,7 +72,6 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Timestamp } from "firebase/firestore";
-import { FaComment } from "react-icons/fa";
 
 export default function ListPage() {
   const { listId } = useParams();
@@ -815,7 +805,7 @@ export default function ListPage() {
                     </Box>
 
                     <Button
-                      leftIcon={<Icon as={FaComment} />}
+                      leftIcon={<Icon as={ChatCircle} weight="fill" />}
                       variant="ghost"
                       size="sm"
                       onClick={toggleComments}

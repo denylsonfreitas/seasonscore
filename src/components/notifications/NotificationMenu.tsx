@@ -1,6 +1,8 @@
+import { Bell, ChatCircle, Check, Gear, Heart, Star, Trash, User, VideoCamera } from "@phosphor-icons/react";
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
+  Icon,
   IconButton,
   Badge,
   Text,
@@ -24,8 +26,6 @@ import {
   FormControl,
   FormLabel,
 } from '@chakra-ui/react';
-import { BellIcon, CheckIcon, DeleteIcon, SettingsIcon } from '@chakra-ui/icons';
-import { FaUser, FaComment, FaVideo, FaStar, FaHeart } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   Notification,
@@ -392,7 +392,7 @@ export function NotificationMenu() {
       aria-label="Notificações"
       icon={
         <Box position="relative">
-          <BellIcon boxSize={6} color="white" />
+          <Icon as={Bell} boxSize={6} color="white" />
           {unreadCount > 0 && (
             <Badge
               colorScheme="red"
@@ -518,7 +518,7 @@ export function NotificationMenu() {
               <Tooltip label="Configurações de notificações" placement="top">
                 <IconButton
                   aria-label="Configurações de notificações"
-                  icon={<SettingsIcon />}
+                  icon={<Gear />}
                   size="xs"
                   variant="ghost"
                   _hover={{ bg: "gray.700" }}
@@ -552,7 +552,7 @@ export function NotificationMenu() {
                   </Button>
                     <IconButton
                       aria-label="Excluir selecionadas"
-                      icon={<DeleteIcon />}
+                      icon={<Trash />}
                       size="xs"
                       _hover={{ bg: "gray.700" }}
                       colorScheme="red"
@@ -570,7 +570,7 @@ export function NotificationMenu() {
                     _hover={{ bg: "gray.700" }}
                     color="white"
                     onClick={handleMarkAllAsRead}
-                        leftIcon={<CheckIcon />}
+                        leftIcon={<Check />}
                   >
                     Marcar lidas
                   </Button>
@@ -600,7 +600,7 @@ export function NotificationMenu() {
                   colorScheme="primary"
             onClick={() => setActiveFilter('all')}
           >
-                  <BellIcon mr={1} />
+                  <Icon as={Bell} mr={1} />
                   {notifications.length}
           </Button>
               </Tooltip>
@@ -615,7 +615,7 @@ export function NotificationMenu() {
                     _hover={{ bg: activeFilter === NotificationType.NEW_FOLLOWER ? notificationColors.newfollower : "gray.700" }}
             onClick={() => setActiveFilter(NotificationType.NEW_FOLLOWER)}
           >
-                    <FaUser style={{ marginRight: '4px' }} />
+                    <User weight="fill" style={{ marginRight: '4px' }} />
                     {notificationCounts[NotificationType.NEW_FOLLOWER]}
           </Button>
                 </Tooltip>
@@ -631,7 +631,7 @@ export function NotificationMenu() {
                     _hover={{ bg: activeFilter === NotificationType.NEW_COMMENT || activeFilter === NotificationType.LIST_COMMENT ? notificationColors.newcomment : "gray.700" }}
             onClick={() => setActiveFilter(NotificationType.NEW_COMMENT)}
                   >
-                    <FaComment style={{ marginRight: '4px' }} />
+                    <ChatCircle weight="fill" style={{ marginRight: '4px' }} />
                     {(notificationCounts[NotificationType.NEW_COMMENT] || 0) + (notificationCounts[NotificationType.LIST_COMMENT] || 0)}
                   </Button>
                 </Tooltip>
@@ -647,7 +647,7 @@ export function NotificationMenu() {
                     _hover={{ bg: activeFilter === NotificationType.NEW_REACTION || activeFilter === NotificationType.LIST_REACTION ? notificationColors.newlike : "gray.700" }}
                     onClick={() => setActiveFilter(NotificationType.NEW_REACTION)}
                   >
-                    <FaHeart style={{ marginRight: '4px' }} />
+                    <Heart weight="fill" style={{ marginRight: '4px' }} />
                     {(notificationCounts[NotificationType.NEW_REACTION] || 0) + (notificationCounts[NotificationType.LIST_REACTION] || 0)}
                   </Button>
                 </Tooltip>
@@ -663,7 +663,7 @@ export function NotificationMenu() {
                     _hover={{ bg: activeFilter === NotificationType.NEW_REVIEW ? notificationColors.newreview : "gray.700" }}
                     onClick={() => setActiveFilter(NotificationType.NEW_REVIEW)}
                   >
-                    <FaStar style={{ marginRight: '4px' }} />
+                    <Star weight="fill" style={{ marginRight: '4px' }} />
                     {notificationCounts[NotificationType.NEW_REVIEW]}
           </Button>
                 </Tooltip>
@@ -679,7 +679,7 @@ export function NotificationMenu() {
                     _hover={{ bg: activeFilter === NotificationType.NEW_EPISODE ? notificationColors.newepisode : "gray.700" }}
             onClick={() => setActiveFilter(NotificationType.NEW_EPISODE)}
           >
-                    <FaVideo style={{ marginRight: '4px' }} />
+                    <VideoCamera weight="fill" style={{ marginRight: '4px' }} />
                     {notificationCounts[NotificationType.NEW_EPISODE]}
           </Button>
                 </Tooltip>
@@ -707,7 +707,7 @@ export function NotificationMenu() {
             <Box p={8} textAlign="center">
               <VStack spacing={3}>
                 <Box p={3} borderRadius="full" bg="gray.700">
-                  <BellIcon color="gray.400" boxSize={6} />
+                  <Icon as={Bell} color="gray.400" boxSize={6} />
           </Box>
           <Text color="gray.400" fontSize="sm">
             {notifications.length === 0 

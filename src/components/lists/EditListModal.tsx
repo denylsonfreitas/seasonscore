@@ -33,8 +33,7 @@ import {
   AlertDialogOverlay,
   Box
 } from '@chakra-ui/react';
-import { FaPlus } from 'react-icons/fa';
-import { Globe, Lock, Trash } from '@phosphor-icons/react';
+import { Globe, Lock, Plus, Trash } from "@phosphor-icons/react";
 import { List } from '../../types/list';
 import { updateList, deleteList } from '../../services/lists';
 import { useAuth } from '../../contexts/AuthContext';
@@ -254,7 +253,7 @@ export function EditListModal({ isOpen, onClose, list, onListUpdated }: EditList
                       h="1.75rem"
                       size="sm"
                       aria-label="Adicionar tag"
-                      icon={<FaPlus />}
+                      icon={<Plus weight="fill" />}
                       onClick={handleTagAdd}
                       isDisabled={!tagInput.trim()}
                       colorScheme="primary"

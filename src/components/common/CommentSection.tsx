@@ -1,3 +1,4 @@
+import { DotsThreeVertical, PencilSimple, Trash } from "@phosphor-icons/react";
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
@@ -23,7 +24,6 @@ import {
   AlertDialogOverlay,
   Textarea,
 } from '@chakra-ui/react';
-import { FaEllipsisV, FaTrash, FaEdit } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatRelativeTime } from '../../utils/dateUtils';
 import { Link } from 'react-router-dom';
@@ -548,14 +548,14 @@ export function CommentSection({
                               <Menu>
                                 <MenuButton
                                   as={IconButton}
-                                  icon={<FaEllipsisV />}
+                                  icon={<DotsThreeVertical weight="fill" />}
                                   variant="ghost"
                                   size="xs"
                                   aria-label="Opções"
                                 />
                                 <MenuList bg="gray.800" borderColor="gray.700">
                                   <MenuItem
-                                    icon={<FaEdit />}
+                                    icon={<PencilSimple weight="fill" />}
                                     onClick={() => handleEditClick(comment)}
                                     bg="gray.800"
                                     _hover={{ bg: "gray.700" }}
@@ -563,7 +563,7 @@ export function CommentSection({
                                     Editar
                                   </MenuItem>
                                   <MenuItem
-                                    icon={<FaTrash />}
+                                    icon={<Trash weight="fill" />}
                                     onClick={() => handleDeleteClick(comment.id)}
                                     color="red.500"
                                     bg="gray.800"

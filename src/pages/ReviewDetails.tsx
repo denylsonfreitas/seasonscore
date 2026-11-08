@@ -25,7 +25,7 @@ import {
 } from "@chakra-ui/react";
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link as RouterLink, useNavigate } from "react-router-dom";
-import { ArrowLeft, ChatCircle, NotePencil, Calendar, Share } from "@phosphor-icons/react";
+import { ArrowLeft, Calendar, ChatCircle, NotePencil, Share } from "@phosphor-icons/react";
 import { useAuth } from "../contexts/AuthContext";
 import { getReviewDetails, toggleReaction } from "../services/reviews";
 import { getUserData } from "../services/users";
@@ -37,7 +37,6 @@ import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 import { CommentSection } from "../components/common/CommentSection";
 import { ReactionButtons } from "../components/reviews/ReactionButtons";
 import { Footer } from "../components/common/Footer";
-import { FaComment } from "react-icons/fa";
 
 export function ReviewDetails() {
   const { reviewId, seasonNumber: seasonNumberParam } = useParams<{ reviewId: string; seasonNumber: string }>();
@@ -304,7 +303,7 @@ export function ReviewDetails() {
     return (
       <Center minH="100vh" bg="gray.900">
         <VStack spacing={6} p={8} bg="gray.800" borderRadius="xl" boxShadow="lg" maxW="md" textAlign="center">
-          <Icon as={ChatCircle} boxSize={16} color="gray.500" />
+          <Icon as={ChatCircle} weight="fill" boxSize={16} color="gray.500" />
           <Text color="gray.400" fontSize="lg">Avaliação não encontrada</Text>
           <Button 
             as={RouterLink} 
@@ -623,7 +622,7 @@ export function ReviewDetails() {
               </Box>
               
               <Button
-                leftIcon={<Icon as={FaComment} />}
+                leftIcon={<Icon as={ChatCircle} weight="fill" />}
                 variant="ghost"
                 size="sm"
                 onClick={toggleComments}
@@ -705,7 +704,7 @@ export function ReviewDetails() {
             onClick={toggleComments}
             variant="outline"
             colorScheme="gray"
-            leftIcon={<Icon as={ChatCircle} />}
+            leftIcon={<Icon as={ChatCircle} weight="fill" />}
             mb={8}
             w="full"
             borderRadius="lg"

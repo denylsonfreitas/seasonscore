@@ -1,6 +1,6 @@
+import { House, Warning } from "@phosphor-icons/react";
 import React from 'react';
 import { Box, Button, Heading, Text, VStack, Flex, Icon } from '@chakra-ui/react';
-import { FaHome, FaExclamationTriangle } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 
 export function NotFound() {
@@ -14,7 +14,7 @@ export function NotFound() {
       py={10}
     >
       <VStack spacing={8} textAlign="center" maxW="600px">
-        <Icon as={FaExclamationTriangle} w={20} h={20} color="primary.500" />
+        <Icon as={Warning} weight="fill" w={20} h={20} color="primary.500" />
         
         <Heading as="h1" size="2xl" color="primary.500">
           404
@@ -40,7 +40,7 @@ export function NotFound() {
             to="/"
             size="lg"
             colorScheme="primary"
-            leftIcon={<FaHome />}
+            leftIcon={<House weight="fill" />}
           >
             Voltar para a página inicial
           </Button>

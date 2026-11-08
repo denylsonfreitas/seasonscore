@@ -1,3 +1,4 @@
+import { ChatCircle, Heart, Star, User, VideoCamera } from "@phosphor-icons/react";
 import React, { memo } from 'react';
 import {
   Box,
@@ -10,10 +11,6 @@ import {
   Checkbox,
   useTheme,
 } from '@chakra-ui/react';
-import {
-  FaUser, FaComment, FaVideo, FaStar
-} from 'react-icons/fa';
-import { FaHeart } from 'react-icons/fa';
 import { Notification, NotificationType } from '../../services/notifications';
 import { UserAvatar } from '../common/UserAvatar';
 import { formatNotificationDate } from '../../utils/dateUtils';
@@ -56,24 +53,24 @@ export const NotificationItem = memo(({
   
   const getNotificationIcon = () => {
     if (isUserDeleted) {
-      return <Box as={FaUser} color="gray.400" />;
+      return <Box as={User} weight="fill" color="gray.400" />;
     }
     
     switch (notification.type) {
       case NotificationType.NEW_FOLLOWER:
-        return <Box as={FaUser} color={notificationColors.newfollower} />;
+        return <Box as={User} weight="fill" color={notificationColors.newfollower} />;
       case NotificationType.NEW_COMMENT:
       case NotificationType.LIST_COMMENT:
-        return <Box as={FaComment} color={notificationColors.newcomment} />;
+        return <Box as={ChatCircle} weight="fill" color={notificationColors.newcomment} />;
       case NotificationType.NEW_REACTION:
       case NotificationType.LIST_REACTION:
-        return <Box as={FaHeart} color={notificationColors.newlike} />;
+        return <Box as={Heart} weight="fill" color={notificationColors.newlike} />;
       case NotificationType.NEW_EPISODE:
-        return <Box as={FaVideo} color={notificationColors.newepisode} />;
+        return <Box as={VideoCamera} weight="fill" color={notificationColors.newepisode} />;
       case NotificationType.NEW_REVIEW:
-        return <Box as={FaStar} color={notificationColors.newreview} />;
+        return <Box as={Star} weight="fill" color={notificationColors.newreview} />;
       default:
-        return <Box as={FaUser} color={notificationColors.newfollower} />;
+        return <Box as={User} weight="fill" color={notificationColors.newfollower} />;
     }
   };
   

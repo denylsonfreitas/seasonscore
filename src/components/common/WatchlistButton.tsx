@@ -11,11 +11,10 @@ import {
   Box,
   Portal
 } from "@chakra-ui/react";
-import { Bookmark, BookmarkSimple, DotsThree } from "@phosphor-icons/react";
+import { Bookmark, BookmarkSimple, DotsThree, ListBullets } from "@phosphor-icons/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSearchParams } from "react-router-dom";
 import { AddToListButton, AddToListMenuItem } from "../lists/AddToListButton";
-import { FaListUl } from "react-icons/fa";
 import { useWatchlist } from "../../hooks/useWatchlist";
 
 interface WatchlistButtonProps {
@@ -173,7 +172,7 @@ export function WatchlistButton({ series, size = "md", variant = "ghost", menuAs
             </MenuItem>
             <MenuDivider borderColor="gray.700" />
             <MenuItem 
-              icon={<FaListUl color="white" size={14} />}
+              icon={<ListBullets weight="fill" color="white" size={14} />}
               onClick={() => toast({
                 title: "Faça login para adicionar séries às suas listas",
                 status: "warning",

@@ -12,7 +12,6 @@
     "test:rules": "firebase emulators:exec --only firestore --project seasonscore-rules-test 'vitest run --config vitest.rules.config.ts'"
   },
   "dependencies": {
-    "@chakra-ui/icons": "^2.2.4",
     "@chakra-ui/react": "^2.10.10",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
@@ -23,7 +22,6 @@
     "framer-motion": "^14.10.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-icons": "^5.7.0",
     "react-router-dom": "^7.18.5",
     "zustand": "^5.1.0"
   },

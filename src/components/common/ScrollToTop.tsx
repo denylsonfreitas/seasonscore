@@ -1,6 +1,6 @@
+import { CaretUp } from "@phosphor-icons/react";
 import { useEffect } from "react";
-import { IconButton, Box, useMediaQuery, Tooltip } from "@chakra-ui/react";
-import { ChevronUpIcon } from "@chakra-ui/icons";
+import { Icon, IconButton, Box, useMediaQuery, Tooltip } from "@chakra-ui/react";
 
 export function ScrollToTop() {
   const [isMobile] = useMediaQuery("(max-width: 768px)");
@@ -42,7 +42,7 @@ export function ScrollToTop() {
   const button = (
     <IconButton
       onClick={scrollToTop}
-      icon={<ChevronUpIcon boxSize="1.8em" />}
+      icon={<Icon as={CaretUp} boxSize="1.8em" />}
       aria-label="Voltar ao topo"
       title="Voltar ao topo da página"
       size={{ base: "md", md: "md" }}

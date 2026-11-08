@@ -7,16 +7,7 @@ import {
   Divider,
   useToast,
 } from "@chakra-ui/react";
-import {
-  TelevisionSimple,
-  SignOut,
-  Gear,
-  UserCircle,
-  Star,
-  Note,
-  UsersThree,
-} from "@phosphor-icons/react";
-import { TbRosetteNumber1 } from "react-icons/tb";
+import { Gear, Note, NumberCircleOne, SignOut, Star, TelevisionSimple, UserCircle, UsersThree } from "@phosphor-icons/react";
 import { Link as RouterLink } from "react-router-dom";
 import { ExtendedUser } from "../../types/auth";
 import { useEffect, useState } from "react";
@@ -183,7 +174,7 @@ export function MobileMenu({
                 alignItems="center"
                 justifyContent="center"
               >
-                <TbRosetteNumber1 height="fill" size={18} color={top10Color} />
+                <NumberCircleOne height="fill" size={18} color={top10Color} />
               </Box>
               <Text color="gray.100" fontWeight="medium">
                 Top 10

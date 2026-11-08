@@ -1,6 +1,6 @@
+import { User } from "@phosphor-icons/react";
 import React from 'react';
 import { Avatar, AvatarBadge, AvatarProps, Box, useColorModeValue } from '@chakra-ui/react';
-import { FaUser } from 'react-icons/fa';
 
 interface UserAvatarProps extends Omit<AvatarProps, 'src' | 'name' | 'icon'> {
   userId?: string;
@@ -51,7 +51,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
       alignItems="center"
       justifyContent="center"
     >
-      <FaUser color={iconColor} size={size === 'xs' ? '10px' : size === 'sm' ? '14px' : '18px'} />
+      <User weight="fill" color={iconColor} size={size === 'xs' ? '10px' : size === 'sm' ? '14px' : '18px'} />
     </Box>
   );
   
@@ -61,7 +61,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
       src={userIsDeleted ? undefined : photoURL || undefined}
       name={userIsDeleted ? "Usuário excluído" : name || (userEmail ? userEmail.split('@')[0] : 'Usuário')}
       bg={bg}
-      icon={userIsDeleted ? <FaUser /> : undefined}
+      icon={userIsDeleted ? <User weight="fill" /> : undefined}
       onClick={onClick}
       borderWidth={userIsDeleted ? '1px' : 0}
       borderColor="gray.500"
