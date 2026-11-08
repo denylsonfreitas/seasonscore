@@ -10,23 +10,14 @@ import {
   limit,
   addDoc,
   updateDoc,
-  deleteDoc,
   arrayUnion,
-  arrayRemove,
   serverTimestamp,
   Timestamp,
-  DocumentReference,
-  increment,
-  startAfter,
-  writeBatch,
-  setDoc,
-  runTransaction,
-  FieldValue,
+  runTransaction
 } from "firebase/firestore";
 import { 
   List, 
   ListItem, 
-  ListComment, 
   ListReaction, 
   ListReactionType,
   ListWithUserData
@@ -38,8 +29,6 @@ import {
   deleteNotificationsOfType,
   removeReactionNotification
 } from "./notifications";
-import { ensureFirestoreDelete } from "../utils/deleteUtils";
-
 // Constantes para nomes de coleções
 const LISTS_COLLECTION = "lists";
 const LIST_REACTIONS_COLLECTION = "listReactions";
@@ -449,38 +438,6 @@ export async function getListById(listId: string): Promise<ListWithUserData | nu
 }
 
 /**
- * Busca uma lista pelo ID com informações do usuário
- * @param listId ID da lista
- * @returns Promise com os dados da lista incluindo informações do usuário
- */
-export async function getListWithUserData(listId: string): Promise<ListWithUserData | null> {
-  try {
-    const list = await getListById(listId);
-    if (!list) return null;
-
-    const userData = await getUserData(list.userId);
-    if (!userData) {
-      return {
-        ...list,
-        username: "Usuário excluído",
-        userDisplayName: "Usuário excluído",
-        userPhotoURL: null
-      };
-    }
-
-    return {
-      ...list,
-      username: userData.username,
-      userDisplayName: userData.displayName || userData.username,
-      userPhotoURL: userData.photoURL
-    };
-  } catch (error) {
-    console.error("Erro ao buscar lista com dados do usuário:", error);
-    throw error;
-  }
-}
-
-/**
  * Busca listas de um usuário específico
  * @param userId ID do usuário
  * @param onlyPublic Se true, retorna apenas listas públicas
@@ -722,154 +679,6 @@ export async function getListsContainingSeries(
   } catch (error) {
     console.error("Erro ao buscar listas contendo a série:", error);
     return [];
-  }
-}
-
-/**
- * Adiciona um comentário a uma lista
- * @param listId ID da lista
- * @param content Conteúdo do comentário
- * @returns Promise com ID do comentário criado
- */
-export async function addCommentToList(
-  listId: string,
-  content: string
-): Promise<string> {
-  if (!auth.currentUser) {
-    throw new Error("Usuário não autenticado");
-  }
-
-  if (!content.trim()) {
-    throw new Error("O comentário não pode estar vazio");
-  }
-
-  try {
-    const listRef = doc(db, LISTS_COLLECTION, listId);
-    const listSnap = await getDoc(listRef);
-
-    if (!listSnap.exists()) {
-      throw new Error("Lista não encontrada");
-    }
-
-    const listData = listSnap.data() as List;
-
-    const commentData: Omit<ListComment, "id"> = {
-      listId,
-      userId: auth.currentUser.uid,
-      content,
-      createdAt: serverTimestamp() as Timestamp,
-      likes: {}
-    };
-
-    const commentRef = await addDoc(collection(db, LIST_COMMENTS_COLLECTION), commentData);
-
-    // Atualizar contador de comentários na lista
-    await updateDoc(listRef, {
-      commentsCount: increment(1),
-      updatedAt: serverTimestamp()
-    });
-
-    // Notificar o dono da lista, se não for o próprio usuário comentando
-    if (auth.currentUser.uid !== listData.userId) {
-      try {
-        const userData = await getUserData(auth.currentUser.uid);
-        const commentatorName = userData?.username || userData?.displayName || auth.currentUser.email?.split('@')[0] || "Alguém";
-        
-        await createNotification(
-          listData.userId,
-          NotificationType.LIST_COMMENT,
-          {
-            senderId: auth.currentUser.uid,
-            reviewId: listId, // Usar reviewId para armazenar o ID da lista
-            message: `${commentatorName} comentou na sua lista "${listData.title}"`
-          }
-        );
-      } catch (error) {
-        console.error("Erro ao criar notificação de comentário:", error);
-        // Continuar mesmo se a notificação falhar
-      }
-    }
-
-    return commentRef.id;
-  } catch (error) {
-    console.error("Erro ao adicionar comentário à lista:", error);
-    throw error;
-  }
-}
-
-/**
- * Exclui um comentário de uma lista
- * @param listId ID da lista
- * @param commentId ID do comentário
- * @returns Promise<void>
- */
-export async function deleteListComment(
-  listId: string,
-  commentId: string
-): Promise<void> {
-  if (!auth.currentUser) {
-    throw new Error("Usuário não autenticado");
-  }
-
-  try {
-    const commentRef = doc(db, LIST_COMMENTS_COLLECTION, commentId);
-    const commentSnap = await getDoc(commentRef);
-
-    if (!commentSnap.exists()) {
-      throw new Error("Comentário não encontrado");
-    }
-
-    const commentData = commentSnap.data();
-    const listRef = doc(db, LISTS_COLLECTION, listId);
-    const listSnap = await getDoc(listRef);
-
-    if (!listSnap.exists()) {
-      throw new Error("Lista não encontrada");
-    }
-
-    const listData = listSnap.data();
-
-    // Verificar permissão: o usuário deve ser o autor do comentário ou o dono da lista
-    if (commentData.userId !== auth.currentUser.uid && listData.userId !== auth.currentUser.uid) {
-      throw new Error("Você não tem permissão para excluir este comentário");
-    }
-
-    // Excluir o comentário
-    await deleteDoc(commentRef);
-
-    // Atualizar contador de comentários na lista
-    await updateDoc(listRef, {
-      commentsCount: increment(-1),
-      updatedAt: serverTimestamp()
-    });
-  } catch (error) {
-    console.error("Erro ao excluir comentário da lista:", error);
-    throw error;
-  }
-}
-
-/**
- * Busca comentários de uma lista
- * @param listId ID da lista
- * @returns Promise com array de comentários
- */
-export async function getListComments(listId: string): Promise<ListComment[]> {
-  try {
-    const q = query(
-      collection(db, LIST_COMMENTS_COLLECTION),
-      where("listId", "==", listId),
-      orderBy("createdAt", "desc")
-    );
-
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate() || new Date()
-    } as ListComment));
-  } catch (error) {
-    console.error("Erro ao buscar comentários da lista:", error);
-    throw error;
   }
 }
 
@@ -1128,37 +937,6 @@ export async function toggleListReaction(
   } catch (error) {
     console.error("[toggleListReaction] Erro crítico ao processar reação:", error);
     throw error;
-  }
-}
-
-/**
- * Verifica se o usuário atual já reagiu a uma lista
- * @param listId ID da lista
- * @returns Promise com o tipo de reação, ou null se não houver
- */
-export async function getUserListReaction(
-  listId: string
-): Promise<ListReactionType | null> {
-  if (!auth.currentUser) {
-    return null;
-  }
-
-  try {
-    const q = query(
-      collection(db, LIST_REACTIONS_COLLECTION),
-      where("listId", "==", listId),
-      where("userId", "==", auth.currentUser.uid)
-    );
-
-    const querySnapshot = await getDocs(q);
-    if (querySnapshot.empty) {
-      return null;
-    }
-
-    return querySnapshot.docs[0].data().type as ListReactionType;
-  } catch (error) {
-    console.error("Erro ao verificar reação do usuário:", error);
-    return null;
   }
 }
 

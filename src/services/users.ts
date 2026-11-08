@@ -1,19 +1,13 @@
 import { doc, setDoc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { User } from "firebase/auth";
-import { collection, query, where, getDocs, writeBatch, DocumentReference, DocumentData, orderBy, limit } from "firebase/firestore";
+import { collection, query, where, getDocs, writeBatch, limit } from "firebase/firestore";
 import { getFirestore } from "firebase/firestore";
 import {
   serverTimestamp,
-  increment,
-  startAt,
-  endAt,
-  FieldPath,
+  increment
 } from "firebase/firestore";
 import { 
-  createNotification, 
-  NotificationType, 
-  deleteNotificationsOfType,
   removeCurrentUserNotifications
 } from "./notifications";
 
@@ -742,31 +736,6 @@ export async function updateUserNotificationSettings(
 }
 
 // Nova função para adicionar uma série à lista de séries que o usuário acompanha
-export async function addToUserWatchedSeries(userId: string, seriesId: number): Promise<void> {
-  try {
-    if (!userId) throw new Error("ID de usuário não fornecido");
-    
-    const userRef = doc(db, "users", userId);
-    
-    // Usar uma transação para garantir que os dados estejam atualizados
-    const userData = await getUserData(userId);
-    if (!userData) throw new Error("Usuário não encontrado");
-    
-    const watchedSeriesIds = userData.watchedSeriesIds || [];
-    
-    // Adicionar apenas se ainda não estiver na lista
-    if (!watchedSeriesIds.includes(seriesId)) {
-      await updateDoc(userRef, {
-        watchedSeriesIds: [...watchedSeriesIds, seriesId],
-        updatedAt: new Date()
-      });
-    }
-    
-  } catch (error) {
-    throw error;
-  }
-}
-
 // Obter configurações de notificação do usuário
 export async function getUserNotificationSettings(userId: string): Promise<{
   newEpisode: boolean;

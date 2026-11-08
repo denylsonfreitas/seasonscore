@@ -1,6 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const vendorChunks: Record<string, string[]> = {
+  vendor: ['react', 'react-dom', 'react-router', 'react-router-dom', 'scheduler'],
+  ui: ['@chakra-ui', '@emotion', 'framer-motion'],
+  firebase: ['firebase', '@firebase'],
+  utils: ['date-fns'],
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -22,12 +29,14 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['@chakra-ui/react', '@emotion/react', '@emotion/styled', 'framer-motion'],
-          firebase: ['firebase/auth', 'firebase/firestore', 'firebase/storage'],
-          utils: ['lodash', 'date-fns', 'nanoid'],
-          tmdb: ['axios']
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return undefined
+          for (const [chunk, packages] of Object.entries(vendorChunks)) {
+            if (packages.some((pkg) => id.includes(`/node_modules/${pkg}/`))) {
+              return chunk
+            }
+          }
+          return undefined
         },
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
@@ -40,8 +49,6 @@ export default defineConfig({
     reportCompressedSize: false
   },
   server: {
-    open: true,
-    cors: true,
     hmr: {
       overlay: true
     },
@@ -58,8 +65,7 @@ export default defineConfig({
     }
   },
   preview: {
-    port: 4173,
-    open: true
+    port: 4173
   },
   optimizeDeps: {
     include: [

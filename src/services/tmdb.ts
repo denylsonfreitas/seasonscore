@@ -1,12 +1,39 @@
-import axios from "axios";
+const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 
-const api = axios.create({
-  baseURL: "https://api.themoviedb.org/3",
-  params: {
-    api_key: import.meta.env.VITE_TMDB_API_KEY,
-    language: "pt-BR",
+type QueryValue = string | number | boolean | undefined | null;
+
+export class TmdbError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+    this.name = "TmdbError";
+  }
+}
+
+/** Cliente mínimo para a API do TMDB baseado em fetch. */
+const api = {
+  async get<T = any>(
+    path: string,
+    options: { params?: Record<string, QueryValue> } = {}
+  ): Promise<{ data: T }> {
+    const url = new URL(TMDB_BASE_URL + path);
+    const params: Record<string, QueryValue> = {
+      api_key: import.meta.env.VITE_TMDB_API_KEY,
+      language: "pt-BR",
+      ...options.params,
+    };
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null && value !== "") {
+        url.searchParams.set(key, String(value));
+      }
+    }
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new TmdbError(response.status, `TMDB ${response.status} em ${path}`);
+    }
+    return { data: (await response.json()) as T };
   },
-});
+};
 
 // Interface para séries na listagem
 export interface SeriesListItem {
@@ -184,18 +211,6 @@ export async function getAiringTodaySeries(page = 1, options: {
   return response.data;
 }
 
-export async function getNetworkSeries(networkId: number, page = 1) {
-  const response = await api.get<SeriesResponse>("/discover/tv", {
-    params: {
-      ...defaultParams,
-      page,
-      with_networks: networkId,
-      sort_by: "popularity.desc",
-    },
-  });
-  return response.data;
-}
-
 export async function getSeriesDetails(id: number) {
   const response = await api.get<Series>(`/tv/${id}`, {
     params: detailsParams,
@@ -327,14 +342,6 @@ export async function getLatestEpisode(seriesId: number): Promise<Episode | null
 }
 
 // IDs dos principais serviços de streaming
-export const streamingServices = {
-  NETFLIX: 213,
-  AMAZON: 1024,
-  DISNEY_PLUS: 2739,
-  HBO: 49,
-  APPLE_TV: 2552,
-  PARAMOUNT: 4330,
-} as const;
 
 export async function getTrendingSeries() {
   const response = await api.get<SeriesResponse>("/trending/tv/week", {

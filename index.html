@@ -110,20 +110,13 @@
         }, 100);
       };
 
-      if (!("IntersectionObserver" in window)) {
-        const script = document.createElement("script");
-        script.src =
-          "https://polyfill.io/v3/polyfill.min.js?features=IntersectionObserver";
-        document.head.appendChild(script);
-      }
-
       const connection =
         navigator.connection ||
         navigator.mozConnection ||
         navigator.webkitConnection;
       if (
         connection &&
-        (connection.saveData || connection.effectiveType.includes("2g"))
+        (connection.saveData || (connection.effectiveType || "").includes("2g"))
       ) {
         document.documentElement.classList.add("slow-connection");
       }
@@ -132,11 +125,8 @@
         window.addEventListener("load", () => {
           navigator.serviceWorker
             .register("/service-worker.js")
-            .then((registration) => {
-              // Service Worker registrado com sucesso
-            })
-            .catch((error) => {
-              // Erro ao registrar Service Worker
+            .catch(() => {
+              // Falha ao registrar o Service Worker não impede o uso do app
             });
         });
       }

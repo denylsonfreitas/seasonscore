@@ -1,15 +1,3 @@
-import { 
-  format, 
-  formatDistance, 
-  formatRelative, 
-  isToday, 
-  isYesterday,
-  differenceInDays,
-  differenceInHours,
-  differenceInMinutes,
-  differenceInSeconds
-} from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { Timestamp } from "firebase/firestore";
 
 /**
@@ -61,94 +49,9 @@ export function formatNotificationDate(date: Date | Timestamp | null | undefined
   return dateObj.toLocaleDateString('pt-BR', options);
 }
 
-/**
- * Formata uma data para exibição relativa (ex: "há 2 horas")
- * @param date A data a ser formatada
- * @returns String formatada da data relativa
- */
-export function formatRelativeDate(date: Date | null): string {
-  if (!date) return 'Agora';
-  
-  try {
-    return formatDistance(date, new Date(), {
-      addSuffix: true,
-      locale: ptBR
-    });
-  } catch (error) {
-    return 'Data inválida';
-  }
-}
-
-/**
- * Formata uma data como dia e mês abreviado
- * @param date A data a ser formatada
- * @returns String formatada da data (ex: "21 jan")
- */
-export function formatShortDate(date: Date | null): string {
-  if (!date) return '';
-  
-  try {
-    return format(date, "dd MMM", { locale: ptBR });
-  } catch (error) {
-    return '';
-  }
-}
-
-/**
- * Formata uma data como dia, mês e ano
- * @param date A data a ser formatada
- * @returns String formatada da data (ex: "21 de janeiro de 2023")
- */
-export function formatLongDate(date: Date | null): string {
-  if (!date) return '';
-  
-  try {
-    return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-  } catch (error) {
-    return '';
-  }
-}
-
 // Função para formatar datas completas
-export function formatFullDate(date: Date | Timestamp | null | undefined): string {
-  if (!date) return "";
-  
-  // Converter Timestamp para Date se necessário
-  const dateObj = date instanceof Timestamp ? date.toDate() : date;
-  
-  const options = { 
-    day: 'numeric', 
-    month: 'long', 
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  } as Intl.DateTimeFormatOptions;
-  
-  return dateObj.toLocaleDateString('pt-BR', options);
-}
-
 // Função para formatar apenas o dia e o mês
-export function formatDayMonth(date: Date | Timestamp | null | undefined): string {
-  if (!date) return "";
-  
-  // Converter Timestamp para Date se necessário
-  const dateObj = date instanceof Timestamp ? date.toDate() : date;
-  
-  const options = { day: 'numeric', month: 'long' } as Intl.DateTimeFormatOptions;
-  return dateObj.toLocaleDateString('pt-BR', options);
-}
-
 // Função para formatar apenas dia da semana
-export function formatWeekday(date: Date | Timestamp | null | undefined): string {
-  if (!date) return "";
-  
-  // Converter Timestamp para Date se necessário
-  const dateObj = date instanceof Timestamp ? date.toDate() : date;
-  
-  const options = { weekday: 'long' } as Intl.DateTimeFormatOptions;
-  return dateObj.toLocaleDateString('pt-BR', options);
-}
-
 // Função para formatar data de criação em formato relativo
 export function formatRelativeTime(date: Date | Timestamp | null | undefined): string {
   if (!date) return "recentemente";
@@ -199,16 +102,4 @@ export function formatRelativeTime(date: Date | Timestamp | null | undefined): s
   return `há ${years} ano${years !== 1 ? 's' : ''}`;
 }
 
-// Função para formatar data em formato comum (dia/mês/ano)
-export function formatDate(date: Date | Timestamp | null | undefined): string {
-  if (!date) return "";
-  
-  // Converter Timestamp para Date se necessário
-  const dateObj = date instanceof Timestamp ? date.toDate() : date;
-  
-  try {
-    return format(dateObj, "dd/MM/yyyy", { locale: ptBR });
-  } catch (error) {
-    return "";
-  }
-} 
+// Função para formatar data em formato comum (dia/mês/ano) 

@@ -1,25 +1,10 @@
-import { collection, getDocs, getFirestore, query, where, doc, getDoc, setDoc } from "firebase/firestore";
-import { getLatestEpisode, getSeriesDetails } from "./tmdb";
+import { collection, getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { getLatestEpisode } from "./tmdb";
 import { createNotification, NotificationType } from "./notifications";
-import { getUserWatchlist } from "./watchlist";
-
 const db = getFirestore();
 const lastNotifiedEpisodesCollection = collection(db, "lastNotifiedEpisodes");
 
 // Verificar novos episódios para um usuário específico
-export async function checkNewEpisodesForUser(userId: string): Promise<void> {
-  try {
-    // Obter a watchlist do usuário
-    const watchlist = await getUserWatchlist(userId);
-    
-    // Para cada série na watchlist, verificar se há novos episódios
-    for (const item of watchlist) {
-      await checkNewEpisodeForSeries(userId, item.seriesId, item.seriesData.name, item.seriesData.poster_path);
-    }
-  } catch (error) {
-  }
-}
-
 // Verificar novos episódios para uma série específica
 export async function checkNewEpisodeForSeries(
   userId: string, 
@@ -84,23 +69,4 @@ export async function checkNewEpisodeForSeries(
   }
 }
 
-// Verificar novos episódios para todos os usuários
-export async function checkNewEpisodesForAllUsers(): Promise<void> {
-  try {
-    // Obter todos os usuários com watchlist
-    const watchlistRef = collection(db, "watchlist");
-    const watchlistSnapshot = await getDocs(watchlistRef);
-    
-    // Extrair IDs de usuários únicos
-    const userIds = new Set<string>();
-    watchlistSnapshot.docs.forEach(doc => {
-      userIds.add(doc.data().userId);
-    });
-    
-    // Verificar novos episódios para cada usuário
-    for (const userId of userIds) {
-      await checkNewEpisodesForUser(userId);
-    }
-  } catch (error) {
-  }
-} 
+// Verificar novos episódios para todos os usuários 

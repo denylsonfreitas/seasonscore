@@ -27,12 +27,4 @@ export const ensureFirestoreDelete = async (
   } catch (error) {
     throw error;
   }
-};
-
-/**
- * Função específica para excluir comentários garantindo atualização no Firestore
- * @param reviewId ID da avaliação
- * @param commentId ID do comentário
- */
-export const ensureCommentDeletion = async (reviewId: string, commentId: string): Promise<void> => {
 }; 
