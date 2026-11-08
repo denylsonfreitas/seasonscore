@@ -25,6 +25,10 @@ export default tseslint.config(
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrors: "none" },
       ],
       "no-console": ["warn", { allow: ["warn", "error"] }],
+      // Regras voltadas ao React Compiler (ainda não habilitado no projeto):
+      // mantidas como aviso para guiar refatorações futuras.
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/preserve-manual-memoization": "warn",
     },
   }
 );
