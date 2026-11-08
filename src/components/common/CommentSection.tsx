@@ -406,7 +406,11 @@ export function CommentSection({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    editingComment ? handleUpdateComment() : handleAddComment();
+                    if (editingComment) {
+                      handleUpdateComment();
+                    } else {
+                      handleAddComment();
+                    }
                   }
                 }}
                 bg="gray.700"

@@ -18,6 +18,7 @@ import {
 import { auth, db } from "../config/firebase";
 import { getUserData } from "./users";
 import { getSeriesDetails } from "./tmdb";
+import { logError } from "../utils/logger";
 
 // Configurações
 const notificationsCollection = collection(db, "notifications");
@@ -172,7 +173,7 @@ export async function createNotification(
 function sanitizeMessage(message: string, senderName: string, type: NotificationType): string {
   if (!senderName) return message;
   
-  let sanitized = message;
+  const sanitized = message;
   
   // Tratamentos específicos por tipo
   switch (type) {
@@ -205,7 +206,7 @@ function sanitizeMessage(message: string, senderName: string, type: Notification
   }
   
   // Substituição genérica
-  const escapeRegex = (s: string) => s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  const escapeRegex = (s: string) => s.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
   const fullNameRegex = new RegExp(escapeRegex(senderName), 'gi');
   
   return sanitized.replace(fullNameRegex, "Usuário excluído");
@@ -335,7 +336,7 @@ export async function getGroupedNotifications(userId: string): Promise<Notificat
     
     notifications.forEach(notification => {
       // Gerar uma chave de agrupamento
-      let key = '';
+      let key: string;
       
       // Usuários excluídos sempre têm chaves únicas
       if (notification.isDeleted) {
@@ -527,6 +528,7 @@ export async function markNotificationAsRead(userId: string, notificationId: str
     invalidateCache(userId);
     
   } catch (error) {
+    logError("markNotificationAsRead", error);
   }
 }
 
@@ -535,33 +537,28 @@ export async function markAllNotificationsAsRead(userId: string): Promise<void> 
     return;
   }
   
-  try {
-    const q = query(
-      notificationsCollection,
-      where("userId", "==", userId),
-      where("read", "==", false),
-      firestoreLimit(100) 
-    );
-    
-    const querySnapshot = await getDocs(q);
-    
-    if (querySnapshot.empty) {
-      return;
-    }
-    
-    const batch = writeBatch(db);
-    
-    querySnapshot.forEach(doc => {
-      batch.update(doc.ref, { read: true });
-    });
-    
-      await batch.commit();
-    
-    invalidateCache(userId);
-    
-  } catch (error) {
-    throw error;
+  const q = query(
+    notificationsCollection,
+    where("userId", "==", userId),
+    where("read", "==", false),
+    firestoreLimit(100) 
+  );
+  
+  const querySnapshot = await getDocs(q);
+  
+  if (querySnapshot.empty) {
+    return;
   }
+  
+  const batch = writeBatch(db);
+  
+  querySnapshot.forEach(doc => {
+    batch.update(doc.ref, { read: true });
+  });
+  
+    await batch.commit();
+  
+  invalidateCache(userId);
 }
 
 export async function deleteNotification(notificationId: string): Promise<boolean> {
@@ -826,7 +823,7 @@ export async function deleteAllUserNotifications(userId: string): Promise<number
     return totalDeleted;
   } catch (error) {
     console.error(`Erro ao remover notificações do usuário: ${error}`);
-    throw new Error("Falha ao remover notificações. Tente novamente mais tarde.");
+    throw new Error("Falha ao remover notificações. Tente novamente mais tarde.", { cause: error });
   }
 }
 

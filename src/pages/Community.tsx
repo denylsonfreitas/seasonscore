@@ -68,7 +68,7 @@ export function Community() {
 
   // Determinar quais usuários mostrar com base na aba selecionada
   const getActiveUsers = () => {
-    let activeUsers: UserWithStats[] = [];
+    let activeUsers: UserWithStats[];
     
     if (debouncedSearch) {
       activeUsers = popularUsers || [];

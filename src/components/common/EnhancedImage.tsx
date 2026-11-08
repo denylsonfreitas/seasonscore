@@ -39,7 +39,7 @@ const getOptimizedImageUrl = (src: string, width: number, quality = 80, tmdbWidt
   if (src.includes('image.tmdb.org/t/p/')) {
     // Se um tamanho tmdb específico foi fornecido, usá-lo
     if (tmdbWidth) {
-      return src.replace(/(image\.tmdb\.org\/t\/p\/)([^\/]+)(\/.+)$/, `$1${tmdbWidth}$3`);
+      return src.replace(/(image\.tmdb\.org\/t\/p\/)([^/]+)(\/.+)$/, `$1${tmdbWidth}$3`);
     }
     
     // Caso contrário, escolher o tamanho mais próximo da largura fornecida
@@ -59,7 +59,7 @@ const getOptimizedImageUrl = (src: string, width: number, quality = 80, tmdbWidt
           : prev;
       }, ['1280', 'original']);
     
-    return src.replace(/(image\.tmdb\.org\/t\/p\/)([^\/]+)(\/.+)$/, `$1${sizeToUse[1]}$3`);
+    return src.replace(/(image\.tmdb\.org\/t\/p\/)([^/]+)(\/.+)$/, `$1${sizeToUse[1]}$3`);
   }
   
   // Otimização para Cloudinary

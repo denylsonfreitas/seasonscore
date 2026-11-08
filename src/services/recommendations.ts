@@ -2,6 +2,7 @@ import { getSeriesDetails, SeriesListItem, getFilteredSeries, getPopularSeries }
 import { getUserWatchlist } from "./watchlist";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../config/firebase";
+import { logError } from "../utils/logger";
 
 // Interface para os gêneros preferidos do usuário
 interface UserPreference {
@@ -61,15 +62,14 @@ async function getUserReviews(userId: string) {
       if (!seriesDetails) {
         continue;
       }
-      
-      if (!seriesDetails.genres || seriesDetails.genres.length === 0) {
-      }
+
       
       reviews.push({
         ...reviewData,
         seriesDetails
       });
     } catch (error) {
+      logError("getUserReviews", error);
     }
   }
   
@@ -116,7 +116,6 @@ async function analyzeUserPreferences(userReviews: any[]): Promise<UserPreferenc
         genrePreferences[genre.id].count += 1;
         genrePreferences[genre.id].totalRating += averageRating;
       });
-    } else {
     }
   });
   
@@ -225,6 +224,7 @@ async function fetchRecommendedSeries(
       }
       
     } catch (error) {
+      logError("fetchRecommendedSeries", error);
     }
   }
   
@@ -247,6 +247,7 @@ async function fetchRecommendedSeries(
       }
       
     } catch (error) {
+      logError("fetchRecommendedSeries", error);
     }
   }
   

@@ -180,10 +180,7 @@ export function SeasonAccordionItem({ season, averageRating, seasonReviews, user
             colorScheme="primary"
             onClick={() => {
               const openLoginPopover = getGlobalLoginPopover();
-              if (openLoginPopover) {
-                openLoginPopover();
-              } else {
-              }
+              openLoginPopover?.();
             }}
             width="100%"
           >

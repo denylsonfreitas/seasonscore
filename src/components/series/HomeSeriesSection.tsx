@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getSeriesReviews } from "../../services/reviews";
 import { SectionBase } from "../common/SectionBase";
 import { Carousel } from "../common/Carousel";
+import { logError } from "../../utils/logger";
 
 interface HomeSectionProps {
   title: string;
@@ -48,7 +49,9 @@ export function HomeSeriesSection({
                   allRatings.reduce((a, b) => a + b, 0) / allRatings.length;
               }
             }
-          } catch (error) {}
+          } catch (error) {
+            logError("{ data: allReviews = {} }", error);
+          }
         })
       );
 

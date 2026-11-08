@@ -36,6 +36,7 @@ import {
 import { db, auth } from "../config/firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { UserAvatar } from "../components/common/UserAvatar";
+import { logError } from "../utils/logger";
 
 export function ProfileSettings() {
   const { currentUser } = useAuth() as { currentUser: ExtendedUser | null };
@@ -77,6 +78,7 @@ export function ProfileSettings() {
           setNewUsername(userData.username || "");
         }
       } catch (error) {
+        logError("loadUserData", error);
       } finally {
         setIsLoading(false);
       }
@@ -169,6 +171,7 @@ export function ProfileSettings() {
           setUsernameError("");
         }
       } catch (error) {
+        logError("checkUsername", error);
       } finally {
         setIsCheckingUsername(false);
       }
@@ -244,6 +247,7 @@ export function ProfileSettings() {
           });
           
         } catch (err) {
+          logError("handleSave", err);
         }
       } else {
         await updateProfile(auth.currentUser, {

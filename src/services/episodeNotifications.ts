@@ -2,6 +2,7 @@ import { db } from "../config/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { getLatestEpisode } from "./tmdb";
 import { createNotification, NotificationType } from "./notifications";
+import { logError } from "../utils/logger";
 
 // Verificar novos episódios para um usuário específico
 // Verificar novos episódios para uma série específica
@@ -65,6 +66,7 @@ export async function checkNewEpisodeForSeries(
       });
     }
   } catch (error) {
+    logError("checkNewEpisodeForSeries", error);
   }
 }
 

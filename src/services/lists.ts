@@ -133,7 +133,7 @@ export async function createList(
     return listRef.id;
   } catch (error) {
     console.error("Erro ao criar lista:", error);
-    throw new Error("Não foi possível criar a lista");
+    throw new Error("Não foi possível criar a lista", { cause: error });
   }
 }
 
@@ -192,7 +192,7 @@ export async function addSeriesToList(
     });
   } catch (error) {
     console.error("Erro ao adicionar série à lista:", error);
-    throw error instanceof Error ? error : new Error("Não foi possível adicionar a série à lista");
+    throw error instanceof Error ? error : new Error("Não foi possível adicionar a série à lista", { cause: error });
   }
 }
 
@@ -245,7 +245,7 @@ export async function removeSeriesFromList(
     });
   } catch (error) {
     console.error("Erro ao remover série da lista:", error);
-    throw error instanceof Error ? error : new Error("Não foi possível remover a série da lista");
+    throw error instanceof Error ? error : new Error("Não foi possível remover a série da lista", { cause: error });
   }
 }
 
@@ -289,7 +289,7 @@ export async function updateList(
     });
   } catch (error) {
     console.error("Erro ao atualizar lista:", error);
-    throw error instanceof Error ? error : new Error("Não foi possível atualizar a lista");
+    throw error instanceof Error ? error : new Error("Não foi possível atualizar a lista", { cause: error });
   }
 }
 
@@ -355,7 +355,7 @@ export async function deleteList(listId: string): Promise<void> {
     });
   } catch (error) {
     console.error("Erro ao excluir lista:", error);
-    throw error instanceof Error ? error : new Error("Não foi possível excluir a lista");
+    throw error instanceof Error ? error : new Error("Não foi possível excluir a lista", { cause: error });
   }
 }
 
@@ -433,7 +433,7 @@ export async function getListById(listId: string): Promise<ListWithUserData | nu
     return formattedList;
   } catch (error) {
     console.error("Erro ao obter lista:", error);
-    throw new Error("Não foi possível obter os detalhes da lista");
+    throw new Error("Não foi possível obter os detalhes da lista", { cause: error });
   }
 }
 
@@ -838,7 +838,7 @@ export async function toggleListReaction(
     
     const userReactionSnapshot = await getDocs(userReactionQuery);
     const hasExistingReaction = !userReactionSnapshot.empty;
-    let reactionDocId = hasExistingReaction ? userReactionSnapshot.docs[0].id : null;
+    const reactionDocId = hasExistingReaction ? userReactionSnapshot.docs[0].id : null;
     
     // Agora use uma transação para garantir a consistência
     const transactionResult = await runTransaction(db, async (transaction) => {

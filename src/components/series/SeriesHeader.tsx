@@ -21,6 +21,7 @@ import { WatchlistButton } from "../common/WatchlistButton";
 import { SeriesDetailsTabs } from "./SeriesDetailsTabs";
 import { SeriesReview } from "../../services/reviews";
 import { getSeriesVideos } from "../../services/tmdb";
+import { logError } from "../../utils/logger";
 
 interface Series {
   id: number;
@@ -106,6 +107,7 @@ export function SeriesHeader({
           setTrailerUrl(`https://www.youtube.com/watch?v=${trailer.key}`);
         }
       } catch (error) {
+        logError("fetchTrailer", error);
       } finally {
         setIsLoadingTrailer(false);
       }

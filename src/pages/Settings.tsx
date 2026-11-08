@@ -35,6 +35,7 @@ import { useNavigate } from "react-router-dom";
 import { ExtendedUser } from "../types/auth";
 import { auth } from "../config/firebase";
 import { isUsernameAvailable, deleteUserData } from "../services/users";
+import { logError } from "../utils/logger";
 
 export function Settings() {
   const { currentUser, logout } = useAuth() as { currentUser: ExtendedUser | null, logout: () => Promise<void> };
@@ -160,7 +161,7 @@ export function Settings() {
       }, 1500);
     } catch (error: any) {
 
-      let errorMessage = "Verifique sua senha e tente novamente.";
+      let errorMessage: string;
       
       if (error.code === 'auth/wrong-password') {
         errorMessage = "Senha incorreta. Por favor, verifique e tente novamente.";
@@ -225,6 +226,7 @@ export function Settings() {
           setUsernameError("");
         }
       } catch (error) {
+        logError("checkUsername", error);
       } finally {
         setIsCheckingUsername(false);
       }

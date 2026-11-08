@@ -25,6 +25,7 @@ import { useEffect } from "react";
 import { AnimatedMenu } from "../common/AnimatedMenu";
 import { useAnimatedMenu } from "../../hooks/useAnimatedMenu";
 import { RippleEffect } from "../common/RippleEffect";
+import { logError } from "../../utils/logger";
 
 let globalOpenLoginPopover: (() => void) | null = null;
 
@@ -80,7 +81,9 @@ export function Navbar() {
     try {
       await logout();
       navigate("/");
-    } catch (error) {}
+    } catch (error) {
+      logError("handleLogout", error);
+    }
   };
 
   // Trigger para o login desktop

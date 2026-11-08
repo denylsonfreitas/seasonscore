@@ -85,15 +85,11 @@ export async function isEmailAvailable(email: string): Promise<boolean> {
 }
 
 export async function updateUsername(userId: string, newUsername: string): Promise<void> {
-  try {
-    const userRef = doc(db, "users", userId);
-    await updateDoc(userRef, {
-      username: newUsername.toLowerCase(),
-      updatedAt: new Date()
-    });
-  } catch (error) {
-    throw error;
-  }
+  const userRef = doc(db, "users", userId);
+  await updateDoc(userRef, {
+    username: newUsername.toLowerCase(),
+    updatedAt: new Date()
+  });
 }
 
 export async function getUserByEmail(email: string): Promise<UserData | null> {
@@ -154,136 +150,132 @@ export async function createOrUpdateUser(user: User, additionalData?: Partial<Us
     return cleaned;
   };
 
-  try {
-    // Verificar se o usuário já existe
-    const userDoc = await getDoc(userRef);
-    const existingUserData = userDoc.exists() ? userDoc.data() : null;
+  // Verificar se o usuário já existe
+  const userDoc = await getDoc(userRef);
+  const existingUserData = userDoc.exists() ? userDoc.data() : null;
+  
+  // Verificar se existe outro usuário com o mesmo email
+  const existingUserWithEmail = user.email ? await getUserByEmail(user.email) : null;
+  
+  // Se encontrou um usuário com o mesmo email mas ID diferente, temos um conflito
+  // Isso pode acontecer quando o usuário faz login com diferentes métodos (Google vs email/senha)
+  if (existingUserWithEmail && existingUserWithEmail.id !== user.uid) {
     
-    // Verificar se existe outro usuário com o mesmo email
-    const existingUserWithEmail = user.email ? await getUserByEmail(user.email) : null;
-    
-    // Se encontrou um usuário com o mesmo email mas ID diferente, temos um conflito
-    // Isso pode acontecer quando o usuário faz login com diferentes métodos (Google vs email/senha)
-    if (existingUserWithEmail && existingUserWithEmail.id !== user.uid) {
-      
-      // Preservar dados importantes do usuário existente
-      if (!additionalData) {
-        additionalData = {};
-      }
-      
-      // Preservar username, descrição, foto de capa e séries favoritas
-      if (!additionalData.username && existingUserWithEmail.username) {
-        additionalData.username = existingUserWithEmail.username;
-      }
-      
-      if (!additionalData.displayName && existingUserWithEmail.displayName) {
-        additionalData.displayName = existingUserWithEmail.displayName;
-      }
-      
-      if (!additionalData.description && existingUserWithEmail.description) {
-        additionalData.description = existingUserWithEmail.description;
-      }
-      
-      if (!additionalData.coverURL && existingUserWithEmail.coverURL) {
-        additionalData.coverURL = existingUserWithEmail.coverURL;
-      }
-      
-      if (!additionalData.favoriteSeries && existingUserWithEmail.favoriteSeries) {
-        additionalData.favoriteSeries = existingUserWithEmail.favoriteSeries;
-      }
-      
-      // Considerar migrar todos os dados do usuário existente para o novo ID
-      // Isso poderia ser implementado como uma função separada no futuro
-      // Por enquanto, apenas registramos o conflito e preservamos os dados
+    // Preservar dados importantes do usuário existente
+    if (!additionalData) {
+      additionalData = {};
     }
     
-    // Gerar username inicial se não existir
-    let username = "";
-    if (!userDoc.exists()) {
-      // Se já existe um usuário com o mesmo email, usar o username dele
-      if (existingUserWithEmail && existingUserWithEmail.username) {
-        username = existingUserWithEmail.username;
-      } else if (additionalData?.username) {
-        // Se foi fornecido um username nos dados adicionais, usar ele
-        username = additionalData.username;
-      } else {
-        // Criar username base a partir do email
-        username = user.email?.split("@")[0].toLowerCase() || "";
-        
-        // Se o username já existe, adicionar números até encontrar um disponível
-        let counter = 1;
-        let tempUsername = username;
-        while (!(await isUsernameAvailable(tempUsername))) {
-          tempUsername = `${username}${counter}`;
-          counter++;
-          
-          // Limite de tentativas para evitar loop infinito
-          if (counter > 100) {
-            tempUsername = `${username}${Date.now().toString().slice(-6)}`;
-            break;
-          }
-        }
-        username = tempUsername;
-      }
-    } else {
-      // Manter o username existente
-      username = userDoc.data()?.username || "";
-      
-      // Se não tiver username mas foi fornecido nos dados adicionais, usar ele
-      if (!username && additionalData?.username) {
-        username = additionalData.username;
-      }
-    }
-
-    // Determinar o displayName a ser usado
-    let displayName = user.displayName;
-    
-    // Se o usuário já existe, preservar o displayName existente
-    if (existingUserData && existingUserData.displayName) {
-      displayName = existingUserData.displayName;
+    // Preservar username, descrição, foto de capa e séries favoritas
+    if (!additionalData.username && existingUserWithEmail.username) {
+      additionalData.username = existingUserWithEmail.username;
     }
     
-    // Se foi fornecido um displayName nos dados adicionais, usar ele
-    if (additionalData?.displayName) {
-      displayName = additionalData.displayName;
+    if (!additionalData.displayName && existingUserWithEmail.displayName) {
+      additionalData.displayName = existingUserWithEmail.displayName;
     }
     
-    // Se ainda não temos um displayName, usar o username
-    if (!displayName && username) {
-      displayName = username;
+    if (!additionalData.description && existingUserWithEmail.description) {
+      additionalData.description = existingUserWithEmail.description;
     }
-
-    // Limpar dados do usuário e dados adicionais
-    const baseUserData = cleanData({
-      id: user.uid,
-      email: user.email,
-      username: username,
-      displayName: displayName,
-      photoURL: user.photoURL
-    });
-
-    const cleanedAdditionalData = additionalData ? cleanData(additionalData) : {};
-
-    // Combinar os dados
-    const userData = {
-      ...baseUserData,
-      ...cleanedAdditionalData,
-      updatedAt: new Date()
-    };
-
-    // Adicionar campo createdAt apenas se for um novo usuário
-    if (!userDoc.exists()) {
-      userData.createdAt = new Date();
+    
+    if (!additionalData.coverURL && existingUserWithEmail.coverURL) {
+      additionalData.coverURL = existingUserWithEmail.coverURL;
     }
-
-    await setDoc(userRef, userData, { merge: true });
     
-    // Registrar que o usuário foi atualizado com sucesso
+    if (!additionalData.favoriteSeries && existingUserWithEmail.favoriteSeries) {
+      additionalData.favoriteSeries = existingUserWithEmail.favoriteSeries;
+    }
     
-    return userData;
-  } catch (error) {
-    throw error;
+    // Considerar migrar todos os dados do usuário existente para o novo ID
+    // Isso poderia ser implementado como uma função separada no futuro
+    // Por enquanto, apenas registramos o conflito e preservamos os dados
   }
+  
+  // Gerar username inicial se não existir
+  let username = "";
+  if (!userDoc.exists()) {
+    // Se já existe um usuário com o mesmo email, usar o username dele
+    if (existingUserWithEmail && existingUserWithEmail.username) {
+      username = existingUserWithEmail.username;
+    } else if (additionalData?.username) {
+      // Se foi fornecido um username nos dados adicionais, usar ele
+      username = additionalData.username;
+    } else {
+      // Criar username base a partir do email
+      username = user.email?.split("@")[0].toLowerCase() || "";
+      
+      // Se o username já existe, adicionar números até encontrar um disponível
+      let counter = 1;
+      let tempUsername = username;
+      while (!(await isUsernameAvailable(tempUsername))) {
+        tempUsername = `${username}${counter}`;
+        counter++;
+        
+        // Limite de tentativas para evitar loop infinito
+        if (counter > 100) {
+          tempUsername = `${username}${Date.now().toString().slice(-6)}`;
+          break;
+        }
+      }
+      username = tempUsername;
+    }
+  } else {
+    // Manter o username existente
+    username = userDoc.data()?.username || "";
+    
+    // Se não tiver username mas foi fornecido nos dados adicionais, usar ele
+    if (!username && additionalData?.username) {
+      username = additionalData.username;
+    }
+  }
+
+  // Determinar o displayName a ser usado
+  let displayName = user.displayName;
+  
+  // Se o usuário já existe, preservar o displayName existente
+  if (existingUserData && existingUserData.displayName) {
+    displayName = existingUserData.displayName;
+  }
+  
+  // Se foi fornecido um displayName nos dados adicionais, usar ele
+  if (additionalData?.displayName) {
+    displayName = additionalData.displayName;
+  }
+  
+  // Se ainda não temos um displayName, usar o username
+  if (!displayName && username) {
+    displayName = username;
+  }
+
+  // Limpar dados do usuário e dados adicionais
+  const baseUserData = cleanData({
+    id: user.uid,
+    email: user.email,
+    username: username,
+    displayName: displayName,
+    photoURL: user.photoURL
+  });
+
+  const cleanedAdditionalData = additionalData ? cleanData(additionalData) : {};
+
+  // Combinar os dados
+  const userData = {
+    ...baseUserData,
+    ...cleanedAdditionalData,
+    updatedAt: new Date()
+  };
+
+  // Adicionar campo createdAt apenas se for um novo usuário
+  if (!userDoc.exists()) {
+    userData.createdAt = new Date();
+  }
+
+  await setDoc(userRef, userData, { merge: true });
+  
+  // Registrar que o usuário foi atualizado com sucesso
+  
+  return userData;
 }
 
 export async function getUserData(userId: string): Promise<UserData | null> {
@@ -337,351 +329,347 @@ export async function getUserByUsernameOrEmail(usernameOrEmail: string): Promise
 }
 
 export async function deleteUserData(userId: string) {
-  try {
-    
-    // Rastrear operações bem-sucedidas e falhas
-    const results = {
-      success: [] as string[],
-      failures: [] as string[],
-      permissionIssues: [] as string[]
-    };
-    
-    // Função auxiliar para executar uma operação com tratamento de erro
-    const safeOperation = async (operation: () => Promise<void>, name: string) => {
-      try {
-        await operation();
-        results.success.push(name);
+  
+  // Rastrear operações bem-sucedidas e falhas
+  const results = {
+    success: [] as string[],
+    failures: [] as string[],
+    permissionIssues: [] as string[]
+  };
+  
+  // Função auxiliar para executar uma operação com tratamento de erro
+  const safeOperation = async (operation: () => Promise<void>, name: string) => {
+    try {
+      await operation();
+      results.success.push(name);
+      return true;
+    } catch (error: any) {
+      // Verificar se é um erro de permissão
+      if (error.code === 'permission-denied' || error.message?.includes('Missing or insufficient permissions')) {
+        results.permissionIssues.push(name);
+        // Retornar true para indicar que o processo deve continuar
         return true;
-      } catch (error: any) {
-        // Verificar se é um erro de permissão
-        if (error.code === 'permission-denied' || error.message?.includes('Missing or insufficient permissions')) {
-          results.permissionIssues.push(name);
-          // Retornar true para indicar que o processo deve continuar
-          return true;
-        }
-        
-        // Verificar se é um erro de rede ou bloqueio por extensão
-        if (
-          error.name === 'AbortError' || 
-          error.message?.includes('ERR_BLOCKED_BY_CLIENT') ||
-          error.message?.includes('network error') ||
-          error.code === 'failed-precondition' ||
-          error.code === 'unavailable'
-        ) {
-          results.permissionIssues.push(`${name} (erro de rede)`);
-          // Retornar true para continuar o processo
-          return true;
-        }
-        results.failures.push(name);
-        return false;
       }
-    };
-
-    // 1. Excluir dados do usuário
-    await safeOperation(async () => {
-      const userRef = doc(db, "users", userId);
-      await deleteDoc(userRef);
-    }, "excluir perfil do usuário");
-
-    // 2. Excluir reviews do usuário
-    await safeOperation(async () => {
-      const reviewsSnapshot = await getDocs(query(collection(db, "reviews"), where("userId", "==", userId)));
-      const batch = writeBatch(db);
-      reviewsSnapshot.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
-      if (!reviewsSnapshot.empty) {
-        await batch.commit();
+      
+      // Verificar se é um erro de rede ou bloqueio por extensão
+      if (
+        error.name === 'AbortError' || 
+        error.message?.includes('ERR_BLOCKED_BY_CLIENT') ||
+        error.message?.includes('network error') ||
+        error.code === 'failed-precondition' ||
+        error.code === 'unavailable'
+      ) {
+        results.permissionIssues.push(`${name} (erro de rede)`);
+        // Retornar true para continuar o processo
+        return true;
       }
-    }, "excluir reviews");
+      results.failures.push(name);
+      return false;
+    }
+  };
 
-    // 3. Excluir comentários do usuário em reviews de outros usuários
-    await safeOperation(async () => {
-      // Precisamos primeiro encontrar todos os reviews que contêm comentários deste usuário
-      const reviewsSnapshot = await getDocs(collection(db, "reviews"));
+  // 1. Excluir dados do usuário
+  await safeOperation(async () => {
+    const userRef = doc(db, "users", userId);
+    await deleteDoc(userRef);
+  }, "excluir perfil do usuário");
+
+  // 2. Excluir reviews do usuário
+  await safeOperation(async () => {
+    const reviewsSnapshot = await getDocs(query(collection(db, "reviews"), where("userId", "==", userId)));
+    const batch = writeBatch(db);
+    reviewsSnapshot.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+    if (!reviewsSnapshot.empty) {
+      await batch.commit();
+    }
+  }, "excluir reviews");
+
+  // 3. Excluir comentários do usuário em reviews de outros usuários
+  await safeOperation(async () => {
+    // Precisamos primeiro encontrar todos os reviews que contêm comentários deste usuário
+    const reviewsSnapshot = await getDocs(collection(db, "reviews"));
+    
+    const updateOperations = [];
+    
+    for (const reviewDoc of reviewsSnapshot.docs) {
+      const review = reviewDoc.data();
+      let reviewUpdated = false;
       
-      let updateOperations = [];
-      
-      for (const reviewDoc of reviewsSnapshot.docs) {
-        const review = reviewDoc.data();
-        let reviewUpdated = false;
-        
-        // Verificar cada season review
-        if (review.seasonReviews && Array.isArray(review.seasonReviews)) {
-          for (let i = 0; i < review.seasonReviews.length; i++) {
-            const seasonReview = review.seasonReviews[i];
+      // Verificar cada season review
+      if (review.seasonReviews && Array.isArray(review.seasonReviews)) {
+        for (let i = 0; i < review.seasonReviews.length; i++) {
+          const seasonReview = review.seasonReviews[i];
+          
+          // MODIFICAÇÃO 1: Verificar se há comentários e remover completamente os do usuário
+          if (seasonReview.comments && Array.isArray(seasonReview.comments)) {
+            // Encontrar e remover comentários do usuário
+            const initialCommentsCount = seasonReview.comments.length;
+            seasonReview.comments = seasonReview.comments.filter((comment: any) => comment.userId !== userId);
             
-            // MODIFICAÇÃO 1: Verificar se há comentários e remover completamente os do usuário
-            if (seasonReview.comments && Array.isArray(seasonReview.comments)) {
-              // Encontrar e remover comentários do usuário
-              const initialCommentsCount = seasonReview.comments.length;
-              seasonReview.comments = seasonReview.comments.filter((comment: any) => comment.userId !== userId);
-              
-              if (initialCommentsCount !== seasonReview.comments.length) {
-                reviewUpdated = true;
-              }
+            if (initialCommentsCount !== seasonReview.comments.length) {
+              reviewUpdated = true;
             }
-            
-            // MODIFICAÇÃO 2: Verificar reações e remover completamente as do usuário
-            if (seasonReview.reactions) {
-              // Remover o usuário das listas de likes
-              if (Array.isArray(seasonReview.reactions.likes) && seasonReview.reactions.likes.includes(userId)) {
-                seasonReview.reactions.likes = seasonReview.reactions.likes.filter((id: string) => id !== userId);
-                reviewUpdated = true;
-              }
+          }
+          
+          // MODIFICAÇÃO 2: Verificar reações e remover completamente as do usuário
+          if (seasonReview.reactions) {
+            // Remover o usuário das listas de likes
+            if (Array.isArray(seasonReview.reactions.likes) && seasonReview.reactions.likes.includes(userId)) {
+              seasonReview.reactions.likes = seasonReview.reactions.likes.filter((id: string) => id !== userId);
+              reviewUpdated = true;
             }
+          }
 
-            // MODIFICAÇÃO 3: Remover reações a comentários
-            if (seasonReview.comments && Array.isArray(seasonReview.comments)) {
-              for (let j = 0; j < seasonReview.comments.length; j++) {
-                const comment = seasonReview.comments[j];
-                if (comment.reactions) {
-                  let reactionUpdated = false;
+          // MODIFICAÇÃO 3: Remover reações a comentários
+          if (seasonReview.comments && Array.isArray(seasonReview.comments)) {
+            for (let j = 0; j < seasonReview.comments.length; j++) {
+              const comment = seasonReview.comments[j];
+              if (comment.reactions) {
+                let reactionUpdated = false;
 
-                  // Remover likes do usuário em comentários
-                  if (Array.isArray(comment.reactions.likes) && comment.reactions.likes.includes(userId)) {
-                    comment.reactions.likes = comment.reactions.likes.filter((id: string) => id !== userId);
-                    reactionUpdated = true;
-                  }
+                // Remover likes do usuário em comentários
+                if (Array.isArray(comment.reactions.likes) && comment.reactions.likes.includes(userId)) {
+                  comment.reactions.likes = comment.reactions.likes.filter((id: string) => id !== userId);
+                  reactionUpdated = true;
+                }
 
-                  if (reactionUpdated) {
-                    reviewUpdated = true;
-                  }
+                if (reactionUpdated) {
+                  reviewUpdated = true;
                 }
               }
             }
           }
         }
-        
-        // Se alguma alteração foi feita, atualize o documento
-        if (reviewUpdated) {
-          updateOperations.push(updateDoc(reviewDoc.ref, { seasonReviews: review.seasonReviews }));
-        }
       }
       
-      // Aplicar todas as atualizações
-      if (updateOperations.length > 0) {
-        await Promise.all(updateOperations);
+      // Se alguma alteração foi feita, atualize o documento
+      if (reviewUpdated) {
+        updateOperations.push(updateDoc(reviewDoc.ref, { seasonReviews: review.seasonReviews }));
       }
-    }, "remover comentários e reações em reviews de outros usuários");
-
-    // 4. Excluir itens da watchlist
-    await safeOperation(async () => {
-      const watchlistSnapshot = await getDocs(query(collection(db, "watchlist"), where("userId", "==", userId)));
-      const batch = writeBatch(db);
-      watchlistSnapshot.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
-      if (!watchlistSnapshot.empty) {
-        await batch.commit();
-      }
-    }, "excluir watchlist");
-
-    // 5. Excluir notificações recebidas pelo usuário
-    await safeOperation(async () => {
-      // Usar a nova função que lida apenas com notificações do próprio usuário
-      await removeCurrentUserNotifications(userId);
-    }, "excluir notificações recebidas");
-
-    // 7. Excluir relações de seguidores - quando o usuário é quem está seguindo outros
-    await safeOperation(async () => {
-      const followingSnapshot = await getDocs(query(
-        collection(db, "followers"),
-        where("followerId", "==", userId)
-      ));
-      
-      const batch = writeBatch(db);
-      followingSnapshot.forEach((doc) => batch.delete(doc.ref));
-      
-      if (followingSnapshot.size > 0) {
-        await batch.commit();
-      }
-    }, "excluir relações onde o usuário segue outros");
-
-    // 8. Excluir relações de seguidores - quando o usuário é quem está sendo seguido
-    await safeOperation(async () => {
-      const followersSnapshot = await getDocs(query(
-        collection(db, "followers"),
-        where("userId", "==", userId)
-      ));
-      
-      const batch = writeBatch(db);
-      followersSnapshot.forEach((doc) => batch.delete(doc.ref));
-      
-      if (followersSnapshot.size > 0) {
-        await batch.commit();
-      }
-    }, "excluir relações onde o usuário é seguido");
-
-    // 9. Excluir listas criadas pelo usuário
-    await safeOperation(async () => {
-      const listsSnapshot = await getDocs(query(
-        collection(db, "lists"),
-        where("userId", "==", userId)
-      ));
-      
-      const batch = writeBatch(db);
-      const listIds: string[] = [];
-      
-      listsSnapshot.forEach((doc) => {
-        listIds.push(doc.id);
-        batch.delete(doc.ref);
-      });
-      
-      if (listsSnapshot.size > 0) {
-        await batch.commit();
-        
-        // Após excluir as listas, exclua também as reações e comentários associados a elas
-        for (const listId of listIds) {
-          // Excluir reações das listas
-          await safeOperation(async () => {
-            const reactionsSnapshot = await getDocs(query(
-              collection(db, "listReactions"),
-              where("listId", "==", listId)
-            ));
-            
-            const reactionsBatch = writeBatch(db);
-            reactionsSnapshot.forEach((doc) => reactionsBatch.delete(doc.ref));
-            
-            if (reactionsSnapshot.size > 0) {
-              await reactionsBatch.commit();
-            }
-          }, `excluir reações da lista ${listId}`);
-          
-          // Excluir comentários das listas
-          await safeOperation(async () => {
-            const commentsSnapshot = await getDocs(query(
-              collection(db, "comments"),
-              where("listId", "==", listId)
-            ));
-            
-            const commentsBatch = writeBatch(db);
-            commentsSnapshot.forEach((doc) => commentsBatch.delete(doc.ref));
-            
-            if (commentsSnapshot.size > 0) {
-              await commentsBatch.commit();
-            }
-          }, `excluir comentários da lista ${listId}`);
-        }
-      }
-    }, "excluir listas do usuário e dados relacionados");
+    }
     
-    // 10. Excluir comentários do usuário em listas de outros usuários
-    await safeOperation(async () => {
-      const commentsSnapshot = await getDocs(query(
-        collection(db, "comments"),
-        where("userId", "==", userId)
-      ));
-      
-      const batch = writeBatch(db);
-      commentsSnapshot.forEach((doc) => batch.delete(doc.ref));
-      
-      if (commentsSnapshot.size > 0) {
-        await batch.commit();
-      }
-    }, "excluir comentários do usuário em listas de outros");
+    // Aplicar todas as atualizações
+    if (updateOperations.length > 0) {
+      await Promise.all(updateOperations);
+    }
+  }, "remover comentários e reações em reviews de outros usuários");
+
+  // 4. Excluir itens da watchlist
+  await safeOperation(async () => {
+    const watchlistSnapshot = await getDocs(query(collection(db, "watchlist"), where("userId", "==", userId)));
+    const batch = writeBatch(db);
+    watchlistSnapshot.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+    if (!watchlistSnapshot.empty) {
+      await batch.commit();
+    }
+  }, "excluir watchlist");
+
+  // 5. Excluir notificações recebidas pelo usuário
+  await safeOperation(async () => {
+    // Usar a nova função que lida apenas com notificações do próprio usuário
+    await removeCurrentUserNotifications(userId);
+  }, "excluir notificações recebidas");
+
+  // 7. Excluir relações de seguidores - quando o usuário é quem está seguindo outros
+  await safeOperation(async () => {
+    const followingSnapshot = await getDocs(query(
+      collection(db, "followers"),
+      where("followerId", "==", userId)
+    ));
     
-    // 11. Excluir reações do usuário em listas de outros usuários
-    await safeOperation(async () => {
-      const reactionsSnapshot = await getDocs(query(
-        collection(db, "listReactions"),
-        where("userId", "==", userId)
-      ));
-      
-      const batch = writeBatch(db);
-      reactionsSnapshot.forEach((doc) => batch.delete(doc.ref));
-      
-      if (reactionsSnapshot.size > 0) {
-        await batch.commit();
-      }
-    }, "excluir reações do usuário em listas de outros");
+    const batch = writeBatch(db);
+    followingSnapshot.forEach((doc) => batch.delete(doc.ref));
+    
+    if (followingSnapshot.size > 0) {
+      await batch.commit();
+    }
+  }, "excluir relações onde o usuário segue outros");
 
-    // 12. Excluir comentários da coleção listComments feitos pelo usuário
-    await safeOperation(async () => {
-      const listCommentsSnapshot = await getDocs(query(
-        collection(db, "listComments"),
-        where("userId", "==", userId)
-      ));
-      
-      const batch = writeBatch(db);
-      
-      // Para cada comentário, também decrementar o contador na lista correspondente
-      const listsToUpdate = new Map<string, number>();
-      
-      listCommentsSnapshot.forEach((doc) => {
-        batch.delete(doc.ref);
-        
-        const commentData = doc.data();
-        const listId = commentData.listId;
-        
-        if (listId) {
-          // Agrupar por listId para decrementar o contador
-          listsToUpdate.set(listId, (listsToUpdate.get(listId) || 0) + 1);
-        }
-      });
-      
-      if (listCommentsSnapshot.size > 0) {
-        await batch.commit();
-        
-        // Atualizar os contadores de comentários nas listas afetadas
-        const updateBatch = writeBatch(db);
-        for (const [listId, count] of listsToUpdate.entries()) {
-          const listRef = doc(db, "lists", listId);
-          updateBatch.update(listRef, {
-            commentsCount: increment(-count),
-            updatedAt: serverTimestamp()
-          });
-        }
-        
-        if (listsToUpdate.size > 0) {
-          await updateBatch.commit();
-        }
-      }
-    }, "excluir comentários da coleção listComments do usuário");
+  // 8. Excluir relações de seguidores - quando o usuário é quem está sendo seguido
+  await safeOperation(async () => {
+    const followersSnapshot = await getDocs(query(
+      collection(db, "followers"),
+      where("userId", "==", userId)
+    ));
+    
+    const batch = writeBatch(db);
+    followersSnapshot.forEach((doc) => batch.delete(doc.ref));
+    
+    if (followersSnapshot.size > 0) {
+      await batch.commit();
+    }
+  }, "excluir relações onde o usuário é seguido");
 
-    // 13. Remover reações (likes) deste usuário em comentários de listas
-    await safeOperation(async () => {
-      // Encontrar todos os comentários que têm likes deste usuário
-      const listCommentsSnapshot = await getDocs(collection(db, "listComments"));
+  // 9. Excluir listas criadas pelo usuário
+  await safeOperation(async () => {
+    const listsSnapshot = await getDocs(query(
+      collection(db, "lists"),
+      where("userId", "==", userId)
+    ));
+    
+    const batch = writeBatch(db);
+    const listIds: string[] = [];
+    
+    listsSnapshot.forEach((doc) => {
+      listIds.push(doc.id);
+      batch.delete(doc.ref);
+    });
+    
+    if (listsSnapshot.size > 0) {
+      await batch.commit();
       
-      const batch = writeBatch(db);
-      let commentsToUpdate = 0;
-      
-      for (const commentDoc of listCommentsSnapshot.docs) {
-        const comment = commentDoc.data();
-        
-        // Verificar se o usuário deu like neste comentário
-        if (comment.likes && comment.likes[userId]) {
-          // Remover o like do usuário
-          delete comment.likes[userId];
+      // Após excluir as listas, exclua também as reações e comentários associados a elas
+      for (const listId of listIds) {
+        // Excluir reações das listas
+        await safeOperation(async () => {
+          const reactionsSnapshot = await getDocs(query(
+            collection(db, "listReactions"),
+            where("listId", "==", listId)
+          ));
           
-          // Atualizar o comentário
-          batch.update(commentDoc.ref, { likes: comment.likes });
-          commentsToUpdate++;
+          const reactionsBatch = writeBatch(db);
+          reactionsSnapshot.forEach((doc) => reactionsBatch.delete(doc.ref));
           
-          // Comitar em lotes para não exceder limites do Firestore
-          if (commentsToUpdate >= 450) {
-            await batch.commit();
-            commentsToUpdate = 0;
+          if (reactionsSnapshot.size > 0) {
+            await reactionsBatch.commit();
           }
-        }
+        }, `excluir reações da lista ${listId}`);
+        
+        // Excluir comentários das listas
+        await safeOperation(async () => {
+          const commentsSnapshot = await getDocs(query(
+            collection(db, "comments"),
+            where("listId", "==", listId)
+          ));
+          
+          const commentsBatch = writeBatch(db);
+          commentsSnapshot.forEach((doc) => commentsBatch.delete(doc.ref));
+          
+          if (commentsSnapshot.size > 0) {
+            await commentsBatch.commit();
+          }
+        }, `excluir comentários da lista ${listId}`);
+      }
+    }
+  }, "excluir listas do usuário e dados relacionados");
+  
+  // 10. Excluir comentários do usuário em listas de outros usuários
+  await safeOperation(async () => {
+    const commentsSnapshot = await getDocs(query(
+      collection(db, "comments"),
+      where("userId", "==", userId)
+    ));
+    
+    const batch = writeBatch(db);
+    commentsSnapshot.forEach((doc) => batch.delete(doc.ref));
+    
+    if (commentsSnapshot.size > 0) {
+      await batch.commit();
+    }
+  }, "excluir comentários do usuário em listas de outros");
+  
+  // 11. Excluir reações do usuário em listas de outros usuários
+  await safeOperation(async () => {
+    const reactionsSnapshot = await getDocs(query(
+      collection(db, "listReactions"),
+      where("userId", "==", userId)
+    ));
+    
+    const batch = writeBatch(db);
+    reactionsSnapshot.forEach((doc) => batch.delete(doc.ref));
+    
+    if (reactionsSnapshot.size > 0) {
+      await batch.commit();
+    }
+  }, "excluir reações do usuário em listas de outros");
+
+  // 12. Excluir comentários da coleção listComments feitos pelo usuário
+  await safeOperation(async () => {
+    const listCommentsSnapshot = await getDocs(query(
+      collection(db, "listComments"),
+      where("userId", "==", userId)
+    ));
+    
+    const batch = writeBatch(db);
+    
+    // Para cada comentário, também decrementar o contador na lista correspondente
+    const listsToUpdate = new Map<string, number>();
+    
+    listCommentsSnapshot.forEach((doc) => {
+      batch.delete(doc.ref);
+      
+      const commentData = doc.data();
+      const listId = commentData.listId;
+      
+      if (listId) {
+        // Agrupar por listId para decrementar o contador
+        listsToUpdate.set(listId, (listsToUpdate.get(listId) || 0) + 1);
+      }
+    });
+    
+    if (listCommentsSnapshot.size > 0) {
+      await batch.commit();
+      
+      // Atualizar os contadores de comentários nas listas afetadas
+      const updateBatch = writeBatch(db);
+      for (const [listId, count] of listsToUpdate.entries()) {
+        const listRef = doc(db, "lists", listId);
+        updateBatch.update(listRef, {
+          commentsCount: increment(-count),
+          updatedAt: serverTimestamp()
+        });
       }
       
-      // Comitar as alterações restantes
-      if (commentsToUpdate > 0) {
-        await batch.commit();
+      if (listsToUpdate.size > 0) {
+        await updateBatch.commit();
       }
-    }, "remover likes em comentários de listas");
+    }
+  }, "excluir comentários da coleção listComments do usuário");
 
-    // Retornar resultados das operações
-    return {
-      userId,
-      success: results.success.length > 0,
-      details: results
-    };
-  } catch (error: any) {
-    throw error;
-  }
+  // 13. Remover reações (likes) deste usuário em comentários de listas
+  await safeOperation(async () => {
+    // Encontrar todos os comentários que têm likes deste usuário
+    const listCommentsSnapshot = await getDocs(collection(db, "listComments"));
+    
+    const batch = writeBatch(db);
+    let commentsToUpdate = 0;
+    
+    for (const commentDoc of listCommentsSnapshot.docs) {
+      const comment = commentDoc.data();
+      
+      // Verificar se o usuário deu like neste comentário
+      if (comment.likes && comment.likes[userId]) {
+        // Remover o like do usuário
+        delete comment.likes[userId];
+        
+        // Atualizar o comentário
+        batch.update(commentDoc.ref, { likes: comment.likes });
+        commentsToUpdate++;
+        
+        // Comitar em lotes para não exceder limites do Firestore
+        if (commentsToUpdate >= 450) {
+          await batch.commit();
+          commentsToUpdate = 0;
+        }
+      }
+    }
+    
+    // Comitar as alterações restantes
+    if (commentsToUpdate > 0) {
+      await batch.commit();
+    }
+  }, "remover likes em comentários de listas");
+
+  // Retornar resultados das operações
+  return {
+    userId,
+    success: results.success.length > 0,
+    details: results
+  };
 }
 
 export async function updateUserNotificationSettings(
@@ -696,41 +684,36 @@ export async function updateUserNotificationSettings(
     listReaction?: boolean;
   }
 ): Promise<void> {
-  try {
-    if (!userId) throw new Error("ID de usuário não fornecido");
-    
-    const userRef = doc(db, "users", userId);
-    const userDoc = await getDoc(userRef);
-    
-    if (!userDoc.exists()) {
-      throw new Error("Usuário não encontrado");
-    }
-    
-    // Obter configurações atuais ou usar defaults
-    const currentSettings = userDoc.data().notificationSettings || {
-      newEpisode: true,
-      newFollower: true,
-      newComment: true,
-      newReaction: true,
-      newReview: true,
-      listComment: true,
-      listReaction: true
-    };
-    
-    // Mesclar configurações existentes com as novas
-    const updatedSettings = {
-      ...currentSettings,
-      ...settings
-    };
-    
-    await updateDoc(userRef, {
-      notificationSettings: updatedSettings,
-      updatedAt: new Date()
-    });
-    
-  } catch (error) {
-    throw error;
+  if (!userId) throw new Error("ID de usuário não fornecido");
+  
+  const userRef = doc(db, "users", userId);
+  const userDoc = await getDoc(userRef);
+  
+  if (!userDoc.exists()) {
+    throw new Error("Usuário não encontrado");
   }
+  
+  // Obter configurações atuais ou usar defaults
+  const currentSettings = userDoc.data().notificationSettings || {
+    newEpisode: true,
+    newFollower: true,
+    newComment: true,
+    newReaction: true,
+    newReview: true,
+    listComment: true,
+    listReaction: true
+  };
+  
+  // Mesclar configurações existentes com as novas
+  const updatedSettings = {
+    ...currentSettings,
+    ...settings
+  };
+  
+  await updateDoc(userRef, {
+    notificationSettings: updatedSettings,
+    updatedAt: new Date()
+  });
 }
 
 // Nova função para adicionar uma série à lista de séries que o usuário acompanha

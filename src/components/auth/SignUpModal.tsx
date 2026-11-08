@@ -20,6 +20,7 @@ import {
 } from "@chakra-ui/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { isUsernameAvailable, isEmailAvailable } from "../../services/users";
+import { logError } from "../../utils/logger";
 
 interface SignUpModalProps {
   isOpen: boolean;
@@ -163,6 +164,7 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
         setUsernameError("");
       }
     } catch (error) {
+      logError("checkUsername", error);
     } finally {
       setIsCheckingUsername(false);
     }
@@ -183,6 +185,7 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
         setEmailError("");
       }
     } catch (error) {
+      logError("checkEmail", error);
     } finally {
       setIsCheckingEmail(false);
     }

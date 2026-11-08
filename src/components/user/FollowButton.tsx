@@ -5,6 +5,7 @@ import { followUser, unfollowUser, isFollowing } from "../../services/followers"
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { UserPlus, UserMinus, SignIn } from "@phosphor-icons/react";
+import { logError } from "../../utils/logger";
 
 interface FollowButtonProps {
   userId: string;
@@ -25,6 +26,7 @@ export function FollowButton({ userId }: FollowButtonProps) {
           const status = await isFollowing(userId);
           setFollowing(status);
         } catch (error) {
+          logError("checkFollowStatus", error);
         } finally {
           setLoading(false);
         }

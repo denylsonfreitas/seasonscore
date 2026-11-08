@@ -117,7 +117,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           duration: 5000,
           isClosable: true,
         });
-        throw new Error("Este email já está em uso. Por favor, faça login ou use outro email.");
+        throw new Error("Este email já está em uso. Por favor, faça login ou use outro email.", { cause: error });
       } else if (error.code === 'auth/weak-password') {
         toast({
           title: "Senha fraca",
@@ -126,7 +126,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           duration: 5000,
           isClosable: true,
         });
-        throw new Error("A senha deve ter pelo menos 6 caracteres.");
+        throw new Error("A senha deve ter pelo menos 6 caracteres.", { cause: error });
       } else if (error.code === 'auth/invalid-email') {
         toast({
           title: "Email inválido",
@@ -135,7 +135,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           duration: 5000,
           isClosable: true,
         });
-        throw new Error("Por favor, forneça um endereço de email válido.");
+        throw new Error("Por favor, forneça um endereço de email válido.", { cause: error });
       }
       
       toast({
@@ -183,11 +183,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch (error: any) {
       
       if (error.code === 'auth/wrong-password') {
-        throw new Error("Senha incorreta. Tente novamente.");
+        throw new Error("Senha incorreta. Tente novamente.", { cause: error });
       } else if (error.code === 'auth/user-not-found' || error.message.includes("Usuário não encontrado")) {
-        throw new Error("Usuário não encontrado. Verifique seu nome de usuário ou email.");
+        throw new Error("Usuário não encontrado. Verifique seu nome de usuário ou email.", { cause: error });
       } else if (error.code === 'auth/invalid-credential') {
-        throw new Error("Credenciais inválidas. Verifique seu nome de usuário ou email e senha.");
+        throw new Error("Credenciais inválidas. Verifique seu nome de usuário ou email e senha.", { cause: error });
       }
       
       throw error;

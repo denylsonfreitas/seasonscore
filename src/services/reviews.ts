@@ -23,6 +23,7 @@ import { SeasonReview } from "../types/review";
 import { getFollowing } from "./followers";
 import { isInWatchlist } from "./watchlist";
 import { removeReactionNotification } from "./notifications";
+import { logError } from "../utils/logger";
 
 const reviewsCollection = collection(db, "reviews");
 
@@ -212,6 +213,7 @@ export async function addSeasonReview(
       }
     }
   } catch (error) {
+    throw new Error("Não foi possível salvar a avaliação", { cause: error });
   }
 }
 
@@ -309,6 +311,7 @@ export async function updateReview(
         }
       );
     } catch (error) {
+      logError("updateReview", error);
     }
   }
 }
@@ -384,11 +387,12 @@ export async function deleteReview(reviewId: string, seasonNumber: number) {
         await batch.commit();
       }
     } catch (error) {
-
+      logError("deleteReview", error);
     }
     
     return true;
   } catch (error) {
+    throw new Error("Não foi possível excluir a avaliação", { cause: error });
   }
 }
 

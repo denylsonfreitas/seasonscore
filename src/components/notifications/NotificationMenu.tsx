@@ -43,6 +43,7 @@ import { useNavigate } from 'react-router-dom';
 import { AnimatedMenu } from '../common/AnimatedMenu';
 import { RippleEffect } from '../common/RippleEffect';
 import { updateUserNotificationSettings, getUserNotificationSettings } from '../../services/users';
+import { logError } from "../../utils/logger";
 
 export function NotificationMenu() {
   const { currentUser } = useAuth();
@@ -110,6 +111,7 @@ export function NotificationMenu() {
       
       setUnreadCount(groupedNotifications.filter(n => !n.read).length);
     } catch (error) {
+      logError("loadNotifications", error);
     } finally {
       setIsLoading(false);
     }

@@ -14,6 +14,7 @@ import {
   deleteNotificationsOfType
 } from "./notifications";
 import { getUserData } from "./users";
+import { logError } from "../utils/logger";
 
 const followersCollection = collection(db, "followers");
 
@@ -43,83 +44,77 @@ export async function followUser(userId: string) {
   // Verificar se já seguiu este usuário antes (para evitar spam de notificações)
   // Em vez de usar uma coleção separada, vamos verificar o histórico de follows
   // usando a própria coleção de followers com uma consulta mais ampla
-  try {
-    // Buscar todos os documentos de followers que foram excluídos (histórico)
-    // Isso não é possível diretamente, então vamos usar uma abordagem diferente
-    
-    // Criar o relacionamento de seguidor com um campo adicional
-    const follower = {
-      userId,
-      followerId: auth.currentUser.uid,
-      createdAt: serverTimestamp(),
-      // Adicionar um campo para controlar se é a primeira vez que segue
-      isFirstFollow: true
-    };
+  // Buscar todos os documentos de followers que foram excluídos (histórico)
+  // Isso não é possível diretamente, então vamos usar uma abordagem diferente
+  
+  // Criar o relacionamento de seguidor com um campo adicional
+  const follower = {
+    userId,
+    followerId: auth.currentUser.uid,
+    createdAt: serverTimestamp(),
+    // Adicionar um campo para controlar se é a primeira vez que segue
+    isFirstFollow: true
+  };
 
-    await addDoc(followersCollection, follower);
+  await addDoc(followersCollection, follower);
+  
+  // Criar notificação para o usuário que foi seguido
+  try {
+    const currentUserData = await getUserData(auth.currentUser.uid);
+    // Usar o mesmo campo que será armazenado como senderName na notificação
+    const followerName = currentUserData?.username || currentUserData?.displayName || currentUserData?.email || "Alguém";
     
-    // Criar notificação para o usuário que foi seguido
-    try {
-      const currentUserData = await getUserData(auth.currentUser.uid);
-      // Usar o mesmo campo que será armazenado como senderName na notificação
-      const followerName = currentUserData?.username || currentUserData?.displayName || currentUserData?.email || "Alguém";
-      
-      // Criar uma nova notificação
-      await createNotification(
-        userId,
-        NotificationType.NEW_FOLLOWER,
-        {
-          senderId: auth.currentUser.uid,
-          message: `${followerName} começou a seguir você.`
-        }
-      );
-    } catch (error) {
-    }
+    // Criar uma nova notificação
+    await createNotification(
+      userId,
+      NotificationType.NEW_FOLLOWER,
+      {
+        senderId: auth.currentUser.uid,
+        message: `${followerName} começou a seguir você.`
+      }
+    );
   } catch (error) {
-    throw error;
+    logError("followUser", error);
   }
 }
 
 export async function unfollowUser(userId: string) {
   if (!auth.currentUser) throw new Error("Usuário não autenticado");
 
-  try {
-    // Buscar a relação de seguidor
-    const q = query(
-      followersCollection,
-      where("userId", "==", userId),
-      where("followerId", "==", auth.currentUser.uid)
-    );
-    const querySnapshot = await getDocs(q);
+  // Buscar a relação de seguidor
+  const q = query(
+    followersCollection,
+    where("userId", "==", userId),
+    where("followerId", "==", auth.currentUser.uid)
+  );
+  const querySnapshot = await getDocs(q);
 
-    if (querySnapshot.empty) {
-      throw new Error("Você não segue este usuário");
-    }
-
-    // Processar cada relação encontrada (normalmente deve ser apenas uma)
-    for (const followerDoc of querySnapshot.docs) {
-      
-      // Excluir a relação de seguidor
-      await deleteDoc(followerDoc.ref);
-      
-      // Remover notificações relacionadas
-      try {
-        // Sempre tentar remover a notificação, independentemente da data
-        // Isso garante que não fiquem notificações órfãs
-        await deleteNotificationsOfType(
-          userId,
-          NotificationType.NEW_FOLLOWER,
-          auth.currentUser.uid
-        );
-        
-      } catch (error) {
-      }
-    }
-    
-    return true;
-  } catch (error) {
-    throw error;
+  if (querySnapshot.empty) {
+    throw new Error("Você não segue este usuário");
   }
+
+  // Processar cada relação encontrada (normalmente deve ser apenas uma)
+  for (const followerDoc of querySnapshot.docs) {
+    
+    // Excluir a relação de seguidor
+    await deleteDoc(followerDoc.ref);
+    
+    // Remover notificações relacionadas
+    try {
+      // Sempre tentar remover a notificação, independentemente da data
+      // Isso garante que não fiquem notificações órfãs
+      await deleteNotificationsOfType(
+        userId,
+        NotificationType.NEW_FOLLOWER,
+        auth.currentUser.uid
+      );
+      
+    } catch (error) {
+      logError("unfollowUser", error);
+    }
+  }
+  
+  return true;
 }
 
 export async function getFollowers(userId: string): Promise<Follower[]> {

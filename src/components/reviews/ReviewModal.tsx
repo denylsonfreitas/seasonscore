@@ -28,6 +28,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { getSeriesReviews } from "../../services/reviews";
 import { getSeriesDetails } from "../../services/tmdb";
 import { ArrowLeft } from "@phosphor-icons/react";
+import { logError } from "../../utils/logger";
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -120,6 +121,7 @@ export function ReviewModal({
           }
         }
       } catch (error) {
+        logError("loadUserReviews", error);
       }
     }
     loadUserReviews();
