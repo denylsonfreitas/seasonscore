@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
@@ -32,7 +32,10 @@
       rel="preload"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       as="style"
-      onload="this.onload=null;this.rel='stylesheet'"
+      onload="
+        this.onload = null;
+        this.rel = 'stylesheet';
+      "
     />
     <noscript
       ><link
@@ -44,8 +47,13 @@
       body {
         background-color: #1a202c;
         color: white;
-        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
-          Roboto, sans-serif;
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
         margin: 0;
         padding: 0;
       }
@@ -66,12 +74,7 @@
   <body>
     <div id="root">
       <div class="app-loading">
-        <svg
-          width="50"
-          height="50"
-          viewBox="0 0 50 50"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+        <svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
           <circle
             cx="25"
             cy="25"
@@ -111,23 +114,16 @@
       };
 
       const connection =
-        navigator.connection ||
-        navigator.mozConnection ||
-        navigator.webkitConnection;
-      if (
-        connection &&
-        (connection.saveData || (connection.effectiveType || "").includes("2g"))
-      ) {
+        navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      if (connection && (connection.saveData || (connection.effectiveType || "").includes("2g"))) {
         document.documentElement.classList.add("slow-connection");
       }
 
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("/service-worker.js")
-            .catch(() => {
-              // Falha ao registrar o Service Worker não impede o uso do app
-            });
+          navigator.serviceWorker.register("/service-worker.js").catch(() => {
+            // Falha ao registrar o Service Worker não impede o uso do app
+          });
         });
       }
     </script>

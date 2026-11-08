@@ -3,7 +3,6 @@ import { Timestamp } from "firebase/firestore";
 /**
  * Formata uma data para exibição em notificações
  * @param date A data a ser formatada
- * @param longFormat Se deve usar formato longo para datas antigas
  * @returns String formatada da data
  */
 export function formatNotificationDate(date: Date | Timestamp | null | undefined): string {
@@ -49,10 +48,7 @@ export function formatNotificationDate(date: Date | Timestamp | null | undefined
   return dateObj.toLocaleDateString("pt-BR", options);
 }
 
-// Função para formatar datas completas
-// Função para formatar apenas o dia e o mês
-// Função para formatar apenas dia da semana
-// Função para formatar data de criação em formato relativo
+/** Formata uma data em texto relativo (ex.: "há 2 horas"). */
 export function formatRelativeTime(date: Date | Timestamp | null | undefined): string {
   if (!date) return "recentemente";
 

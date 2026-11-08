@@ -49,10 +49,7 @@
       ]
     }
   ],
-  "categories": [
-    "entertainment",
-    "social"
-  ],
+  "categories": ["entertainment", "social"],
   "dir": "ltr",
   "lang": "pt-BR",
   "prefer_related_applications": false
