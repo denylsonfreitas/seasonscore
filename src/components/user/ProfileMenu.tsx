@@ -54,7 +54,12 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
         aria-label="Menu"
         icon={
           <Box position="relative" overflow="hidden" borderRadius="full">
-            <UserAvatar size={size} userId={currentUser?.uid} photoURL={currentUser?.photoURL} />
+            <UserAvatar
+              size={size}
+              userId={currentUser?.uid}
+              photoURL={currentUser?.photoURL}
+              name={currentUser?.displayName || currentUser?.username || undefined}
+            />
           </Box>
         }
         variant="unstyled"
@@ -74,7 +79,12 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
       aria-label="Opções do usuário"
       icon={
         <Box position="relative" borderRadius="full">
-          <UserAvatar size={size} userId={currentUser?.uid} photoURL={currentUser?.photoURL} />
+          <UserAvatar
+            size={size}
+            userId={currentUser?.uid}
+            photoURL={currentUser?.photoURL}
+            name={currentUser?.displayName || currentUser?.username || undefined}
+          />
         </Box>
       }
       variant="unstyled"
@@ -146,7 +156,7 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
         >
           <Flex align="center">
             <Box
-              bg="blue.500"
+              bg="ink.800"
               p={1.5}
               borderRadius="md"
               mr={3}

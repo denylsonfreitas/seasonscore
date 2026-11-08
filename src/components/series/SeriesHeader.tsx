@@ -28,7 +28,7 @@ interface SeriesHeaderProps {
   onRate: () => void;
 }
 
-const STATUS_PT: Record<string, string> = {
+export const STATUS_PT: Record<string, string> = {
   "Returning Series": "Em exibição",
   Ended: "Finalizada",
   Canceled: "Cancelada",

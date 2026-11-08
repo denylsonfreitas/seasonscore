@@ -8,7 +8,6 @@ import {
   Button,
   VStack,
   HStack,
-  Divider,
   Skeleton,
   useToast,
   IconButton,
@@ -27,7 +26,7 @@ import {
 import { useAuth } from "../../contexts/AuthContext";
 import type { Comment } from "../../types/comment";
 import { formatRelativeTime } from "../../utils/dateUtils";
-import { Link } from "react-router-dom";
+import { getGlobalLoginPopover } from "../layout/Navbar";
 import {
   addComment,
   getComments,
@@ -80,7 +79,6 @@ export function CommentSection({
     >
   >({});
 
-  const bgColor = "gray.800";
   // Inicializar estados de reação quando os comentários são carregados
   useEffect(() => {
     const newReactions: Record<
@@ -370,10 +368,13 @@ export function CommentSection({
   };
 
   return (
-    <Box bg={bgColor} borderRadius="lg" boxShadow="md" overflow="hidden">
-      <Box p={6}>
-        <Heading as="h2" size="md" mb={6}>
-          Comentários ({comments.length || commentsCount})
+    <Box>
+      <Box>
+        <Heading as="h2" size="h2" mb={5}>
+          Comentários{" "}
+          <Text as="span" fontFamily="mono" fontSize="md" color="ink.400" fontWeight={500}>
+            {comments.length || commentsCount}
+          </Text>
         </Heading>
 
         {currentUser ? (
@@ -382,7 +383,8 @@ export function CommentSection({
               size="sm"
               userId={currentUser?.uid}
               photoURL={currentUser?.photoURL}
-              mr={2}
+              name={currentUser?.displayName || currentUser?.username}
+              mr={3}
               mt={1}
             />
             <Box flex="1">
@@ -391,9 +393,9 @@ export function CommentSection({
                 onChange={(e) =>
                   editingComment ? setEditContent(e.target.value) : setNewComment(e.target.value)
                 }
-                placeholder="Adicione um comentário..."
-                rows={3}
-                resize="none"
+                placeholder="Escreva um comentário"
+                rows={2}
+                resize="vertical"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -403,13 +405,6 @@ export function CommentSection({
                       handleAddComment();
                     }
                   }
-                }}
-                bg="gray.700"
-                borderColor="gray.600"
-                _hover={{ borderColor: "gray.500" }}
-                _focus={{
-                  borderColor: "primary.500",
-                  boxShadow: "0 0 0 1px var(--chakra-colors-primary-500)",
                 }}
               />
 
@@ -437,12 +432,7 @@ export function CommentSection({
                     </Button>
                   </>
                 ) : (
-                  <Button
-                    size="sm"
-                    colorScheme="primary"
-                    isLoading={isSubmitting}
-                    onClick={handleAddComment}
-                  >
+                  <Button size="sm" isLoading={isSubmitting} onClick={handleAddComment}>
                     Comentar
                   </Button>
                 )}
@@ -450,38 +440,28 @@ export function CommentSection({
             </Box>
           </Flex>
         ) : (
-          <Flex
-            mb={6}
-            p={4}
-            borderWidth="1px"
-            borderColor="gray.700"
-            borderRadius="md"
-            align="center"
-            justify="center"
-            bg="gray.700"
-          >
-            <Text>
-              <Link
-                to="/login"
-                style={{ color: "#63B3ED", fontWeight: "bold", textDecoration: "none" }}
-              >
-                Faça login
-              </Link>{" "}
-              para adicionar um comentário.
-            </Text>
+          <Flex mb={6} align="center" gap={3} color="ink.300" fontSize="sm">
+            <Button size="sm" variant="outline" onClick={() => getGlobalLoginPopover()?.()}>
+              Entrar
+            </Button>
+            para comentar.
           </Flex>
         )}
-
-        <Divider mb={6} borderColor="gray.600" />
 
         {isLoading ? (
           <VStack spacing={4} align="stretch">
             {[...Array(3)].map((_, index) => (
-              <Skeleton key={index} height="100px" />
+              <Skeleton
+                key={index}
+                height="72px"
+                borderRadius="md"
+                startColor="ink.900"
+                endColor="ink.850"
+              />
             ))}
           </VStack>
         ) : comments.length > 0 ? (
-          <VStack spacing={4} align="stretch">
+          <VStack spacing={0} align="stretch" borderTop="1px solid" borderColor="ink.800">
             {comments.map((comment) => {
               const likes = comment;
               const likesMap = likes.likes || {};
@@ -492,17 +472,7 @@ export function CommentSection({
               };
 
               return (
-                <Box
-                  key={comment.id}
-                  p={4}
-                  borderWidth="1px"
-                  borderColor="gray.700"
-                  borderRadius="md"
-                  bg="gray.700"
-                  _hover={{ bg: "gray.650" }}
-                  transition="all 0.2s"
-                  boxShadow="sm"
-                >
+                <Box key={comment.id} py={4} borderBottom="1px solid" borderColor="ink.800">
                   <Flex justify="space-between" align="start">
                     <HStack spacing={3} align="start" flex={1}>
                       <UserAvatar
@@ -514,7 +484,7 @@ export function CommentSection({
                         <Flex justify="space-between" align="center" width="100%">
                           <HStack>
                             <UserName userId={comment.userId} />
-                            <Text fontSize="xs" color="gray.400">
+                            <Text fontSize="xs" color="ink.400" fontFamily="mono">
                               {formatRelativeTime(comment.createdAt)}
                               {comment.updatedAt && " (editado)"}
                             </Text>
@@ -538,7 +508,7 @@ export function CommentSection({
                             {(objectType === "list" || objectType === "review") &&
                               currentUser &&
                               currentUser.uid === comment.userId && (
-                                <Box h="16px" borderLeftWidth="1px" borderColor="gray.600" mx={1} />
+                                <Box h="16px" borderLeftWidth="1px" borderColor="ink.700" mx={1} />
                               )}
 
                             {currentUser && currentUser.uid === comment.userId && (
@@ -550,21 +520,17 @@ export function CommentSection({
                                   size="xs"
                                   aria-label="Opções"
                                 />
-                                <MenuList bg="gray.800" borderColor="gray.700">
+                                <MenuList>
                                   <MenuItem
-                                    icon={<PencilSimple weight="fill" />}
+                                    icon={<PencilSimple size={16} />}
                                     onClick={() => handleEditClick(comment)}
-                                    bg="gray.800"
-                                    _hover={{ bg: "gray.700" }}
                                   >
                                     Editar
                                   </MenuItem>
                                   <MenuItem
-                                    icon={<Trash weight="fill" />}
+                                    icon={<Trash size={16} />}
                                     onClick={() => handleDeleteClick(comment.id)}
-                                    color="red.500"
-                                    bg="gray.800"
-                                    _hover={{ bg: "gray.700" }}
+                                    color="danger"
                                   >
                                     Excluir
                                   </MenuItem>
@@ -573,7 +539,7 @@ export function CommentSection({
                             )}
                           </HStack>
                         </Flex>
-                        <Text mt={2} whiteSpace="pre-wrap" fontSize="sm" color="gray.200">
+                        <Text mt={1.5} whiteSpace="pre-wrap" fontSize="sm" color="ink.200">
                           {comment.content}
                         </Text>
                       </Box>
@@ -584,16 +550,9 @@ export function CommentSection({
             })}
           </VStack>
         ) : (
-          <Box
-            p={4}
-            borderWidth="1px"
-            borderColor="gray.700"
-            borderRadius="md"
-            bg="gray.700"
-            textAlign="center"
-          >
-            <Text>Nenhum comentário ainda. Seja o primeiro a comentar!</Text>
-          </Box>
+          <Text color="ink.400" fontSize="sm">
+            Nenhum comentário ainda.
+          </Text>
         )}
       </Box>
 
@@ -604,9 +563,9 @@ export function CommentSection({
         onClose={() => setDeleteConfirmOpen(false)}
       >
         <AlertDialogOverlay>
-          <AlertDialogContent bg="gray.800" color="white">
+          <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              Excluir Comentário
+              Excluir comentário
             </AlertDialogHeader>
 
             <AlertDialogBody>
@@ -614,16 +573,10 @@ export function CommentSection({
             </AlertDialogBody>
 
             <AlertDialogFooter>
-              <Button
-                variant="ghost"
-                color="white"
-                _hover={{ bg: "gray.700" }}
-                ref={cancelRef}
-                onClick={() => setDeleteConfirmOpen(false)}
-              >
+              <Button variant="ghost" ref={cancelRef} onClick={() => setDeleteConfirmOpen(false)}>
                 Cancelar
               </Button>
-              <Button bg="red.500" _hover={{ bg: "red.600" }} onClick={confirmDelete} ml={3}>
+              <Button colorScheme="red" onClick={confirmDelete} ml={3}>
                 Excluir
               </Button>
             </AlertDialogFooter>

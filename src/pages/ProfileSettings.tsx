@@ -19,10 +19,21 @@ import {
   MenuList,
   MenuItem,
   FormErrorMessage,
+  Textarea,
+  HStack,
+  useDisclosure,
 } from "@chakra-ui/react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { getUserData, isUsernameAvailable, updateProfile, updateUsername } from "../services/users";
+import {
+  getUserData,
+  isUsernameAvailable,
+  updateProfile,
+  updateUsername,
+  type FavoriteSeries,
+} from "../services/users";
+import { getSeriesDetails } from "../services/tmdb";
+import { SearchModal } from "../components/layout/SearchModal";
 import { useNavigate } from "react-router-dom";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
 import { Image as ImageIcon, UploadSimple, Plus, X } from "@phosphor-icons/react";
@@ -46,6 +57,25 @@ export function ProfileSettings() {
   const toast = useToast();
   const navigate = useNavigate();
   const MAX_NAME_LENGTH = 15;
+  const MAX_BIO_LENGTH = 160;
+  const [bio, setBio] = useState("");
+  const [favorite, setFavorite] = useState<FavoriteSeries | null>(null);
+  const favoritePicker = useDisclosure();
+
+  const pickFavorite = async (seriesId: number) => {
+    favoritePicker.onClose();
+    try {
+      const series = await getSeriesDetails(seriesId);
+      setFavorite({
+        id: series.id,
+        name: series.name,
+        poster_path: series.poster_path ?? "",
+        backdrop_path: series.backdrop_path ?? "",
+      });
+    } catch (error) {
+      logError("pickFavorite", error);
+    }
+  };
   const [newUsername, setNewUsername] = useState("");
   const [usernameError, setUsernameError] = useState("");
   const [, setIsCheckingUsername] = useState(false);
@@ -67,6 +97,8 @@ export function ProfileSettings() {
           setDisplayName(userData.displayName || "");
           setCoverURL(userData.coverURL || "");
           setNewUsername(userData.username || "");
+          setBio(userData.description || "");
+          setFavorite(userData.favoriteSeries ?? null);
         }
       } catch (error) {
         logError("loadUserData", error);
@@ -90,7 +122,7 @@ export function ProfileSettings() {
 
       toast({
         title: "Foto carregada",
-        description: "Clique em Salvar Alterações para aplicar as mudanças",
+        description: "Clique em Salvar alterações para aplicar as mudanças",
         status: "info",
         duration: 3000,
         isClosable: true,
@@ -120,7 +152,7 @@ export function ProfileSettings() {
 
       toast({
         title: "Capa carregada",
-        description: "Clique em Salvar Alterações para aplicar as mudanças",
+        description: "Clique em Salvar alterações para aplicar as mudanças",
         status: "info",
         duration: 3000,
         isClosable: true,
@@ -209,6 +241,8 @@ export function ProfileSettings() {
 
       await updateProfile(currentUser.uid, {
         displayName,
+        description: bio.trim(),
+        favoriteSeries: favorite,
         photoURL: photoURLToUse ?? null,
         coverURL: coverURLToUse ?? null,
       });
@@ -242,7 +276,7 @@ export function ProfileSettings() {
     setTempPhotoURL(null);
     toast({
       title: "Foto removida",
-      description: "Clique em Salvar Alterações para confirmar a remoção",
+      description: "Clique em Salvar alterações para confirmar a remoção",
       status: "info",
       duration: 3000,
       isClosable: true,
@@ -254,7 +288,7 @@ export function ProfileSettings() {
     setTempCoverURL(null);
     toast({
       title: "Capa removida",
-      description: "Clique em Salvar Alterações para confirmar a remoção",
+      description: "Clique em Salvar alterações para confirmar a remoção",
       status: "info",
       duration: 3000,
       isClosable: true,
@@ -265,7 +299,7 @@ export function ProfileSettings() {
     return (
       <Box>
         <Container maxW="container.md" py={8}>
-          <Spinner color="primary.500" />
+          <Spinner color="signal.400" />
         </Container>
       </Box>
     );
@@ -275,12 +309,14 @@ export function ProfileSettings() {
     <Box>
       <Container maxW="container.md" py={8}>
         <VStack spacing={8} align="stretch">
-          <Heading color="white">Configurações do Perfil</Heading>
+          <Heading as="h1" size="h1">
+            Editar perfil
+          </Heading>
 
-          <Box bg="gray.800" p={6} borderRadius="lg">
+          <Box p={{ base: 4, md: 6 }} border="1px solid" borderColor="ink.800" borderRadius="lg">
             <VStack spacing={6} align="stretch">
               <FormControl>
-                <FormLabel color="white">Foto de Perfil</FormLabel>
+                <FormLabel>Foto de perfil</FormLabel>
                 <Input
                   type="file"
                   accept="image/*"
@@ -313,7 +349,7 @@ export function ProfileSettings() {
                         rounded="full"
                         aria-label="Opções de foto de perfil"
                       />
-                      <MenuList bg="gray.700" borderColor="gray.600" zIndex={2000} minW="150px">
+                      <MenuList zIndex={2000} minW="150px">
                         <MenuItem
                           icon={<UploadSimple weight="bold" />}
                           onClick={() => photoInputRef.current?.click()}
@@ -327,8 +363,6 @@ export function ProfileSettings() {
                           <MenuItem
                             icon={<X weight="bold" />}
                             onClick={handleRemoveProfilePhoto}
-                            bg="gray.700"
-                            _hover={{ bg: "gray.600" }}
                             color="red.300"
                           >
                             Remover foto
@@ -341,7 +375,7 @@ export function ProfileSettings() {
               </FormControl>
 
               <FormControl>
-                <FormLabel color="white">Foto de Capa</FormLabel>
+                <FormLabel>Foto de capa</FormLabel>
                 <Input
                   type="file"
                   accept="image/*"
@@ -381,12 +415,7 @@ export function ProfileSettings() {
                               rounded="full"
                               aria-label="Opções de foto de capa"
                             />
-                            <MenuList
-                              bg="gray.700"
-                              borderColor="gray.600"
-                              zIndex={2000}
-                              minW="150px"
-                            >
+                            <MenuList zIndex={2000} minW="150px">
                               <MenuItem
                                 icon={<UploadSimple weight="bold" />}
                                 onClick={() => coverInputRef.current?.click()}
@@ -399,8 +428,6 @@ export function ProfileSettings() {
                               <MenuItem
                                 icon={<X weight="bold" />}
                                 onClick={handleRemoveCoverPhoto}
-                                bg="gray.700"
-                                _hover={{ bg: "gray.600" }}
                                 color="red.300"
                               >
                                 Remover capa
@@ -435,12 +462,7 @@ export function ProfileSettings() {
                               rounded="full"
                               aria-label="Opções de foto de capa"
                             />
-                            <MenuList
-                              bg="gray.700"
-                              borderColor="gray.600"
-                              zIndex={2000}
-                              minW="150px"
-                            >
+                            <MenuList zIndex={2000} minW="150px">
                               <MenuItem
                                 icon={<UploadSimple weight="bold" />}
                                 onClick={() => coverInputRef.current?.click()}
@@ -453,8 +475,6 @@ export function ProfileSettings() {
                               <MenuItem
                                 icon={<X weight="bold" />}
                                 onClick={handleRemoveCoverPhoto}
-                                bg="gray.700"
-                                _hover={{ bg: "gray.600" }}
                                 color="red.300"
                               >
                                 Remover capa
@@ -484,40 +504,102 @@ export function ProfileSettings() {
               </FormControl>
 
               <FormControl>
-                <FormLabel color="white">Nome</FormLabel>
+                <FormLabel>Nome</FormLabel>
                 <Input
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value.slice(0, MAX_NAME_LENGTH))}
                   placeholder="Seu nome"
-                  bg="gray.700"
-                  color="white"
-                  border="none"
                 />
-                <Text color="gray.400" fontSize="sm" mt={1}>
+                <Text color="ink.400" fontSize="xs" mt={1.5} fontFamily="mono">
                   {displayName.length}/{MAX_NAME_LENGTH} caracteres
                 </Text>
               </FormControl>
 
               <FormControl isInvalid={!!usernameError}>
-                <FormLabel color="white">Nome de usuário</FormLabel>
+                <FormLabel>Nome de usuário</FormLabel>
                 <Input
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
                   placeholder="Seu nome de usuário"
-                  bg="gray.700"
-                  color="white"
-                  border="none"
-                  _placeholder={{ color: "gray.400" }}
                 />
                 <FormErrorMessage>{usernameError}</FormErrorMessage>
                 {!usernameError && newUsername && (
-                  <Text color="gray.400" fontSize="sm" mt={1}>
+                  <Text color="ink.400" fontSize="xs" mt={1.5} fontFamily="mono">
                     {isCurrentUsername ? "Nome de usuário atual" : "Nome de usuário disponível"}
                   </Text>
                 )}
               </FormControl>
-              <Button colorScheme="primary" onClick={handleSave} isLoading={isSaving} mt={4}>
-                Salvar Alterações
+              <FormControl>
+                <FormLabel>Bio</FormLabel>
+                <Textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value.slice(0, MAX_BIO_LENGTH))}
+                  placeholder="Que tipo de série você gosta?"
+                  rows={3}
+                  resize="vertical"
+                />
+                <Text color="ink.400" fontSize="xs" mt={1.5} fontFamily="mono">
+                  {bio.length}/{MAX_BIO_LENGTH}
+                </Text>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Série favorita</FormLabel>
+                {favorite ? (
+                  <HStack
+                    spacing={3}
+                    p={2.5}
+                    border="1px solid"
+                    borderColor="ink.700"
+                    borderRadius="md"
+                  >
+                    {favorite.poster_path && (
+                      <Image
+                        src={`https://image.tmdb.org/t/p/w92${favorite.poster_path}`}
+                        alt=""
+                        w="32px"
+                        borderRadius="sm"
+                      />
+                    )}
+                    <Text flex={1} fontSize="sm" fontWeight={500} noOfLines={1}>
+                      {favorite.name}
+                    </Text>
+                    <Button size="sm" variant="ghost" onClick={favoritePicker.onOpen}>
+                      Trocar
+                    </Button>
+                    <IconButton
+                      aria-label="Remover série favorita"
+                      icon={<X size={14} />}
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setFavorite(null)}
+                    />
+                  </HStack>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<Plus size={14} />}
+                    onClick={favoritePicker.onOpen}
+                  >
+                    Escolher série
+                  </Button>
+                )}
+                <Text color="ink.400" fontSize="xs" mt={1.5}>
+                  Aparece no seu perfil e serve de capa quando você não tem uma.
+                </Text>
+              </FormControl>
+
+              <SearchModal
+                isOpen={favoritePicker.isOpen}
+                onClose={favoritePicker.onClose}
+                onSelect={pickFavorite}
+                title="Série favorita"
+                subtitle="Busque a série que mais representa você"
+              />
+
+              <Button onClick={handleSave} isLoading={isSaving} mt={4}>
+                Salvar alterações
               </Button>
             </VStack>
           </Box>

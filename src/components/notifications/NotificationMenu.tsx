@@ -25,7 +25,6 @@ import {
   Tooltip,
   useToast,
   Divider,
-  useTheme,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -58,7 +57,6 @@ export function NotificationMenu() {
   const { currentUser } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
-  const theme = useTheme();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -89,12 +87,14 @@ export function NotificationMenu() {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   // Definir cores padrão caso o tema não esteja carregado ou não tenha as cores definidas
+  // Filtros neutros: a cor de destaque fica só no estado ativo (DESIGN.md)
+  const filterColor = "ink.200";
   const notificationColors = {
-    newfollower: theme?.colors?.notifications?.newfollower || "#2B6CB0",
-    newcomment: theme?.colors?.notifications?.newcomment || "#2F855A",
-    newlike: theme?.colors?.notifications?.newlike || "#C05621",
-    newepisode: theme?.colors?.notifications?.newepisode || "#2F855A",
-    newreview: theme?.colors?.notifications?.newreview || "#F6AD55",
+    newfollower: filterColor,
+    newcomment: filterColor,
+    newlike: filterColor,
+    newepisode: filterColor,
+    newreview: filterColor,
   };
 
   const onOpen = useCallback(() => {
@@ -410,7 +410,6 @@ export function NotificationMenu() {
               <Badge
                 bg="signal.400"
                 color="ink.950"
-                borderRadius="full"
                 position="absolute"
                 top="-2px"
                 right="-2px"
@@ -634,7 +633,7 @@ export function NotificationMenu() {
                     }
                     color={
                       activeFilter === NotificationType.NEW_FOLLOWER
-                        ? "white"
+                        ? "ink.950"
                         : notificationColors.newfollower
                     }
                     _hover={{
@@ -671,7 +670,7 @@ export function NotificationMenu() {
                     color={
                       activeFilter === NotificationType.NEW_COMMENT ||
                       activeFilter === NotificationType.LIST_COMMENT
-                        ? "white"
+                        ? "ink.950"
                         : notificationColors.newcomment
                     }
                     _hover={{
@@ -710,7 +709,7 @@ export function NotificationMenu() {
                     color={
                       activeFilter === NotificationType.NEW_REACTION ||
                       activeFilter === NotificationType.LIST_REACTION
-                        ? "white"
+                        ? "ink.950"
                         : notificationColors.newlike
                     }
                     _hover={{
@@ -741,7 +740,7 @@ export function NotificationMenu() {
                     }
                     color={
                       activeFilter === NotificationType.NEW_REVIEW
-                        ? "white"
+                        ? "ink.950"
                         : notificationColors.newreview
                     }
                     _hover={{
@@ -770,7 +769,7 @@ export function NotificationMenu() {
                     }
                     color={
                       activeFilter === NotificationType.NEW_EPISODE
-                        ? "white"
+                        ? "ink.950"
                         : notificationColors.newepisode
                     }
                     _hover={{
@@ -797,7 +796,7 @@ export function NotificationMenu() {
           {isLoading && (
             <Box p={8} textAlign="center">
               <VStack spacing={3}>
-                <Spinner color="primary.300" size="md" />
+                <Spinner color="signal.400" size="md" />
                 <Text color="gray.400" fontSize="sm">
                   Atualizando notificações...
                 </Text>
@@ -806,18 +805,19 @@ export function NotificationMenu() {
           )}
 
           {!isLoading && filteredNotifications.length === 0 && (
-            <Box p={8} textAlign="center">
-              <VStack spacing={3}>
-                <Box p={3} borderRadius="full" bg="gray.700">
-                  <Icon as={Bell} color="gray.400" boxSize={6} />
-                </Box>
-                <Text color="gray.400" fontSize="sm">
-                  {notifications.length === 0
-                    ? "Você não tem notificações"
-                    : "Nenhuma notificação nesta categoria"}
+            <Flex p={6} gap={3} align="flex-start" color="ink.300">
+              <Icon as={Bell} boxSize={5} color="ink.400" mt="1px" />
+              <Box>
+                <Text fontSize="sm" fontWeight={600} color="ink.100">
+                  {notifications.length === 0 ? "Nenhuma notificação." : "Nada nesta categoria."}
                 </Text>
-              </VStack>
-            </Box>
+                {notifications.length === 0 && (
+                  <Text fontSize="xs" color="ink.400" mt={1}>
+                    Avisos de seguidores, curtidas e comentários aparecem aqui.
+                  </Text>
+                )}
+              </Box>
+            </Flex>
           )}
 
           {!isLoading &&
@@ -840,7 +840,7 @@ export function NotificationMenu() {
       {/* Modal de Configurações de Notificações */}
       <Modal isOpen={isSettingsOpen} onClose={onSettingsClose} isCentered>
         <ModalOverlay backdropFilter="blur(5px)" />
-        <ModalContent bg="gray.800" color="white" mx={4}>
+        <ModalContent mx={4}>
           <ModalHeader>Configurações de Notificações</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>

@@ -1,4 +1,5 @@
 import { Select } from "@chakra-ui/react";
+import { TV_GENRES_PT } from "../../utils/genres";
 
 export interface SeriesFilterProps {
   genreFilter: string;
@@ -8,18 +9,9 @@ export interface SeriesFilterProps {
 // Lista de gêneros e seus IDs
 const genres = [
   { id: "", name: "Todos os gêneros" },
-  { id: "18", name: "Drama" },
-  { id: "35", name: "Comédia" },
-  { id: "80", name: "Crime" },
-  { id: "10759", name: "Ação & Aventura" },
-  { id: "10765", name: "Ficção Científica & Fantasia" },
-  { id: "10767", name: "Talk Show" },
-  { id: "10764", name: "Reality" },
-  { id: "99", name: "Documentário" },
-  { id: "10768", name: "Guerra & Política" },
-  { id: "10766", name: "Novela" },
-  { id: "10762", name: "Infantil" },
-  { id: "9648", name: "Mistério" },
+  ...[18, 35, 80, 10759, 10765, 9648, 99, 16, 10751, 10768, 10766, 10762, 10764, 10767].map(
+    (id) => ({ id: String(id), name: TV_GENRES_PT[id] })
+  ),
 ];
 
 export function SeriesFilter({ genreFilter, onGenreChange }: SeriesFilterProps) {
@@ -35,18 +27,11 @@ export function SeriesFilter({ genreFilter, onGenreChange }: SeriesFilterProps) 
       name="genre-filter"
       value={genreFilter}
       onChange={handleChange}
-      bg="gray.700"
-      color="white"
-      border="none"
-      _hover={{ bg: "gray.600" }}
       placeholder="Filtrar por gênero"
       sx={{
         option: {
-          bg: "gray.700",
-          color: "white",
-          _hover: {
-            bg: "gray.600",
-          },
+          bg: "ink.850",
+          color: "ink.100",
         },
       }}
     >

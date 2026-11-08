@@ -252,12 +252,7 @@ export function Series() {
               </Button>
             </PopoverTrigger>
             <Portal>
-              <PopoverContent
-                bg="gray.800"
-                borderColor="gray.700"
-                width={{ base: "300px", md: "400px" }}
-                _focus={{ boxShadow: "none" }}
-              >
+              <PopoverContent width={{ base: "300px", md: "400px" }} _focus={{ boxShadow: "none" }}>
                 <PopoverArrow bg="gray.800" />
                 <PopoverCloseButton color="gray.400" />
                 <PopoverBody p={4}>

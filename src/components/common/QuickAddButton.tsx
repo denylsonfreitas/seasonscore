@@ -77,7 +77,7 @@ export function QuickAddButton({ size = "32px" }: QuickAddButtonProps) {
           isOpen={isQuickAddOpen}
           onClose={onQuickAddClose}
           onSelect={handleQuickAddSelect}
-          title="Avaliar Série"
+          title="Avaliar série"
           subtitle="Busque uma série para avaliar rapidamente"
         />
 

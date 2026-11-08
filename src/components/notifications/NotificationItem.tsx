@@ -1,16 +1,6 @@
 import { ChatCircle, Heart, Star, User, VideoCamera } from "@phosphor-icons/react";
 import React, { memo } from "react";
-import {
-  Box,
-  Flex,
-  Text,
-  useColorModeValue,
-  HStack,
-  Badge,
-  Stack,
-  Checkbox,
-  useTheme,
-} from "@chakra-ui/react";
+import { Box, Flex, Text, HStack, Stack, Checkbox } from "@chakra-ui/react";
 import { Notification, NotificationType } from "../../services/notifications";
 import { UserAvatar } from "../common/UserAvatar";
 import { formatNotificationDate } from "../../utils/dateUtils";
@@ -35,16 +25,6 @@ export const NotificationItem = memo(
     isSelected = false,
     onSelect,
   }: NotificationItemProps) => {
-    const theme = useTheme();
-
-    const notificationColors = {
-      newfollower: theme?.colors?.notifications?.newfollower || "#2B6CB0",
-      newcomment: theme?.colors?.notifications?.newcomment || "#2F855A",
-      newlike: theme?.colors?.notifications?.newlike || "#C05621",
-      newepisode: theme?.colors?.notifications?.newepisode || "#2F855A",
-      newreview: theme?.colors?.notifications?.newreview || "#F6AD55",
-    };
-
     const isUserDeleted =
       !notification.senderId ||
       !notification.senderName ||
@@ -55,33 +35,26 @@ export const NotificationItem = memo(
 
     const getNotificationIcon = () => {
       if (isUserDeleted) {
-        return <Box as={User} weight="fill" color="gray.400" />;
+        return <Box as={User} />;
       }
 
       switch (notification.type) {
         case NotificationType.NEW_FOLLOWER:
-          return <Box as={User} weight="fill" color={notificationColors.newfollower} />;
+          return <Box as={User} />;
         case NotificationType.NEW_COMMENT:
         case NotificationType.LIST_COMMENT:
-          return <Box as={ChatCircle} weight="fill" color={notificationColors.newcomment} />;
+          return <Box as={ChatCircle} />;
         case NotificationType.NEW_REACTION:
         case NotificationType.LIST_REACTION:
-          return <Box as={Heart} weight="fill" color={notificationColors.newlike} />;
+          return <Box as={Heart} />;
         case NotificationType.NEW_EPISODE:
-          return <Box as={VideoCamera} weight="fill" color={notificationColors.newepisode} />;
+          return <Box as={VideoCamera} />;
         case NotificationType.NEW_REVIEW:
-          return <Box as={Star} weight="fill" color={notificationColors.newreview} />;
+          return <Box as={Star} />;
         default:
-          return <Box as={User} weight="fill" color={notificationColors.newfollower} />;
+          return <Box as={User} />;
       }
     };
-
-    const bgColor = useColorModeValue(
-      notification.read ? "gray.700" : "gray.750",
-      notification.read ? "gray.750" : "gray.700"
-    );
-
-    const hoverBgColor = useColorModeValue("gray.600", "gray.600");
 
     const handleCheckboxClick = (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -93,10 +66,24 @@ export const NotificationItem = memo(
     return (
       <Box
         borderBottomWidth="1px"
-        borderBottomColor="gray.700"
-        transition="all 0.2s"
-        bg={bgColor}
-        _hover={{ bg: hoverBgColor }}
+        borderBottomColor="ink.800"
+        transition="background 120ms ease"
+        bg={notification.read ? "transparent" : "ink.850"}
+        _hover={{ bg: "ink.800" }}
+        position="relative"
+        _before={
+          notification.read
+            ? undefined
+            : {
+                content: '""',
+                position: "absolute",
+                left: 0,
+                top: 0,
+                bottom: 0,
+                w: "2px",
+                bg: "signal.400",
+              }
+        }
         opacity="0"
         transform="translateY(10px)"
         style={getItemAnimationStyle(index)}
@@ -120,9 +107,17 @@ export const NotificationItem = memo(
                 name={notification.senderName}
               />
             ) : (
-              <Box borderRadius="full" bg="gray.600" p={2} fontSize="sm" color="white">
+              <Flex
+                w="32px"
+                h="32px"
+                borderRadius="full"
+                bg="ink.800"
+                color="ink.200"
+                align="center"
+                justify="center"
+              >
                 {getNotificationIcon()}
-              </Box>
+              </Flex>
             )}
           </Box>
 
@@ -130,8 +125,8 @@ export const NotificationItem = memo(
             <HStack>
               <Text
                 fontSize="sm"
-                fontWeight={notification.read ? "normal" : "bold"}
-                color={notification.read ? "gray.300" : "white"}
+                fontWeight={notification.read ? 400 : 500}
+                color={notification.read ? "ink.300" : "ink.50"}
                 noOfLines={2}
               >
                 {notification.message}
@@ -139,21 +134,9 @@ export const NotificationItem = memo(
             </HStack>
 
             <HStack spacing={2}>
-              <Text fontSize="xs" color="gray.400">
+              <Text fontSize="xs" color="ink.400" fontFamily="mono">
                 {formattedDate}
               </Text>
-
-              {!notification.read && (
-                <Badge
-                  colorScheme="primary"
-                  variant="solid"
-                  fontSize="9px"
-                  borderRadius="full"
-                  px={1.5}
-                >
-                  Novo
-                </Badge>
-              )}
             </HStack>
           </Stack>
         </Flex>

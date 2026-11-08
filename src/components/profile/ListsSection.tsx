@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { Box, Text, Button, Flex, useDisclosure, Spinner, useToast, Grid } from "@chakra-ui/react";
-import { Plus } from "@phosphor-icons/react";
-import { ListCard } from "../lists/ListCard";
-import { getUserLists } from "../../services/lists";
-import { ListWithUserData } from "../../types/list";
+import { Button, Flex, Grid, Skeleton, useDisclosure } from "@chakra-ui/react";
+import { ListBullets, Plus } from "@phosphor-icons/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { getUserLists } from "../../services/lists";
+import { ListCard } from "../lists/ListCard";
 import { CreateListModal } from "../lists/CreateListModal";
+import { EmptyState } from "../common/EmptyState";
 
 interface ListsSectionProps {
   userId: string;
@@ -13,81 +13,66 @@ interface ListsSectionProps {
 }
 
 export function ListsSection({ userId, isOwnProfile }: ListsSectionProps) {
-  const [lists, setLists] = useState<ListWithUserData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const navigate = useNavigate();
-  const toast = useToast();
-  const fetchLists = async () => {
-    try {
-      setIsLoading(true);
-      const userLists = await getUserLists(userId, !isOwnProfile);
-      setLists(userLists);
-    } catch (error) {
-      console.error("Erro ao carregar listas:", error);
-      toast({
-        title: "Erro ao carregar listas",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  useEffect(() => {
-    fetchLists();
-  }, [userId]);
+  const queryClient = useQueryClient();
+
+  const { data: lists = [], isLoading } = useQuery({
+    queryKey: ["profileLists", userId, isOwnProfile],
+    queryFn: () => getUserLists(userId, !isOwnProfile),
+    enabled: !!userId,
+  });
 
   const handleListCreated = (listId: string) => {
-    // Atualizar a lista de listas
-    fetchLists();
-
-    // Navegar para a página da lista recém-criada
+    queryClient.invalidateQueries({ queryKey: ["profileLists", userId] });
+    queryClient.invalidateQueries({ queryKey: ["userLists", userId] });
     navigate(`/list/${listId}`);
   };
 
-  if (isLoading) {
-    return (
-      <Flex justify="center" align="center" p={10}>
-        <Spinner size="xl" color="primary.500" />
-      </Flex>
-    );
-  }
+  const grid = { base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" };
 
   return (
-    <Box>
-      {isOwnProfile && (
-        <Flex justifyContent="flex-end" mb={6}>
-          <Button leftIcon={<Plus weight="bold" />} colorScheme="primary" onClick={onOpen}>
-            Lista
+    <>
+      {isOwnProfile && lists.length > 0 && (
+        <Flex justify="flex-end" mb={4}>
+          <Button size="sm" variant="outline" leftIcon={<Plus size={14} />} onClick={onOpen}>
+            Nova lista
           </Button>
         </Flex>
       )}
 
-      {lists.length === 0 ? (
-        <Box textAlign="center" p={10} bg="gray.800" borderRadius="md">
-          <Text fontSize="xl" mb={4}>
-            {isOwnProfile
-              ? "Você ainda não criou nenhuma lista"
-              : "Este usuário ainda não criou nenhuma lista"}
-          </Text>
-          {isOwnProfile && (
-            <Button colorScheme="primary" onClick={onOpen}>
-              Criar sua primeira lista
-            </Button>
-          )}
-        </Box>
+      {isLoading ? (
+        <Grid templateColumns={grid} gap={4}>
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} h="280px" borderRadius="md" startColor="ink.900" endColor="ink.850" />
+          ))}
+        </Grid>
+      ) : lists.length === 0 ? (
+        <EmptyState
+          icon={ListBullets}
+          title={isOwnProfile ? "Você ainda não criou nenhuma lista." : "Nenhuma lista pública."}
+          description={
+            isOwnProfile
+              ? "Junte séries por tema, humor ou o que fizer sentido para você."
+              : undefined
+          }
+          action={
+            isOwnProfile ? (
+              <Button size="sm" variant="outline" leftIcon={<Plus size={14} />} onClick={onOpen}>
+                Criar lista
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
-        <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
+        <Grid templateColumns={grid} gap={4}>
           {lists.map((list) => (
             <ListCard key={list.id} list={list} showUser={false} />
           ))}
         </Grid>
       )}
 
-      {/* Usando o componente CreateListModal */}
       <CreateListModal isOpen={isOpen} onClose={onClose} onListCreated={handleListCreated} />
-    </Box>
+    </>
   );
 }

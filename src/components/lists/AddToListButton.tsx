@@ -55,7 +55,7 @@ export function AddToListMenuItem({ series }: { series: ListableSeries }) {
   if (!currentUser) {
     return (
       <MenuItem
-        icon={<ListBullets weight="fill" color="white" size={14} />}
+        icon={<ListBullets weight="fill" size={14} />}
         onClick={() =>
           toast({
             title: "Faça login para adicionar séries às suas listas",
@@ -75,13 +75,7 @@ export function AddToListMenuItem({ series }: { series: ListableSeries }) {
 
   return (
     <>
-      <MenuItem
-        icon={<ListBullets weight="fill" color="white" size={14} />}
-        onClick={onOpen}
-        bg="gray.900"
-        _hover={{ bg: "gray.800" }}
-        color="white"
-      >
+      <MenuItem icon={<ListBullets weight="fill" size={14} />} onClick={onOpen}>
         <Box color="white">Adicionar a uma lista</Box>
       </MenuItem>
 
@@ -196,7 +190,7 @@ function ListSelectorModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
       <ModalOverlay backdropFilter="blur(5px)" />
-      <ModalContent bg="gray.800" color="white">
+      <ModalContent>
         <ModalHeader>Adicionar à Lista</ModalHeader>
         <ModalCloseButton />
 
@@ -289,7 +283,7 @@ function ListSelectorModal({
                         as={accessByLink ? Globe : Lock}
                         weight="fill"
                         mr={2}
-                        color={accessByLink ? "blue.400" : "gray.400"}
+                        color={accessByLink ? "signal.300" : "ink.400"}
                         size={14}
                       />
                       Permitir acesso por link
@@ -299,7 +293,7 @@ function ListSelectorModal({
                     id="access-by-link"
                     isChecked={accessByLink}
                     onChange={(e) => setAccessByLink(e.target.checked)}
-                    colorScheme="blue"
+                    colorScheme="primary"
                     size="sm"
                   />
                 </FormControl>
@@ -442,13 +436,7 @@ function ListMenuItems({
 
   if (userLists.length === 0) {
     return (
-      <MenuItem
-        icon={<Plus weight="fill" color="white" size={14} />}
-        onClick={onCreateModalOpen}
-        _hover={{ bg: "gray.800" }}
-        color="white"
-        bg="gray.900"
-      >
+      <MenuItem icon={<Plus weight="fill" size={14} />} onClick={onCreateModalOpen}>
         <Text color="white">Criar nova lista</Text>
       </MenuItem>
     );
@@ -456,13 +444,7 @@ function ListMenuItems({
 
   return (
     <>
-      <MenuItem
-        icon={<Plus weight="fill" color="white" size={14} />}
-        onClick={onCreateModalOpen}
-        _hover={{ bg: "gray.800" }}
-        color="white"
-        bg="gray.900"
-      >
+      <MenuItem icon={<Plus weight="fill" size={14} />} onClick={onCreateModalOpen}>
         <Text color="white">Criar nova lista</Text>
       </MenuItem>
       <MenuDivider borderColor="gray.700" />
@@ -672,7 +654,7 @@ export function AddToListButton({
             </MenuButton>
           )}
           <Portal>
-            <MenuList bg="gray.900" borderColor="gray.700" color="white">
+            <MenuList>
               <ListMenuItems series={series} onCreateModalOpen={onCreateModalOpen} />
             </MenuList>
           </Portal>
@@ -682,7 +664,7 @@ export function AddToListButton({
       {/* Modal para criar nova lista */}
       <Modal isOpen={isCreateModalOpen} onClose={onCreateModalClose}>
         <ModalOverlay backdropFilter="blur(5px)" />
-        <ModalContent bg="gray.800" color="white">
+        <ModalContent>
           <ModalHeader>Criar Nova Lista</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>

@@ -1,4 +1,5 @@
 import { memoizeAsync } from "../utils/memo";
+import { translateGenres } from "../utils/genres";
 
 // As requisições passam pelo proxy /api/tmdb (função serverless em api/tmdb.ts),
 // que guarda a chave do TMDB no servidor.
@@ -244,7 +245,7 @@ export async function getSeriesDetails(id: number) {
   const response = await api.get<Series>(`/tv/${id}`, {
     params: detailsParams,
   });
-  return response.data;
+  return { ...response.data, genres: translateGenres(response.data.genres) };
 }
 
 export async function searchSeries(query: string, page = 1) {

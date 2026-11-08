@@ -210,12 +210,7 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
       scrollBehavior="outside"
     >
       <ModalOverlay />
-      <ModalContent
-        bg="gray.800"
-        color="white"
-        borderRadius="md"
-        maxW={{ base: "95%", md: "500px" }}
-      >
+      <ModalContent borderRadius="md" maxW={{ base: "95%", md: "500px" }}>
         <ModalHeader>Criar uma conta</ModalHeader>
         <ModalCloseButton />
         <ModalBody pb={6}>
@@ -281,7 +276,7 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
             </FormControl>
 
             <FormControl>
-              <FormLabel color="white">Confirmar Senha</FormLabel>
+              <FormLabel color="white">Confirmar senha</FormLabel>
               <InputGroup>
                 <Input
                   type={showConfirmPassword ? "text" : "password"}

@@ -36,7 +36,7 @@ export function SearchModal({
   isOpen,
   onClose,
   onSelect,
-  title = "Buscar Séries",
+  title = "Buscar séries",
   subtitle = "Digite o nome da série que deseja encontrar",
 }: SearchModalProps) {
   const [search, setSearch] = useState("");
@@ -94,7 +94,7 @@ export function SearchModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalOverlay />
-      <ModalContent bg="gray.800" color="white">
+      <ModalContent>
         <ModalHeader>
           <Heading size="md">{title}</Heading>
           <Text fontSize="sm" color="gray.400" mt={1}>
