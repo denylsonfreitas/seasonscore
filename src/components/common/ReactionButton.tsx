@@ -31,7 +31,6 @@ export function ReactionButton({
   const [isLiked, setIsLiked] = useState(
     forcedLikeState !== undefined ? forcedLikeState : currentUser && likes.includes(currentUser.uid)
   );
-  const [animating, setAnimating] = useState(false);
   const prevLikesRef = useRef(likes);
   const prevForcedLikeStateRef = useRef(forcedLikeState);
   const prevForcedLikesCountRef = useRef(forcedLikesCount);
@@ -62,15 +61,10 @@ export function ReactionButton({
 
     if (isLoading) return;
 
-    setAnimating(true);
-    setTimeout(() => {
-      setAnimating(false);
-    }, 300);
-
     onReaction(e);
   };
 
-  const effectiveIsLiked = forcedLikeState !== undefined ? forcedLikeState : isLiked;
+  const effectiveIsLiked = Boolean(forcedLikeState !== undefined ? forcedLikeState : isLiked);
   const effectiveLikesCount = forcedLikesCount !== undefined ? forcedLikesCount : likesCount;
 
   const likeColor = useColorModeValue("reactions.like", "reactions.like");
@@ -82,38 +76,35 @@ export function ReactionButton({
       transition="all 0.2s"
       onClick={handleReaction}
       _hover={{ color: likeColor }}
-      className={animating ? "heartbeat" : ""}
-      sx={{
-        "&.heartbeat": {
-          animation: "heartbeat 0.3s ease-in-out",
-        },
-        "@keyframes heartbeat": {
-          "0%": { transform: "scale(1)" },
-          "50%": { transform: "scale(1.1)" },
-          "100%": { transform: "scale(1)" },
-        },
+      role="button"
+      tabIndex={0}
+      aria-pressed={effectiveIsLiked}
+      aria-label={effectiveIsLiked ? "Descurtir" : "Curtir"}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") handleReaction(e as unknown as React.MouseEvent);
       }}
     >
       {isLoading ? (
         <Flex justify="center" w={size === "xs" ? "14px" : size === "sm" ? "16px" : "20px"} mr={2}>
           <Spinner
             size={size === "xs" ? "xs" : "sm"}
-            color={effectiveIsLiked ? likeColor : "gray.400"}
+            color={effectiveIsLiked ? likeColor : "ink.400"}
           />
         </Flex>
       ) : (
         <Icon
           as={Heart}
           weight={effectiveIsLiked ? "fill" : "regular"}
-          color={effectiveIsLiked ? likeColor : "gray.400"}
+          color={effectiveIsLiked ? likeColor : "ink.400"}
           mr={2}
           boxSize={size === "xs" ? "14px" : size === "sm" ? "16px" : "20px"}
         />
       )}
       {showCount && (
         <Text
+          fontFamily="mono"
           fontWeight="medium"
-          color={effectiveIsLiked ? likeColor : "gray.400"}
+          color={effectiveIsLiked ? likeColor : "ink.400"}
           fontSize={size === "xs" ? "xs" : size === "sm" ? "sm" : "md"}
         >
           {effectiveLikesCount || 0}

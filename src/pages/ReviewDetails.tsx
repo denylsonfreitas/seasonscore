@@ -2,7 +2,6 @@ import type { SeasonReview } from "../types/review";
 import type { UserData } from "../services/users";
 import {
   Box,
-  VStack,
   HStack,
   Text,
   Button,
@@ -10,23 +9,14 @@ import {
   useToast,
   Spinner,
   Center,
-  Icon,
-  Badge,
-  Flex,
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  useColorModeValue,
-  Tooltip,
   Grid,
-  GridItem,
-  Collapse,
-  useDisclosure,
-  IconButton,
+  Heading,
+  Link,
+  Tooltip,
 } from "@chakra-ui/react";
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link as RouterLink, useNavigate } from "react-router-dom";
-import { ArrowLeft, Calendar, ChatCircle, NotePencil, Share } from "@phosphor-icons/react";
+import { ArrowLeft, ChatCircle, NotePencil, Share } from "@phosphor-icons/react";
 import { useAuth } from "../contexts/AuthContext";
 import { getReviewDetails, toggleReaction } from "../services/reviews";
 import { getUserData } from "../services/users";
@@ -38,6 +28,8 @@ import { ReviewEditModal } from "../components/reviews/ReviewEditModal";
 import { CommentSection } from "../components/common/CommentSection";
 import { ReactionButtons } from "../components/reviews/ReactionButtons";
 import { PageContainer } from "../components/layout/PageContainer";
+import { EmptyState } from "../components/common/EmptyState";
+import { SeasonStrip } from "../components/series/SeasonStrip";
 
 type ReviewDetails = NonNullable<Awaited<ReturnType<typeof getReviewDetails>>>;
 
@@ -59,16 +51,9 @@ export function ReviewDetails() {
   );
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [loadingReactions, setLoadingReactions] = useState<{ [key: string]: boolean }>({});
-  const { isOpen: isCommentExpanded, onToggle: toggleComments } = useDisclosure();
   const [localCommentsCount, setLocalCommentsCount] = useState<number | null>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
-
-  // Cores e estilos
-  const cardBg = useColorModeValue("gray.800", "gray.800");
-  const primaryColor = useColorModeValue("primary.500", "primary.400");
-  const textColor = useColorModeValue("white", "white");
-  const mutedTextColor = useColorModeValue("gray.400", "gray.400");
 
   // Seleção da temporada atual para exibição
   const activeSeasonReview = review?.seasonReviews?.find(
@@ -301,45 +286,25 @@ export function ReviewDetails() {
   if (isLoading && isInitialLoad) {
     return (
       <Center minH="60vh">
-        <VStack spacing={4}>
-          <Spinner size="xl" color="primary.500" thickness="4px" speed="0.65s" />
-          <Text color="gray.400" fontWeight="medium">
-            Carregando avaliação...
-          </Text>
-        </VStack>
+        <Spinner size="lg" color="signal.400" />
       </Center>
     );
   }
 
   if (!review || !activeSeasonReview) {
     return (
-      <Center minH="60vh">
-        <VStack
-          spacing={6}
-          p={8}
-          bg="gray.800"
-          borderRadius="xl"
-          boxShadow="lg"
-          maxW="md"
-          textAlign="center"
-        >
-          <Icon as={ChatCircle} weight="fill" boxSize={16} color="gray.500" />
-          <Text color="gray.400" fontSize="lg">
-            Avaliação não encontrada
-          </Text>
-          <Button
-            as={RouterLink}
-            to="/reviews"
-            leftIcon={<ArrowLeft />}
-            colorScheme="primary"
-            size="lg"
-            w="full"
-            borderRadius="lg"
-          >
-            Voltar para avaliações
-          </Button>
-        </VStack>
-      </Center>
+      <PageContainer py={16}>
+        <EmptyState
+          icon={ChatCircle}
+          title="Avaliação não encontrada."
+          description="Ela pode ter sido excluída pelo autor."
+          action={
+            <Button as={RouterLink} to="/reviews" size="sm" variant="outline">
+              Ver outras avaliações
+            </Button>
+          }
+        />
+      </PageContainer>
     );
   }
 
@@ -393,342 +358,200 @@ export function ReviewDetails() {
     ? format(createdAtDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
     : "Data desconhecida";
 
+  const commentsCount =
+    localCommentsCount !== null ? localCommentsCount : activeSeasonReview.comments?.length || 0;
+  const authorName = userData?.displayName || userData?.username || review.userEmail || "Usuário";
+
   return (
-    <Flex direction="column">
-      <PageContainer py={6} flex="1">
-        {/* Breadcrumbs com efeito de hover */}
-        <Breadcrumb
-          mb={6}
-          color="gray.400"
-          separator=">"
-          fontSize="xs"
-          fontWeight="medium"
-          spacing={2}
+    <>
+      <PageContainer py={{ base: 6, md: 10 }} maxW="960px">
+        <Link
+          as={RouterLink}
+          to={`/series/${review.seriesId}`}
+          display="inline-flex"
+          alignItems="center"
+          gap={1.5}
+          fontSize="sm"
+          color="ink.300"
+          _hover={{ color: "ink.50", textDecoration: "none" }}
         >
-          <BreadcrumbItem>
-            <BreadcrumbLink
-              as={RouterLink}
-              to={`/series/${review.seriesId}`}
-              _hover={{ color: "primary.300", textDecoration: "none" }}
-              transition="color 0.2s ease"
-            >
-              {review.series.name}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbItem>
-            <BreadcrumbLink
-              as={RouterLink}
-              to={`/series/${review.seriesId}/reviews`}
-              _hover={{ color: "primary.300", textDecoration: "none" }}
-              transition="color 0.2s ease"
-            >
-              Avaliações
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbItem isCurrentPage>
-            <Text color="primary.300">Temporada {selectedSeasonNumber}</Text>
-          </BreadcrumbItem>
-        </Breadcrumb>
+          <ArrowLeft size={14} />
+          {review.series.name}
+        </Link>
 
-        {/* Card principal com gradiente e efeitos visuais */}
-        <Box
-          bg={cardBg}
-          borderRadius="xl"
-          overflow="hidden"
-          mb={8}
-          boxShadow="lg"
-          position="relative"
+        <Grid
+          as="article"
+          mt={6}
+          templateColumns={{ base: "88px 1fr", md: "160px 1fr" }}
+          columnGap={{ base: 4, md: 8 }}
+          rowGap={6}
         >
-          <Box p={{ base: 4, md: 8 }}>
-            {/* Informações do usuário e data */}
-            <Grid
-              templateColumns={{ base: "1fr", md: "auto 1fr auto" }}
-              gap={4}
-              mb={6}
-              alignItems="center"
+          <Link as={RouterLink} to={`/series/${review.seriesId}`} alignSelf="start">
+            <Box
+              aspectRatio={2 / 3}
+              borderRadius="md"
+              overflow="hidden"
+              bg="ink.850"
+              boxShadow="inset 0 0 0 1px rgba(255,255,255,0.06)"
             >
-              <HStack spacing={4}>
-                <UserAvatar
-                  userId={review.userId}
-                  userEmail={review.userEmail}
-                  photoURL={userData?.photoURL}
-                  size="md"
-                  showBorder
-                />
-                <VStack align="start" spacing={1}>
-                  <HStack>
-                    <Text fontWeight="medium" color={textColor}>
-                      Avaliação de
-                    </Text>
-                    <Text
-                      as={RouterLink}
-                      to={`/u/${userData?.username || review.userId}`}
-                      fontWeight="bold"
-                      color={primaryColor}
-                      _hover={{ textDecoration: "underline" }}
-                      transition="color 0.2s"
-                    >
-                      @{userData?.username || userData?.displayName || "Usuário"}
-                    </Text>
-                  </HStack>
-                  <HStack spacing={2}>
-                    <Icon as={Calendar} color={mutedTextColor} weight="fill" />
-                    <Tooltip label={formattedDate} placement="bottom">
-                      <Text color={mutedTextColor} fontSize="sm">
-                        {formattedDateDistance}
-                      </Text>
-                    </Tooltip>
-                  </HStack>
-                </VStack>
-              </HStack>
-
-              {/* Badge da temporada em telas grandes */}
-              <Box display={{ base: "none", md: "flex" }} justifyContent="flex-end">
-                <Badge colorScheme="primary" fontSize="md" py={1} px={3} borderRadius="full">
-                  Temporada {selectedSeasonNumber}
-                </Badge>
-              </Box>
-
-              {/* Botão de editar */}
-              {currentUser?.uid === review.userId && (
-                <Box
-                  position={{ base: "absolute", md: "relative" }}
-                  top={{ base: 4, md: 0 }}
-                  right={{ base: 4, md: 0 }}
-                >
-                  <IconButton
-                    icon={<Icon as={NotePencil} />}
-                    aria-label="Editar avaliação"
-                    size="sm"
-                    colorScheme="primary"
-                    variant="outline"
-                    onClick={() => setIsEditModalOpen(true)}
-                  />
-                </Box>
-              )}
-            </Grid>
-
-            {/* Conteúdo principal da avaliação */}
-            <Grid
-              templateColumns={{ base: "auto 1fr", md: "auto 1fr" }}
-              gap={{ base: 3, md: 6 }}
-              mb={6}
-            >
-              {/* Poster com efeito de sombra */}
               {review.series.poster_path && (
-                <GridItem>
-                  <Box
-                    width={{ base: "100px", md: "180px" }}
-                    borderRadius="lg"
-                    overflow="hidden"
-                    boxShadow="md"
-                    transition="transform 0.3s ease, box-shadow 0.3s ease"
-                    _hover={{
-                      transform: "translateY(-5px) scale(1.02)",
-                      boxShadow: "xl",
-                    }}
-                  >
-                    <Image
-                      src={`https://image.tmdb.org/t/p/w500${review.series.poster_path}`}
-                      alt={review.series.name}
-                      width="100%"
-                      height="auto"
-                    />
-                  </Box>
-                </GridItem>
+                <Image
+                  src={`https://image.tmdb.org/t/p/w342${review.series.poster_path}`}
+                  alt={`Pôster de ${review.series.name}`}
+                  w="100%"
+                  h="100%"
+                  objectFit="cover"
+                />
               )}
+            </Box>
+          </Link>
 
-              {/* Detalhes da avaliação */}
-              <GridItem>
-                <VStack align="start" spacing={4} h="100%">
-                  <Box w="full">
-                    <Text
-                      as={RouterLink}
-                      to={`/series/${review.seriesId}`}
-                      fontSize={{ base: "md", md: "2xl" }}
-                      fontWeight="bold"
-                      color={textColor}
-                      lineHeight="shorter"
-                      mb={1}
-                      display="inline-block"
-                      _hover={{
-                        color: primaryColor,
-                        textDecoration: "none",
-                      }}
-                      transition="color 0.2s"
-                    >
-                      {review.series.name}
-                    </Text>
-                    <Text
-                      fontSize={{ base: "sm", md: "lg" }}
-                      fontWeight="medium"
-                      color={mutedTextColor}
-                      display={{ base: "block", md: "none" }}
-                    >
-                      Temporada {selectedSeasonNumber}
-                    </Text>
-                  </Box>
+          <Box minW={0}>
+            <Text textStyle="label" color="ink.400">
+              Avaliação · Temporada {selectedSeasonNumber}
+            </Text>
+            <Heading as="h1" size="h1" mt={1.5} noOfLines={2}>
+              {review.series.name}
+            </Heading>
 
-                  {/* Estrelas de avaliação */}
-                  <Box
-                    p={2}
-                    bg="gray.700"
-                    borderRadius="lg"
-                    alignSelf="flex-start"
-                    display={{ base: "inline-block", md: "block" }}
-                  >
-                    <RatingStars
-                      rating={activeSeasonReview.rating || 0}
-                      size={24}
-                      showNumber={true}
-                    />
-                  </Box>
-                </VStack>
-              </GridItem>
-            </Grid>
-
-            {/* Comentário em uma nova linha */}
-            {activeSeasonReview.comment && (
-              <Box
-                w="full"
-                p={4}
-                bg="gray.850"
-                borderRadius="lg"
-                borderLeftWidth="4px"
-                borderLeftColor="primary.500"
-                overflowWrap="break-word"
-                wordBreak="break-word"
-                mb={6}
-              >
-                <Text
-                  color={textColor}
-                  fontSize="md"
-                  whiteSpace="pre-wrap"
-                  lineHeight="taller"
-                  overflowWrap="break-word"
-                  wordBreak="break-word"
-                  sx={{
-                    hyphens: "auto",
-                  }}
+            <HStack mt={4} spacing={3}>
+              <UserAvatar
+                userId={review.userId}
+                userEmail={review.userEmail}
+                photoURL={userData?.photoURL}
+                name={authorName}
+                size="sm"
+              />
+              <Box lineHeight="short">
+                <Link
+                  as={RouterLink}
+                  to={`/u/${userData?.username || review.userEmail}`}
+                  fontWeight={600}
+                  color="ink.100"
+                  fontSize="sm"
+                  _hover={{ color: "signal.300", textDecoration: "none" }}
                 >
-                  {activeSeasonReview.comment}
-                </Text>
+                  {authorName}
+                </Link>
+                <Tooltip label={formattedDate} placement="bottom-start">
+                  <Text fontSize="xs" color="ink.400" fontFamily="mono">
+                    {formattedDateDistance}
+                  </Text>
+                </Tooltip>
               </Box>
+            </HStack>
+
+            <Box mt={4}>
+              <RatingStars rating={activeSeasonReview.rating || 0} size={22} showNumber={false} />
+            </Box>
+          </Box>
+
+          <Box gridColumn="1 / -1" maxW="720px">
+            {activeSeasonReview.comment ? (
+              <Text
+                fontSize={{ base: "md", md: "lg" }}
+                lineHeight="tall"
+                color="ink.100"
+                whiteSpace="pre-wrap"
+                overflowWrap="anywhere"
+              >
+                {activeSeasonReview.comment}
+              </Text>
+            ) : (
+              <Text color="ink.400" fontStyle="italic">
+                Avaliou sem comentar.
+              </Text>
             )}
 
-            {/* Botões de ação */}
-            <HStack spacing={{ base: 2, md: 4 }} w="full" flexWrap="wrap">
-              <Box onClick={(e) => e.stopPropagation()} mr={{ base: 2, md: 4 }}>
+            <HStack
+              mt={6}
+              pt={4}
+              spacing={1}
+              borderTop="1px solid"
+              borderColor="ink.800"
+              flexWrap="wrap"
+            >
+              <Box onClick={(e) => e.stopPropagation()}>
                 <ReactionButtons
                   reviewId={reviewId || ""}
                   seasonNumber={selectedSeasonNumber}
-                  likes={
-                    isLiked
-                      ? [...(activeSeasonReview.reactions?.likes || []), currentUser?.uid].filter(
-                          (id): id is string => Boolean(id)
-                        )
-                      : activeSeasonReview.reactions?.likes || []
-                  }
+                  likes={activeSeasonReview.reactions?.likes || []}
                   onReaction={handleReaction}
                   isLoading={loadingReactions[`${reviewId}-${selectedSeasonNumber}-likes`] || false}
                   forcedLikeState={isLiked}
                   forcedLikesCount={likesCount}
                 />
               </Box>
-
               <Button
-                leftIcon={<Icon as={ChatCircle} weight="fill" />}
+                as="a"
+                href="#comentarios"
+                leftIcon={<ChatCircle size={16} />}
                 variant="ghost"
                 size="sm"
-                onClick={toggleComments}
-                color={isCommentExpanded ? "blue.500" : mutedTextColor}
-                _hover={{ color: "blue.300" }}
               >
-                {localCommentsCount !== null
-                  ? localCommentsCount
-                  : activeSeasonReview.comments?.length || 0}
+                <Text as="span" fontFamily="mono">
+                  {commentsCount}
+                </Text>
               </Button>
-
               <Button
-                leftIcon={<Icon as={Share} />}
+                leftIcon={<Share size={16} />}
                 variant="ghost"
                 size="sm"
                 onClick={handleShare}
-                color={mutedTextColor}
-                _hover={{ color: "primary.300" }}
               >
-                Compartilhar
+                Copiar link
               </Button>
+              {currentUser?.uid === review.userId && (
+                <Button
+                  leftIcon={<NotePencil size={16} />}
+                  variant="ghost"
+                  size="sm"
+                  ml="auto"
+                  onClick={() => setIsEditModalOpen(true)}
+                >
+                  Editar
+                </Button>
+              )}
             </HStack>
-
-            {/* Seletor de temporadas caso exista mais de uma avaliação */}
-            {review.seasonReviews.length > 1 && (
-              <Box
-                mb={6}
-                p={4}
-                bg="gray.750"
-                borderRadius="lg"
-                borderWidth="1px"
-                borderColor="gray.700"
-              >
-                <Text color={mutedTextColor} mb={3} fontWeight="medium">
-                  Outras temporadas avaliadas:
-                </Text>
-                <Flex gap={2} wrap="wrap">
-                  {review.seasonReviews.map((sr: SeasonReview) => (
-                    <Button
-                      key={sr.seasonNumber}
-                      size="sm"
-                      variant={sr.seasonNumber === selectedSeasonNumber ? "solid" : "outline"}
-                      colorScheme={sr.seasonNumber === selectedSeasonNumber ? "primary" : "gray"}
-                      onClick={() => navigate(`/reviews/${reviewId}/${sr.seasonNumber}`)}
-                      borderRadius="full"
-                      _hover={{
-                        transform:
-                          sr.seasonNumber !== selectedSeasonNumber ? "translateY(-2px)" : "none",
-                      }}
-                      transition="transform 0.2s ease"
-                    >
-                      Temporada {sr.seasonNumber}
-                    </Button>
-                  ))}
-                </Flex>
-              </Box>
-            )}
           </Box>
-        </Box>
+        </Grid>
 
-        {/* Seção de comentários com animação de collapse */}
-        <Collapse in={isCommentExpanded} animateOpacity>
-          <Box bg={cardBg} borderRadius="xl" mb={8} boxShadow="md">
-            <CommentSection
-              objectId={reviewId || ""}
-              seasonNumber={selectedSeasonNumber}
-              objectType="review"
-              commentsCount={activeSeasonReview?.comments?.length || 0}
-              onCommentsCountChange={handleCommentsCountChange}
-            />
+        {review.seasonReviews.length > 1 && (
+          <Box as="section" mt={10}>
+            <Text textStyle="label" color="ink.400" mb={3}>
+              Outras temporadas nesta avaliação
+            </Text>
+            <Box
+              p={4}
+              bg="ink.900"
+              border="1px solid"
+              borderColor="ink.800"
+              borderRadius="md"
+              display="inline-block"
+            >
+              <SeasonStrip
+                seasons={[...review.seasonReviews]
+                  .sort((a, b) => a.seasonNumber - b.seasonNumber)
+                  .map((sr) => ({ season: sr.seasonNumber, score: sr.rating }))}
+                selected={selectedSeasonNumber}
+                onSelect={(season) => navigate(`/reviews/${reviewId}/${season}`)}
+                height={48}
+              />
+            </Box>
           </Box>
-        </Collapse>
-
-        {/* Botão para expandir/colapsar comentários quando fechados */}
-        {!isCommentExpanded && (activeSeasonReview?.comments?.length ?? 0) > 0 && (
-          <Button
-            onClick={toggleComments}
-            variant="outline"
-            colorScheme="gray"
-            leftIcon={<Icon as={ChatCircle} weight="fill" />}
-            mb={8}
-            w="full"
-            borderRadius="lg"
-            _hover={{ bg: "gray.700" }}
-          >
-            Ver {activeSeasonReview?.comments?.length} comentários
-          </Button>
         )}
+
+        <Box as="section" id="comentarios" mt={10} scrollMarginTop="80px">
+          <CommentSection
+            objectId={reviewId || ""}
+            seasonNumber={selectedSeasonNumber}
+            objectType="review"
+            commentsCount={activeSeasonReview?.comments?.length || 0}
+            onCommentsCountChange={handleCommentsCountChange}
+          />
+        </Box>
       </PageContainer>
 
-      {/* Modal de edição */}
       {isEditModalOpen && (
         <ReviewEditModal
           isOpen={isEditModalOpen}
@@ -738,6 +561,6 @@ export function ReviewDetails() {
           initialSeasonNumber={selectedSeasonNumber}
         />
       )}
-    </Flex>
+    </>
   );
 }
