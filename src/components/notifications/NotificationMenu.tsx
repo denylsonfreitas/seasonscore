@@ -850,7 +850,19 @@ export function NotificationMenu() {
               </Text>
 
               <FormControl display="flex" alignItems="center">
-                <FormLabel htmlFor="new-follower-notifications" mb="0" color="white" flex="1">
+                <FormLabel htmlFor="new-episode-notifications" mb="0" flex="1">
+                  Novos episódios da watchlist
+                </FormLabel>
+                <Switch
+                  id="new-episode-notifications"
+                  isChecked={notificationSettings.newEpisode}
+                  onChange={() => handleNotificationSettingsChange("newEpisode")}
+                  colorScheme="primary"
+                />
+              </FormControl>
+
+              <FormControl display="flex" alignItems="center">
+                <FormLabel htmlFor="new-follower-notifications" mb="0" flex="1">
                   Novos seguidores
                 </FormLabel>
                 <Switch
@@ -862,7 +874,7 @@ export function NotificationMenu() {
               </FormControl>
 
               <FormControl display="flex" alignItems="center">
-                <FormLabel htmlFor="new-reaction-notifications" mb="0" color="white" flex="1">
+                <FormLabel htmlFor="new-reaction-notifications" mb="0" flex="1">
                   Reações nas suas avaliações
                 </FormLabel>
                 <Switch
@@ -874,7 +886,7 @@ export function NotificationMenu() {
               </FormControl>
 
               <FormControl display="flex" alignItems="center">
-                <FormLabel htmlFor="new-comment-notifications" mb="0" color="white" flex="1">
+                <FormLabel htmlFor="new-comment-notifications" mb="0" flex="1">
                   Comentários nas suas avaliações
                 </FormLabel>
                 <Switch
@@ -886,7 +898,7 @@ export function NotificationMenu() {
               </FormControl>
 
               <FormControl display="flex" alignItems="center">
-                <FormLabel htmlFor="list-reaction-notifications" mb="0" color="white" flex="1">
+                <FormLabel htmlFor="list-reaction-notifications" mb="0" flex="1">
                   Reações nas suas listas
                 </FormLabel>
                 <Switch
@@ -898,7 +910,7 @@ export function NotificationMenu() {
               </FormControl>
 
               <FormControl display="flex" alignItems="center">
-                <FormLabel htmlFor="list-comment-notifications" mb="0" color="white" flex="1">
+                <FormLabel htmlFor="list-comment-notifications" mb="0" flex="1">
                   Comentários nas suas listas
                 </FormLabel>
                 <Switch
@@ -910,7 +922,7 @@ export function NotificationMenu() {
               </FormControl>
 
               <FormControl display="flex" alignItems="center">
-                <FormLabel htmlFor="new-review-notifications" mb="0" color="white" flex="1">
+                <FormLabel htmlFor="new-review-notifications" mb="0" flex="1">
                   Avaliações de pessoas que você segue
                 </FormLabel>
                 <Switch
@@ -922,7 +934,7 @@ export function NotificationMenu() {
               </FormControl>
 
               <FormControl display="flex" alignItems="center">
-                <FormLabel htmlFor="new-episode-notifications" mb="0" color="white" flex="1">
+                <FormLabel htmlFor="new-episode-notifications" mb="0" flex="1">
                   Novos episódios das séries na watchlist
                 </FormLabel>
                 <Switch

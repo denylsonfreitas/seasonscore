@@ -54,6 +54,7 @@ Todo o esquema fica versionado em `supabase/migrations`:
 - **Triggers**: criam o perfil no cadastro e geram as notificações (seguir, curtir, comentar, nova avaliação), então ninguém consegue criar notificação em nome de outra pessoa.
 - **Views**: notas médias por série (`series_ratings`), feed de avaliações, resumo de listas e estatísticas de perfis.
 - **Storage**: bucket `profile-images` para fotos de perfil e capa.
+- **Tarefa agendada** (`pg_cron`): `private.check_new_episodes()` roda às 00:05 e 12:05 UTC, confere no TMDB (pelo proxy `/api/tmdb`) as séries das watchlists e avisa quem tem a série quando sai episódio novo. Usa as extensões `pg_cron` e `http`; o endereço do proxy fica em `private.settings`.
 
 Para aplicar as migrações em outro projeto: `npx supabase link --project-ref <ref>` e `npx supabase db push`.
 
