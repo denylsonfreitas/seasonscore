@@ -49,7 +49,7 @@ export function PageHeader({
         wrap="wrap"
       >
         <Box maxW="640px">
-          <Heading as="h1" textStyle="h1">
+          <Heading as="h1" size="h1">
             {title}
           </Heading>
           {subtitle && (

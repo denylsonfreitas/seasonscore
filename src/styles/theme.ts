@@ -232,7 +232,12 @@ const theme = extendTheme({
         letterSpacing: "-0.02em",
         color: "ink.50",
       },
+      // "display", "h1", "h2" e "h3" seguem os estilos de texto do DESIGN.md
       sizes: {
+        display: textStyles.display,
+        h1: textStyles.h1,
+        h2: textStyles.h2,
+        h3: textStyles.h3,
         "2xl": { fontSize: ["2.125rem", "3rem"], lineHeight: 1.05 },
         xl: { fontSize: ["1.75rem", "2.25rem"], lineHeight: 1.1 },
         lg: { fontSize: ["1.5rem", "1.75rem"], lineHeight: 1.15 },

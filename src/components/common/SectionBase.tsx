@@ -1,126 +1,113 @@
-import {
-  Box,
-  Heading,
-  Flex,
-  Button,
-  Text,
-  Spinner,
-  BoxProps,
-  HeadingProps,
-  ButtonProps,
-  GridProps,
-} from "@chakra-ui/react";
-import React, { ReactNode } from "react";
-import { CaretRight } from "@phosphor-icons/react";
+import { Box, Flex, Heading, Link, Skeleton, Text, type BoxProps } from "@chakra-ui/react";
+import type { ReactNode } from "react";
+import { ArrowRight, Tray } from "@phosphor-icons/react";
 import { Link as RouterLink } from "react-router-dom";
+import { EmptyState } from "./EmptyState";
 
 export interface SectionBaseProps {
   title: string;
+  /** Rótulo curto acima do título, em caixa alta mono ("EM ALTA"). */
+  eyebrow?: string;
   link?: string;
   linkText?: string;
   isLoading?: boolean;
   error?: Error | null;
   isEmpty?: boolean;
   emptyMessage?: string;
+  emptyDescription?: string;
   loadingElement?: ReactNode;
   errorElement?: ReactNode;
   emptyElement?: ReactNode;
   expandable?: boolean;
-  initialExpanded?: boolean;
-  expandThreshold?: number;
   containerProps?: BoxProps;
-  gridProps?: GridProps;
-  headerProps?: BoxProps;
-  titleProps?: HeadingProps;
-  linkButtonProps?: ButtonProps;
-  renderExpandButton?: (isExpanded: boolean, toggleExpand: () => void) => ReactNode;
   renderContent: (limitItems: boolean) => ReactNode;
   children?: ReactNode;
 }
 
+function DefaultLoading() {
+  return (
+    <Flex gap={3} overflow="hidden">
+      {Array.from({ length: 6 }, (_, i) => (
+        <Skeleton
+          key={i}
+          flex="0 0 auto"
+          w={{ base: "45%", sm: "30%", md: "22%", lg: "15.5%" }}
+          aspectRatio={2 / 3}
+          borderRadius="md"
+          startColor="ink.850"
+          endColor="ink.800"
+        />
+      ))}
+    </Flex>
+  );
+}
+
+/** Seção da página: rótulo, título h2, link "Ver tudo" e os estados de carregamento. */
 export function SectionBase({
   title,
+  eyebrow,
   link,
-  linkText = "Ver todas",
+  linkText = "Ver tudo",
   isLoading = false,
   error = null,
   isEmpty = false,
-  emptyMessage = "Nenhum conteúdo encontrado",
+  emptyMessage = "Nada por aqui ainda.",
+  emptyDescription,
   loadingElement,
   errorElement,
   emptyElement,
   expandable = false,
   containerProps,
-  headerProps,
-  titleProps,
-  linkButtonProps,
   renderContent,
   children,
 }: SectionBaseProps) {
-  // Renderização personalizada ou padrão de elementos de estado
-  const renderLoadingState = () => {
-    if (loadingElement) return loadingElement;
-    return (
-      <Box textAlign="center" py={8}>
-        <Spinner size="xl" color="primary.500" />
-      </Box>
+  let body: ReactNode;
+  if (isLoading) body = loadingElement ?? <DefaultLoading />;
+  else if (error)
+    body = errorElement ?? (
+      <Text color="ink.300" fontSize="sm">
+        Não foi possível carregar esta seção. Tente recarregar a página.
+      </Text>
     );
-  };
-
-  const renderErrorState = () => {
-    if (errorElement) return errorElement;
-    return (
-      <Box textAlign="center" py={8}>
-        <Text color="red.500">
-          Erro ao carregar conteúdo: {error?.message || "Erro desconhecido"}
-        </Text>
-      </Box>
+  else if (isEmpty)
+    body = emptyElement ?? (
+      <EmptyState icon={Tray} title={emptyMessage} description={emptyDescription} />
     );
-  };
+  else body = renderContent(expandable);
 
-  const renderEmptyState = () => {
-    if (emptyElement) return emptyElement;
-    return (
-      <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
-        <Text color="gray.400">{emptyMessage}</Text>
-      </Box>
-    );
-  };
-
-  // Renderização do componente
   return (
-    <Box mt={4} {...containerProps}>
-      <Flex justify="space-between" align="center" mb={6} {...headerProps}>
-        <Heading color="white" size="md" {...titleProps}>
-          {title}
-        </Heading>
+    <Box as="section" py={{ base: 6, md: 8 }} {...containerProps}>
+      <Flex justify="space-between" align="flex-end" gap={4} mb={{ base: 4, md: 5 }}>
+        <Box>
+          {eyebrow && (
+            <Text textStyle="label" color="ink.400" mb={1.5}>
+              {eyebrow}
+            </Text>
+          )}
+          <Heading as="h2" size="h2">
+            {title}
+          </Heading>
+        </Box>
         {link && (
-          <Button
+          <Link
             as={RouterLink}
             to={link}
-            variant="ghost"
-            colorScheme="primary"
-            size="sm"
-            rightIcon={<CaretRight weight="bold" />}
-            _hover={{ bg: "whiteAlpha.200" }}
-            {...linkButtonProps}
+            display="inline-flex"
+            alignItems="center"
+            gap={1.5}
+            flexShrink={0}
+            fontSize="sm"
+            fontWeight={500}
+            color="ink.300"
+            _hover={{ color: "ink.50", textDecoration: "none" }}
           >
             {linkText}
-          </Button>
+            <ArrowRight size={14} />
+          </Link>
         )}
       </Flex>
 
-      {/* Renderizar os diferentes estados */}
-      {isLoading ? (
-        renderLoadingState()
-      ) : error ? (
-        renderErrorState()
-      ) : isEmpty ? (
-        renderEmptyState()
-      ) : (
-        <>{renderContent(expandable)}</>
-      )}
-
+      {body}
       {children}
     </Box>
   );
