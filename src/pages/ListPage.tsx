@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link as RouterLink } from "react-router-dom";
 import {
   Box,
-  Container,
   Heading,
   Text,
   Flex,
@@ -76,6 +75,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getErrorMessage } from "../utils/errors";
+import { PageContainer } from "../components/layout/PageContainer";
 
 export default function ListPage() {
   const { listId } = useParams();
@@ -498,7 +498,7 @@ export default function ListPage() {
 
   if (isLoading) {
     return (
-      <Container maxW="container.lg" py={8}>
+      <PageContainer py={8}>
         <Skeleton height="40px" width="50%" mb={4} />
         <Skeleton height="20px" width="30%" mb={6} />
         <Skeleton height="200px" mb={8} />
@@ -507,7 +507,7 @@ export default function ListPage() {
             <Skeleton key={i} height="250px" borderRadius="md" />
           ))}
         </SimpleGrid>
-      </Container>
+      </PageContainer>
     );
   }
 
@@ -516,8 +516,8 @@ export default function ListPage() {
   }
 
   return (
-    <Flex direction="column" minH="100vh" bg="gray.900">
-      <Container maxW="container.lg" py={6} flex="1">
+    <Flex direction="column">
+      <PageContainer py={6} flex="1">
         {/* Breadcrumbs com efeito de hover */}
         <Breadcrumb
           mb={6}
@@ -856,7 +856,7 @@ export default function ListPage() {
             />
           </Box>
         </Collapse>
-      </Container>
+      </PageContainer>
 
       {/* Modais e diálogos */}
       {list && currentUser && list.userId === currentUser.uid && (

@@ -88,7 +88,7 @@ export function RatingStars({
             <Icon
               as={Star}
               weight="fill"
-              color="primary.500"
+              color="star"
               position="absolute"
               style={{
                 clipPath: "polygon(0 0, 50% 0, 50% 100%, 0 100%)",
@@ -98,13 +98,7 @@ export function RatingStars({
           )}
 
           {isFullStar && (
-            <Icon
-              as={Star}
-              weight="fill"
-              color="primary.500"
-              position="absolute"
-              fontSize={`${size}px`}
-            />
+            <Icon as={Star} weight="fill" color="star" position="absolute" fontSize={`${size}px`} />
           )}
         </Box>
       );

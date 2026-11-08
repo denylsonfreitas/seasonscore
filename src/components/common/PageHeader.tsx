@@ -1,21 +1,16 @@
 import {
   Box,
-  Container,
+  Flex,
   Heading,
   Text,
-  Tabs,
-  TabList,
-  Tab,
   Input,
   InputGroup,
-  InputRightElement,
+  InputLeftElement,
   Icon,
-  VStack,
-  Flex,
-  useBreakpointValue,
 } from "@chakra-ui/react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
-import React from "react";
+import type React from "react";
+import { PageContainer } from "../layout/PageContainer";
 
 interface PageHeaderProps {
   title: string;
@@ -33,112 +28,89 @@ interface PageHeaderProps {
   actionButton?: React.ReactNode;
 }
 
+/** Cabeçalho das páginas de seção: título, descrição curta, abas e busca. */
 export function PageHeader({
   title,
   subtitle,
   tabs,
   showSearch = false,
-  searchPlaceholder = "Buscar...",
+  searchPlaceholder = "Buscar",
   onSearch,
   onSearchSubmit,
   searchValue = "",
   actionButton,
 }: PageHeaderProps) {
-  // Detectar se estamos em mobile
-  const isMobile = useBreakpointValue({ base: true, md: false });
-
   return (
-    <Box bgGradient="linear(to-b, gray.800, gray.900)" py={8} position="relative">
-      <Container maxW="container.lg">
-        <VStack align="stretch" spacing={6}>
-          {/* Título e Subtítulo */}
-          <Box>
-            <Heading color="white" size="2xl" mb={2}>
-              {title}
-            </Heading>
-            {subtitle && (
-              <Text color="gray.400" fontSize="lg">
-                {subtitle}
-              </Text>
-            )}
-          </Box>
+    <PageContainer pt={{ base: 8, md: 12 }} pb={{ base: 4, md: 6 }}>
+      <Flex
+        justify="space-between"
+        align={{ base: "flex-start", md: "flex-end" }}
+        gap={4}
+        wrap="wrap"
+      >
+        <Box maxW="640px">
+          <Heading as="h1" size="h1">
+            {title}
+          </Heading>
+          {subtitle && (
+            <Text mt={2} color="ink.300" fontSize={{ base: "md", md: "lg" }}>
+              {subtitle}
+            </Text>
+          )}
+        </Box>
+        {actionButton && <Box flexShrink={0}>{actionButton}</Box>}
+      </Flex>
 
-          {/* Layout adaptável para tabs e busca */}
-          <VStack spacing={4} align="stretch">
-            {/* Se tiver tabs, mostra-as primeiro */}
-            {tabs && tabs.length > 0 && (
-              <Tabs variant="line" colorScheme="primary" width="100%">
-                <TabList borderBottomColor="gray.700" overflowX="auto" pb={1}>
-                  {tabs.map((tab, index) => (
-                    <Tab
-                      key={index}
-                      color="gray.400"
-                      _selected={{
-                        color: "primary.500",
-                        borderColor: "primary.500",
-                      }}
-                      onClick={tab.onClick}
-                      _active={{
-                        color: "primary.500",
-                        borderColor: "primary.500",
-                      }}
-                      minWidth={isMobile ? "auto" : "100px"}
-                      px={3}
-                      py={2}
-                      fontSize={isMobile ? "sm" : "md"}
-                      whiteSpace="nowrap"
-                    >
-                      {tab.label}
-                    </Tab>
-                  ))}
-                </TabList>
-              </Tabs>
-            )}
+      {showSearch && (
+        <InputGroup mt={6} maxW={{ base: "100%", md: "480px" }}>
+          <InputLeftElement pointerEvents="none">
+            <Icon as={MagnifyingGlass} color="ink.400" boxSize={4} />
+          </InputLeftElement>
+          <Input
+            type="search"
+            aria-label={searchPlaceholder}
+            placeholder={searchPlaceholder}
+            value={searchValue}
+            onChange={(e) => onSearch?.(e.target.value)}
+            onKeyDown={onSearchSubmit}
+          />
+        </InputGroup>
+      )}
 
-            {/* Barra de busca e botão de ação */}
-            {(showSearch || actionButton) && (
-              <Flex
-                justify="space-between"
-                align="center"
-                flexWrap={{ base: "wrap", md: "nowrap" }}
-                gap={3}
-                mt={tabs && tabs.length > 0 ? 2 : 0}
-              >
-                {showSearch && (
-                  <InputGroup
-                    flex={{ base: actionButton ? "1 0 100%" : "1", md: "1" }}
-                    maxW={{ base: "100%", md: actionButton ? "500px" : "100%" }}
-                    mb={{ base: actionButton ? 2 : 0, md: 0 }}
-                  >
-                    <Input
-                      placeholder={searchPlaceholder}
-                      bg="gray.700"
-                      border="none"
-                      _focus={{
-                        boxShadow: "0 0 0 1px var(--chakra-colors-primary-500)",
-                        borderColor: "primary.500",
-                      }}
-                      value={searchValue}
-                      onChange={(e) => onSearch?.(e.target.value)}
-                      onKeyDown={onSearchSubmit}
-                      size={isMobile ? "md" : "md"}
-                    />
-                    <InputRightElement>
-                      <Icon as={MagnifyingGlass} color="gray.400" weight="bold" />
-                    </InputRightElement>
-                  </InputGroup>
-                )}
-
-                {actionButton && (
-                  <Box flex="0 0 auto" alignSelf={{ base: "flex-end", md: "center" }}>
-                    {actionButton}
-                  </Box>
-                )}
-              </Flex>
-            )}
-          </VStack>
-        </VStack>
-      </Container>
-    </Box>
+      {tabs && tabs.length > 0 && (
+        <Flex
+          role="tablist"
+          mt={showSearch ? 6 : 8}
+          borderBottom="1px solid"
+          borderColor="ink.800"
+          gap={{ base: 4, md: 6 }}
+          overflowX="auto"
+          sx={{ scrollbarWidth: "none", "&::-webkit-scrollbar": { display: "none" } }}
+        >
+          {tabs.map((tab) => (
+            <Box
+              as="button"
+              type="button"
+              role="tab"
+              aria-selected={tab.isSelected}
+              key={tab.label}
+              onClick={tab.onClick}
+              py={3}
+              mb="-1px"
+              fontSize="sm"
+              fontWeight={tab.isSelected ? 600 : 500}
+              color={tab.isSelected ? "ink.50" : "ink.300"}
+              borderBottom="2px solid"
+              borderColor={tab.isSelected ? "signal.400" : "transparent"}
+              whiteSpace="nowrap"
+              transition="color 120ms ease"
+              _hover={{ color: "ink.50" }}
+            >
+              {tab.label}
+            </Box>
+          ))}
+        </Flex>
+      )}
+    </PageContainer>
   );
 }

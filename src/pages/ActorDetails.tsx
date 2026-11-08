@@ -1,7 +1,6 @@
 import React from "react";
 import {
   Box,
-  Container,
   Heading,
   Text,
   VStack,
@@ -16,12 +15,22 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getPersonDetails, getPersonCredits } from "../services/tmdb";
 import { SeriesCard } from "../components/series/SeriesCard";
-import { Footer } from "../components/common/Footer";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { Carousel } from "../components/common/Carousel";
 import { EnhancedImage } from "../components/common/EnhancedImage";
+import { PageContainer } from "../components/layout/PageContainer";
+
+const DEPARTMENT_PT: Record<string, string> = {
+  Acting: "Atuação",
+  Directing: "Direção",
+  Writing: "Roteiro",
+  Production: "Produção",
+  Sound: "Som",
+  Camera: "Fotografia",
+  Editing: "Edição",
+};
 
 export function ActorDetails() {
   const { id } = useParams<{ id: string }>();
@@ -57,21 +66,20 @@ export function ActorDetails() {
 
   if (isLoading) {
     return (
-      <Flex direction="column" minH="100vh" bg="gray.900">
-        <Container maxW="container.lg" py={8} flex="1">
+      <Flex direction="column">
+        <PageContainer py={8} flex="1">
           <Flex justify="center" align="center" height="50vh">
             <Spinner size="xl" color="primary.500" thickness="4px" />
           </Flex>
-        </Container>
-        <Footer />
+        </PageContainer>
       </Flex>
     );
   }
 
   if (error || !actor) {
     return (
-      <Flex direction="column" minH="100vh" bg="gray.900">
-        <Container maxW="container.lg" py={8} flex="1">
+      <Flex direction="column">
+        <PageContainer py={8} flex="1">
           <Box textAlign="center" py={10} px={6}>
             <Heading as="h2" size="xl" color="red.500" mb={4}>
               Erro
@@ -88,8 +96,7 @@ export function ActorDetails() {
               Voltar
             </Button>
           </Box>
-        </Container>
-        <Footer />
+        </PageContainer>
       </Flex>
     );
   }
@@ -110,12 +117,13 @@ export function ActorDetails() {
     : null;
 
   return (
-    <Flex direction="column" minH="100vh" bg="gray.900">
-      <Container maxW="container.lg" py={8} flex="1">
+    <Flex direction="column">
+      <PageContainer py={8} flex="1">
         <Button
           leftIcon={<Icon as={ArrowLeft} weight="bold" />}
           variant="ghost"
-          colorScheme="whiteAlpha"
+          size="sm"
+          ml={-3}
           mb={6}
           onClick={handleGoBack}
         >
@@ -124,14 +132,14 @@ export function ActorDetails() {
 
         <Flex direction={{ base: "column", md: "row" }} mb={12} gap={8}>
           {/* Foto do ator */}
-          <Box width={{ base: "100%", md: "300px" }} flexShrink={0}>
+          <Box width={{ base: "100%", md: "260px" }} flexShrink={0}>
             <Box
-              borderRadius="lg"
+              borderRadius="md"
               overflow="hidden"
-              boxShadow="lg"
-              bg="gray.800"
+              bg="ink.850"
               mb={4}
-              height={{ base: "450px", md: "auto" }}
+              w={{ base: "160px", md: "100%" }}
+              aspectRatio={2 / 3}
             >
               {actor.profile_path ? (
                 <EnhancedImage
@@ -152,7 +160,14 @@ export function ActorDetails() {
               )}
             </Box>
 
-            <VStack align="start" spacing={3} bg="gray.800" p={4} borderRadius="lg">
+            <VStack
+              align="start"
+              spacing={3}
+              p={4}
+              border="1px solid"
+              borderColor="ink.800"
+              borderRadius="md"
+            >
               <Box>
                 <Text fontSize="sm" color="gray.400">
                   Nascimento
@@ -176,8 +191,8 @@ export function ActorDetails() {
                 <Text fontSize="sm" color="gray.400">
                   Conhecido por
                 </Text>
-                <Badge colorScheme="primary" mt={1}>
-                  {actor.known_for_department}
+                <Badge mt={1}>
+                  {DEPARTMENT_PT[actor.known_for_department] ?? actor.known_for_department}
                 </Badge>
               </Box>
             </VStack>
@@ -185,7 +200,7 @@ export function ActorDetails() {
 
           {/* Informações do ator */}
           <Box flex="1">
-            <Heading as="h1" size="2xl" color="white" mb={4}>
+            <Heading as="h1" size="h1" mb={4}>
               {actor.name}
             </Heading>
 
@@ -194,13 +209,13 @@ export function ActorDetails() {
                 <Text fontSize="sm" color="gray.400">
                   Também conhecido como
                 </Text>
-                <Text color="gray.300">{actor.also_known_as.join(", ")}</Text>
+                <Text color="gray.300">{actor.also_known_as.slice(0, 3).join(", ")}</Text>
               </Box>
             )}
 
             <Divider my={6} borderColor="gray.700" />
 
-            <Heading as="h3" size="md" color="white" mb={4}>
+            <Heading as="h2" size="h2" mb={4}>
               Biografia
             </Heading>
 
@@ -254,9 +269,7 @@ export function ActorDetails() {
             </Text>
           )}
         </Box>
-      </Container>
-
-      <Footer />
+      </PageContainer>
     </Flex>
   );
 }

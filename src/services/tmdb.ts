@@ -369,11 +369,12 @@ export async function getLatestEpisode(seriesId: number): Promise<Episode | null
 
 // IDs dos principais serviços de streaming
 
-export async function getTrendingSeries() {
+export async function getTrendingSeries(limit = 10) {
   const response = await api.get<SeriesResponse>("/trending/tv/week", {
     params: defaultParams,
   });
-  const seriesList = response.data.results;
+  // Só os primeiros recebem detalhes (logo, temporadas), para não fazer 20 requisições
+  const seriesList = response.data.results.slice(0, limit);
 
   // Buscar detalhes completos para cada série
   const detailedSeriesList = await Promise.all(

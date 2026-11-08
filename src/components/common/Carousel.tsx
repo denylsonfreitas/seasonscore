@@ -5,9 +5,10 @@ import { Children, ReactNode, useCallback, useEffect, useRef, useState } from "r
 type ResponsiveCount = { base: number; sm?: number; md?: number; lg?: number };
 
 export const carouselPresets = {
-  series: { base: 2, sm: 3, md: 4, lg: 6 },
-  lists: { base: 1, md: 2, lg: 3 },
-  cast: { base: 2, sm: 3, md: 4, lg: 5 },
+  // frações no celular deixam o próximo item aparecendo, indicando que dá para arrastar
+  series: { base: 2.3, sm: 3.3, md: 4, lg: 6 },
+  lists: { base: 1.1, md: 2, lg: 3 },
+  cast: { base: 2.3, sm: 3.3, md: 4, lg: 5 },
 } satisfies Record<string, ResponsiveCount>;
 
 export type CarouselPreset = keyof typeof carouselPresets;
@@ -75,10 +76,12 @@ export function Carousel({ children, preset = "series", gap = 2, label }: Carous
     transform: "translateY(-50%)",
     zIndex: 2,
     size: "sm",
-    isRound: true,
-    bg: "blackAlpha.700",
-    color: "white",
-    _hover: { bg: "primary.500" },
+    bg: "ink.900",
+    border: "1px solid",
+    borderColor: "ink.700",
+    boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+    color: "ink.100",
+    _hover: { bg: "ink.800", color: "ink.50" },
     display: { base: "none", md: "inline-flex" },
   };
 
@@ -87,7 +90,7 @@ export function Carousel({ children, preset = "series", gap = 2, label }: Carous
       {canPrev && (
         <IconButton
           aria-label="Anterior"
-          icon={<CaretLeft weight="bold" />}
+          icon={<CaretLeft size={16} />}
           left="-12px"
           onClick={() => scrollByPage(-1)}
           {...arrowStyles}
@@ -116,7 +119,7 @@ export function Carousel({ children, preset = "series", gap = 2, label }: Carous
       {canNext && (
         <IconButton
           aria-label="Próximo"
-          icon={<CaretRight weight="bold" />}
+          icon={<CaretRight size={16} />}
           right="-12px"
           onClick={() => scrollByPage(1)}
           {...arrowStyles}

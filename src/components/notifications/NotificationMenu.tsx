@@ -51,7 +51,6 @@ import {
 import { NotificationItem } from "./NotificationItem";
 import { useNavigate } from "react-router-dom";
 import { AnimatedMenu } from "../common/AnimatedMenu";
-import { RippleEffect } from "../common/RippleEffect";
 import { updateUserNotificationSettings, getUserNotificationSettings } from "../../services/users";
 import { logError } from "../../utils/logger";
 
@@ -67,8 +66,6 @@ export function NotificationMenu() {
   const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"all" | NotificationType>("all");
-
-  const [isRippling, setIsRippling] = useState(false);
 
   // Estado para o menu animado
   const [isOpen, setIsOpen] = useState(false);
@@ -136,12 +133,6 @@ export function NotificationMenu() {
     }
   }, [isOpen, currentUser, loadNotifications]);
 
-  const handleRippleEffect = () => {
-    setIsRippling(true);
-    setTimeout(() => {
-      setIsRippling(false);
-    }, 1000);
-  };
   useEffect(() => {
     if (!currentUser) return;
 
@@ -150,10 +141,6 @@ export function NotificationMenu() {
     const unsubscribe = subscribeToNotifications(currentUser.uid, (updatedNotifications) => {
       setNotifications(updatedNotifications);
       setUnreadCount(updatedNotifications.filter((n) => !n.read).length);
-
-      if (updatedNotifications.length > notifications.length) {
-        handleRippleEffect();
-      }
     });
 
     return () => unsubscribe();
@@ -418,10 +405,11 @@ export function NotificationMenu() {
         aria-label="Notificações"
         icon={
           <Box position="relative">
-            <Icon as={Bell} boxSize={6} color="white" />
+            <Icon as={Bell} boxSize={5} color="ink.200" />
             {unreadCount > 0 && (
               <Badge
-                colorScheme="red"
+                bg="signal.400"
+                color="ink.950"
                 borderRadius="full"
                 position="absolute"
                 top="-2px"
@@ -434,19 +422,19 @@ export function NotificationMenu() {
                 justifyContent="center"
                 fontWeight="bold"
                 border="2px solid"
-                borderColor="gray.800"
+                borderColor="ink.950"
               >
                 {unreadCount > 9 ? "9+" : unreadCount}
               </Badge>
             )}
-            <RippleEffect isRippling={isRippling} />
           </Box>
         }
         variant="ghost"
-        _hover={{ bg: "gray.700" }}
+        size="sm"
+        _hover={{ bg: "ink.850" }}
       />
     ),
-    [unreadCount, isRippling]
+    [unreadCount]
   );
 
   // Carregar configurações de notificação do usuário atual

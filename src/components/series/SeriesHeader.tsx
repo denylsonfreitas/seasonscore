@@ -1,263 +1,267 @@
 import type { Series } from "../../services/tmdb";
-import type { ExtendedUser as User } from "../../types/auth";
-import type { ReviewClickHandler } from "../../types/review";
 import {
   Box,
-  Container,
-  Image,
-  Heading,
-  Text,
-  SimpleGrid,
-  VStack,
-  HStack,
   Button,
-  Stack,
-  Icon,
-  Divider,
-  Skeleton,
-  useToast,
   Flex,
+  Grid,
+  Heading,
+  HStack,
+  IconButton,
+  Image,
+  Text,
 } from "@chakra-ui/react";
-import { CaretDown, CaretUp, Calendar, PlayCircle, VideoCamera } from "@phosphor-icons/react";
-import { useState, useEffect } from "react";
+import { Bookmark, BookmarkSimple, Play, Star } from "@phosphor-icons/react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { WatchlistButton } from "../common/WatchlistButton";
-import { SeriesDetailsTabs } from "./SeriesDetailsTabs";
-import { SeriesReview } from "../../services/reviews";
+import { ScoreBadge } from "../common/ScoreBadge";
 import { getSeriesVideos } from "../../services/tmdb";
-import { logError } from "../../utils/logger";
+import { useWatchlist } from "../../hooks/useWatchlist";
+import { useAuth } from "../../contexts/AuthContext";
+import { getGlobalLoginPopover, NAV_HEIGHT } from "../layout/Navbar";
+import { yearOf } from "../../utils/score";
 
 interface SeriesHeaderProps {
   series: Series;
-  isLoading: boolean;
-  reviews: SeriesReview[];
-  userReview?: SeriesReview;
-  currentUser: User | null;
-  userData: { photoURL?: string | null } | null;
-  seriesId: string;
-  onSeasonSelect: (season: number) => void;
-  onOpenReviewModal: () => void;
-  onSetExistingReview: (review: SeriesReview) => void;
-  onSetDeleteAlertOpen: (isOpen: boolean) => void;
-  onSetSeasonToDelete: (season: number | null) => void;
-  onReviewClick: ReviewClickHandler;
-  navigate: (path: string) => void;
+  /** Média de todas as notas de temporada e quantas são. */
+  communityScore?: { average: number; count: number };
+  onRate: () => void;
 }
 
-export function SeriesHeader({
-  series,
-  isLoading,
-  reviews,
-  userReview,
-  currentUser,
-  userData,
-  seriesId,
-  onSeasonSelect,
-  onOpenReviewModal,
-  onSetExistingReview,
-  onSetDeleteAlertOpen,
-  onSetSeasonToDelete,
-  onReviewClick,
-  navigate,
-}: SeriesHeaderProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [trailerUrl, setTrailerUrl] = useState<string | null>(null);
-  const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
-  const toast = useToast();
+const STATUS_PT: Record<string, string> = {
+  "Returning Series": "Em exibição",
+  Ended: "Finalizada",
+  Canceled: "Cancelada",
+  "In Production": "Em produção",
+  Planned: "Planejada",
+  Pilot: "Piloto",
+};
 
-  useEffect(() => {
-    const fetchTrailer = async () => {
-      if (!seriesId) return;
+function yearsRange(series: Series) {
+  const start = yearOf(series.first_air_date);
+  if (!start) return "";
+  if (series.status === "Returning Series" || series.in_production) return `${start}–`;
+  const end = yearOf(series.last_air_date);
+  return end && end !== start ? `${start}–${end}` : start;
+}
 
-      setIsLoadingTrailer(true);
-      try {
-        const videos = await getSeriesVideos(parseInt(seriesId));
+/** Topo da página da série: fundo, pôster, título, nota da comunidade e ações. */
+export function SeriesHeader({ series, communityScore, onRate }: SeriesHeaderProps) {
+  const { currentUser } = useAuth();
+  const [expanded, setExpanded] = useState(false);
+  const { isInWatchlist, isLoading: watchlistLoading, toggleWatchlist } = useWatchlist(series.id);
 
-        const trailer =
-          videos.find((video) => video.type === "Trailer" && video.site === "YouTube") ||
-          videos.find((video) => video.type === "Teaser" && video.site === "YouTube") ||
-          videos.find(
-            (video) =>
-              (video.type === "Clip" || video.type === "Featurette") && video.site === "YouTube"
-          );
+  const { data: trailerKey } = useQuery({
+    queryKey: ["trailer", series.id],
+    queryFn: async () => {
+      const videos = await getSeriesVideos(series.id);
+      const youtube = videos.filter((v) => v.site === "YouTube");
+      return (
+        (
+          youtube.find((v) => v.type === "Trailer") ??
+          youtube.find((v) => v.type === "Teaser") ??
+          null
+        )?.key ?? null
+      );
+    },
+    staleTime: 1000 * 60 * 60,
+  });
 
-        if (trailer) {
-          setTrailerUrl(`https://www.youtube.com/watch?v=${trailer.key}`);
-        }
-      } catch (error) {
-        logError("fetchTrailer", error);
-      } finally {
-        setIsLoadingTrailer(false);
-      }
-    };
+  const logo = series.images?.logos?.[0]?.file_path;
+  const meta = [
+    yearsRange(series),
+    `${series.number_of_seasons} ${series.number_of_seasons === 1 ? "temporada" : "temporadas"}`,
+    STATUS_PT[series.status],
+  ].filter(Boolean);
+  const genres = series.genres?.slice(0, 3).map((g) => g.name) ?? [];
+  const longOverview = (series.overview?.length ?? 0) > 280;
 
-    fetchTrailer();
-  }, [seriesId]);
-
-  const handleOpenTrailer = () => {
-    if (trailerUrl) {
-      window.open(trailerUrl, "_blank", "noopener,noreferrer");
-    } else {
-      toast({
-        title: "Trailer não disponível",
-        description: "Não foi possível encontrar um trailer para esta série.",
-        status: "info",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
+  const requireLogin = (action: () => void) => () => {
+    if (!currentUser) getGlobalLoginPopover()?.();
+    else action();
   };
 
   return (
-    <>
-      <Box position="relative">
-        <Box h="400px" w="100%" position="relative" overflow="hidden">
+    <Box as="header" position="relative" mt={`-${NAV_HEIGHT}`}>
+      {/* fundo */}
+      <Box
+        position="absolute"
+        top={0}
+        left={0}
+        right={0}
+        h={{ base: "300px", md: "520px" }}
+        overflow="hidden"
+        bg="ink.900"
+        aria-hidden="true"
+      >
+        {series.backdrop_path && (
           <Box
             position="absolute"
-            top={0}
-            left={0}
-            right={0}
-            bottom={0}
-            bgImage={`url(https://image.tmdb.org/t/p/original${series.backdrop_path})`}
+            inset={0}
+            bgImage={`url(https://image.tmdb.org/t/p/w1280${series.backdrop_path})`}
             bgSize="cover"
-            bgPosition="center"
-            _after={{
-              content: '""',
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              bg: "linear-gradient(to bottom, rgba(23, 25, 35, 0.5), rgba(23, 25, 35, 1))",
-            }}
+            bgPosition="center 20%"
           />
-        </Box>
+        )}
+        <Box
+          position="absolute"
+          inset={0}
+          bg="linear-gradient(to top, #0F0F0E 0%, rgba(15,15,14,0.75) 35%, rgba(15,15,14,0.2) 70%, rgba(15,15,14,0.6) 100%), linear-gradient(to right, rgba(15,15,14,0.7) 0%, rgba(15,15,14,0) 60%)"
+        />
       </Box>
 
-      <Container maxW="container.lg" position="relative" pb={16}>
-        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8} mt="-200px">
-          <Box>
+      <Grid
+        position="relative"
+        maxW="1200px"
+        mx="auto"
+        px={{ base: 4, md: 6, lg: 8 }}
+        pt={{ base: "180px", md: "260px" }}
+        templateColumns={{ base: "104px 1fr", md: "220px 1fr" }}
+        columnGap={{ base: 4, md: 10 }}
+        rowGap={5}
+        alignItems="end"
+      >
+        {/* pôster */}
+        <Box
+          gridRow={{ md: "span 2" }}
+          alignSelf="start"
+          borderRadius="md"
+          overflow="hidden"
+          bg="ink.850"
+          aspectRatio={2 / 3}
+          boxShadow="0 16px 40px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.06)"
+        >
+          {series.poster_path && (
             <Image
               src={`https://image.tmdb.org/t/p/w500${series.poster_path}`}
-              alt={series.name}
-              borderRadius="lg"
-              width="100%"
-              maxW="400px"
-              mx="auto"
-              boxShadow="xl"
+              alt={`Pôster de ${series.name}`}
+              w="100%"
+              h="100%"
+              objectFit="cover"
             />
-          </Box>
-          <VStack align="start" spacing={6}>
-            <Box width="100%">
-              <Skeleton isLoaded={!isLoading} startColor="gray.700" endColor="gray.800">
-                {series.images?.logos?.[0]?.file_path ? (
-                  <Image
-                    src={`https://image.tmdb.org/t/p/w500${series.images.logos[0].file_path}`}
-                    alt={series.name}
-                    maxH="120px"
-                    objectFit="contain"
-                  />
-                ) : (
-                  <Heading color="white" size="2xl">
-                    {series.name}
-                  </Heading>
-                )}
-              </Skeleton>
-            </Box>
+          )}
+        </Box>
 
-            <Box width="100%">
-              <Text color="gray.400" noOfLines={isExpanded ? undefined : 3}>
+        {/* título e dados */}
+        <Box minW={0}>
+          {logo ? (
+            <>
+              <Image
+                src={`https://image.tmdb.org/t/p/w500${logo}`}
+                alt=""
+                maxH={{ base: "64px", md: "120px" }}
+                maxW={{ base: "100%", md: "420px" }}
+                objectFit="contain"
+                objectPosition="left bottom"
+              />
+              <Heading as="h1" srOnly>
+                {series.name}
+              </Heading>
+            </>
+          ) : (
+            <Heading as="h1" size="display" noOfLines={3}>
+              {series.name}
+            </Heading>
+          )}
+
+          <Text
+            mt={{ base: 2, md: 4 }}
+            fontFamily="mono"
+            fontSize={{ base: "xs", md: "sm" }}
+            color="ink.200"
+          >
+            {meta.join(" · ")}
+          </Text>
+          {genres.length > 0 && (
+            <Text mt={1} fontSize="sm" color="ink.300" noOfLines={1}>
+              {genres.join(", ")}
+            </Text>
+          )}
+
+          {communityScore && communityScore.count > 0 && (
+            <HStack mt={{ base: 3, md: 5 }} spacing={3}>
+              <ScoreBadge score={communityScore.average} size="lg" />
+              <Box lineHeight="short">
+                <Text fontSize="sm" color="ink.100" fontWeight={500}>
+                  Média da comunidade
+                </Text>
+                <Text fontSize="xs" color="ink.400" fontFamily="mono">
+                  {communityScore.count} {communityScore.count === 1 ? "nota" : "notas"} de
+                  temporada
+                </Text>
+              </Box>
+            </HStack>
+          )}
+        </Box>
+
+        {/* sinopse e ações */}
+        <Box gridColumn={{ base: "1 / -1", md: "2" }} maxW="720px">
+          {series.overview && (
+            <Box>
+              <Text color="ink.200" noOfLines={expanded ? undefined : 3}>
                 {series.overview}
               </Text>
-              <Flex mt={3} align="center" wrap="wrap" gap={2}>
-                {series.overview && series.overview.length > 250 && (
-                  <Button
-                    variant="link"
-                    color="primary.400"
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    rightIcon={isExpanded ? <CaretUp /> : <CaretDown />}
-                    size="sm"
-                  >
-                    {isExpanded ? "Menos" : "Mais..."}
-                  </Button>
-                )}
-
+              {longOverview && (
                 <Button
-                  leftIcon={<VideoCamera weight="fill" />}
-                  colorScheme="primary"
-                  variant="outline"
+                  variant="link"
                   size="sm"
-                  isLoading={isLoadingTrailer}
-                  loadingText="Carregando"
-                  onClick={handleOpenTrailer}
-                  _hover={{ bg: "primary.900" }}
-                  transition="all 0.2s"
-                  ml={series.overview && series.overview.length > 250 ? 2 : 0}
+                  mt={1}
+                  color="ink.300"
+                  fontWeight={500}
+                  onClick={() => setExpanded((v) => !v)}
                 >
-                  Assistir Trailer
+                  {expanded ? "Mostrar menos" : "Ler mais"}
                 </Button>
-              </Flex>
+              )}
             </Box>
+          )}
 
-            <Stack
-              direction="row"
-              spacing={6}
-              align="center"
-              bg="gray.800"
-              p={4}
-              borderRadius="lg"
-              width="100%"
-              flexWrap={{ base: "wrap", md: "nowrap" }}
-              justify={{ base: "center", md: "flex-start" }}
-              gap={4}
+          <Flex mt={5} gap={2} wrap="wrap" align="center">
+            <Button leftIcon={<Star size={16} />} onClick={requireLogin(onRate)}>
+              Avaliar
+            </Button>
+            <Button
+              variant="outline"
+              leftIcon={
+                isInWatchlist ? <Bookmark size={16} weight="fill" /> : <BookmarkSimple size={16} />
+              }
+              color={isInWatchlist ? "signal.300" : undefined}
+              isDisabled={watchlistLoading}
+              onClick={requireLogin(() => toggleWatchlist(series))}
+              aria-pressed={isInWatchlist}
             >
-              <HStack spacing={3} width="auto">
-                <Icon as={PlayCircle} color="primary.400" boxSize={5} weight="fill" />
-                <VStack spacing={0} align="start">
-                  <Text color="gray.400" fontSize="sm">
-                    Temporadas
-                  </Text>
-                  <Text color="white" fontSize="lg" fontWeight="bold">
-                    {series.number_of_seasons}
-                  </Text>
-                </VStack>
-              </HStack>
-
-              <Divider orientation="vertical" height="40px" borderColor="gray.600" />
-
-              <HStack spacing={3} width="auto">
-                <Icon as={Calendar} color="primary.400" boxSize={5} weight="fill" />
-                <VStack spacing={0} align="start">
-                  <Text color="gray.400" fontSize="sm">
-                    Lançamento
-                  </Text>
-                  <Text color="white" fontSize="lg" fontWeight="bold">
-                    {series.first_air_date ? new Date(series.first_air_date).getFullYear() : "N/A"}
-                  </Text>
-                </VStack>
-              </HStack>
-
-              <Box flex={1} />
-              <WatchlistButton series={series} />
-            </Stack>
-
-            <SeriesDetailsTabs
-              series={series}
-              reviews={reviews}
-              userReview={userReview}
-              currentUser={currentUser}
-              userData={userData}
-              seriesId={seriesId}
-              onSeasonSelect={onSeasonSelect}
-              onOpenReviewModal={onOpenReviewModal}
-              onSetExistingReview={onSetExistingReview}
-              onSetDeleteAlertOpen={onSetDeleteAlertOpen}
-              onSetSeasonToDelete={onSetSeasonToDelete}
-              onReviewClick={onReviewClick}
-              navigate={navigate}
-            />
-          </VStack>
-        </SimpleGrid>
-      </Container>
-    </>
+              {isInWatchlist ? "Na watchlist" : "Watchlist"}
+            </Button>
+            {trailerKey && (
+              <>
+                <Button
+                  as="a"
+                  href={`https://www.youtube.com/watch?v=${trailerKey}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  variant="ghost"
+                  leftIcon={<Play size={16} />}
+                  display={{ base: "none", sm: "inline-flex" }}
+                >
+                  Trailer
+                </Button>
+                <IconButton
+                  as="a"
+                  href={`https://www.youtube.com/watch?v=${trailerKey}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Ver trailer"
+                  title="Ver trailer"
+                  variant="ghost"
+                  icon={<Play size={18} />}
+                  display={{ base: "inline-flex", sm: "none" }}
+                />
+              </>
+            )}
+            <WatchlistButton series={series} variant="ghost" size="md" />
+          </Flex>
+        </Box>
+      </Grid>
+    </Box>
   );
 }

@@ -1,291 +1,152 @@
-import React, { useEffect } from "react";
 import {
   Box,
-  Heading,
-  Text,
-  HStack,
   Flex,
-  Tag,
-  TagLabel,
-  Icon,
+  Heading,
+  HStack,
+  LinkBox,
+  LinkOverlay,
+  Text,
   Wrap,
   WrapItem,
-  useColorModeValue,
-  Tooltip,
+  Tag,
 } from "@chakra-ui/react";
-import { ChatCircle, Globe, Heart, Lock } from "@phosphor-icons/react";
+import { ChatCircle, Heart, Lock } from "@phosphor-icons/react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
-import { formatRelativeTime } from "../../utils/dateUtils";
+import type React from "react";
+import type { ListWithUserData } from "../../types/list";
 import { UserAvatar } from "../common/UserAvatar";
-import { ListWithUserData } from "../../types/list";
-import { useQuery } from "@tanstack/react-query";
-import { getListById } from "../../services/lists";
 import { EnhancedImage } from "../common/EnhancedImage";
-import { UserName } from "../common/UserName";
 
 interface ListCardProps {
   list: ListWithUserData;
   showUser?: boolean;
 }
 
+const COVER_POSTERS = 5;
+
+/** Lista: pôsteres sobrepostos, título, autor, descrição e números. */
 export function ListCard({ list, showUser = true }: ListCardProps) {
-  const coverBg = useColorModeValue("gray.700", "gray.700");
   const navigate = useNavigate();
-  // Usar React Query para obter atualizações em tempo real
-  const { data: updatedList, refetch } = useQuery({
-    queryKey: ["list", list.id],
-    queryFn: () => getListById(list.id),
-    initialData: list,
-    staleTime: 1000, // Reduzir para 1 segundo (era 5000)
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-    refetchInterval: 5000, // Reduzir para 5 segundos (era 10000)
-    refetchIntervalInBackground: false,
-  });
-
-  // Forçar uma atualização quando o componente for montado e quando
-  // o usuário interagir com o cartão
-  useEffect(() => {
-    refetch();
-
-    const intervalId = setInterval(() => {
-      if (!document.hidden) {
-        refetch();
-      }
-    }, 3000);
-
-    return () => clearInterval(intervalId);
-  }, [refetch]);
-
-  // Usar os dados atualizados da lista, se disponíveis
-  const displayList = updatedList || list;
+  const items = list.items ?? [];
+  const count = items.length;
+  const author = list.userDisplayName || list.username;
 
   const handleTagClick = (e: React.MouseEvent, tag: string) => {
     e.preventDefault();
     e.stopPropagation();
-    navigate(`/lists?tag=${encodeURIComponent(tag)}&source=listPage&tab=1`);
+    navigate(`/lists?tag=${encodeURIComponent(tag)}`);
   };
 
   return (
-    <Box
-      bg="gray.800"
-      borderRadius="lg"
-      overflow="hidden"
-      transition="all 0.3s"
-      _hover={{ transform: "translateY(-4px)", boxShadow: "xl" }}
-      role="group"
-      as={RouterLink}
-      to={`/list/${displayList.id}`}
+    <LinkBox
+      as="article"
       h="100%"
       display="flex"
       flexDirection="column"
+      bg="ink.900"
+      border="1px solid"
+      borderColor="ink.800"
+      borderRadius="md"
+      overflow="hidden"
+      transition="border-color 120ms ease"
+      _hover={{ borderColor: "ink.600" }}
     >
-      {/* Capa da lista - mostra imagens empilhadas horizontalmente como álbum */}
-      <Box h="160px" bg={coverBg} position="relative" overflow="hidden" flexShrink={0}>
-        {displayList.items && displayList.items.length > 0 ? (
-          <Flex align="center" justify="flex-start" h="100%" w="100%" position="relative" px={4}>
-            {/* Renderiza até 4 imagens empilhadas horizontalmente */}
-            {displayList.items.slice(0, 4).map((item, index) => (
-              <Box
-                key={item.seriesId}
-                position="absolute"
-                height="85%"
-                width="22%"
-                left={`${8 + index * 17}%`}
-                zIndex={4 - index}
-                boxShadow="lg"
-                borderRadius="md"
-                overflow="hidden"
-                transform={`translateX(0) translateY(0) scale(${1 - index * 0.05})`}
-                transition="all 0.3s ease"
-                _groupHover={{
-                  transform: `translateX(${index * 3}px) translateY(-${index * 2}px) scale(${1 - index * 0.05})`,
-                }}
-              >
-                <EnhancedImage
-                  src={
-                    item.poster_path
-                      ? `https://image.tmdb.org/t/p/w200${item.poster_path}`
-                      : "https://placehold.co/200x300/222222/FFFFFF?text=Sem+Imagem"
-                  }
-                  alt={item.name}
-                  tmdbWidth="w200"
-                  style={{
-                    opacity: 1 - index * 0.12,
-                    transition: "all 0.3s ease",
-                  }}
-                />
-              </Box>
-            ))}
-
-            {/* Indicador de quantidade de séries na lista */}
-            {displayList.items.length > 4 && (
-              <Box
-                position="absolute"
-                bottom="10%"
-                right="10%"
-                bg="blackAlpha.800"
-                color="white"
-                px={2}
-                py={1}
-                borderRadius="md"
-                fontSize="xs"
-                fontWeight="bold"
-                zIndex={10}
-              >
-                +{displayList.items.length - 4} séries
-              </Box>
-            )}
-
-            {/* Sobreposição escura para melhorar a legibilidade do texto */}
+      {/* capa: pôsteres lado a lado, levemente sobrepostos */}
+      <Flex h="148px" px={4} pt={4} bg="ink.850" align="flex-end" overflow="hidden">
+        {count > 0 ? (
+          items.slice(0, COVER_POSTERS).map((item, i) => (
             <Box
-              position="absolute"
-              top={0}
-              left={0}
-              right={0}
-              bottom={0}
-              bg="blackAlpha.300"
-              zIndex={5}
-            />
-          </Flex>
-        ) : (
-          <Flex
-            align="center"
-            justify="center"
-            h="100%"
-            color="gray.400"
-            fontSize="lg"
-            fontStyle="italic"
-          >
-            Sem séries
-          </Flex>
-        )}
-
-        {/* Informações do criador da lista */}
-        {showUser && (
-          <HStack
-            position="absolute"
-            bottom={2}
-            left={2}
-            spacing={2}
-            bg="blackAlpha.700"
-            p={1}
-            px={2}
-            borderRadius="xl"
-            zIndex={10}
-          >
-            <UserAvatar
-              size="xs"
-              photoURL={displayList.userPhotoURL}
-              name={displayList.userDisplayName}
-              userId={displayList.userId}
-            />
-            <UserName userId={displayList.userId} isLink={false} />
-          </HStack>
-        )}
-      </Box>
-
-      {/* Conteúdo */}
-      <Box p={4} flex="1" display="flex" flexDirection="column">
-        <Flex align="center" mb={2}>
-          <Heading size="md" color="white" noOfLines={1} mr={2} flex="1">
-            {displayList.title}
-          </Heading>
-          <Tooltip
-            label={
-              displayList.isPublic
-                ? "Lista pública"
-                : displayList.accessByLink
-                  ? "Lista privada com link compartilhável"
-                  : "Lista privada"
-            }
-            placement="top"
-            hasArrow
-          >
-            <Box
-              color={
-                displayList.isPublic
-                  ? "green.400"
-                  : displayList.accessByLink
-                    ? "blue.400"
-                    : "gray.400"
-              }
-              bg="gray.700"
-              p={1}
-              borderRadius="md"
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              ml={1}
-              flexShrink={0}
+              key={item.seriesId}
+              flex="0 0 auto"
+              w="84px"
+              aspectRatio={2 / 3}
+              ml={i === 0 ? 0 : "-28px"}
+              zIndex={COVER_POSTERS - i}
+              borderTopRadius="sm"
+              overflow="hidden"
+              bg="ink.800"
+              boxShadow="4px 0 12px rgba(0,0,0,0.5)"
+              alignSelf="flex-start"
             >
-              <Icon
-                as={displayList.isPublic ? Globe : Lock}
-                weight={displayList.accessByLink && !displayList.isPublic ? "duotone" : "fill"}
-                boxSize={4}
-              />
+              {item.poster_path && (
+                <EnhancedImage
+                  src={`https://image.tmdb.org/t/p/w185${item.poster_path}`}
+                  alt=""
+                  tmdbWidth="w185"
+                  w="100%"
+                  h="100%"
+                  objectFit="cover"
+                />
+              )}
             </Box>
-          </Tooltip>
+          ))
+        ) : (
+          <Text alignSelf="center" mb={10} fontSize="sm" color="ink.400">
+            Lista vazia
+          </Text>
+        )}
+      </Flex>
+
+      <Flex direction="column" flex={1} p={4} gap={2}>
+        <Flex align="center" gap={2}>
+          <LinkOverlay as={RouterLink} to={`/list/${list.id}`} flex={1} minW={0}>
+            <Heading as="h3" size="h3" fontSize="md" noOfLines={1}>
+              {list.title}
+            </Heading>
+          </LinkOverlay>
+          {!list.isPublic && (
+            <Box color="ink.400" title="Lista privada" aria-label="Lista privada">
+              <Lock size={14} />
+            </Box>
+          )}
         </Flex>
 
-        <Text color="gray.400" fontSize="sm" noOfLines={2} minH="40px" mb={2}>
-          {displayList.description || "Sem descrição"}
-        </Text>
-
-        {/* Tags */}
-        <Box flex="1">
-          {displayList.tags && displayList.tags.length > 0 && (
-            <Wrap spacing={2} mb={3}>
-              {displayList.tags.slice(0, 3).map((tag) => (
-                <WrapItem key={tag}>
-                  <Tag
-                    size="sm"
-                    colorScheme="primary"
-                    variant="subtle"
-                    _hover={{ bg: "primary.400", color: "white" }}
-                    onClick={(e) => handleTagClick(e, tag)}
-                    cursor="pointer"
-                  >
-                    <TagLabel>{tag}</TagLabel>
-                  </Tag>
-                </WrapItem>
-              ))}
-              {displayList.tags.length > 3 && (
-                <WrapItem>
-                  <Tag size="sm" colorScheme="gray" variant="subtle">
-                    <TagLabel>+{displayList.tags.length - 3}</TagLabel>
-                  </Tag>
-                </WrapItem>
-              )}
-            </Wrap>
-          )}
-        </Box>
-
-        {/* Estatísticas */}
-        <HStack mt={1} spacing={4} color="gray.400">
-          <HStack spacing={1} fontSize="sm">
-            <Icon
-              as={Heart}
-              weight="fill"
-              color={(displayList.likesCount || 0) > 0 ? "red.500" : "gray.500"}
-            />
-            <Text>{displayList.likesCount || 0}</Text>
+        {showUser && author && (
+          <HStack spacing={2}>
+            <UserAvatar size="xs" photoURL={list.userPhotoURL} name={author} userId={list.userId} />
+            <Text fontSize="sm" color="ink.300" noOfLines={1}>
+              {author}
+            </Text>
           </HStack>
+        )}
 
-          <HStack spacing={1} fontSize="sm">
-            <Icon
-              as={ChatCircle}
-              weight="fill"
-              color={(displayList.commentsCount || 0) > 0 ? "blue.500" : "gray.500"}
-            />
-            <Text>{displayList.commentsCount || 0}</Text>
-          </HStack>
-
-          <Text fontSize="xs" color="gray.500" ml="auto">
-            {formatRelativeTime(displayList.updatedAt)}
+        {list.description && (
+          <Text fontSize="sm" color="ink.300" noOfLines={2}>
+            {list.description}
           </Text>
+        )}
+
+        {list.tags && list.tags.length > 0 && (
+          <Wrap spacing={1.5} position="relative" zIndex={1}>
+            {list.tags.slice(0, 3).map((tag) => (
+              <WrapItem key={tag}>
+                <Tag
+                  as="button"
+                  size="sm"
+                  onClick={(e: React.MouseEvent) => handleTagClick(e, tag)}
+                  _hover={{ color: "ink.50" }}
+                >
+                  {tag}
+                </Tag>
+              </WrapItem>
+            ))}
+          </Wrap>
+        )}
+
+        <HStack mt="auto" pt={2} spacing={4} fontFamily="mono" fontSize="xs" color="ink.400">
+          <Text>
+            {count} {count === 1 ? "série" : "séries"}
+          </Text>
+          <HStack spacing={1} aria-label={`${list.likesCount || 0} curtidas`}>
+            <Heart size={13} />
+            <Text>{list.likesCount || 0}</Text>
+          </HStack>
+          <HStack spacing={1} aria-label={`${list.commentsCount || 0} comentários`}>
+            <ChatCircle size={13} />
+            <Text>{list.commentsCount || 0}</Text>
+          </HStack>
         </HStack>
-      </Box>
-    </Box>
+      </Flex>
+    </LinkBox>
   );
 }

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
-  Container,
   Heading,
   Text,
   Flex,
@@ -12,7 +11,6 @@ import {
   Select,
 } from "@chakra-ui/react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Footer } from "../components/common/Footer";
 import { getSeriesDetails } from "../services/tmdb";
 import { getSeriesReviews, SeriesReview } from "../services/reviews";
 import { RatingStars } from "../components/common/RatingStars";
@@ -20,6 +18,7 @@ import { UserAvatar } from "../components/common/UserAvatar";
 import { UserName } from "../components/common/UserName";
 import { ReactionButtons } from "../components/reviews/ReactionButtons";
 import { useQuery } from "@tanstack/react-query";
+import { PageContainer } from "../components/layout/PageContainer";
 
 export function SeriesReviews() {
   const { id } = useParams<{ id: string }>();
@@ -98,7 +97,7 @@ export function SeriesReviews() {
   }, [filteredReviews, selectedSeason]);
 
   return (
-    <Flex direction="column" minH="100vh" bg="gray.900">
+    <Flex direction="column">
       <Box flex="1">
         <Box position="relative">
           {/* Banner */}
@@ -126,7 +125,7 @@ export function SeriesReviews() {
         </Box>
 
         {/* Conteúdo Principal */}
-        <Container maxW="container.lg" position="relative" mt="-200px" pb={10}>
+        <PageContainer position="relative" mt="-200px" pb={10}>
           <VStack spacing={6} align="stretch">
             <HStack justify="space-between" align="center" p={6} borderRadius="lg">
               <Heading color="white" size="lg">
@@ -248,9 +247,8 @@ export function SeriesReviews() {
               )}
             </VStack>
           </VStack>
-        </Container>
+        </PageContainer>
       </Box>
-      <Footer />
     </Flex>
   );
 }

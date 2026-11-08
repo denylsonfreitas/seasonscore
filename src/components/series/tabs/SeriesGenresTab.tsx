@@ -23,7 +23,7 @@ export function SeriesGenresTab({ series }: SeriesGenresTabProps) {
   if (!series.genres || series.genres.length === 0) {
     return (
       <Box py={4}>
-        <Text color="gray.400" textAlign="center">
+        <Text color="ink.400" textAlign="center">
           Não há informações sobre gêneros para esta série.
         </Text>
       </Box>

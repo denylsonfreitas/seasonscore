@@ -22,32 +22,32 @@ export function SeriesDetailsTab({ series }: SeriesDetailsTabProps) {
   return (
     <VStack align="stretch" spacing={6}>
       <Box>
-        <Heading size="md" color="white" mb={4}>
+        <Heading as="h3" size="h3" mb={4}>
           Informações Gerais
         </Heading>
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
           <Box>
-            <Text color="gray.400">Status</Text>
-            <Text color="white">{series.status}</Text>
+            <Text color="ink.400">Status</Text>
+            <Text color="ink.100">{series.status}</Text>
           </Box>
           <Box>
-            <Text color="gray.400">Tipo</Text>
-            <Text color="white">{series.type}</Text>
+            <Text color="ink.400">Tipo</Text>
+            <Text color="ink.100">{series.type}</Text>
           </Box>
           <Box>
-            <Text color="gray.400">País de Origem</Text>
-            <Text color="white">{series.origin_country?.join(", ")}</Text>
+            <Text color="ink.400">País de Origem</Text>
+            <Text color="ink.100">{series.origin_country?.join(", ")}</Text>
           </Box>
           <Box>
-            <Text color="gray.400">Idioma Original</Text>
-            <Text color="white">{series.original_language}</Text>
+            <Text color="ink.400">Idioma Original</Text>
+            <Text color="ink.100">{series.original_language}</Text>
           </Box>
         </SimpleGrid>
       </Box>
 
       {series.created_by?.length > 0 && (
         <Box>
-          <Heading size="md" color="white" mb={4}>
+          <Heading as="h3" size="h3" mb={4}>
             Criado por
           </Heading>
           <Wrap spacing={4}>
@@ -63,7 +63,7 @@ export function SeriesDetailsTab({ series }: SeriesDetailsTabProps) {
                         : undefined
                     }
                   />
-                  <Text color="white" fontSize="sm" mt={2} textAlign="center">
+                  <Text color="ink.100" fontSize="sm" mt={2} textAlign="center">
                     {creator.name}
                   </Text>
                 </Box>
@@ -75,7 +75,7 @@ export function SeriesDetailsTab({ series }: SeriesDetailsTabProps) {
 
       {series.production_companies?.length > 0 && (
         <Box>
-          <Heading size="md" color="white" mb={4}>
+          <Heading as="h3" size="h3" mb={4}>
             Produção
           </Heading>
           <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={6}>
@@ -110,13 +110,13 @@ export function SeriesDetailsTab({ series }: SeriesDetailsTabProps) {
                       height="60px"
                       borderRadius="md"
                     >
-                      <Text color="white" fontSize="xl">
+                      <Text color="ink.100" fontSize="xl">
                         {company.name.charAt(0)}
                       </Text>
                     </Flex>
                   )}
                 </Center>
-                <Text color="white" fontSize="sm" isTruncated title={company.name}>
+                <Text color="ink.100" fontSize="sm" isTruncated title={company.name}>
                   {company.name}
                 </Text>
               </Box>

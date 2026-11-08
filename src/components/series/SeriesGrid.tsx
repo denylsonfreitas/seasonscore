@@ -2,7 +2,6 @@ import {
   Box,
   SimpleGrid,
   Flex,
-  Center,
   Text,
   HStack,
   Button,
@@ -11,10 +10,11 @@ import {
   Badge,
   useBreakpointValue,
 } from "@chakra-ui/react";
+import { EmptyState } from "../common/EmptyState";
 import { SeriesCard, SeriesCardSkeleton } from "./SeriesCard";
 import { SeriesListItem } from "../../services/tmdb";
 import { InfiniteScroll } from "../common/InfiniteScroll";
-import { GridFour, Rows, Star } from "@phosphor-icons/react";
+import { GridFour, MagnifyingGlass, Rows, Star } from "@phosphor-icons/react";
 import { useState } from "react";
 import { EnhancedImage } from "../common/EnhancedImage";
 
@@ -103,27 +103,35 @@ export function SeriesGrid({
   if (isLoading && series.length === 0) {
     return (
       <Box>
-        <HStack spacing={4} mb={4} justify="flex-end">
+        <HStack spacing={1} mb={4} justify="flex-end">
           <Button
             size="sm"
-            variant={viewMode === "grid" ? "solid" : "ghost"}
-            colorScheme="primary"
+            variant="ghost"
+            color={viewMode === "grid" ? "signal.300" : "ink.400"}
+            bg={viewMode === "grid" ? "ink.850" : undefined}
+            aria-label="Ver em grade"
+            aria-pressed={viewMode === "grid"}
+            title="Ver em grade"
             onClick={() => setViewMode("grid")}
           >
-            <Icon as={GridFour} weight="bold" />
+            <Icon as={GridFour} boxSize={4} />
           </Button>
           <Button
             size="sm"
-            variant={viewMode === "list" ? "solid" : "ghost"}
-            colorScheme="primary"
+            variant="ghost"
+            color={viewMode === "list" ? "signal.300" : "ink.400"}
+            bg={viewMode === "list" ? "ink.850" : undefined}
+            aria-label="Ver em lista"
+            aria-pressed={viewMode === "list"}
+            title="Ver em lista"
             onClick={() => setViewMode("list")}
           >
-            <Icon as={Rows} weight="bold" />
+            <Icon as={Rows} boxSize={4} />
           </Button>
         </HStack>
 
         {viewMode === "grid" ? (
-          <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 6, xl: 6 }} spacing={4}>
+          <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 6 }} spacingX={4} spacingY={6}>
             {Array(12)
               .fill(0)
               .map((_, i) => (
@@ -166,11 +174,11 @@ export function SeriesGrid({
 
   if (series.length === 0) {
     return (
-      <Center py={10}>
-        <Box textAlign="center" color="gray.500">
-          Nenhuma série encontrada
-        </Box>
-      </Center>
+      <EmptyState
+        icon={MagnifyingGlass}
+        title="Nenhuma série encontrada."
+        description="Tente outro nome ou remova os filtros."
+      />
     );
   }
 
@@ -182,27 +190,35 @@ export function SeriesGrid({
       isLoading={!!isFetchingNextPage}
     >
       <Box>
-        <HStack spacing={4} mb={4} justify="flex-end">
+        <HStack spacing={1} mb={4} justify="flex-end">
           <Button
             size="sm"
-            variant={viewMode === "grid" ? "solid" : "ghost"}
-            colorScheme="primary"
+            variant="ghost"
+            color={viewMode === "grid" ? "signal.300" : "ink.400"}
+            bg={viewMode === "grid" ? "ink.850" : undefined}
+            aria-label="Ver em grade"
+            aria-pressed={viewMode === "grid"}
+            title="Ver em grade"
             onClick={() => setViewMode("grid")}
           >
-            <Icon as={GridFour} weight="bold" />
+            <Icon as={GridFour} boxSize={4} />
           </Button>
           <Button
             size="sm"
-            variant={viewMode === "list" ? "solid" : "ghost"}
-            colorScheme="primary"
+            variant="ghost"
+            color={viewMode === "list" ? "signal.300" : "ink.400"}
+            bg={viewMode === "list" ? "ink.850" : undefined}
+            aria-label="Ver em lista"
+            aria-pressed={viewMode === "list"}
+            title="Ver em lista"
             onClick={() => setViewMode("list")}
           >
-            <Icon as={Rows} weight="bold" />
+            <Icon as={Rows} boxSize={4} />
           </Button>
         </HStack>
 
         {viewMode === "grid" ? (
-          <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 6, xl: 6 }} spacing={4}>
+          <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 6 }} spacingX={4} spacingY={6}>
             {series.map((item) => (
               <SeriesCard key={item.id} series={item} />
             ))}

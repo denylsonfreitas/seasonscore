@@ -1,122 +1,59 @@
-import { Box, Heading, Text, HStack, Flex, Spinner, Tooltip, Icon } from "@chakra-ui/react";
-import { Question } from "@phosphor-icons/react";
-import { useEffect } from "react";
+import { Box, Button } from "@chakra-ui/react";
+import { Sparkle } from "@phosphor-icons/react";
+import { useQuery } from "@tanstack/react-query";
+import { Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getPersonalizedRecommendations } from "../../services/recommendations";
 import { SeriesCard } from "./SeriesCard";
 import { Carousel } from "../common/Carousel";
+import { SectionBase } from "../common/SectionBase";
+import { EmptyState } from "../common/EmptyState";
 
+/** Séries sugeridas a partir das avaliações e da watchlist do usuário. */
 export function PersonalizedRecommendations() {
   const { currentUser } = useAuth();
-  const queryClient = useQueryClient();
 
   const {
     data: recommendations = [],
     isLoading,
-    isError,
-    refetch,
+    error,
   } = useQuery({
     queryKey: ["personalized-recommendations", currentUser?.uid],
     queryFn: () => getPersonalizedRecommendations(currentUser?.uid || ""),
     enabled: !!currentUser,
-    staleTime: 1000 * 60 * 5, // 5 minutos
+    staleTime: 1000 * 60 * 5,
   });
 
-  // Forçar recarregamento das recomendações se estiverem vazias
-  useEffect(() => {
-    if (currentUser && recommendations.length === 0 && !isLoading && !isError) {
-      const timer = setTimeout(() => {
-        queryClient.invalidateQueries({
-          queryKey: ["personalized-recommendations", currentUser?.uid],
-        });
-        refetch();
-      }, 3000); // Esperar 3 segundos
-
-      return () => clearTimeout(timer);
-    }
-  }, [currentUser, recommendations, isLoading, isError, queryClient, refetch]);
-
-  if (!currentUser) {
-    return (
-      <Box mb={12}>
-        <HStack spacing={2} mb={6}>
-          <Heading color="white" size="lg">
-            Recomendações para Você
-          </Heading>
-          <Tooltip
-            label="Faça login para ver recomendações personalizadas baseadas nas suas avaliações e watchlist"
-            placement="top"
-          >
-            <Box>
-              <Icon as={Question} color="gray.400" boxSize={5} />
-            </Box>
-          </Tooltip>
-        </HStack>
-        <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
-          <Text color="gray.400">
-            Faça login para ver recomendações personalizadas baseadas no seu perfil de preferências.
-          </Text>
-        </Box>
-      </Box>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <Box mb={12}>
-        <Heading color="white" size="lg" mb={6}>
-          Recomendações para Você
-        </Heading>
-        <Flex justify="center" py={8}>
-          <Spinner size="xl" color="primary.500" />
-        </Flex>
-      </Box>
-    );
-  }
-
-  if (isError || recommendations.length === 0) {
-    return (
-      <Box mb={12}>
-        <Heading color="white" size="lg" mb={6}>
-          Recomendações para Você
-        </Heading>
-        <Box bg="gray.800" p={6} borderRadius="lg" textAlign="center">
-          <Text color="gray.400">
-            {isError
-              ? "Ocorreu um erro ao buscar suas recomendações. Tente novamente mais tarde."
-              : "Estamos preparando suas recomendações com base nas suas avaliações."}
-          </Text>
-        </Box>
-      </Box>
-    );
-  }
+  if (!currentUser) return null;
 
   return (
-    <Box>
-      <HStack spacing={2} mb={6}>
-        <Heading color="white" size="md">
-          Recomendações para Você
-        </Heading>
-        <Tooltip
-          label="Recomendações personalizadas baseadas nas suas avaliações e watchlist"
-          placement="top"
-        >
-          <Box>
-            <Icon as={Question} color="gray.400" boxSize={5} />
-          </Box>
-        </Tooltip>
-      </HStack>
-
-      <Box pb={8}>
-        <Carousel preset="series">
+    <SectionBase
+      eyebrow="Para você"
+      title="Com base no que você avaliou"
+      isLoading={isLoading}
+      error={error as Error | null}
+      isEmpty={recommendations.length === 0}
+      emptyElement={
+        <EmptyState
+          icon={Sparkle}
+          title="Ainda não temos recomendações para você."
+          description="Avalie algumas temporadas ou adicione séries à watchlist para recebê-las."
+          action={
+            <Button as={RouterLink} to="/series" variant="outline" size="sm">
+              Explorar séries
+            </Button>
+          }
+        />
+      }
+      renderContent={() => (
+        <Carousel preset="series" gap={4} label="Recomendações para você">
           {recommendations.map((series) => (
             <Box key={series.id}>
               <SeriesCard series={series} />
             </Box>
           ))}
         </Carousel>
-      </Box>
-    </Box>
+      )}
+    />
   );
 }

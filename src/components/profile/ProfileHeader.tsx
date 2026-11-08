@@ -1,6 +1,5 @@
 import {
   Box,
-  Container,
   Heading,
   VStack,
   Text,
@@ -18,6 +17,7 @@ import { FollowButton } from "../user/FollowButton";
 import { ExtendedUser } from "../../types/auth";
 import { UserAvatar } from "../common/UserAvatar";
 import { PencilSimple } from "@phosphor-icons/react";
+import { PageContainer } from "../layout/PageContainer";
 
 interface ProfileHeaderProps {
   isOwnProfile: boolean;
@@ -102,7 +102,7 @@ export function ProfileHeader({
         />
       </Box>
 
-      <Container maxW="container.lg" position="relative" px={{ base: 4, md: 6 }}>
+      <PageContainer position="relative">
         <Flex
           direction="row"
           position="relative"
@@ -223,7 +223,7 @@ export function ProfileHeader({
             </HStack>
           </Flex>
         </Flex>
-      </Container>
+      </PageContainer>
     </Box>
   );
 }

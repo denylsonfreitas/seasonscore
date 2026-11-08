@@ -1,282 +1,168 @@
-import {
-  Box,
-  Text,
-  VStack,
-  Badge,
-  LinkBox,
-  Flex,
-  Center,
-  Icon,
-  Skeleton,
-  SkeletonCircle,
-} from "@chakra-ui/react";
+import { Box, Flex, Heading, LinkBox, LinkOverlay, Skeleton, Text } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
-import { SeriesListItem } from "../../services/tmdb";
-import { Star, Trophy, TelevisionSimple } from "@phosphor-icons/react";
+import type { SeriesListItem } from "../../services/tmdb";
 import { WatchlistButton } from "../common/WatchlistButton";
 import { EnhancedImage } from "../common/EnhancedImage";
+import { ScoreBadge } from "../common/ScoreBadge";
+import { yearOf } from "../../utils/score";
 
 interface SeriesCardProps {
   series: SeriesListItem & { rating?: number };
   size?: "sm" | "md" | "lg";
+  /** Posição em um ranking (Top 10). */
   position?: number;
+  /** Mantém o botão da watchlist sempre visível. */
   highlightAddToList?: boolean;
+  /** Personagem, na página de um ator. */
   showCharacter?: string;
+  /** Mostra título, ano e nota abaixo do pôster. */
+  showTitle?: boolean;
 }
 
-const sizeStyles = {
-  sm: {
-    container: {
-      maxW: "150px",
-      aspectRatio: "2/3",
-    },
-    title: { fontSize: "md" },
-    overview: { fontSize: "xs" },
-    rating: { fontSize: "sm" },
-    badge: { fontSize: "md" },
-    ratingBox: {
-      p: 2,
-      minW: "45px",
-      height: "45px",
-    },
-  },
-  md: {
-    container: {
-      maxW: "200px",
-      aspectRatio: "2/3",
-    },
-    title: { fontSize: "lg" },
-    overview: { fontSize: "sm" },
-    rating: { fontSize: "md" },
-    badge: { fontSize: "lg" },
-    ratingBox: {
-      p: 2,
-      minW: "50px",
-      height: "50px",
-    },
-  },
-  lg: {
-    container: {
-      maxW: "250px",
-      aspectRatio: "2/3",
-    },
-    title: { fontSize: "xl" },
-    overview: { fontSize: "md" },
-    rating: { fontSize: "lg" },
-    badge: { fontSize: "xl" },
-    ratingBox: {
-      p: 2,
-      minW: "55px",
-      height: "55px",
-    },
-  },
-};
+const maxW = { sm: "150px", md: "200px", lg: "240px" };
 
-const getBadgeStyle = (position: number) => {
-  switch (position) {
-    case 1:
-      return {
-        bg: "yellow.400",
-        color: "yellow.900",
-        icon: <Trophy weight="fill" />,
-      };
-    case 2:
-      return {
-        bg: "gray.100",
-        color: "gray.800",
-        icon: <Star weight="fill" />,
-      };
-    case 3:
-      return {
-        bg: "orange.200",
-        color: "orange.800",
-        icon: <Star weight="fill" />,
-      };
-    case 4:
-    case 5:
-      return {
-        bg: "gray.600",
-        color: "white",
-        icon: <Star weight="fill" />,
-      };
-    default:
-      return {
-        bg: "primary.500",
-        color: "white",
-        icon: null,
-      };
-  }
-};
-
-/**
- * Componente de esqueleto para carregamento elegante de SeriesCard
- */
 export function SeriesCardSkeleton({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
-  const styles = sizeStyles[size];
-
   return (
-    <Box
-      bg="gray.800"
-      borderRadius="lg"
-      overflow="hidden"
-      position="relative"
-      {...styles.container}
-      mx="auto"
-    >
-      <Skeleton height="100%" width="100%" startColor="gray.700" endColor="gray.600" speed={1.2} />
-
-      {/* Simular o badge de posição */}
-      <Box position="absolute" top={3} left={3} zIndex={2}>
-        <Skeleton
-          height="24px"
-          width="35px"
-          borderRadius="lg"
-          startColor="gray.600"
-          endColor="gray.500"
-        />
-      </Box>
-
-      {/* Simular o botão de watchlist */}
-      <Box position="absolute" top={3} right={3} zIndex={2}>
-        <SkeletonCircle size="8" startColor="gray.600" endColor="gray.500" />
-      </Box>
-
-      {/* Simular a classificação */}
-      <Box position="absolute" bottom={3} left={3} zIndex={2}>
-        <Skeleton
-          height="16px"
-          width="40px"
-          borderRadius="md"
-          startColor="primary.300"
-          endColor="primary.200"
-        />
-      </Box>
+    <Box maxW={maxW[size]} w="100%" mx="auto">
+      <Skeleton aspectRatio={2 / 3} borderRadius="md" startColor="ink.850" endColor="ink.800" />
+      <Skeleton mt={2} h="14px" w="70%" startColor="ink.850" endColor="ink.800" />
     </Box>
   );
 }
 
+/** Pôster 2:3 com título, ano e nota da comunidade. */
 export function SeriesCard({
   series,
   size = "md",
   position,
   highlightAddToList = false,
   showCharacter,
+  showTitle = true,
 }: SeriesCardProps) {
-  const styles = sizeStyles[size];
-  const badgeStyle = position ? getBadgeStyle(position) : null;
+  const year = yearOf(series.first_air_date);
 
   return (
-    <LinkBox
-      as="article"
-      bg="gray.800"
-      borderRadius="lg"
-      overflow="hidden"
-      transition="transform 0.2s"
-      _hover={{ transform: "translateY(-4px)" }}
-      position="relative"
-      {...styles.container}
-      mx="auto"
-      role="group"
-      zIndex={1}
-    >
-      <Box as={RouterLink} to={`/series/${series.id}`} zIndex={1}>
-        <Box position="relative" bg="gray.700" height="100%">
-          {series.poster_path ? (
-            <EnhancedImage
-              src={`https://image.tmdb.org/t/p/w500${series.poster_path}`}
-              alt={series.name}
-              fallbackText="Imagem não disponível"
-              tmdbWidth="w500"
-            />
-          ) : (
-            <Center height="100%" py={4} px={2} bg="gray.700" position="relative">
-              <VStack spacing={2} align="center" justify="center">
-                <Icon as={TelevisionSimple} boxSize={12} color="gray.500" weight="thin" />
-                <Text
-                  color="white"
-                  fontSize={styles.title.fontSize}
-                  fontWeight="bold"
-                  textAlign="center"
-                  noOfLines={2}
-                >
-                  {series.name}
-                </Text>
-                <Text color="gray.400" fontSize="xs" textAlign="center" noOfLines={3}>
-                  {series.overview.substring(0, 100)}
-                  {series.overview.length > 100 ? "..." : ""}
-                </Text>
-              </VStack>
-            </Center>
-          )}
+    <LinkBox as="article" role="group" w="100%" maxW={maxW[size]} mx="auto">
+      <Box
+        position="relative"
+        aspectRatio={2 / 3}
+        borderRadius="md"
+        overflow="hidden"
+        bg="ink.850"
+        transition="transform 120ms cubic-bezier(0.2, 0, 0, 1), box-shadow 120ms ease"
+        boxShadow="inset 0 0 0 1px rgba(255,255,255,0.06)"
+        _groupHover={{
+          transform: "translateY(-2px)",
+          boxShadow: "0 0 0 1px var(--chakra-colors-signal-400)",
+        }}
+      >
+        {series.poster_path ? (
+          <EnhancedImage
+            src={`https://image.tmdb.org/t/p/w342${series.poster_path}`}
+            alt=""
+            fallbackText={series.name}
+            tmdbWidth="w342"
+            w="100%"
+            h="100%"
+            objectFit="cover"
+          />
+        ) : (
+          <Flex h="100%" p={3} align="flex-end">
+            <Heading as="span" size="h3" fontSize="md" color="ink.200" noOfLines={4}>
+              {series.name}
+            </Heading>
+          </Flex>
+        )}
 
-          {/* Posição (se existir) */}
-          {position && (
-            <Badge
-              position="absolute"
-              top={3}
-              left={3}
-              bg={badgeStyle?.bg}
-              color={badgeStyle?.color}
-              fontSize={styles.badge.fontSize}
-              p={2}
-              borderRadius="lg"
-              zIndex={1}
-            >
-              <Flex align="center" gap={2}>
-                {badgeStyle?.icon}#{position}
-              </Flex>
-            </Badge>
-          )}
+        {/* contorno interno sobre a imagem, para pôsteres escuros não sumirem */}
+        <Box
+          position="absolute"
+          inset={0}
+          borderRadius="md"
+          boxShadow="inset 0 0 0 1px rgba(255,255,255,0.06)"
+          pointerEvents="none"
+        />
 
-          {/* Botão de Watchlist */}
+        {position != null && (
           <Box
             position="absolute"
-            top={3}
-            right={3}
-            opacity={highlightAddToList ? 1 : 0}
-            _groupHover={{ opacity: 1 }}
-            transition="opacity 0.2s"
-            zIndex={1}
-            onClick={(e) => e.preventDefault()}
+            top={0}
+            left={0}
+            px={2}
+            py={1}
+            bg="rgba(15,15,14,0.85)"
+            color={position <= 3 ? "signal.300" : "ink.100"}
+            fontFamily="mono"
+            fontWeight={600}
+            fontSize={size === "sm" ? "xs" : "sm"}
+            borderBottomRightRadius="md"
+            zIndex={2}
           >
-            <WatchlistButton
-              series={series}
-              variant={highlightAddToList ? "solid" : "ghost"}
-              size={size === "sm" ? "sm" : "md"}
-              menuAsBox={true}
-            />
+            {String(position).padStart(2, "0")}
           </Box>
+        )}
 
-          {/* Nota do SeasonScore */}
-          {series.rating && (
-            <Badge
-              position="absolute"
-              bottom={3}
-              left={3}
-              variant="rating"
-              fontSize="xs"
-              py={0.5}
-              px={1.5}
-              borderRadius="md"
-              zIndex={1}
-            >
-              <Flex align="center" gap={1}>
-                <Star weight="fill" size={12} />
-                {series.rating.toFixed(1)}
-              </Flex>
-            </Badge>
-          )}
-
-          {/* Character information when in actor profile */}
-          {showCharacter && (
-            <Box position="absolute" bottom={0} left={0} right={0} bg="blackAlpha.800" p={2} px={3}>
-              <Text color="white" fontSize="sm" fontWeight="bold" noOfLines={1}>
-                {showCharacter}
-              </Text>
-            </Box>
-          )}
+        <Box
+          position="absolute"
+          top={1.5}
+          right={1.5}
+          zIndex={2}
+          opacity={highlightAddToList ? 1 : 0}
+          _groupHover={{ opacity: 1 }}
+          _focusWithin={{ opacity: 1 }}
+          transition="opacity 120ms ease"
+          onClick={(e) => e.preventDefault()}
+        >
+          <WatchlistButton series={series} variant="solid" size="sm" menuAsBox />
         </Box>
+
+        {showCharacter && (
+          <Box
+            position="absolute"
+            bottom={0}
+            left={0}
+            right={0}
+            px={2}
+            py={1.5}
+            bg="rgba(15,15,14,0.88)"
+            zIndex={1}
+          >
+            <Text fontSize="xs" color="ink.200" noOfLines={1}>
+              {showCharacter}
+            </Text>
+          </Box>
+        )}
       </Box>
+
+      {showTitle ? (
+        <Box mt={2}>
+          <LinkOverlay
+            as={RouterLink}
+            to={`/series/${series.id}`}
+            display="block"
+            fontSize="sm"
+            fontWeight={500}
+            color="ink.100"
+            noOfLines={1}
+            title={series.name}
+            _groupHover={{ color: "ink.50" }}
+          >
+            {series.name}
+          </LinkOverlay>
+          <Flex mt={1} align="center" gap={2} minH="20px">
+            {year && (
+              <Text fontFamily="mono" fontSize="xs" color="ink.400">
+                {year}
+              </Text>
+            )}
+            {series.rating != null && series.rating > 0 && (
+              <ScoreBadge score={series.rating} size="sm" />
+            )}
+          </Flex>
+        </Box>
+      ) : (
+        <LinkOverlay as={RouterLink} to={`/series/${series.id}`} aria-label={series.name} />
+      )}
     </LinkBox>
   );
 }

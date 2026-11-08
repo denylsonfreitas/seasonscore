@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   Box,
-  Container,
   Text,
   Grid,
   Flex,
@@ -9,7 +8,6 @@ import {
   HStack,
   Icon,
   Badge,
-  Center,
   LinkBox,
   Skeleton,
   SkeletonCircle,
@@ -28,8 +26,9 @@ import { UserAvatar } from "../components/common/UserAvatar";
 import { UserName } from "../components/common/UserName";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Footer } from "../components/common/Footer";
 import { PageHeader } from "../components/common/PageHeader";
+import { PageContainer } from "../components/layout/PageContainer";
+import { EmptyState } from "../components/common/EmptyState";
 
 export function Reviews() {
   const { currentUser } = useAuth();
@@ -200,7 +199,7 @@ export function Reviews() {
   );
 
   return (
-    <Flex direction="column" minH="100vh" bg="gray.900">
+    <Flex direction="column">
       <PageHeader
         title="Avaliações"
         subtitle="Descubra o que a comunidade está assistindo e avaliando"
@@ -228,7 +227,7 @@ export function Reviews() {
         searchValue={searchQuery}
       />
 
-      <Container maxW="container.lg" flex="1" py={8}>
+      <PageContainer flex="1" py={8}>
         {activeTabIndex === 0 ? (
           isLoadingPopular ? (
             renderSkeletonGrid()
@@ -244,12 +243,11 @@ export function Reviews() {
               {filteredPopularReviews.map(renderReviewCard)}
             </Grid>
           ) : (
-            <Center py={10}>
-              <VStack spacing={4}>
-                <Icon as={TelevisionSimple} boxSize={12} color="gray.500" />
-                <Text color="gray.500">Nenhuma avaliação com curtidas encontrada</Text>
-              </VStack>
-            </Center>
+            <EmptyState
+              icon={TelevisionSimple}
+              title="Nenhuma avaliação curtida ainda."
+              description="Curta as avaliações que você concorda para elas aparecerem aqui."
+            />
           )
         ) : activeTabIndex === 1 ? (
           // Conteúdo da aba "Seguindo"
@@ -288,16 +286,9 @@ export function Reviews() {
             {filteredAllReviews.map(renderReviewCard)}
           </Grid>
         ) : (
-          <Center py={10}>
-            <VStack spacing={4}>
-              <Icon as={TelevisionSimple} boxSize={12} color="gray.500" />
-              <Text color="gray.500">Nenhuma avaliação encontrada</Text>
-            </VStack>
-          </Center>
+          <EmptyState icon={TelevisionSimple} title="Nenhuma avaliação encontrada." />
         )}
-      </Container>
-
-      <Footer />
+      </PageContainer>
     </Flex>
   );
 }

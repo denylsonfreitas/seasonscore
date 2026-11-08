@@ -1,13 +1,10 @@
 import React, { useState } from "react";
 import {
   Box,
-  Container,
-  Heading,
   Text,
   VStack,
   HStack,
   Flex,
-  Icon,
   Grid,
   GridItem,
   Link,
@@ -23,12 +20,13 @@ import { getUserRecentReviews } from "../services/reviews";
 import { UserAvatar } from "../components/common/UserAvatar";
 import { FollowButton } from "../components/user/FollowButton";
 import { Link as RouterLink } from "react-router-dom";
-import { Footer } from "../components/common/Footer";
 import { UserName } from "../components/common/UserName";
 import { PageHeader } from "../components/common/PageHeader";
 import { useDebounce } from "../hooks/useDebounce";
 import { Users, UserPlus, MagnifyingGlass, Shuffle } from "@phosphor-icons/react";
 import { useAuth } from "../contexts/AuthContext";
+import { EmptyState } from "../components/common/EmptyState";
+import { PageContainer } from "../components/layout/PageContainer";
 
 export function Community() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -154,7 +152,7 @@ export function Community() {
   };
 
   return (
-    <Flex direction="column" minH="100vh" bg="gray.900">
+    <Flex direction="column">
       <PageHeader
         title="Comunidade"
         subtitle="Descubra e conecte-se com outros usuários"
@@ -169,7 +167,7 @@ export function Community() {
         ]}
       />
 
-      <Container maxW="container.lg" py={8} flex="1">
+      <PageContainer py={8} flex="1">
         {isLoading ? (
           <Grid
             templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }}
@@ -212,21 +210,15 @@ export function Community() {
                 ))}
               </Grid>
             ) : (
-              <Box textAlign="center" py={10} bg="gray.800" borderRadius="lg" p={6}>
-                <VStack spacing={4}>
-                  <Icon as={renderEmptyIcon()} weight="thin" boxSize={14} color="gray.500" />
-                  <Heading as="h3" size="md">
-                    Nenhum usuário encontrado
-                  </Heading>
-                  <Text color="gray.400">{renderEmptyMessage()}</Text>
-                </VStack>
-              </Box>
+              <EmptyState
+                icon={renderEmptyIcon()}
+                title="Nenhum usuário encontrado."
+                description={renderEmptyMessage()}
+              />
             )}
           </>
         )}
-      </Container>
-
-      <Footer />
+      </PageContainer>
     </Flex>
   );
 }

@@ -1,10 +1,9 @@
-import { Box, Container, Text, VStack, Flex, useToast, Center, Spinner } from "@chakra-ui/react";
+import { Box, Text, VStack, Flex, useToast, Center, Spinner } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
 import { useNavigate, useParams } from "react-router-dom";
-import { Footer } from "../components/common/Footer";
 import { getUserReviews, SeriesReview } from "../services/reviews";
 import { getUserWatchlist } from "../services/watchlist";
 import { getFollowers, getFollowing } from "../services/followers";
@@ -17,6 +16,7 @@ import { ProfileStats } from "../components/profile/ProfileStats";
 import { ReviewsSection } from "../components/profile/ReviewsSection";
 import { WatchlistSection } from "../components/profile/WatchlistSection";
 import { ListsSection } from "../components/profile/ListsSection";
+import { PageContainer } from "../components/layout/PageContainer";
 
 export function Profile() {
   const { currentUser, refreshUser } = useAuth();
@@ -161,10 +161,10 @@ export function Profile() {
 
   if (!currentUser && !username) {
     return (
-      <Box bg="gray.900" minH="100vh" pt="80px">
-        <Container maxW="container.lg" py={8}>
+      <Box pt={8}>
+        <PageContainer py={8}>
           <Text color="white">Você precisa estar logado para acessar esta página.</Text>
-        </Container>
+        </PageContainer>
       </Box>
     );
   }
@@ -214,7 +214,7 @@ export function Profile() {
   };
 
   return (
-    <Flex direction="column" minH="100vh" bg="gray.900">
+    <Flex direction="column">
       <Box flex="1">
         {/* Cabeçalho do Perfil */}
         <ProfileHeader
@@ -233,7 +233,7 @@ export function Profile() {
           onShowFollowing={() => setShowFollowing(true)}
         />
 
-        <Container maxW="container.lg" pt={0} pb={16} px={{ base: 4, md: 6 }}>
+        <PageContainer pt={0} pb={16}>
           <VStack spacing={6} align="stretch">
             {/* Stats e Favoritos */}
             <VStack spacing={4} align="stretch">
@@ -277,9 +277,8 @@ export function Profile() {
               type="following"
             />
           </VStack>
-        </Container>
+        </PageContainer>
       </Box>
-      <Footer />
     </Flex>
   );
 }

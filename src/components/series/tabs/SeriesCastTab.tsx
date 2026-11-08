@@ -1,15 +1,5 @@
 import React from "react";
-import {
-  VStack,
-  Box,
-  Text,
-  Avatar,
-  Flex,
-  Heading,
-  Image,
-  LinkBox,
-  LinkOverlay,
-} from "@chakra-ui/react";
+import { VStack, Box, Text, Avatar, Flex, Image, LinkBox, LinkOverlay } from "@chakra-ui/react";
 import { Carousel } from "../../common/Carousel";
 import { Link as RouterLink } from "react-router-dom";
 
@@ -34,7 +24,7 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
   const cast = series?.credits?.cast || [];
   if (!cast || cast.length === 0) {
     return (
-      <Text color="gray.400" textAlign="center">
+      <Text color="ink.400" textAlign="center">
         Não há informações disponíveis sobre o elenco.
       </Text>
     );
@@ -51,33 +41,24 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
   return (
     <VStack align="stretch" spacing={4}>
       <Box>
-        <Heading size="md" color="white" mb={4}>
-          Elenco
-        </Heading>
         <Box pb={4}>
-          <Carousel preset="cast">
+          <Carousel preset="cast" gap={4} label="Elenco">
             {sortedCast.map((actor) => (
-              <Box key={actor.id} p={1}>
-                <Flex
-                  as={LinkBox}
-                  direction="column"
-                  bg="gray.800"
-                  borderRadius="lg"
-                  overflow="hidden"
-                  boxShadow="sm"
-                  height="100%"
-                  transition="transform 0.2s, box-shadow 0.2s"
-                  _hover={{
-                    transform: "translateY(-4px)",
-                    boxShadow: "lg",
-                    bg: "gray.750",
-                  }}
-                  cursor="pointer"
-                >
-                  <Box position="relative" width="100%" paddingTop="100%">
+              <Box key={actor.id}>
+                <Flex as={LinkBox} direction="column" height="100%" role="group" cursor="pointer">
+                  <Box
+                    position="relative"
+                    width="100%"
+                    paddingTop="125%"
+                    borderRadius="md"
+                    overflow="hidden"
+                    bg="ink.850"
+                    transition="box-shadow 120ms ease"
+                    _groupHover={{ boxShadow: "0 0 0 1px var(--chakra-colors-signal-400)" }}
+                  >
                     {actor.profile_path ? (
                       <Image
-                        src={`https://image.tmdb.org/t/p/w300${actor.profile_path}`}
+                        src={`https://image.tmdb.org/t/p/w185${actor.profile_path}`}
                         alt={actor.name}
                         position="absolute"
                         top={0}
@@ -85,7 +66,6 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
                         width="100%"
                         height="100%"
                         objectFit="cover"
-                        fallbackSrc="https://placehold.co/300x300/222222/FFFFFF?text=Sem+Imagem"
                       />
                     ) : (
                       <Flex
@@ -94,7 +74,7 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
                         left={0}
                         width="100%"
                         height="100%"
-                        bg="gray.700"
+                        bg="ink.850"
                         align="center"
                         justify="center"
                       >
@@ -102,13 +82,13 @@ export function SeriesCastTab({ series }: SeriesCastTabProps) {
                       </Flex>
                     )}
                   </Box>
-                  <Box p={2}>
+                  <Box pt={2}>
                     <LinkOverlay as={RouterLink} to={`/actor/${actor.id}`}>
-                      <Text fontWeight="bold" color="white" fontSize="sm" noOfLines={1}>
+                      <Text fontWeight={500} color="ink.100" fontSize="sm" noOfLines={1}>
                         {actor.name}
                       </Text>
                     </LinkOverlay>
-                    <Text color="gray.400" fontSize="xs" noOfLines={1}>
+                    <Text color="ink.400" fontSize="xs" noOfLines={1}>
                       {actor.character || "Papel não informado"}
                     </Text>
                   </Box>

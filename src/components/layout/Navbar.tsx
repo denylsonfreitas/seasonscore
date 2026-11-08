@@ -1,19 +1,8 @@
-import {
-  Box,
-  Container,
-  HStack,
-  Link,
-  Button,
-  IconButton,
-  useDisclosure,
-  Text,
-  Divider,
-  useToken,
-} from "@chakra-ui/react";
-import { List, SignIn } from "@phosphor-icons/react";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { Box, HStack, Link, Button, IconButton, useDisclosure } from "@chakra-ui/react";
+import { List, MagnifyingGlass } from "@phosphor-icons/react";
+import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
-import { ExtendedUser } from "../../types/auth";
 import { NotificationMenu } from "../notifications/NotificationMenu";
 import { QuickAddButton } from "../common/QuickAddButton";
 import { ProfileMenu } from "../user/ProfileMenu";
@@ -21,11 +10,29 @@ import { LoginForm } from "../auth/LoginForm";
 import { SignUpModal } from "../auth/SignUpModal";
 import { useAuthUIStore } from "../../services/uiState";
 import { MobileMenu } from "./MobileMenu";
-import { useEffect } from "react";
+import { SearchModal } from "./SearchModal";
 import { AnimatedMenu } from "../common/AnimatedMenu";
 import { useAnimatedMenu } from "../../hooks/useAnimatedMenu";
-import { RippleEffect } from "../common/RippleEffect";
+import { Logo } from "../common/Logo";
 import { logError } from "../../utils/logger";
+
+export const NAV_HEIGHT = "60px";
+
+export const NAV_LINKS = [
+  { to: "/series", label: "Séries" },
+  { to: "/series/top10", label: "Top 10" },
+  { to: "/reviews", label: "Avaliações" },
+  { to: "/lists", label: "Listas" },
+  { to: "/community", label: "Comunidade" },
+];
+
+/** Retorna se o link corresponde à página atual (o mais específico vence). */
+export function isNavLinkActive(pathname: string, to: string) {
+  if (to === "/series") {
+    return pathname === "/series" || /^\/series\/\d+/.test(pathname);
+  }
+  return pathname === to || pathname.startsWith(`${to}/`);
+}
 
 let globalOpenLoginPopover: (() => void) | null = null;
 
@@ -33,48 +40,29 @@ export function getGlobalLoginPopover() {
   return globalOpenLoginPopover;
 }
 
-export function Navbar() {
-  const { currentUser, logout } = useAuth() as {
-    currentUser: ExtendedUser | null;
-    logout: () => Promise<void>;
-  };
-  const navigate = useNavigate();
-  const { isOpen, onOpen, onClose } = useDisclosure();
+const loginMenuStyles = {
+  bg: "ink.900",
+  borderColor: "ink.700",
+  boxShadow: "dark-lg",
+  p: 0,
+  borderRadius: "lg",
+  borderWidth: "1px",
+  maxW: "360px",
+};
 
-  // Obtém o estado da UI de autenticação do store
+export function Navbar() {
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const search = useDisclosure();
   const { isSignUpModalOpen, openSignUpModal, closeSignUpModal, openSignUpFromLogin } =
     useAuthUIStore();
 
-  // Estados e funções para o menu animado de login desktop
-  const {
-    isOpen: isDesktopLoginOpen,
-    isVisible: isDesktopLoginVisible,
-    isRippling: isDesktopRippling,
-    handleOpen: handleDesktopLoginOpen,
-    handleClose: handleDesktopLoginClose,
-    handleRippleEffect: handleDesktopRippleEffect,
-    getItemAnimationStyle: getDesktopItemAnimationStyle,
-  } = useAnimatedMenu();
-
-  // Estados e funções para o menu animado de login mobile
-  const {
-    isOpen: isMobileLoginOpen,
-    isVisible: isMobileLoginVisible,
-    isRippling: isMobileRippling,
-    handleOpen: handleMobileLoginOpen,
-    handleClose: handleMobileLoginClose,
-    handleRippleEffect: handleMobileRippleEffect,
-    getItemAnimationStyle: getMobileItemAnimationStyle,
-  } = useAnimatedMenu();
-
-  // Adicionar uso do useToken para obter as cores do tema
-  const [seriesColor, top10Color, reviewsColor, listsColor, communityColor] = useToken("colors", [
-    "linkhome.series",
-    "linkhome.top10",
-    "linkhome.reviews",
-    "linkhome.lists",
-    "linkhome.community",
-  ]);
+  const desktopLogin = useAnimatedMenu();
+  const mobileLogin = useAnimatedMenu();
+  const openDesktopLogin = desktopLogin.handleOpen;
+  const openMobileLogin = mobileLogin.handleOpen;
 
   const handleLogout = async () => {
     try {
@@ -85,304 +73,226 @@ export function Navbar() {
     }
   };
 
-  // Trigger para o login desktop
-  const desktopLoginTrigger = (
-    <Button
-      onClick={() => {
-        handleDesktopRippleEffect();
-        handleDesktopLoginOpen();
-      }}
-      variant="outline"
-      size="sm"
-      colorScheme="primary"
-      position="relative"
-      overflow="hidden"
-    >
-      Entrar
-      <RippleEffect isRippling={isDesktopRippling} />
-    </Button>
-  );
-
-  // Trigger para o login mobile
-  const mobileLoginTrigger = (
-    <IconButton
-      aria-label="Entrar"
-      icon={
-        <Box position="relative" overflow="hidden" borderRadius="md">
-          <SignIn weight="bold" size={18} />
-          <RippleEffect isRippling={isMobileRippling} />
-        </Box>
-      }
-      variant="ghost"
-      colorScheme="primary"
-      color="primary.300"
-      _hover={{ bg: "gray.700" }}
-      size="sm"
-      onClick={() => {
-        handleMobileRippleEffect();
-        handleMobileLoginOpen();
-      }}
-      position="relative"
-      overflow="hidden"
-    />
-  );
-
   useEffect(() => {
-    const isMobile = window.innerWidth < 768;
-    globalOpenLoginPopover = isMobile ? handleMobileLoginOpen : handleDesktopLoginOpen;
-
-    const handleResize = () => {
-      const isMobile = window.innerWidth < 768;
-      globalOpenLoginPopover = isMobile ? handleMobileLoginOpen : handleDesktopLoginOpen;
+    const update = () => {
+      globalOpenLoginPopover = window.innerWidth < 768 ? openMobileLogin : openDesktopLogin;
     };
-
-    window.addEventListener("resize", handleResize);
-
+    update();
+    window.addEventListener("resize", update);
     return () => {
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("resize", update);
       globalOpenLoginPopover = null;
     };
-  }, [handleMobileLoginOpen, handleDesktopLoginOpen]);
+  }, [openMobileLogin, openDesktopLogin]);
+
+  const loginForm = (close: () => void) => (
+    <LoginForm
+      onSignUpClick={() => {
+        close();
+        setTimeout(openSignUpFromLogin, 350);
+      }}
+      onClose={close}
+    />
+  );
 
   return (
     <>
       <Box
-        as="nav"
-        bg="gray.800"
+        as="header"
         position="fixed"
         top={0}
         left={0}
         right={0}
         zIndex={1000}
-        borderColor="gray.700"
-        height="60px"
-        display="flex"
-        alignItems="center"
+        h={NAV_HEIGHT}
+        bg="rgba(15, 15, 14, 0.85)"
+        backdropFilter="saturate(140%) blur(12px)"
+        borderBottom="1px solid"
+        borderColor="ink.800"
       >
-        <Container maxW="container.lg">
-          <HStack justify="space-between" align="center" height="100%">
-            {/* Logo e Menu de Navegação à esquerda */}
-            <HStack spacing={6}>
-              <Link
-                as={RouterLink}
-                to="/"
-                color="white"
-                _hover={{ textDecoration: "none", color: "primary.300" }}
-                display="flex"
-                alignItems="center"
-                gap={2}
-              >
-                <Text
-                  fontFamily="logo"
-                  fontSize="2xl"
-                  letterSpacing="wide"
-                  fontWeight="bold"
-                  lineHeight="1"
-                >
-                  SeasonScore
-                </Text>
-              </Link>
-              <Divider
-                borderColor="gray.600"
-                orientation="vertical"
-                height="20px"
-                display={{ base: "none", md: "flex" }}
-              />
+        <HStack
+          as="nav"
+          aria-label="Principal"
+          maxW="1200px"
+          mx="auto"
+          h="100%"
+          px={{ base: 4, md: 6, lg: 8 }}
+          justify="space-between"
+          spacing={6}
+        >
+          <HStack spacing={8} h="100%">
+            <Link
+              as={RouterLink}
+              to="/"
+              aria-label="SeasonScore, página inicial"
+              _hover={{ textDecoration: "none", opacity: 0.85 }}
+            >
+              <Logo />
+            </Link>
 
-              {/* Menu de Navegação */}
-              <HStack spacing={5} display={{ base: "none", md: "flex" }} pt={1}>
-                <Link
-                  as={RouterLink}
-                  to="/series"
-                  color="gray.300"
-                  _hover={{ color: "linkhome.series" }}
-                  fontSize="sm"
-                  fontWeight="bold"
-                  textTransform="uppercase"
-                >
-                  Séries
-                </Link>
-                <Link
-                  as={RouterLink}
-                  to="/series/top10"
-                  color="gray.300"
-                  _hover={{ color: "linkhome.top10" }}
-                  fontSize="sm"
-                  fontWeight="bold"
-                  textTransform="uppercase"
-                >
-                  Top 10
-                </Link>
-                <Link
-                  as={RouterLink}
-                  to="/reviews"
-                  color="gray.300"
-                  _hover={{ color: "linkhome.reviews" }}
-                  fontSize="sm"
-                  fontWeight="bold"
-                  textTransform="uppercase"
-                >
-                  Avaliações
-                </Link>
-                <Link
-                  as={RouterLink}
-                  to="/lists"
-                  color="gray.300"
-                  _hover={{ color: "linkhome.lists" }}
-                  fontSize="sm"
-                  fontWeight="bold"
-                  textTransform="uppercase"
-                >
-                  Listas
-                </Link>
-                <Link
-                  as={RouterLink}
-                  to="/community"
-                  color="gray.300"
-                  _hover={{ color: "linkhome.community" }}
-                  fontSize="sm"
-                  fontWeight="bold"
-                  textTransform="uppercase"
-                >
-                  Comunidade
-                </Link>
-              </HStack>
-            </HStack>
-
-            {/* Menu Usuário */}
-            <HStack spacing={3}>
-              {currentUser ? (
-                <>
-                  <HStack spacing={2} display={{ base: "none", md: "flex" }}>
-                    <QuickAddButton size="30px" />
-                    <NotificationMenu />
-                    <ProfileMenu />
-                  </HStack>
-
-                  <HStack spacing={3} display={{ base: "flex", md: "none" }}>
-                    <QuickAddButton size="26px" />
-                    <NotificationMenu />
-                    <ProfileMenu isMobile onMobileMenuOpen={onOpen} />
-                  </HStack>
-                </>
-              ) : (
-                <>
-                  {/* Botões Desktop */}
-                  <HStack spacing={3} display={{ base: "none", md: "flex" }}>
-                    <Button onClick={openSignUpModal} variant="solid" size="sm">
-                      Criar Conta
-                    </Button>
-
-                    <AnimatedMenu
-                      trigger={desktopLoginTrigger}
-                      isOpen={isDesktopLoginOpen}
-                      isVisible={isDesktopLoginVisible}
-                      onOpen={handleDesktopLoginOpen}
-                      onClose={handleDesktopLoginClose}
-                      alignWithTrigger={true}
-                      alignOnlyOnDesktop={true}
-                      responsivePosition={{
-                        base: { top: "60px", right: "16px" },
-                        md: {}, // Vazio para permitir alinhamento com trigger no desktop
-                      }}
-                      transformOrigin="top right"
-                      width={{ base: "calc(100vw - 32px)", md: "300px" }}
-                      showOverlay={true}
-                      overlayBg="blackAlpha.500"
-                      zIndex={{ overlay: 1200, menu: 1300 }}
-                      menuStyles={{
-                        bg: "gray.800",
-                        borderColor: "gray.700",
-                        boxShadow: "dark-lg",
-                        p: 0,
-                        borderRadius: { base: "md", md: "md" },
-                        borderWidth: "1px",
-                        maxW: "350px",
+            <HStack
+              as="ul"
+              listStyleType="none"
+              spacing={1}
+              h="100%"
+              display={{ base: "none", lg: "flex" }}
+            >
+              {NAV_LINKS.map((link) => {
+                const active = isNavLinkActive(pathname, link.to);
+                return (
+                  <Box as="li" key={link.to} h="100%">
+                    <Link
+                      as={RouterLink}
+                      to={link.to}
+                      aria-current={active ? "page" : undefined}
+                      display="flex"
+                      alignItems="center"
+                      h="100%"
+                      px={3}
+                      fontSize="sm"
+                      fontWeight={500}
+                      color={active ? "ink.50" : "ink.300"}
+                      position="relative"
+                      transition="color 120ms ease"
+                      _hover={{ color: "ink.50", textDecoration: "none" }}
+                      _after={{
+                        content: '""',
+                        position: "absolute",
+                        left: 3,
+                        right: 3,
+                        bottom: 0,
+                        h: "2px",
+                        bg: active ? "signal.400" : "transparent",
                       }}
                     >
-                      <Box style={getDesktopItemAnimationStyle(0)}>
-                        <LoginForm
-                          onSignUpClick={() => {
-                            handleDesktopLoginClose();
-                            setTimeout(openSignUpFromLogin, 350);
-                          }}
-                          onClose={handleDesktopLoginClose}
-                        />
-                      </Box>
-                    </AnimatedMenu>
-                  </HStack>
-
-                  {/* Menu Mobile para usuários não logados */}
-                  <HStack spacing={2} display={{ base: "flex", md: "none" }}>
-                    <AnimatedMenu
-                      trigger={mobileLoginTrigger}
-                      isOpen={isMobileLoginOpen}
-                      isVisible={isMobileLoginVisible}
-                      onOpen={handleMobileLoginOpen}
-                      onClose={handleMobileLoginClose}
-                      alignWithTrigger={false}
-                      responsivePosition={{
-                        base: { top: "60px", right: "8px", left: "8px" },
-                      }}
-                      transformOrigin="top right"
-                      width={{ base: "calc(100vw - 16px)", md: "300px" }}
-                      showOverlay={true}
-                      overlayBg="blackAlpha.500"
-                      zIndex={{ overlay: 1200, menu: 1300 }}
-                      menuStyles={{
-                        bg: "gray.800",
-                        borderColor: "gray.700",
-                        boxShadow: "dark-lg",
-                        p: 0,
-                        borderRadius: { base: "md", md: "md" },
-                        borderWidth: "1px",
-                        maxW: "350px",
-                      }}
-                    >
-                      <Box style={getMobileItemAnimationStyle(0)}>
-                        <LoginForm
-                          onSignUpClick={() => {
-                            handleMobileLoginClose();
-                            setTimeout(openSignUpFromLogin, 350);
-                          }}
-                          onClose={handleMobileLoginClose}
-                        />
-                      </Box>
-                    </AnimatedMenu>
-
-                    <IconButton
-                      aria-label="Menu"
-                      icon={<List weight="bold" size={18} />}
-                      variant="ghost"
-                      color="white"
-                      size="sm"
-                      onClick={onOpen}
-                    />
-                  </HStack>
-                </>
-              )}
+                      {link.label}
+                    </Link>
+                  </Box>
+                );
+              })}
             </HStack>
           </HStack>
-        </Container>
+
+          <HStack spacing={2}>
+            <IconButton
+              aria-label="Buscar séries"
+              title="Buscar séries"
+              icon={<MagnifyingGlass size={20} />}
+              variant="ghost"
+              size="sm"
+              color="ink.200"
+              onClick={search.onOpen}
+            />
+            {currentUser ? (
+              <>
+                <QuickAddButton size="32px" />
+                <NotificationMenu />
+                <Box display={{ base: "none", lg: "block" }}>
+                  <ProfileMenu />
+                </Box>
+                <Box display={{ base: "block", lg: "none" }}>
+                  <ProfileMenu isMobile onMobileMenuOpen={onOpen} />
+                </Box>
+              </>
+            ) : (
+              <>
+                <Box display={{ base: "none", md: "block" }}>
+                  <AnimatedMenu
+                    trigger={
+                      <Button variant="ghost" size="sm" onClick={openDesktopLogin}>
+                        Entrar
+                      </Button>
+                    }
+                    isOpen={desktopLogin.isOpen}
+                    isVisible={desktopLogin.isVisible}
+                    onOpen={openDesktopLogin}
+                    onClose={desktopLogin.handleClose}
+                    alignWithTrigger
+                    alignOnlyOnDesktop
+                    responsivePosition={{ base: { top: NAV_HEIGHT, right: "16px" }, md: {} }}
+                    transformOrigin="top right"
+                    width={{ base: "calc(100vw - 32px)", md: "320px" }}
+                    showOverlay
+                    overlayBg="blackAlpha.500"
+                    zIndex={{ overlay: 1200, menu: 1300 }}
+                    menuStyles={loginMenuStyles}
+                  >
+                    <Box style={desktopLogin.getItemAnimationStyle(0)}>
+                      {loginForm(desktopLogin.handleClose)}
+                    </Box>
+                  </AnimatedMenu>
+                </Box>
+
+                <Box display={{ base: "block", md: "none" }}>
+                  <AnimatedMenu
+                    trigger={
+                      <Button variant="ghost" size="sm" onClick={openMobileLogin}>
+                        Entrar
+                      </Button>
+                    }
+                    isOpen={mobileLogin.isOpen}
+                    isVisible={mobileLogin.isVisible}
+                    onOpen={openMobileLogin}
+                    onClose={mobileLogin.handleClose}
+                    alignWithTrigger={false}
+                    responsivePosition={{ base: { top: NAV_HEIGHT, right: "8px", left: "8px" } }}
+                    transformOrigin="top right"
+                    width={{ base: "calc(100vw - 16px)", md: "320px" }}
+                    showOverlay
+                    overlayBg="blackAlpha.500"
+                    zIndex={{ overlay: 1200, menu: 1300 }}
+                    menuStyles={loginMenuStyles}
+                  >
+                    <Box style={mobileLogin.getItemAnimationStyle(0)}>
+                      {loginForm(mobileLogin.handleClose)}
+                    </Box>
+                  </AnimatedMenu>
+                </Box>
+
+                <Button
+                  size="sm"
+                  onClick={openSignUpModal}
+                  display={{ base: "none", sm: "inline-flex" }}
+                >
+                  Criar conta
+                </Button>
+
+                <IconButton
+                  aria-label="Abrir menu"
+                  icon={<List size={20} />}
+                  variant="ghost"
+                  size="sm"
+                  onClick={onOpen}
+                  display={{ base: "inline-flex", lg: "none" }}
+                />
+              </>
+            )}
+          </HStack>
+        </HStack>
       </Box>
 
-      <Box height="60px" />
+      <Box h={NAV_HEIGHT} />
+
+      <SearchModal
+        isOpen={search.isOpen}
+        onClose={search.onClose}
+        onSelect={(seriesId) => {
+          search.onClose();
+          navigate(`/series/${seriesId}`);
+        }}
+        title="Buscar séries"
+        subtitle="Digite o nome da série"
+      />
 
       <SignUpModal isOpen={isSignUpModalOpen} onClose={closeSignUpModal} />
 
-      {/* Menu Mobile para todos os usuários */}
       <MobileMenu
         isOpen={isOpen}
         onClose={onClose}
         currentUser={currentUser}
         onLogout={handleLogout}
-        seriesColor={seriesColor}
-        top10Color={top10Color}
-        reviewsColor={reviewsColor}
-        listsColor={listsColor}
-        communityColor={communityColor}
         openSignUpModal={openSignUpModal}
-        openLoginPopover={handleMobileLoginOpen}
+        openLoginPopover={openMobileLogin}
       />
     </>
   );

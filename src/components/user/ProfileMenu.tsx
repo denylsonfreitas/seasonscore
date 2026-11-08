@@ -6,7 +6,6 @@ import { Link as RouterLink } from "react-router-dom";
 import { UserAvatar } from "../common/UserAvatar";
 import { useCallback } from "react";
 import { useAnimatedMenu } from "../../hooks/useAnimatedMenu";
-import { RippleEffect } from "../common/RippleEffect";
 import { AnimatedMenu } from "../common/AnimatedMenu";
 
 interface ProfileMenuProps {
@@ -20,16 +19,8 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
   const navigate = useNavigate();
   const toast = useToast();
 
-  const {
-    isOpen,
-    isVisible,
-    isRippling,
-    handleClose,
-    handleRippleEffect,
-    getItemAnimationStyle,
-    onOpen,
-    onClose,
-  } = useAnimatedMenu();
+  const { isOpen, isVisible, handleClose, getItemAnimationStyle, onOpen, onClose } =
+    useAnimatedMenu();
 
   const handleLogout = useCallback(async () => {
     try {
@@ -52,10 +43,9 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
     if (isOpen) {
       handleClose();
     } else {
-      handleRippleEffect();
       onOpen();
     }
-  }, [isOpen, handleClose, handleRippleEffect, onOpen]);
+  }, [isOpen, handleClose, onOpen]);
 
   // Se for mobile, retorna apenas o ícone que abre o menu mobile
   if (isMobile && onMobileMenuOpen) {
@@ -65,13 +55,11 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
         icon={
           <Box position="relative" overflow="hidden" borderRadius="full">
             <UserAvatar size={size} userId={currentUser?.uid} photoURL={currentUser?.photoURL} />
-            <RippleEffect isRippling={isRippling} />
           </Box>
         }
         variant="unstyled"
         color="white"
         onClick={() => {
-          handleRippleEffect();
           onMobileMenuOpen();
         }}
         position="relative"
@@ -87,7 +75,6 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
       icon={
         <Box position="relative" borderRadius="full">
           <UserAvatar size={size} userId={currentUser?.uid} photoURL={currentUser?.photoURL} />
-          <RippleEffect isRippling={isRippling} />
         </Box>
       }
       variant="unstyled"
@@ -116,11 +103,11 @@ export function ProfileMenu({ isMobile = false, onMobileMenuOpen, size = "sm" }:
       overlayBg="blackAlpha.500"
       zIndex={{ overlay: 1200, menu: 1300 }}
       menuStyles={{
-        bg: "gray.800",
-        borderColor: "gray.700",
+        bg: "ink.900",
+        borderColor: "ink.700",
         boxShadow: "dark-lg",
         p: 2,
-        borderRadius: { base: "md", md: "md" },
+        borderRadius: "lg",
         borderWidth: "1px",
         maxH: { base: "80vh", md: "auto" },
       }}

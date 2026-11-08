@@ -1,219 +1,119 @@
-import {
-  Box,
-  Container,
-  Flex,
-  Heading,
-  Text,
-  Button,
-  HStack,
-  Icon,
-  SimpleGrid,
-} from "@chakra-ui/react";
-import { Footer } from "../components/common/Footer";
+import { Box, Button, Flex, Heading, HStack, Text } from "@chakra-ui/react";
 import { TrendingBanner } from "../components/series/TrendingBanner";
+import { HomeSeriesSection } from "../components/series/HomeSeriesSection";
+import { SeasonStrip } from "../components/series/SeasonStrip";
 import { PopularReviews } from "../components/reviews/PopularReviews";
 import { PopularLists } from "../components/lists/PopularLists";
 import { PersonalizedRecommendations } from "../components/series/PersonalizedRecommendations";
 import { FollowedUsersReviews } from "../components/reviews/FollowedUsersReviews";
 import { FollowedUsersLists } from "../components/lists/FollowedUsersLists";
+import { PageContainer } from "../components/layout/PageContainer";
 import { useAuth } from "../contexts/AuthContext";
 import { useAuthUIStore } from "../services/uiState";
-import { ClipboardText, Star, TelevisionSimple, UserCirclePlus } from "@phosphor-icons/react";
 import { getGlobalLoginPopover } from "../components/layout/Navbar";
+import { getAiringTodaySeries, getPopularSeries } from "../services/tmdb";
+
+// Ilustração do conceito: uma série que cai na T3 e se recupera.
+const EXAMPLE_STRIP = [
+  { season: 1, score: 4.4 },
+  { season: 2, score: 4.1 },
+  { season: 3, score: 2.6 },
+  { season: 4, score: 3.4 },
+  { season: 5, score: 4.6 },
+];
+
+function Intro() {
+  const { openRegister } = useAuthUIStore();
+
+  return (
+    <Flex
+      as="section"
+      py={{ base: 10, md: 14 }}
+      gap={{ base: 8, md: 16 }}
+      direction={{ base: "column", md: "row" }}
+      align={{ base: "flex-start", md: "center" }}
+      justify="space-between"
+      borderBottom="1px solid"
+      borderColor="ink.800"
+    >
+      <Box maxW="560px">
+        <Heading as="h1" size="h1">
+          Nenhuma série é igual do começo ao fim.
+        </Heading>
+        <Text mt={4} color="ink.300" fontSize={{ base: "md", md: "lg" }}>
+          No SeasonScore você dá nota a cada temporada, vê onde a série cresceu ou caiu e descobre o
+          que vale a pena com quem assiste junto.
+        </Text>
+        <HStack mt={6} spacing={3}>
+          <Button onClick={openRegister}>Criar conta</Button>
+          <Button variant="outline" onClick={() => getGlobalLoginPopover()?.()}>
+            Entrar
+          </Button>
+        </HStack>
+      </Box>
+
+      <Box
+        flexShrink={0}
+        p={5}
+        border="1px solid"
+        borderColor="ink.800"
+        borderRadius="lg"
+        bg="ink.900"
+        aria-hidden="true"
+      >
+        <Text textStyle="label" color="ink.400" mb={4}>
+          Exemplo · nota por temporada
+        </Text>
+        <SeasonStrip seasons={EXAMPLE_STRIP} height={88} />
+      </Box>
+    </Flex>
+  );
+}
 
 export function Home() {
   const { currentUser } = useAuth();
-  const { openRegister } = useAuthUIStore();
-
-  const isLoggedIn = !!currentUser;
-
-  // Obter a função global para abrir o popover de login
-  const globalOpenLoginPopover = getGlobalLoginPopover();
 
   return (
-    <Flex direction="column" minH="100vh" bg="gray.900">
-      <Box flex="1">
-        <TrendingBanner />
+    <>
+      <TrendingBanner />
 
-        <Container maxW="container.lg" py={8} pb={16}>
-          {isLoggedIn ? (
-            // Layout para usuários logados
-            <>
-              <PersonalizedRecommendations />
-
-              <FollowedUsersReviews />
-
-              <PopularReviews />
-
-              <FollowedUsersLists />
-
-              <PopularLists />
-            </>
-          ) : (
-            // Layout para usuários não logados
-            <>
-              {/* Seção de boas-vindas */}
-              <Box
-                bg="gray.800"
-                p={8}
-                borderRadius="lg"
-                mb={12}
-                position="relative"
-                overflow="hidden"
-                boxShadow="xl"
-              >
-                <Flex
-                  direction={{ base: "column", md: "row" }}
-                  align={{ base: "center", md: "flex-start" }}
-                  justify="space-between"
-                  gap={6}
-                >
-                  <Box maxW={{ base: "100%", md: "60%" }} zIndex={2}>
-                    <Heading color="white" size="xl" mb={4}>
-                      Acompanhe, avalie e descubra novas séries
-                    </Heading>
-                    <Text color="gray.300" fontSize="lg" mb={6}>
-                      Registre seu progresso, compartilhe suas opiniões e conecte-se com outros fãs
-                      de séries.
-                    </Text>
-                    <HStack spacing={4}>
-                      <Button
-                        colorScheme="primary"
-                        size="lg"
-                        onClick={openRegister}
-                        leftIcon={<Icon as={UserCirclePlus} weight="bold" />}
-                      >
-                        Criar conta
-                      </Button>
-                      <Button
-                        variant="outline"
-                        colorScheme="whiteAlpha"
-                        size="lg"
-                        onClick={() => {
-                          if (globalOpenLoginPopover) {
-                            globalOpenLoginPopover();
-                          }
-                        }}
-                      >
-                        Entrar
-                      </Button>
-                    </HStack>
-                  </Box>
-
-                  <Box
-                    position={{ base: "relative", md: "absolute" }}
-                    right={{ base: 0, md: "-50px" }}
-                    top={{ base: 0, md: "-30px" }}
-                    opacity={{ base: 0.3, md: 0.15 }}
-                    transform={{ base: "scale(0.8)", md: "scale(1.2)" }}
-                    zIndex={1}
-                  >
-                    <Icon as={TelevisionSimple} boxSize={64} color="primary.500" weight="duotone" />
-                  </Box>
-                </Flex>
-              </Box>
-
-              {/* Recursos principais */}
-              <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} mb={16}>
-                <Box
-                  bg="gray.800"
-                  p={6}
-                  borderRadius="lg"
-                  textAlign="center"
-                  _hover={{ transform: "translateY(-5px)" }}
-                  transition="all 0.3s"
-                >
-                  <Icon as={Star} boxSize={12} color="yellow.400" weight="fill" mb={4} />
-                  <Heading size="md" color="white" mb={3}>
-                    Avalie Séries
-                  </Heading>
-                  <Text color="gray.400">
-                    Dê notas às suas séries favoritas e compartilhe sua opinião com a comunidade.
-                  </Text>
-                </Box>
-
-                <Box
-                  bg="gray.800"
-                  p={6}
-                  borderRadius="lg"
-                  textAlign="center"
-                  _hover={{ transform: "translateY(-5px)" }}
-                  transition="all 0.3s"
-                >
-                  <Icon as={ClipboardText} boxSize={12} color="blue.400" weight="fill" mb={4} />
-                  <Heading size="md" color="white" mb={3}>
-                    Crie Listas
-                  </Heading>
-                  <Text color="gray.400">
-                    Organize suas séries em listas personalizadas e compartilhe com outros usuários.
-                  </Text>
-                </Box>
-
-                <Box
-                  bg="gray.800"
-                  p={6}
-                  borderRadius="lg"
-                  textAlign="center"
-                  _hover={{ transform: "translateY(-5px)" }}
-                  transition="all 0.3s"
-                >
-                  <Icon as={UserCirclePlus} boxSize={12} color="green.400" weight="fill" mb={4} />
-                  <Heading size="md" color="white" mb={3}>
-                    Conecte-se
-                  </Heading>
-                  <Text color="gray.400">
-                    Siga outros usuários e descubra novas séries baseadas em seus gostos.
-                  </Text>
-                </Box>
-              </SimpleGrid>
-
-              <PopularReviews />
-
-              <PopularLists />
-
-              {/* CTA para registro */}
-              <Box
-                bg="primary.900"
-                p={8}
-                borderRadius="lg"
-                mb={12}
-                mt={16}
-                position="relative"
-                overflow="hidden"
-                boxShadow="lg"
-                bgGradient="linear(to-r, primary.900, purple.900)"
-              >
-                <Flex
-                  direction={{ base: "column", md: "row" }}
-                  align="center"
-                  justify="space-between"
-                  gap={6}
-                >
-                  <Box maxW={{ base: "100%", md: "70%" }}>
-                    <Heading color="white" size="lg" mb={4}>
-                      Pronto para melhorar sua experiência?
-                    </Heading>
-                    <Text color="whiteAlpha.800" fontSize="md" mb={6}>
-                      Crie uma conta para acessar todos os recursos, receber recomendações
-                      personalizadas e conectar-se com outros fãs de séries.
-                    </Text>
-                  </Box>
-
-                  <Button
-                    colorScheme="whiteAlpha"
-                    size="lg"
-                    onClick={openRegister}
-                    _hover={{ bg: "white", color: "primary.700" }}
-                  >
-                    Criar conta grátis
-                  </Button>
-                </Flex>
-              </Box>
-            </>
-          )}
-        </Container>
-      </Box>
-      <Footer />
-    </Flex>
+      <PageContainer pb={{ base: 12, md: 16 }}>
+        {currentUser ? (
+          <>
+            <PersonalizedRecommendations />
+            <FollowedUsersReviews />
+            <HomeSeriesSection
+              eyebrow="Populares"
+              title="O que todo mundo está vendo"
+              queryKey={["home", "popular"]}
+              queryFn={() => getPopularSeries()}
+              link="/series"
+            />
+            <PopularReviews />
+            <FollowedUsersLists />
+            <PopularLists />
+          </>
+        ) : (
+          <>
+            <Intro />
+            <HomeSeriesSection
+              eyebrow="Populares"
+              title="O que todo mundo está vendo"
+              queryKey={["home", "popular"]}
+              queryFn={() => getPopularSeries()}
+              link="/series"
+            />
+            <PopularReviews />
+            <HomeSeriesSection
+              eyebrow="Estreias"
+              title="Chegaram neste mês"
+              queryKey={["home", "airing"]}
+              queryFn={() => getAiringTodaySeries()}
+            />
+            <PopularLists />
+          </>
+        )}
+      </PageContainer>
+    </>
   );
 }
