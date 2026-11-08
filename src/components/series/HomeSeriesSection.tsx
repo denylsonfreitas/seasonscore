@@ -2,10 +2,9 @@ import { Spinner, Text, Box } from "@chakra-ui/react";
 import { SeriesCard } from "./SeriesCard";
 import { SeriesResponse } from "../../services/tmdb";
 import { useQuery } from "@tanstack/react-query";
-import { getSeriesReviews } from "../../services/reviews";
+import { getSeriesAverageRating } from "../../services/reviews";
 import { SectionBase } from "../common/SectionBase";
 import { Carousel } from "../common/Carousel";
-import { logError } from "../../utils/logger";
 
 interface HomeSectionProps {
   title: string;
@@ -25,30 +24,13 @@ export function HomeSeriesSection({ title, queryKey, queryFn, link }: HomeSectio
   const { data: allReviews = {} } = useQuery({
     queryKey: [...queryKey, "ratings", data?.results?.map((s) => s.id)],
     queryFn: async () => {
-      if (!data?.results) return {};
-
-      const reviewsMap: { [key: number]: number } = {};
-
-      await Promise.all(
-        data.results.map(async (series) => {
-          try {
-            const reviews = await getSeriesReviews(series.id);
-            if (reviews.length > 0) {
-              // Calcular a média das avaliações
-              const allRatings = reviews.flatMap((review) =>
-                review.seasonReviews.map((sr) => sr.rating)
-              );
-
-              if (allRatings.length > 0) {
-                reviewsMap[series.id] = allRatings.reduce((a, b) => a + b, 0) / allRatings.length;
-              }
-            }
-          } catch (error) {
-            logError("{ data: allReviews = {} }", error);
-          }
-        })
-      );
-
+      const results = data?.results ?? [];
+      const ratings = await Promise.all(results.map((s) => getSeriesAverageRating(s.id)));
+      const reviewsMap: Record<number, number> = {};
+      results.forEach((series, i) => {
+        const rating = ratings[i];
+        if (rating !== undefined) reviewsMap[series.id] = rating;
+      });
       return reviewsMap;
     },
     enabled: !!data?.results,

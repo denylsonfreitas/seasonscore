@@ -1,3 +1,4 @@
+import { memoizeAsync } from "../utils/memo";
 import { getErrorCode, getErrorMessage } from "../utils/errors";
 import { doc, setDoc, getDoc, updateDoc, deleteDoc, type Timestamp } from "firebase/firestore";
 import { db } from "../config/firebase";
@@ -96,6 +97,7 @@ export async function updateUsername(userId: string, newUsername: string): Promi
     username: newUsername.toLowerCase(),
     updatedAt: new Date(),
   });
+  invalidateUserData(userId);
 }
 
 export async function getUserByEmail(email: string): Promise<UserData | null> {
@@ -276,13 +278,14 @@ export async function createOrUpdateUser(user: User, additionalData?: Partial<Us
   }
 
   await setDoc(userRef, userData, { merge: true });
+  invalidateUserData(user.uid);
 
   // Registrar que o usuário foi atualizado com sucesso
 
   return userData;
 }
 
-export async function getUserData(userId: string): Promise<UserData | null> {
+async function fetchUserData(userId: string): Promise<UserData | null> {
   try {
     const userDoc = await getDoc(doc(db, "users", userId));
     if (userDoc.exists()) {
@@ -292,6 +295,17 @@ export async function getUserData(userId: string): Promise<UserData | null> {
   } catch (error) {
     return null;
   }
+}
+
+/**
+ * Dados públicos de um usuário. Guardados por 1 minuto para evitar leituras
+ * repetidas quando vários componentes exibem o mesmo usuário.
+ */
+export const getUserData = memoizeAsync(fetchUserData, { ttlMs: 60 * 1000, key: (id) => id });
+
+/** Descarta o cache de um usuário após alterações no perfil. */
+export function invalidateUserData(userId: string): void {
+  getUserData.invalidate(userId);
 }
 
 export async function getUserByUsername(username: string): Promise<UserData | null> {
@@ -378,6 +392,7 @@ export async function deleteUserData(userId: string) {
   await safeOperation(async () => {
     const userRef = doc(db, "users", userId);
     await deleteDoc(userRef);
+    invalidateUserData(userId);
   }, "excluir perfil do usuário");
 
   // 2. Excluir reviews do usuário
@@ -728,6 +743,7 @@ export async function updateUserNotificationSettings(
     notificationSettings: updatedSettings,
     updatedAt: new Date(),
   });
+  invalidateUserData(userId);
 }
 
 // Nova função para adicionar uma série à lista de séries que o usuário acompanha

@@ -34,7 +34,7 @@ import { SeriesFilter } from "../components/series/SeriesFilter";
 import { Footer } from "../components/common/Footer";
 import { useSearchParams } from "react-router-dom";
 import { Funnel } from "@phosphor-icons/react";
-import { getSeriesReviews } from "../services/reviews";
+import { getSeriesAverageRating } from "../services/reviews";
 import { getListById } from "../services/lists";
 import { PageHeader } from "../components/common/PageHeader";
 
@@ -140,16 +140,7 @@ export function Series() {
   const seriesReviewsQueries = useQueries({
     queries: uniqueSeries.map((series) => ({
       queryKey: ["series-reviews", series.id],
-      queryFn: async () => {
-        const reviews = await getSeriesReviews(series.id);
-        if (reviews.length > 0) {
-          const allRatings = reviews.flatMap((review) =>
-            review.seasonReviews.map((sr) => sr.rating)
-          );
-          return allRatings.reduce((a, b) => a + b, 0) / allRatings.length;
-        }
-        return null;
-      },
+      queryFn: async () => (await getSeriesAverageRating(series.id)) ?? null,
       staleTime: 1000 * 60 * 5, // 5 minutos
     })),
   });

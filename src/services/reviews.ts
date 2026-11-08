@@ -1,3 +1,4 @@
+import { createBatcher } from "../utils/batch";
 import {
   collection,
   addDoc,
@@ -232,6 +233,36 @@ export async function getSeriesReviews(seriesId: number): Promise<SeriesReview[]
       })),
     };
   }) as SeriesReview[];
+}
+
+/** Média das notas de todas as temporadas avaliadas, por série. */
+const loadAverageRatings = createBatcher<number, number>(async (seriesIds) => {
+  const snapshot = await getDocs(query(reviewsCollection, where("seriesId", "in", seriesIds)));
+  const totals = new Map<number, { sum: number; count: number }>();
+  snapshot.docs.forEach((reviewDoc) => {
+    const data = reviewDoc.data() as SeriesReview;
+    const entry = totals.get(data.seriesId) ?? { sum: 0, count: 0 };
+    for (const sr of data.seasonReviews ?? []) {
+      if (typeof sr.rating === "number") {
+        entry.sum += sr.rating;
+        entry.count += 1;
+      }
+    }
+    totals.set(data.seriesId, entry);
+  });
+  const averages = new Map<number, number>();
+  totals.forEach(({ sum, count }, id) => {
+    if (count > 0) averages.set(id, sum / count);
+  });
+  return averages;
+});
+
+/**
+ * Nota média de uma série na comunidade (ou undefined se não houver avaliações).
+ * Chamadas simultâneas são agrupadas em consultas "in" de até 30 séries.
+ */
+export function getSeriesAverageRating(seriesId: number): Promise<number | undefined> {
+  return loadAverageRatings(seriesId);
 }
 
 export async function getUserReview(seriesId: number, userId: string) {

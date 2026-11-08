@@ -25,6 +25,7 @@ import { useAuth } from "../contexts/AuthContext";
 import {
   createOrUpdateUser,
   getUserData,
+  invalidateUserData,
   isUsernameAvailable,
   updateUsername,
 } from "../services/users";
@@ -240,6 +241,7 @@ export function ProfileSettings() {
           await updateDoc(userRef, {
             photoURL: null,
           });
+          invalidateUserData(auth.currentUser.uid);
         } catch (err) {
           logError("handleSave", err);
         }

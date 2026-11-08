@@ -1,3 +1,5 @@
+import { memoizeAsync } from "../utils/memo";
+
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 
 type QueryValue = string | number | boolean | undefined | null;
@@ -11,6 +13,22 @@ export class TmdbError extends Error {
     this.name = "TmdbError";
   }
 }
+
+async function fetchJson(url: string, path: string): Promise<unknown> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new TmdbError(response.status, `TMDB ${response.status} em ${path}`);
+  }
+  return response.json();
+}
+
+// As respostas do TMDB mudam pouco: guardamos por 10 minutos e evitamos
+// requisições duplicadas quando vários componentes pedem a mesma série.
+const cachedFetchJson = memoizeAsync(fetchJson, {
+  ttlMs: 10 * 60 * 1000,
+  maxEntries: 300,
+  key: (url) => url,
+});
 
 /** Cliente mínimo para a API do TMDB baseado em fetch. */
 const api = {
@@ -30,11 +48,7 @@ const api = {
       }
     }
 
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new TmdbError(response.status, `TMDB ${response.status} em ${path}`);
-    }
-    return { data: (await response.json()) as T };
+    return { data: (await cachedFetchJson(url.toString(), path)) as T };
   },
 };
 
