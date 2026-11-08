@@ -45,5 +45,9 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.0",
+    "minimatch": "^11.0.5"
   }
 }
