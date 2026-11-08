@@ -15,6 +15,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, username: string) => Promise<SignUpResult>;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
+  /** Login com o ID token entregue pelo botão do Google (Google Identity Services). */
+  loginWithGoogleIdToken: (idToken: string, nonce: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
@@ -135,6 +137,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) fail(error);
   }
 
+  async function loginWithGoogleIdToken(idToken: string, nonce: string) {
+    const { error } = await supabase.auth.signInWithIdToken({
+      provider: "google",
+      token: idToken,
+      nonce,
+    });
+    if (error) fail(error);
+  }
+
   async function logout() {
     const { error } = await supabase.auth.signOut();
     if (error) fail(error);
@@ -162,6 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp,
     login,
     loginWithGoogle,
+    loginWithGoogleIdToken,
     logout,
     resetPassword,
     updatePassword,

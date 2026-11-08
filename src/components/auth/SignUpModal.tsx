@@ -307,7 +307,7 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
               </InputGroup>
             </FormControl>
 
-            <GoogleSignInButton label="Criar conta com Google" />
+            <GoogleSignInButton label="Criar conta com Google" mode="signup" />
           </VStack>
         </ModalBody>
 
