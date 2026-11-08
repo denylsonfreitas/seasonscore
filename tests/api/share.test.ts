@@ -123,3 +123,17 @@ describe("prévia de links", () => {
     );
   });
 });
+
+describe("página base da prévia", () => {
+  it("aceita só o index.html do site", async () => {
+    const { isSiteIndex, FALLBACK_HTML } = await import("../../api/share");
+    expect(isSiteIndex(INDEX.replace("</body>", '<div id="root"></div></body>'))).toBe(true);
+    // Página de login da Vercel ou qualquer outra página não serve de base
+    expect(
+      isSiteIndex("<html><head><title>Login – Vercel</title></head><body></body></html>")
+    ).toBe(false);
+    expect(isSiteIndex(null)).toBe(false);
+    // A página mínima ainda recebe as meta tags
+    expect(injectMeta(FALLBACK_HTML, DEFAULT_META)).toContain("<title>SeasonScore</title>");
+  });
+});

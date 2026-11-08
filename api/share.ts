@@ -340,6 +340,46 @@ export async function resolveMeta(
 
 // ---------------------------------------------------------------------------
 
+/** Página mínima usada quando o index.html do site não está disponível. */
+export const FALLBACK_HTML = `<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- share:start -->
+    <!-- share:end -->
+  </head>
+  <body></body>
+</html>`;
+
+/** Só aceita o index.html do SeasonScore (com o bloco marcado), nunca outra página. */
+export function isSiteIndex(html: string | null | undefined): html is string {
+  return !!html && BLOCK.test(html) && html.includes('id="root"');
+}
+
+let cachedIndex: string | null = null;
+
+/**
+ * O index.html vai empacotado com a função (vercel.json → functions.includeFiles).
+ * Ler do disco evita uma requisição extra e não depende de o site estar público
+ * (deploys de prévia exigem login da Vercel).
+ */
+async function loadIndexHtml(): Promise<string> {
+  if (cachedIndex) return cachedIndex;
+  try {
+    const { readFile } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+    const html = await readFile(join(process.cwd(), "dist", "index.html"), "utf8");
+    if (isSiteIndex(html)) {
+      cachedIndex = html;
+      return html;
+    }
+  } catch {
+    // segue para a página mínima
+  }
+  return FALLBACK_HTML;
+}
+
 export async function GET(request: Request): Promise<Response> {
   const env: Env = {
     tmdbKey: process.env.TMDB_API_KEY ?? process.env.VITE_TMDB_API_KEY,
@@ -347,17 +387,12 @@ export async function GET(request: Request): Promise<Response> {
     supabaseKey: process.env.VITE_SUPABASE_PUBLISHABLE_KEY,
   };
   const url = new URL(request.url);
-
-  const [meta, indexResponse] = await Promise.all([
+  const [meta, indexHtml] = await Promise.all([
     resolveMeta(url.searchParams, env, fetch),
-    fetch(new URL("/index.html", url.origin)),
+    loadIndexHtml(),
   ]);
-  if (!indexResponse.ok) {
-    return new Response("index.html indisponível", { status: 502 });
-  }
 
-  const html = injectMeta(await indexResponse.text(), meta);
-  return new Response(html, {
+  return new Response(injectMeta(indexHtml, meta), {
     headers: {
       "Content-Type": "text/html; charset=utf-8",
       // A prévia muda pouco: 1 h na CDN, servindo a versão anterior por até 1 dia enquanto atualiza
