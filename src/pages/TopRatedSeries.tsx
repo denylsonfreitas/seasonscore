@@ -37,6 +37,8 @@ export function TopRatedSeries() {
   const { data: reviews, isLoading: isLoadingReviews } = useQuery({
     queryKey: ["topRatedSeries"],
     queryFn: () => getTopRatedReviews(),
+    // Consulta pesada (lê todas as avaliações): manter em cache por mais tempo.
+    staleTime: 1000 * 60 * 30,
   });
 
   const { data: topSeries, isLoading: isLoadingSeries } = useQuery({

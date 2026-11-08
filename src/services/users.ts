@@ -1,6 +1,14 @@
 import { memoizeAsync } from "../utils/memo";
 import { getErrorCode, getErrorMessage } from "../utils/errors";
-import { doc, setDoc, getDoc, updateDoc, deleteDoc, type Timestamp } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  deleteDoc,
+  deleteField,
+  type Timestamp,
+} from "firebase/firestore";
 import { db } from "../config/firebase";
 import { User } from "firebase/auth";
 import { collection, query, where, getDocs, writeBatch, limit } from "firebase/firestore";
@@ -659,39 +667,22 @@ export async function deleteUserData(userId: string) {
     }
   }, "excluir comentários da coleção listComments do usuário");
 
-  // 13. Remover reações (likes) deste usuário em comentários de listas
-  await safeOperation(async () => {
-    // Encontrar todos os comentários que têm likes deste usuário
-    const listCommentsSnapshot = await getDocs(collection(db, "listComments"));
-
-    const batch = writeBatch(db);
-    let commentsToUpdate = 0;
-
-    for (const commentDoc of listCommentsSnapshot.docs) {
-      const comment = commentDoc.data();
-
-      // Verificar se o usuário deu like neste comentário
-      if (comment.likes && comment.likes[userId]) {
-        // Remover o like do usuário
-        delete comment.likes[userId];
-
-        // Atualizar o comentário
-        batch.update(commentDoc.ref, { likes: comment.likes });
-        commentsToUpdate++;
-
-        // Comitar em lotes para não exceder limites do Firestore
-        if (commentsToUpdate >= 450) {
-          await batch.commit();
-          commentsToUpdate = 0;
-        }
+  // 13. Remover curtidas deste usuário em comentários de listas e de avaliações
+  for (const collectionName of ["listComments", "reviewComments"]) {
+    await safeOperation(async () => {
+      const likedSnapshot = await getDocs(
+        query(collection(db, collectionName), where(`likes.${userId}`, "==", true))
+      );
+      // Lotes de até 450 escritas (o limite do Firestore é 500 por lote)
+      for (let i = 0; i < likedSnapshot.docs.length; i += 450) {
+        const batch = writeBatch(db);
+        likedSnapshot.docs.slice(i, i + 450).forEach((commentDoc) => {
+          batch.update(commentDoc.ref, { [`likes.${userId}`]: deleteField() });
+        });
+        await batch.commit();
       }
-    }
-
-    // Comitar as alterações restantes
-    if (commentsToUpdate > 0) {
-      await batch.commit();
-    }
-  }, "remover likes em comentários de listas");
+    }, `remover curtidas em ${collectionName}`);
+  }
 
   // Retornar resultados das operações
   return {
