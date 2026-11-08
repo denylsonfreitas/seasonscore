@@ -22,25 +22,15 @@ import {
 } from "@chakra-ui/react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import {
-  createOrUpdateUser,
-  getUserData,
-  invalidateUserData,
-  isUsernameAvailable,
-  updateUsername,
-} from "../services/users";
-import { updateProfile } from "firebase/auth";
+import { getUserData, isUsernameAvailable, updateProfile, updateUsername } from "../services/users";
 import { useNavigate } from "react-router-dom";
-import { ExtendedUser } from "../types/auth";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
 import { Image as ImageIcon, UploadSimple, Plus, X } from "@phosphor-icons/react";
-import { db, auth } from "../config/firebase";
-import { doc, updateDoc } from "firebase/firestore";
 import { UserAvatar } from "../components/common/UserAvatar";
 import { logError } from "../utils/logger";
 
 export function ProfileSettings() {
-  const { currentUser } = useAuth() as { currentUser: ExtendedUser | null };
+  const { currentUser, refreshUser } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [displayName, setDisplayName] = useState("");
@@ -193,7 +183,7 @@ export function ProfileSettings() {
   }, [newUsername]);
 
   const handleSave = async () => {
-    if (!currentUser || !auth.currentUser) return;
+    if (!currentUser) return;
 
     setIsSaving(true);
     try {
@@ -217,40 +207,12 @@ export function ProfileSettings() {
       const photoURLToUse = isRemovingPhoto ? null : tempPhotoURL || currentUser?.photoURL;
       const coverURLToUse = isRemovingCover ? null : tempCoverURL || currentUser?.coverURL;
 
-      const baseData = {
+      await updateProfile(currentUser.uid, {
         displayName,
-        photoURL: photoURLToUse,
-        coverURL: coverURLToUse,
-        ...(newUsername ? { username: newUsername.toLowerCase() } : {}),
-      };
-
-      const updatedData = {
-        ...baseData,
-      };
-
-      await createOrUpdateUser(auth.currentUser, updatedData);
-
-      if (isRemovingPhoto) {
-        try {
-          await updateProfile(auth.currentUser, {
-            displayName,
-            photoURL: "",
-          });
-
-          const userRef = doc(db, "users", auth.currentUser.uid);
-          await updateDoc(userRef, {
-            photoURL: null,
-          });
-          invalidateUserData(auth.currentUser.uid);
-        } catch (err) {
-          logError("handleSave", err);
-        }
-      } else {
-        await updateProfile(auth.currentUser, {
-          displayName,
-          photoURL: photoURLToUse,
-        });
-      }
+        photoURL: photoURLToUse ?? null,
+        coverURL: coverURLToUse ?? null,
+      });
+      await refreshUser();
 
       toast({
         title: "Perfil atualizado",
@@ -261,7 +223,6 @@ export function ProfileSettings() {
       });
 
       navigate("/profile", { replace: true });
-      window.location.reload();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
       toast({

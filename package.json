@@ -9,7 +9,6 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
-    "test:rules": "firebase emulators:exec --only firestore --project seasonscore-rules-test 'vitest run --config vitest.rules.config.ts'",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
@@ -20,9 +19,9 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@phosphor-icons/react": "^2.1.10",
+    "@supabase/supabase-js": "^2.119.0",
     "@tanstack/react-query": "^5.107.1",
     "date-fns": "^4.4.0",
-    "firebase": "^13.2.0",
     "framer-motion": "^14.10.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -31,7 +30,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@firebase/rules-unit-testing": "^6.0.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@types/react": "^19.3.0",
@@ -40,7 +38,6 @@
     "eslint": "^10.14.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
-    "firebase-tools": "^15.35.0",
     "globals": "^17.14.0",
     "jsdom": "^31.0.0",
     "prettier": "^3.9.10",
@@ -54,7 +51,6 @@
     "node": ">=22"
   },
   "overrides": {
-    "@grpc/grpc-js": "^1.14.0",
     "minimatch": "^11.0.5"
   }
 }

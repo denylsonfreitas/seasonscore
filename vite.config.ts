@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react";
 const vendorChunks: Record<string, string[]> = {
   vendor: ["react", "react-dom", "react-router", "react-router-dom", "scheduler"],
   ui: ["@chakra-ui", "@emotion", "framer-motion"],
-  firebase: ["firebase", "@firebase"],
+  supabase: ["@supabase"],
   utils: ["date-fns"],
 };
 
@@ -89,13 +89,6 @@ export default defineConfig({
     port: 4173,
   },
   optimizeDeps: {
-    include: [
-      "react",
-      "react-dom",
-      "react-router-dom",
-      "@chakra-ui/react",
-      "firebase/auth",
-      "firebase/firestore",
-    ],
+    include: ["react", "react-dom", "react-router-dom", "@chakra-ui/react"],
   },
 });

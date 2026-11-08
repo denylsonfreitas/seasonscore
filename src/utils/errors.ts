@@ -1,4 +1,4 @@
-/** Código de erro do Firebase (ex.: "auth/wrong-password"), se existir. */
+/** Código de erro (ex.: "23505" do Postgres ou "invalid_credentials" do Auth), se existir. */
 export function getErrorCode(error: unknown): string | undefined {
   if (typeof error === "object" && error !== null && "code" in error) {
     return String((error as { code: unknown }).code);

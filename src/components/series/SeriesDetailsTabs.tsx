@@ -1,5 +1,5 @@
 import type { Series } from "../../services/tmdb";
-import type { User } from "firebase/auth";
+import type { ExtendedUser as User } from "../../types/auth";
 import type { ReviewClickHandler } from "../../types/review";
 import {
   Tabs,

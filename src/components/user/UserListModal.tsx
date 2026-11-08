@@ -100,8 +100,7 @@ export function UserListModal({ isOpen, onClose, title, userIds, type }: UserLis
     return users.filter(
       (user) =>
         user.displayName?.toLowerCase().includes(query) ||
-        user.username?.toLowerCase().includes(query) ||
-        user.email?.toLowerCase().includes(query)
+        user.username?.toLowerCase().includes(query)
     );
   }, [users, searchQuery]);
 
@@ -144,7 +143,7 @@ export function UserListModal({ isOpen, onClose, title, userIds, type }: UserLis
                         size="md"
                         userId={user.id}
                         photoURL={user.photoURL}
-                        name={user.displayName || user.email?.split("@")[0]}
+                        name={user.displayName || user.username}
                       />
                     </RouterLink>
                     <Box flex="1">

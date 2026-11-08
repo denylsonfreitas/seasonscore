@@ -5,7 +5,8 @@ project_id = "seasonscore"
 site_url = "http://localhost:5173"
 additional_redirect_urls = ["https://seasonscore.vercel.app"]
 
+# Google fica ativo só no projeto hospedado (configurado no painel do Supabase).
 [auth.external.google]
-enabled = true
+enabled = false
 client_id = "env(SUPABASE_AUTH_GOOGLE_CLIENT_ID)"
 secret = "env(SUPABASE_AUTH_GOOGLE_SECRET)"

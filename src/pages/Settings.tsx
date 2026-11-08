@@ -24,24 +24,26 @@ import {
 } from "@chakra-ui/react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import {
-  deleteUser,
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  verifyBeforeUpdateEmail,
-  sendPasswordResetEmail,
-} from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { ExtendedUser } from "../types/auth";
-import { auth } from "../config/firebase";
-import { isUsernameAvailable, deleteUserData } from "../services/users";
+import { supabase } from "../config/supabase";
+import { isUsernameAvailable, deleteCurrentUserAccount } from "../services/users";
 import { logError } from "../utils/logger";
-import { getErrorCode } from "../utils/errors";
+import { getErrorMessage } from "../utils/errors";
 
 export function Settings() {
-  const { currentUser, logout } = useAuth() as {
-    currentUser: ExtendedUser | null;
-    logout: () => Promise<void>;
+  const { currentUser, resetPassword } = useAuth();
+  // Contas criadas só com Google não têm senha para confirmar
+  const hasPassword = currentUser?.providers.includes("email") ?? false;
+
+  /** Confirma a senha atual entrando novamente com ela. */
+  const verifyPassword = async (password: string) => {
+    if (!hasPassword) return;
+    if (!currentUser?.email || !password) throw new Error("Informe sua senha atual.");
+    const { error } = await supabase.auth.signInWithPassword({
+      email: currentUser.email,
+      password,
+    });
+    if (error) throw new Error("Senha incorreta. Por favor, verifique e tente novamente.");
   };
   const [showPassword, setShowPassword] = useState(false);
   const [showDeletePassword, setShowDeletePassword] = useState(false);
@@ -66,18 +68,15 @@ export function Settings() {
   const [, setUsernameError] = useState("");
   const [, setIsCheckingUsername] = useState(false);
   const handleUpdateEmail = async () => {
-    if (!auth.currentUser || !emailCurrentPassword) return;
+    if (!currentUser || (hasPassword && !emailCurrentPassword)) return;
 
     setIsUpdatingEmail(true);
     try {
-      const credential = EmailAuthProvider.credential(
-        auth.currentUser.email!,
-        emailCurrentPassword
-      );
-      await reauthenticateWithCredential(auth.currentUser, credential);
+      await verifyPassword(emailCurrentPassword);
 
-      // Enviar email de verificação para o novo endereço
-      await verifyBeforeUpdateEmail(auth.currentUser, email);
+      // O Supabase envia um link de confirmação para o novo endereço
+      const { error } = await supabase.auth.updateUser({ email });
+      if (error) throw error;
 
       setEmailSent(true);
       toast({
@@ -88,12 +87,11 @@ export function Settings() {
         isClosable: true,
       });
 
-      // Limpar campo de senha
       setEmailCurrentPassword("");
     } catch (error) {
       toast({
         title: "Erro ao atualizar email",
-        description: "Verifique sua senha e tente novamente.",
+        description: getErrorMessage(error, "Verifique sua senha e tente novamente."),
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -102,43 +100,19 @@ export function Settings() {
       setIsUpdatingEmail(false);
     }
   };
+
   const handleDeleteAccount = async () => {
     setIsDeletingAccount(true);
     try {
-      if (!deleteAccountPassword) {
+      if (!currentUser) {
+        throw new Error("Usuário não autenticado. Por favor, faça login novamente.");
+      }
+      if (hasPassword && !deleteAccountPassword) {
         throw new Error("Por favor, insira sua senha para confirmar a exclusão da conta.");
       }
 
-      if (!currentUser || !currentUser.email || !auth.currentUser) {
-        throw new Error("Usuário não autenticado. Por favor, faça login novamente.");
-      }
-
-      // Exibir aviso inicial ao usuário
-      toast({
-        title: "Processando exclusão",
-        description: "Estamos excluindo seus dados, isso pode levar alguns instantes...",
-        status: "info",
-        duration: 5000,
-        isClosable: true,
-      });
-
-      // Autenticar novamente o usuário para verificar a senha
-      const credential = EmailAuthProvider.credential(currentUser.email, deleteAccountPassword);
-      await reauthenticateWithCredential(auth.currentUser!, credential);
-
-      // Primeiro excluir os dados do usuário do banco de dados
-      const deleteResult = await deleteUserData(currentUser.uid);
-
-      // Mensagem de aviso se algumas operações não puderam ser concluídas devido a permissões
-      if (deleteResult.details?.permissionIssues?.length > 0) {
-        console.warn(
-          "Algumas operações de exclusão foram ignoradas devido a restrições de permissão:",
-          deleteResult.details.permissionIssues
-        );
-      }
-
-      // Depois excluir a conta de autenticação
-      await deleteUser(auth.currentUser!);
+      await verifyPassword(deleteAccountPassword);
+      await deleteCurrentUserAccount(currentUser.uid);
 
       toast({
         title: "Conta excluída",
@@ -147,39 +121,15 @@ export function Settings() {
         duration: 5000,
         isClosable: true,
       });
-
-      // Adicionar um pequeno atraso antes de navegar para permitir que as operações de rede terminem
-      setTimeout(() => {
-        try {
-          logout()
-            .then(() => {
-              navigate("/");
-            })
-            .catch((_error) => {
-              navigate("/");
-            });
-        } catch (error) {
-          navigate("/");
-        }
-      }, 1500);
+      navigate("/");
     } catch (error) {
-      let errorMessage: string;
-
-      if (getErrorCode(error) === "auth/wrong-password") {
-        errorMessage = "Senha incorreta. Por favor, verifique e tente novamente.";
-      } else if (getErrorCode(error) === "auth/requires-recent-login") {
-        errorMessage = "Por motivos de segurança, faça login novamente antes de excluir sua conta.";
-      } else if (getErrorCode(error) === "auth/too-many-requests") {
-        errorMessage = "Muitas tentativas. Por favor, aguarde alguns minutos e tente novamente.";
-      } else {
-        // Se for um erro durante a exclusão dos dados e não autenticação
-        errorMessage =
-          "Ocorreu um erro ao excluir sua conta. Por favor, tente novamente mais tarde.";
-      }
-
+      logError("handleDeleteAccount", error);
       toast({
         title: "Erro ao excluir conta",
-        description: errorMessage,
+        description: getErrorMessage(
+          error,
+          "Ocorreu um erro ao excluir sua conta. Por favor, tente novamente mais tarde."
+        ),
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -197,10 +147,10 @@ export function Settings() {
   };
 
   const handleResetPassword = async () => {
-    if (!auth.currentUser?.email) return;
+    if (!currentUser?.email) return;
 
     try {
-      await sendPasswordResetEmail(auth, auth.currentUser.email);
+      await resetPassword(currentUser.email);
       toast({
         title: "Email enviado",
         description: "Verifique sua caixa de entrada para redefinir sua senha.",
@@ -211,7 +161,7 @@ export function Settings() {
     } catch (error) {
       toast({
         title: "Erro ao enviar email",
-        description: "Não foi possível enviar o email de redefinição de senha.",
+        description: getErrorMessage(error, "Não foi possível enviar o email de redefinição."),
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -277,7 +227,7 @@ export function Settings() {
                     border="none"
                     id="email-input"
                   />
-                  <InputGroup>
+                  <InputGroup display={hasPassword ? undefined : "none"}>
                     <Input
                       value={emailCurrentPassword}
                       onChange={(e) => setEmailCurrentPassword(e.target.value)}
@@ -359,7 +309,7 @@ export function Settings() {
               <Text color="gray.300" mb={4}>
                 Tem certeza? Esta ação não pode ser desfeita.
               </Text>
-              <FormControl>
+              <FormControl display={hasPassword ? undefined : "none"}>
                 <FormLabel htmlFor="delete-account-password" color="white" mb={2}>
                   Digite sua senha para confirmar:
                 </FormLabel>

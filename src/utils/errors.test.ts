@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { getErrorCode, getErrorMessage } from "./errors";
 
 describe("getErrorCode", () => {
-  it("lê o código de erros do Firebase", () => {
-    expect(getErrorCode({ code: "auth/wrong-password" })).toBe("auth/wrong-password");
+  it("lê o código de erros do Supabase/Postgres", () => {
+    expect(getErrorCode({ code: "23505" })).toBe("23505");
   });
 
   it("retorna undefined quando não há código", () => {

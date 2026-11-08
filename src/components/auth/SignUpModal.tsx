@@ -19,9 +19,10 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { useAuth } from "../../contexts/AuthContext";
-import { isUsernameAvailable, isEmailAvailable } from "../../services/users";
+import { GoogleSignInButton } from "./GoogleSignInButton";
+import { isUsernameAvailable } from "../../services/users";
 import { logError } from "../../utils/logger";
-import { getErrorCode, getErrorMessage } from "../../utils/errors";
+import { getErrorMessage } from "../../utils/errors";
 
 interface SignUpModalProps {
   isOpen: boolean;
@@ -37,7 +38,6 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
-  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [usernameError, setUsernameError] = useState("");
   const [emailError, setEmailError] = useState("");
   const { signUp } = useAuth();
@@ -104,34 +104,26 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
     setIsLoading(true);
 
     try {
-      const userData = await signUp(email, password, username);
+      const { needsEmailConfirmation } = await signUp(email, password, username);
 
       toast({
         title: "Conta criada com sucesso!",
-        description: `Bem-vindo ao SeasonScore, ${userData?.displayName || username}!`,
+        description: needsEmailConfirmation
+          ? "Enviamos um link de confirmação para o seu email. Confirme para entrar."
+          : `Bem-vindo ao SeasonScore, ${username}!`,
         status: "success",
-        duration: 3000,
+        duration: needsEmailConfirmation ? 8000 : 3000,
         isClosable: true,
       });
 
       resetForm();
       onClose();
     } catch (error) {
-      let errorMessage = "Não foi possível criar sua conta. Tente novamente.";
-
-      if (getErrorCode(error) === "auth/email-already-in-use") {
-        errorMessage = "Este email já está em uso.";
-        setEmailError(errorMessage);
-      } else if (getErrorCode(error) === "auth/invalid-email") {
-        errorMessage = "Email inválido. Verifique o formato do email.";
-        setEmailError(errorMessage);
-      } else if (getErrorCode(error) === "auth/weak-password") {
-        errorMessage = "Senha muito fraca. Use uma senha mais forte.";
-      } else if (getErrorCode(error) === "auth/network-request-failed") {
-        errorMessage = "Erro de conexão. Verifique sua internet e tente novamente.";
-      } else if (getErrorMessage(error)) {
-        errorMessage = getErrorMessage(error);
-      }
+      const errorMessage = getErrorMessage(
+        error,
+        "Não foi possível criar sua conta. Tente novamente."
+      );
+      if (errorMessage.includes("email")) setEmailError(errorMessage);
 
       toast({
         title: "Erro ao criar conta",
@@ -177,19 +169,8 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
       return;
     }
 
-    setIsCheckingEmail(true);
-    try {
-      const isAvailable = await isEmailAvailable(email.toLowerCase());
-      if (!isAvailable) {
-        setEmailError("Este email já está em uso");
-      } else {
-        setEmailError("");
-      }
-    } catch (error) {
-      logError("checkEmail", error);
-    } finally {
-      setIsCheckingEmail(false);
-    }
+    // A disponibilidade do email só é conhecida no cadastro (o email não é público)
+    setEmailError(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? "" : "Digite um email válido");
   };
 
   useEffect(() => {
@@ -265,7 +246,6 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
                 color="white"
                 placeholder="Digite seu email"
                 required
-                isDisabled={isCheckingEmail}
               />
               {emailError && <FormErrorMessage>{emailError}</FormErrorMessage>}
             </FormControl>
@@ -326,6 +306,8 @@ export function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
                 </InputRightElement>
               </InputGroup>
             </FormControl>
+
+            <GoogleSignInButton label="Criar conta com Google" />
           </VStack>
         </ModalBody>
 

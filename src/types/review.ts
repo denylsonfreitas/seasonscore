@@ -1,5 +1,3 @@
-import { FieldValue } from "firebase/firestore";
-
 export interface Comment {
   id: string;
   userId: string;
@@ -18,7 +16,7 @@ export interface SeasonReview {
   rating: number;
   comment: string;
   comments?: Comment[];
-  createdAt: Date | { seconds: number } | FieldValue;
+  createdAt: Date | { seconds: number };
   reactions?: {
     likes: string[];
   };

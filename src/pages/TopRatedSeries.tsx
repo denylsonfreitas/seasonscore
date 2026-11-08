@@ -1,4 +1,3 @@
-import type { SeriesReview } from "../services/reviews";
 import {
   Box,
   Container,
@@ -34,88 +33,25 @@ export function TopRatedSeries() {
   const firstPlaceSize = useBreakpointValue({ base: "md", md: "lg" }) as
     "sm" | "md" | "lg" | undefined;
 
-  const { data: reviews, isLoading: isLoadingReviews } = useQuery({
+  // Média calculada no banco (view series_ratings) + detalhes da série no TMDB
+  const { data: topSeries, isLoading } = useQuery({
     queryKey: ["topRatedSeries"],
-    queryFn: () => getTopRatedReviews(),
-    // Consulta pesada (lê todas as avaliações): manter em cache por mais tempo.
-    staleTime: 1000 * 60 * 30,
-  });
-
-  const { data: topSeries, isLoading: isLoadingSeries } = useQuery({
-    queryKey: ["topSeriesDetails", reviews],
     queryFn: async () => {
-      if (!reviews) return [];
-
-      // Agrupar reviews por série e calcular média
-      const seriesMap = new Map<number, { total: number; count: number }>();
-
-      // Garantir que reviews é um array
-      const reviewsArray = Array.isArray(reviews) ? reviews : [];
-
-      reviewsArray.forEach((review: SeriesReview) => {
-        if (!review || !review.seasonReviews || !Array.isArray(review.seasonReviews)) return;
-
-        const seriesId = review.seriesId;
-        if (!seriesId) return;
-
-        const seasonRatings = review.seasonReviews
-          .map((sr) => sr?.rating || 0)
-          .filter((rating) => rating > 0);
-        if (seasonRatings.length === 0) return;
-
-        const averageRating =
-          seasonRatings.reduce((a: number, b: number) => a + b, 0) / seasonRatings.length;
-
-        if (!seriesMap.has(seriesId)) {
-          seriesMap.set(seriesId, { total: 0, count: 0 });
-        }
-        const current = seriesMap.get(seriesId)!;
-        seriesMap.set(seriesId, {
-          total: current.total + averageRating,
-          count: current.count + 1,
-        });
-      });
-
-      // Converter para array e ordenar
-      const sortedSeries = Array.from(seriesMap.entries())
-        .map(([seriesId, data]) => ({
-          id: seriesId,
-          averageRating: data.total / data.count,
-        }))
-        .filter((series) => series.averageRating >= 3 && !isNaN(series.averageRating))
-        .sort((a, b) => b.averageRating - a.averageRating)
-        .slice(0, 10);
-
-      // Buscar detalhes das séries
-      try {
-        const seriesDetails = await Promise.all(
-          sortedSeries.map(async (series) => {
-            try {
-              const details = await getSeriesDetails(series.id);
-              if (!details) return null;
-
-              return {
-                ...details,
-                averageRating: series.averageRating,
-              };
-            } catch (error) {
-              console.error(`Erro ao buscar detalhes da série ${series.id}:`, error);
-              return null;
-            }
-          })
-        );
-
-        // Remover itens nulos ou undefined
-        return seriesDetails.filter((item) => item !== null && item !== undefined);
-      } catch (error) {
-        console.error("Erro ao buscar detalhes das séries:", error);
-        return [];
-      }
+      const ranking = await getTopRatedReviews(10);
+      const details = await Promise.all(
+        ranking.map(async (entry) => {
+          try {
+            const series = await getSeriesDetails(entry.seriesId);
+            return { ...series, averageRating: entry.averageRating };
+          } catch {
+            return null;
+          }
+        })
+      );
+      return details.filter((item) => item !== null);
     },
-    enabled: !!reviews,
+    staleTime: 1000 * 60 * 10,
   });
-
-  const isLoading = isLoadingReviews || isLoadingSeries;
 
   if (isLoading) {
     return (

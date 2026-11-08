@@ -123,6 +123,12 @@ const SettingsLazy = React.lazy(() =>
   }))
 );
 
+const ResetPasswordLazy = React.lazy(() =>
+  import("../pages/ResetPassword").then((module) => ({
+    default: module.ResetPassword,
+  }))
+);
+
 const ProfileSettingsLazy = React.lazy(() =>
   import(/* webpackChunkName: "profile-settings" */ "../pages/ProfileSettings").then((module) => ({
     default: module.ProfileSettings,
@@ -334,6 +340,10 @@ export const routes = [
       {
         path: "/reviews/:reviewId",
         element: <ReviewDetails />,
+      },
+      {
+        path: "/reset-password",
+        element: <ResetPasswordLazy />,
       },
       {
         path: "*",

@@ -75,7 +75,6 @@ import { UserAvatar } from "../components/common/UserAvatar";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Timestamp } from "firebase/firestore";
 import { getErrorMessage } from "../utils/errors";
 
 export default function ListPage() {
@@ -477,13 +476,10 @@ export default function ListPage() {
     navigate(`/lists?tag=${encodeURIComponent(tag)}&source=listPage`);
   };
 
-  // Função auxiliar para converter Timestamp para Date
-  const convertToDate = (
-    timestamp: Date | Timestamp | number | string | null | undefined
-  ): Date => {
+  // Função auxiliar para converter datas
+  const convertToDate = (timestamp: Date | number | string | null | undefined): Date => {
     if (!timestamp) return new Date();
     if (timestamp instanceof Date) return timestamp;
-    if (timestamp instanceof Timestamp) return timestamp.toDate();
     if (typeof timestamp === "number") {
       return new Date(timestamp * 1000);
     }

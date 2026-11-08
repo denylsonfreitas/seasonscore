@@ -6,8 +6,7 @@ import {
   getPopularSeries,
 } from "./tmdb";
 import { getUserWatchlist, type WatchlistItem } from "./watchlist";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "../config/firebase";
+import { getUserReviews as getReviewsByUser } from "./reviews";
 import { logError } from "../utils/logger";
 import type { SeasonReview } from "../types/review";
 
@@ -59,19 +58,16 @@ interface UserReviewWithSeries {
  * Busca todas as avaliações feitas pelo usuário, com os detalhes de cada série
  */
 async function getUserReviews(userId: string): Promise<UserReviewWithSeries[]> {
-  const reviewsRef = collection(db, "reviews");
-  const q = query(reviewsRef, where("userId", "==", userId));
-  const querySnapshot = await getDocs(q);
+  const reviews = await getReviewsByUser(userId);
 
   const results = await Promise.all(
-    querySnapshot.docs.map(async (doc) => {
-      const reviewData = doc.data();
+    reviews.map(async (review) => {
       try {
-        const seriesDetails = await getSeriesDetails(Number(reviewData.seriesId));
+        const seriesDetails = await getSeriesDetails(review.seriesId);
         if (!seriesDetails) return null;
         return {
-          seriesId: Number(reviewData.seriesId),
-          seasonReviews: (reviewData.seasonReviews ?? []) as SeasonReview[],
+          seriesId: review.seriesId,
+          seasonReviews: review.seasonReviews,
           seriesDetails,
         };
       } catch (error) {

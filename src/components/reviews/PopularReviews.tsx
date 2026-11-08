@@ -26,7 +26,7 @@ export function PopularReviews() {
   const navigate = useNavigate();
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ["popularReviews"],
-    queryFn: getPopularReviews,
+    queryFn: () => getPopularReviews(),
     staleTime: 1000 * 60 * 5, // 5 minutos
   });
 

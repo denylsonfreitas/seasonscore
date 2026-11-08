@@ -1,29 +1,28 @@
-export async function uploadImage(file: File, folder: string): Promise<string> {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("upload_preset", "seasonscore_unsigned");
-  formData.append("folder", `seasonscore/${folder}`);
+import { supabase } from "../config/supabase";
 
-  const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/upload`,
-    {
-      method: "POST",
-      body: formData,
-    }
-  );
+const BUCKET = "profile-images";
 
-  if (!response.ok) {
-    throw new Error("Erro ao fazer upload da imagem");
-  }
+/**
+ * Envia uma imagem para a pasta do usuário no Storage e devolve a URL pública.
+ * O nome é fixo por tipo (substitui a anterior); o parâmetro "v" evita cache antigo.
+ */
+async function uploadUserImage(file: File, userId: string, kind: "profile" | "cover") {
+  const path = `${userId}/${kind}`;
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+    upsert: true,
+    contentType: file.type,
+    cacheControl: "3600",
+  });
+  if (error) throw new Error("Erro ao fazer upload da imagem", { cause: error });
 
-  const data = await response.json();
-  return data.secure_url;
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  return `${data.publicUrl}?v=${Date.now()}`;
 }
 
-export async function uploadProfilePhoto(file: File, userId: string): Promise<string> {
-  return uploadImage(file, `users/${userId}/profile`);
+export function uploadProfilePhoto(file: File, userId: string): Promise<string> {
+  return uploadUserImage(file, userId, "profile");
 }
 
-export async function uploadCoverPhoto(file: File, userId: string): Promise<string> {
-  return uploadImage(file, `users/${userId}/cover`);
+export function uploadCoverPhoto(file: File, userId: string): Promise<string> {
+  return uploadUserImage(file, userId, "cover");
 }

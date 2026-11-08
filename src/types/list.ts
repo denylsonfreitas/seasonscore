@@ -1,10 +1,8 @@
-import { Timestamp } from "firebase/firestore";
-
 export interface ListItem {
   seriesId: number;
   name: string;
   poster_path: string | null;
-  addedAt: Date | Timestamp;
+  addedAt: Date;
 }
 
 export interface List {
@@ -16,8 +14,8 @@ export interface List {
   tags: string[];
   isPublic: boolean;
   accessByLink: boolean;
-  createdAt: Date | Timestamp;
-  updatedAt: Date | Timestamp;
+  createdAt: Date;
+  updatedAt: Date;
   likesCount: number;
   commentsCount: number;
 }
@@ -30,15 +28,6 @@ export interface ListWithUserData extends List {
   coverImage?: string | null;
 }
 
-export interface ListComment {
-  id: string;
-  listId: string;
-  userId: string;
-  content: string;
-  createdAt: Date | Timestamp;
-  likes: Record<string, boolean>;
-}
-
 export type ListReactionType = "like";
 
 export interface ListReaction {
@@ -46,15 +35,5 @@ export interface ListReaction {
   listId: string;
   userId: string;
   type: ListReactionType;
-  createdAt: Date | Timestamp;
-}
-
-export interface AddToListOptions {
-  listId?: string;
-  createNew?: boolean;
-  series: {
-    id: number;
-    name: string;
-    poster_path: string | null;
-  };
+  createdAt: Date;
 }

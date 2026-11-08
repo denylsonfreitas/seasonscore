@@ -1,7 +1,7 @@
 // Service Worker do SeasonScore
 // - Assets com hash (/assets/*) usam cache-first: o nome muda a cada build.
 // - Navegações usam network-first com fallback para a página offline.
-// - Requisições de outros domínios (Firebase, TMDB, fontes) não passam pelo cache.
+// - Requisições de outros domínios (Supabase, TMDB, fontes) não passam pelo cache.
 
 const VERSION = "v2";
 const STATIC_CACHE = `seasonscore-static-${VERSION}`;

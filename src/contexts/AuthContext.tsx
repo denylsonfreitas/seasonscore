@@ -1,41 +1,30 @@
-import { createContext, useContext, ReactNode } from "react";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-  updateProfile,
-  EmailAuthProvider,
-  linkWithCredential,
-  fetchSignInMethodsForEmail,
-  sendPasswordResetEmail,
-} from "firebase/auth";
-import { useEffect, useState } from "react";
-import { auth } from "../config/firebase";
-import {
-  createOrUpdateUser,
-  getUserData,
-  getUserByEmail,
-  getUserByUsernameOrEmail,
-  UserData,
-} from "../services/users";
-import { ExtendedUser } from "../types/auth";
-import { cleanupNotifications } from "../services/notifications";
-import { useToast } from "@chakra-ui/react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
+import { supabase } from "../config/supabase";
+import { getUserData, invalidateUserData } from "../services/users";
 import { useAuthUIStore } from "../services/uiState";
-import { getErrorCode, getErrorMessage } from "../utils/errors";
+import type { ExtendedUser } from "../types/auth";
+
+interface SignUpResult {
+  /** O Supabase exige confirmação por email antes do primeiro login. */
+  needsEmailConfirmation: boolean;
+}
 
 interface AuthContextType {
   currentUser: ExtendedUser | null;
-  signUp: (email: string, password: string, username: string) => Promise<UserData | null>;
-  login: (usernameOrEmail: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, username: string) => Promise<SignUpResult>;
+  login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
-  linkWithEmail: (email: string, password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
+  /** Recarrega o perfil (após editar foto, nome etc.). */
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -44,288 +33,139 @@ export function useAuth() {
   return context;
 }
 
-interface AuthProviderProps {
-  children: ReactNode;
+/** Traduz os erros mais comuns do Supabase Auth. */
+function authErrorMessage(error: { message?: string; code?: string }): string {
+  const code = error.code ?? "";
+  const message = error.message ?? "";
+  if (code === "invalid_credentials" || message.includes("Invalid login credentials")) {
+    return "Email ou senha incorretos.";
+  }
+  if (code === "email_not_confirmed") {
+    return "Confirme seu email antes de entrar. Verifique sua caixa de entrada.";
+  }
+  if (code === "user_already_exists" || message.includes("already registered")) {
+    return "Este email já está em uso.";
+  }
+  if (code === "weak_password" || message.includes("Password should be")) {
+    return "A senha deve ter pelo menos 6 caracteres.";
+  }
+  if (code === "over_email_send_rate_limit" || code === "over_request_rate_limit") {
+    return "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
+  }
+  if (code === "validation_failed" || message.includes("invalid format")) {
+    return "Email inválido. Verifique o formato do email.";
+  }
+  return message || "Ocorreu um erro inesperado. Tente novamente.";
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
+function fail(error: { message?: string; code?: string }): never {
+  throw new Error(authErrorMessage(error), { cause: error });
+}
+
+async function buildUser(user: SupabaseUser): Promise<ExtendedUser> {
+  invalidateUserData(user.id);
+  const profile = await getUserData(user.id);
+  const providers = (user.app_metadata?.providers as string[] | undefined) ?? [
+    user.app_metadata?.provider ?? "email",
+  ];
+  return {
+    uid: user.id,
+    email: user.email ?? null,
+    displayName: profile?.displayName ?? profile?.username ?? null,
+    photoURL: profile?.photoURL ?? null,
+    username: profile?.username,
+    coverURL: profile?.coverURL ?? undefined,
+    description: profile?.description,
+    favoriteSeries: profile?.favoriteSeries ?? undefined,
+    notificationSettings: profile?.notificationSettings,
+    providers,
+  };
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<ExtendedUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const toast = useToast();
   const { closeAllAuth } = useAuthUIStore();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setLoading(true);
-      if (user) {
-        try {
-          const userData = await getUserData(user.uid);
-          const extendedUser: ExtendedUser = {
-            ...user,
-            coverURL: userData?.coverURL || undefined,
-            description: userData?.description || undefined,
-            username: userData?.username || undefined,
-            favoriteSeries: userData?.favoriteSeries || undefined,
-          };
-          setCurrentUser(extendedUser);
-
-          closeAllAuth();
-        } catch (error) {
-          setCurrentUser(user);
-          closeAllAuth();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      // As chamadas ao banco ficam fora do callback para não travar o cliente de auth.
+      setTimeout(async () => {
+        if (session?.user) {
+          setCurrentUser(await buildUser(session.user));
+          if (event === "SIGNED_IN") closeAllAuth();
+        } else {
+          setCurrentUser(null);
         }
-      } else {
-        setCurrentUser(null);
-      }
-      setLoading(false);
+        setLoading(false);
+      }, 0);
     });
-
-    return unsubscribe;
+    return () => subscription.unsubscribe();
   }, [closeAllAuth]);
 
   async function signUp(email: string, password: string, username: string) {
-    try {
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-
-      const existingUser = await getUserByEmail(email);
-
-      const displayName = existingUser?.displayName || email.split("@")[0];
-
-      await updateProfile(result.user, {
-        displayName: displayName,
-      });
-
-      await createOrUpdateUser(result.user, {
-        username: username.toLowerCase(),
-        displayName: displayName,
-        ...(existingUser && {
-          description: existingUser.description,
-          coverURL: existingUser.coverURL,
-          favoriteSeries: existingUser.favoriteSeries,
-        }),
-      });
-
-      const userData = await getUserData(result.user.uid);
-
-      return userData;
-    } catch (error) {
-      if (getErrorCode(error) === "auth/email-already-in-use") {
-        toast({
-          title: "Email em uso",
-          description: "Este email já está em uso. Por favor, faça login ou use outro email.",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-        throw new Error("Este email já está em uso. Por favor, faça login ou use outro email.", {
-          cause: error,
-        });
-      } else if (getErrorCode(error) === "auth/weak-password") {
-        toast({
-          title: "Senha fraca",
-          description: "A senha deve ter pelo menos 6 caracteres.",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-        throw new Error("A senha deve ter pelo menos 6 caracteres.", { cause: error });
-      } else if (getErrorCode(error) === "auth/invalid-email") {
-        toast({
-          title: "Email inválido",
-          description: "Por favor, forneça um endereço de email válido.",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-        throw new Error("Por favor, forneça um endereço de email válido.", { cause: error });
-      }
-
-      toast({
-        title: "Erro ao criar conta",
-        description: "Ocorreu um erro inesperado. Por favor, tente novamente mais tarde.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-      throw error;
-    }
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { username: username.toLowerCase(), display_name: username },
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    if (error) fail(error);
+    // Com confirmação de email ativa, o Supabase devolve o usuário sem sessão
+    return { needsEmailConfirmation: !data.session };
   }
 
-  async function login(usernameOrEmail: string, password: string) {
-    try {
-      const userData = await getUserByUsernameOrEmail(usernameOrEmail);
+  async function login(email: string, password: string) {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    if (error) fail(error);
+  }
 
-      if (!userData) {
-        throw new Error("Usuário não encontrado. Verifique seu nome de usuário ou email.");
-      }
-
-      const email = userData.email;
-
-      const result = await signInWithEmailAndPassword(auth, email, password);
-
-      await createOrUpdateUser(result.user, {
-        username: userData.username,
-        displayName: userData.displayName || result.user.displayName || "",
-        description: userData.description,
-        coverURL: userData.coverURL,
-        favoriteSeries: userData.favoriteSeries,
-      });
-
-      const updatedUserData = await getUserData(result.user.uid);
-      const extendedUser: ExtendedUser = {
-        ...result.user,
-        coverURL: updatedUserData?.coverURL || undefined,
-        description: updatedUserData?.description || undefined,
-        username: updatedUserData?.username || undefined,
-        favoriteSeries: updatedUserData?.favoriteSeries || undefined,
-      };
-      setCurrentUser(extendedUser);
-
-      await cleanupNotifications(result.user.uid);
-    } catch (error) {
-      if (getErrorCode(error) === "auth/wrong-password") {
-        throw new Error("Senha incorreta. Tente novamente.", { cause: error });
-      } else if (
-        getErrorCode(error) === "auth/user-not-found" ||
-        getErrorMessage(error).includes("Usuário não encontrado")
-      ) {
-        throw new Error("Usuário não encontrado. Verifique seu nome de usuário ou email.", {
-          cause: error,
-        });
-      } else if (getErrorCode(error) === "auth/invalid-credential") {
-        throw new Error("Credenciais inválidas. Verifique seu nome de usuário ou email e senha.", {
-          cause: error,
-        });
-      }
-
-      throw error;
-    }
+  async function loginWithGoogle() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) fail(error);
   }
 
   async function logout() {
-    try {
-      await firebaseSignOut(auth);
-    } catch (error) {
-      console.error("Erro ao fazer logout:", error);
-      throw error;
-    }
-  }
-
-  async function linkWithEmail(email: string, password: string) {
-    if (!currentUser) {
-      throw new Error("Nenhum usuário autenticado");
-    }
-
-    try {
-      const methods = await fetchSignInMethodsForEmail(auth, email);
-
-      if (methods.length > 0) {
-        throw new Error("Este email já está associado a outra conta");
-      }
-
-      const credential = EmailAuthProvider.credential(email, password);
-      await linkWithCredential(currentUser, credential);
-
-      toast({
-        title: "Email vinculado com sucesso",
-        description: "Seu email foi vinculado à sua conta",
-        status: "success",
-        duration: 5000,
-        isClosable: true,
-      });
-    } catch (error) {
-      if (getErrorCode(error) === "auth/provider-already-linked") {
-        toast({
-          title: "Provedor já vinculado",
-          description: "Este método de login já está vinculado à sua conta",
-          status: "warning",
-          duration: 5000,
-          isClosable: true,
-        });
-      } else if (getErrorCode(error) === "auth/invalid-email") {
-        toast({
-          title: "Email inválido",
-          description: "Por favor, forneça um endereço de email válido",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      } else if (getErrorCode(error) === "auth/weak-password") {
-        toast({
-          title: "Senha fraca",
-          description: "A senha deve ter pelo menos 6 caracteres",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      } else if (getErrorMessage(error) === "Este email já está associado a outra conta") {
-        toast({
-          title: "Email já em uso",
-          description: "Este email já está associado a outra conta",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      } else {
-        toast({
-          title: "Erro ao vincular email",
-          description: "Ocorreu um erro ao vincular seu email",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      }
-      throw error;
-    }
+    const { error } = await supabase.auth.signOut();
+    if (error) fail(error);
   }
 
   async function resetPassword(email: string) {
-    try {
-      await sendPasswordResetEmail(auth, email);
-      toast({
-        title: "Email enviado",
-        description: "Verifique sua caixa de entrada para redefinir sua senha",
-        status: "success",
-        duration: 5000,
-        isClosable: true,
-      });
-    } catch (error) {
-      if (getErrorCode(error) === "auth/user-not-found") {
-        toast({
-          title: "Usuário não encontrado",
-          description: "Não há usuário registrado com este email",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      } else if (getErrorCode(error) === "auth/invalid-email") {
-        toast({
-          title: "Email inválido",
-          description: "Por favor, forneça um endereço de email válido",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      } else {
-        toast({
-          title: "Erro ao enviar email",
-          description: "Ocorreu um erro ao enviar o email de redefinição de senha",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      }
-      throw error;
-    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) fail(error);
   }
+
+  async function updatePassword(newPassword: string) {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) fail(error);
+  }
+
+  const refreshUser = useCallback(async () => {
+    const { data } = await supabase.auth.getUser();
+    setCurrentUser(data.user ? await buildUser(data.user) : null);
+  }, []);
 
   const value = {
     currentUser,
     signUp,
     login,
+    loginWithGoogle,
     logout,
-    linkWithEmail,
     resetPassword,
+    updatePassword,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;

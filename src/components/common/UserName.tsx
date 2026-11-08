@@ -30,7 +30,7 @@ export function UserName({ userId, color = "white", showAt = true, isLink = true
         setDisplayName(userData.username); // Usamos o username como display principal
       } else {
         // Só usamos o displayName se não houver username
-        setDisplayName(userData.displayName || userData.email?.split("@")[0] || "Usuário");
+        setDisplayName(userData.displayName || "Usuário");
       }
     } else {
       // Se não temos dados, mostrar "Usuário excluído"

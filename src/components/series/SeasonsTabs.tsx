@@ -1,4 +1,4 @@
-import type { User } from "firebase/auth";
+import type { ExtendedUser as User } from "../../types/auth";
 import type { ReviewClickHandler } from "../../types/review";
 import type { Series } from "../../services/tmdb";
 import { VStack, Accordion, Button } from "@chakra-ui/react";

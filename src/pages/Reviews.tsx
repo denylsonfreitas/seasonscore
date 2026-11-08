@@ -40,7 +40,7 @@ export function Reviews() {
   // Buscar avaliações populares (com pelo menos 1 curtida)
   const { data: popularReviews = [], isLoading: isLoadingPopular } = useQuery({
     queryKey: ["allPopularReviews"],
-    queryFn: getPopularReviews,
+    queryFn: () => getPopularReviews(),
     refetchInterval: 10000,
     refetchOnWindowFocus: true,
     staleTime: 0,

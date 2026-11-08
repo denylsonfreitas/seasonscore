@@ -1,15 +1,13 @@
-import { Timestamp } from "firebase/firestore";
-
 /**
  * Formata uma data para exibição em notificações
  * @param date A data a ser formatada
  * @returns String formatada da data
  */
-export function formatNotificationDate(date: Date | Timestamp | null | undefined): string {
+export function formatNotificationDate(date: Date | string | null | undefined): string {
   if (!date) return "Agora";
 
-  // Converter Timestamp para Date se necessário
-  const dateObj = date instanceof Timestamp ? date.toDate() : date;
+  // Aceita Date ou string ISO
+  const dateObj = date instanceof Date ? date : new Date(date);
 
   const now = new Date();
   const diff = now.getTime() - dateObj.getTime();
@@ -49,11 +47,11 @@ export function formatNotificationDate(date: Date | Timestamp | null | undefined
 }
 
 /** Formata uma data em texto relativo (ex.: "há 2 horas"). */
-export function formatRelativeTime(date: Date | Timestamp | null | undefined): string {
+export function formatRelativeTime(date: Date | string | null | undefined): string {
   if (!date) return "recentemente";
 
-  // Converter Timestamp para Date se necessário
-  const dateObj = date instanceof Timestamp ? date.toDate() : date;
+  // Aceita Date ou string ISO
+  const dateObj = date instanceof Date ? date : new Date(date);
 
   const now = new Date();
   const diff = now.getTime() - dateObj.getTime();

@@ -32,13 +32,8 @@ export function ReviewsSection({ reviews, isLoading, onReviewClick }: ReviewsSec
       if (!a.createdAt) return 1;
       if (!b.createdAt) return -1;
 
-      const dateA = new Date(
-        a.createdAt instanceof Date ? a.createdAt : a.createdAt.seconds * 1000
-      ).getTime();
-
-      const dateB = new Date(
-        b.createdAt instanceof Date ? b.createdAt : b.createdAt.seconds * 1000
-      ).getTime();
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
 
       return dateB - dateA; // Mais recentes primeiro
     });

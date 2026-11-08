@@ -2,18 +2,15 @@ import { Box, Container, Text, VStack, Flex, useToast, Center, Spinner } from "@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import { updateProfile } from "firebase/auth";
 import { uploadProfilePhoto, uploadCoverPhoto } from "../services/upload";
 import { useNavigate, useParams } from "react-router-dom";
 import { Footer } from "../components/common/Footer";
 import { getUserReviews, SeriesReview } from "../services/reviews";
 import { getUserWatchlist } from "../services/watchlist";
 import { getFollowers, getFollowing } from "../services/followers";
-import { getUserData, UserData, createOrUpdateUser, getUserByUsername } from "../services/users";
+import { getUserData, UserData, updateProfile, getUserByUsername } from "../services/users";
 import { getUserLists } from "../services/lists";
 import { UserListModal } from "../components/user/UserListModal";
-import { ExtendedUser } from "../types/auth";
-
 // Componentes modularizados para perfil
 import { ProfileHeader } from "../components/profile/ProfileHeader";
 import { ProfileStats } from "../components/profile/ProfileStats";
@@ -22,7 +19,7 @@ import { WatchlistSection } from "../components/profile/WatchlistSection";
 import { ListsSection } from "../components/profile/ListsSection";
 
 export function Profile() {
-  const { currentUser } = useAuth() as { currentUser: ExtendedUser | null };
+  const { currentUser, refreshUser } = useAuth();
   const { username } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
@@ -104,8 +101,8 @@ export function Profile() {
       const file = event.target.files[0];
       const photoURL = await uploadProfilePhoto(file, currentUser.uid);
 
-      await updateProfile(currentUser, { photoURL });
-      await createOrUpdateUser(currentUser, { photoURL });
+      await updateProfile(currentUser.uid, { photoURL });
+      await refreshUser();
 
       toast({
         title: "Foto atualizada",
@@ -135,7 +132,8 @@ export function Profile() {
       const file = event.target.files[0];
       const coverURL = await uploadCoverPhoto(file, currentUser.uid);
 
-      await createOrUpdateUser(currentUser, { coverURL });
+      await updateProfile(currentUser.uid, { coverURL });
+      await refreshUser();
 
       toast({
         title: "Capa atualizada",
@@ -172,8 +170,8 @@ export function Profile() {
   }
 
   const userName = isOwnProfile
-    ? currentUser?.displayName || currentUser?.email?.split("@")[0] || "Usuário"
-    : profileUser?.displayName || profileUser?.email?.split("@")[0] || "Usuário";
+    ? currentUser?.displayName || currentUser?.username || "Usuário"
+    : profileUser?.displayName || profileUser?.username || "Usuário";
 
   // Contar listas
   const listsCount = userLists?.length || 0;

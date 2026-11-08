@@ -15,7 +15,8 @@ import {
   FocusLock,
 } from "@chakra-ui/react";
 import { useAuth } from "../../contexts/AuthContext";
-import { getErrorCode, getErrorMessage } from "../../utils/errors";
+import { GoogleSignInButton } from "./GoogleSignInButton";
+import { getErrorMessage } from "../../utils/errors";
 
 interface LoginFormProps {
   onSignUpClick: () => void;
@@ -119,22 +120,7 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
         onClose();
       }
     } catch (error) {
-      let errorMessage = "Email/nome de usuário ou senha incorretos.";
-
-      if (
-        getErrorCode(error) === "auth/user-not-found" ||
-        getErrorMessage(error).includes("Usuário não encontrado")
-      ) {
-        errorMessage = "Usuário não encontrado. Verifique seu nome de usuário ou email.";
-      } else if (getErrorCode(error) === "auth/wrong-password") {
-        errorMessage = "Senha incorreta. Tente novamente.";
-      } else if (getErrorCode(error) === "auth/too-many-requests") {
-        errorMessage = "Muitas tentativas de login. Tente novamente mais tarde.";
-      } else if (getErrorCode(error) === "auth/invalid-credential") {
-        errorMessage = "Credenciais inválidas. Verifique seu nome de usuário ou email e senha.";
-      } else if (getErrorMessage(error)) {
-        errorMessage = getErrorMessage(error);
-      }
+      const errorMessage = getErrorMessage(error, "Email ou senha incorretos.");
 
       toast({
         title: "Erro ao fazer login",
@@ -173,15 +159,10 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
       setShowResetForm(false);
       setResetEmail("");
     } catch (error) {
-      let errorMessage = "Não foi possível enviar o email de redefinição.";
-
-      if (getErrorCode(error) === "auth/user-not-found") {
-        errorMessage = "Email não encontrado.";
-      } else if (getErrorCode(error) === "auth/invalid-email") {
-        errorMessage = "Endereço de email inválido.";
-      } else if (getErrorMessage(error)) {
-        errorMessage = getErrorMessage(error);
-      }
+      const errorMessage = getErrorMessage(
+        error,
+        "Não foi possível enviar o email de redefinição."
+      );
 
       toast({
         title: "Erro",
@@ -202,10 +183,11 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
           <FormControl style={getItemAnimationStyle(0)}>
             <Input
               type="text"
-              name="usernameOrEmail"
+              name="email"
               value={usernameOrEmail}
               onChange={(e) => setUsernameOrEmail(e.target.value)}
-              placeholder="Email ou nome de usuário"
+              placeholder="Email"
+              autoComplete="email"
               bg="gray.700"
               border="none"
               color="white"
@@ -255,6 +237,10 @@ export function LoginForm({ onSignUpClick, onClose }: LoginFormProps) {
           >
             Entrar
           </Button>
+
+          <Box style={getItemAnimationStyle(2)}>
+            <GoogleSignInButton />
+          </Box>
 
           <Flex justify="center" style={getItemAnimationStyle(3)}>
             <Text color="gray.400" fontSize="sm">
