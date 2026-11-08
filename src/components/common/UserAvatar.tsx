@@ -1,6 +1,6 @@
 import { User } from "@phosphor-icons/react";
-import React from "react";
-import { Avatar, AvatarBadge, AvatarProps, useColorModeValue } from "@chakra-ui/react";
+import type React from "react";
+import { Avatar, AvatarBadge, type AvatarProps } from "@chakra-ui/react";
 
 interface UserAvatarProps extends Omit<AvatarProps, "src" | "name" | "icon"> {
   userId?: string;
@@ -10,13 +10,15 @@ interface UserAvatarProps extends Omit<AvatarProps, "src" | "name" | "icon"> {
   showStatus?: boolean;
   isDeleted?: boolean;
   isDeletedExtra?: boolean;
+  /** Nome exibido; usado para as iniciais quando não há foto. */
   name?: string;
   onClick?: () => void;
+  /** Nome de usuário (campo mantido com este nome por compatibilidade). */
   userEmail?: string;
 }
 
+/** Avatar circular: foto, iniciais sobre ink.800 ou ícone para conta excluída. */
 export const UserAvatar: React.FC<UserAvatarProps> = ({
-  userId,
   photoURL,
   size = "md",
   isOnline,
@@ -26,44 +28,33 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   name,
   onClick,
   userEmail,
+  userId: _userId,
   ...props
 }) => {
-  const { ...filteredProps } = props as {
-    displayName?: string;
-  } & AvatarProps;
+  const deleted =
+    isDeleted || isDeletedExtra || (name ? name.toLowerCase().includes("excluído") : false);
+  const label = name || (userEmail ? userEmail.split("@")[0] : undefined);
 
-  const userIsDeleted =
-    isDeleted ||
-    !userId ||
-    isDeletedExtra ||
-    !photoURL ||
-    (name && name.toLowerCase().includes("excluído"));
-
-  const bg = useColorModeValue("gray.300", "gray.600");
-  const badgeBorderColor = useColorModeValue("white", "gray.800");
   return (
     <Avatar
       size={size}
-      src={userIsDeleted ? undefined : photoURL || undefined}
-      name={
-        userIsDeleted
-          ? "Usuário excluído"
-          : name || (userEmail ? userEmail.split("@")[0] : "Usuário")
-      }
-      bg={bg}
-      icon={userIsDeleted ? <User weight="fill" /> : undefined}
+      src={deleted ? undefined : photoURL || undefined}
+      name={deleted ? undefined : label}
+      bg="ink.800"
+      color="ink.200"
+      fontFamily="mono"
+      icon={<User />}
       onClick={onClick}
-      borderWidth={userIsDeleted ? "1px" : 0}
-      borderColor="gray.500"
-      opacity={userIsDeleted ? 0.7 : 1}
-      {...filteredProps}
+      opacity={deleted ? 0.6 : 1}
+      aria-label={deleted ? "Usuário excluído" : label}
+      {...props}
     >
       {showStatus && (
         <AvatarBadge
           boxSize="1em"
-          bg={isOnline ? "green.400" : "gray.400"}
+          bg={isOnline ? "signal.400" : "ink.400"}
           borderWidth="2px"
-          borderColor={badgeBorderColor}
+          borderColor="ink.950"
         />
       )}
     </Avatar>
