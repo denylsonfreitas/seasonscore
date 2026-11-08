@@ -54,7 +54,6 @@ function GlobalEventHandler() {
 const router = createBrowserRouter(routes);
 
 function App() {
-
   return (
     <ErrorBoundaryProvider>
       <QueryClientProvider client={queryClient}>
