@@ -87,34 +87,5 @@
     </div>
 
     <script type="module" src="/src/main.tsx"></script>
-
-    <script>
-      window.scrollToTop = function () {
-        window.scrollTo({
-          top: 0,
-          behavior: "smooth",
-        });
-
-        setTimeout(() => {
-          window.scrollTo(0, 0);
-          document.documentElement.scrollTop = 0;
-          document.body.scrollTop = 0;
-        }, 100);
-      };
-
-      const connection =
-        navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-      if (connection && (connection.saveData || (connection.effectiveType || "").includes("2g"))) {
-        document.documentElement.classList.add("slow-connection");
-      }
-
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker.register("/service-worker.js").catch(() => {
-            // Falha ao registrar o Service Worker não impede o uso do app
-          });
-        });
-      }
-    </script>
   </body>
 </html>

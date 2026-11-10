@@ -7,3 +7,12 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <App />
   </React.StrictMode>
 );
+
+// Service worker só em produção (no dev ele guardaria arquivos antigos em cache).
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/service-worker.js").catch(() => {
+      // Falha ao registrar o service worker não impede o uso do app
+    });
+  });
+}
